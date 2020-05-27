@@ -10,15 +10,28 @@ import matplotlib
 import matplotlib.pyplot as plt
 import rasterio
 import glob
+
 from rasterio.plot import show
 from rasterio.mask import mask
+from rasterio.features import shapes # for raster to polygon
+
 from shapely.geometry import mapping
+from shapely.geometry import shape
+
 import math
 
 from xml.etree import ElementTree
 # from xml.dom import minidom
 from scipy.interpolate import griddata #for grid interpolation
-from skimage.segmentation import slic # for superpixels
+from scipy import ndimage # for image filtering
+
+from skimage import measure
+#from skimage import graph 
+from skimage.future import graph # for rag
+from skimage import segmentation # for superpixels
+from skimage import color # for labeling image
+from skimage import filters # for Otsu thesholding
+
 
 
 def read_band_image(band, path):
@@ -244,7 +257,36 @@ def S_curve(x,a,b):
     del fe,x
     return fx
 
+def getShadowPolygon(I,sizPix,thres):
+    SupPix = segmentation.slic(M, sigma = 1, 
+                  n_segments=np.ceil(np.divide(np.nanprod(M.shape),sizPix)), 
+                  compactness=1.0000) # create super pixels
+    
+    g = graph.rag_mean_color(M, SupPix) # create region adjacency graph
+    mc = np.empty(len(g))
+    for n in g:
+        mc[n] = g.node[n]['mean color'][1]
+    # n, bins, patches = plt.hist(x=mc, bins=200)
+    
+    labels = graph.cut_threshold(SupPix, g, thres)
+    
+    # separate into two classes
+    meanIm = color.label2rgb(labels, M, kind='avg')
+    val = filters.threshold_otsu(meanIm)
+    OstsuSeparation = meanIm < val
+    labels = measure.label(OstsuSeparation, background=0) 
+    labels = np.int16(labels) # so it can be used for the boundaries extraction
+    return labels
 
+def castOrientation(sunZn,sunAz):
+    kernel = np.array([[-1, 0, +1],
+                   [-2, 0, +2],
+                   [-1, 0, +1]])
+    Mdx = ndimage.convolve(M, kernel) # steerable filters
+    Mdy = ndimage.convolve(M, np.flip(np.transpose(kernel),axis=0))
+    Mcan = np.multiply(np.cos(np.radians(sunAz)),Mdy) - np.multiply(np.sin(np.radians(sunAz)),Mdx)
+    return Mcan
+ 
 # s2Path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VNL_20180225T232042/'
 # fName = 'T05VNL_20180225T214531_B'
 s2Path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VPL_20180225T232042/'
@@ -269,17 +311,41 @@ B3 = B3[minI:maxI,minI:maxI]
 B4 = B4[minI:maxI,minI:maxI]
 B8 = B8[minI:maxI,minI:maxI]
 
+# transform to shadow image
 M = ruffenacht(B2,B3,B4,B8)
 del B2,B3,B4,B8
 
-
+# classify into regions
 sizPix = 300 # 300 in size
-SupPix = slic(M, sigma = 1, 
-              n_segments=np.ceil(np.divide(np.nanprod(M.shape),sizPix)), 
-              compactness=1.0000)
+thres = 0.1
+labels = getShadowPolygon(M,sizPix,thres)
+msk = labels<1
+
+#drv = gdal.GetDriverByName("GTiff")
+#ds = drv.Create("dummy.tif", labels.shape[1], labels.shape[0], 6, gdal.GDT_Int32)
+#ds.SetGeoTransform(geoTransform)
+#ds.SetProjection(crs)
+#ds.GetRasterBand(1).WriteArray(labels)
+#ds = None
+#del ds,labels
+
+#with rasterio.open('dummy.tif') as dataset:
+#    labels = dataset.read()        
+
+mypoly=[]
+for shp, val in shapes(labels, mask=msk, connectivity=8):
+#    print('%s: %s' % (val, shape(shp)))
+    mypoly.append(shape(shp))
+
+# find self-shadow and cast-shadow
+(sunZn,sunAz) = read_sun_angles(s2Path)
+sunZn = sunZn[minI:maxI,minI:maxI]
+sunAz = sunAz[minI:maxI,minI:maxI]
+Mcan = castOrientation(sunZn,sunAz) 
+
 
 fig, ax = plt.subplots()
-im = ax.imshow(SupPix)
+im = ax.imshow(Mcan)
 fig.colorbar(im)
 plt.show()
 
@@ -292,19 +358,36 @@ cumulative = np.cumsum(values)
 plt.plot(base[:-1], cumulative, c='blue')
 plt.show()
 
+values, base = np.histogram(mc, bins='auto')
+cumulative = np.cumsum(values)
+plt.plot(base[:-1], cumulative, c='blue')
+plt.show()
+
 # fig, ax = plt.subplots()
 # im = ax.imshow(M)
 # fig.colorbar(im)
 # plt.show()
 
 
-(sunZn,sunAz) = read_sun_angles(s2Path)
-sunZn = sunZn[minI:maxI,minI:maxI]
-sunAz = sunAz[minI:maxI,minI:maxI]
+# concat
+
+
+# thresholding along boundaries... making a samplingset to see if the threshold is sufficient
+
+
+
+import cv2
+# use azimuth angle to find selfshadow border
+
+# steerable filters
+kernel = np.ones((3,3),np.float32)/9
+processed_image = cv2.filter2D(image,-1,kernel)
 
 (viwZn,viwAz) = read_view_angles(s2Path)
 viwZn = viwZn[minI:maxI,minI:maxI]
 viwAz = viwAz[minI:maxI,minI:maxI]
+
+
 
 fig, ax = plt.subplots()
 im = ax.imshow(viwZn)
@@ -312,15 +395,6 @@ fig.colorbar(im)
 plt.show()
 
 
-
-# classify into regions
-# super-pixels, global histogram, ...
-# from skimage.segmentation import slic
-
-# concat
-
-
-# thresholding along boundaries... making a samplingset to see if the threshold is sufficient
 
 
 # create HSI bands
