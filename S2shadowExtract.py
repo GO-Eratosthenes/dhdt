@@ -17,6 +17,7 @@ from rasterio.features import shapes # for raster to polygon
 
 from shapely.geometry import mapping
 from shapely.geometry import shape
+from shapely.geometry import Point, LineString
 
 import math
 
@@ -24,6 +25,8 @@ from xml.etree import ElementTree
 # from xml.dom import minidom
 from scipy.interpolate import griddata #for grid interpolation
 from scipy import ndimage # for image filtering
+from scipy import signal # for convolution filter
+#import cv2
 
 from skimage import measure
 #from skimage import graph 
@@ -31,8 +34,9 @@ from skimage.future import graph # for rag
 from skimage import segmentation # for superpixels
 from skimage import color # for labeling image
 from skimage import filters # for Otsu thesholding
+from skimage import transform # for rotation
 
-
+from itertools import compress # for fast indexing
 
 def read_band_image(band, path):
     """
@@ -46,7 +50,7 @@ def read_band_image(band, path):
              geoTransform   tuple             affine transformation coefficients
              targetprj                        spatial reference
     """
-    fname = os.path.join(path,'*B'+band+'*.jp2')
+    fname = os.path.join(path,'*B'+band+'.jp2')
     img = gdal.Open(glob.glob(fname)[0])
     data = np.array(img.GetRasterBand(1).ReadAsArray())
     spatialRef = img.GetProjection()
@@ -257,42 +261,106 @@ def S_curve(x,a,b):
     del fe,x
     return fx
 
-def getShadowPolygon(I,sizPix,thres):
+def getShadowPolygon(M,sizPix,thres):
+    mn = np.ceil(np.divide(np.nanprod(M.shape),sizPix));
     SupPix = segmentation.slic(M, sigma = 1, 
-                  n_segments=np.ceil(np.divide(np.nanprod(M.shape),sizPix)), 
-                  compactness=1.0000) # create super pixels
+                  n_segments=mn, 
+                  compactness=0.010) # create super pixels
     
-    g = graph.rag_mean_color(M, SupPix) # create region adjacency graph
-    mc = np.empty(len(g))
-    for n in g:
-        mc[n] = g.node[n]['mean color'][1]
-    # n, bins, patches = plt.hist(x=mc, bins=200)
-    
-    labels = graph.cut_threshold(SupPix, g, thres)
-    
-    # separate into two classes
-    meanIm = color.label2rgb(labels, M, kind='avg')
-    val = filters.threshold_otsu(meanIm)
-    OstsuSeparation = meanIm < val
-    labels = measure.label(OstsuSeparation, background=0) 
+#    g = graph.rag_mean_color(M, SupPix) # create region adjacency graph
+#    mc = np.empty(len(g))
+#    for n in g:
+#        mc[n] = g.nodes[n]['mean color'][1]
+#    graphCut = graph.cut_threshold(SupPix, g, thres)
+#    meanIm = color.label2rgb(graphCut, M, kind='avg')
+    meanIm = color.label2rgb(SupPix, M, kind='avg')
+    sturge = 1.6*(math.log2(mn)+1)
+    values, base = np.histogram(np.reshape(meanIm,-1), 
+                                bins=np.int(np.ceil(sturge)))
+    dips = findValley(values,base,2)
+    val = max(dips)
+#    val = filters.threshold_otsu(meanIm)
+#    val = filters.threshold_yen(meanIm)
+    imSeparation = meanIm > val
+    labels = measure.label(imSeparation, background=0) 
     labels = np.int16(labels) # so it can be used for the boundaries extraction
+    return labels, SupPix
+
+def getShadows(M,siz,loop):
+    mn = M.size;
+    Mmed = M
+    for i in range(loop):
+        Mmed = ndimage.median_filter(M, size=siz)
+    sturge = 1.6*(math.log2(mn)+1)
+    values, base = np.histogram(np.reshape(Mmed,-1), 
+                                bins=np.int(np.ceil(sturge)))    
+    dips = findValley(values,base,2)
+    val = max(dips)
+    imSeparation = Mmed > val
+    labels = measure.label(imSeparation, background=0) 
     return labels
 
-def castOrientation(sunZn,sunAz):
-    kernel = np.array([[-1, 0, +1],
-                   [-2, 0, +2],
-                   [-1, 0, +1]])
-    Mdx = ndimage.convolve(M, kernel) # steerable filters
-    Mdy = ndimage.convolve(M, np.flip(np.transpose(kernel),axis=0))
-    Mcan = np.multiply(np.cos(np.radians(sunAz)),Mdy) - np.multiply(np.sin(np.radians(sunAz)),Mdx)
-    return Mcan
- 
+def findValley(values,base,neighbors):
+    """
+    A valley is a point which has "n" consecuative higher values on both sides
+    """
+    for i in range(neighbors):
+        if i == 0:
+            wallP = np.roll(values, +(i+1))
+            wallM = np.roll(values, -(i+1))
+        else:
+            wallP = np.vstack((wallP, np.roll(values, +(i+1))))
+            wallM = np.vstack((wallM, np.roll(values, -(i+1))))            
+    if neighbors>1:
+        concavP = np.all(np.sign(np.diff(wallP, n=1, axis=0))==+1, axis=0)
+        concavM = np.all(np.sign(np.diff(wallM, n=1, axis=0))==+1, axis=0)
+    selec = np.all(np.vstack((concavP,concavM)),axis=0)    
+    selec = selec[neighbors-1:-(neighbors+1)]
+    idx = base[neighbors-1:-(neighbors+2)]
+    dips = idx[selec]
+    #walls = np.amin(sandwich,axis=0)
+    #selec = values<walls    
+    return dips
+    
+
+def castOrientation(I,sunZn,sunAz):
+#    kernel = np.array([[-1, 0, +1], [-2, 0, +2], [-1, 0, +1]])
+    kernel = np.array([[17], [61], [17]])*np.array([-1, 0, 1])/95
+    Idx = ndimage.convolve(I, kernel) # steerable filters
+    Idy = ndimage.convolve(I, np.flip(np.transpose(kernel),axis=0))
+    Ican = np.multiply(np.cos(np.radians(sunAz)),Idy) - np.multiply(np.sin(np.radians(sunAz)),Idx)
+    return Ican
+
+def bboxBoolean(img):
+    rows = np.any(img, axis=1)
+    cols = np.any(img, axis=0)
+    rmin, rmax = np.where(rows)[0][[0, -1]]
+    cmin, cmax = np.where(cols)[0][[0, -1]]
+
+    return rmin, rmax, cmin, cmax
+
+def makeGeoIm(I,R,crs,fName):
+    drv = gdal.GetDriverByName("GTiff") # export image
+    # type
+    if I.dtype=='float64':
+        ds = drv.Create(fName, I.shape[1], I.shape[0], 6, gdal.GDT_Float64)
+    else:
+        ds = drv.Create(fName, I.shape[1], I.shape[0], 6, gdal.GDT_Int32)
+    ds.SetGeoTransform(subTransform)
+    ds.SetProjection(crs)
+    ds.GetRasterBand(1).WriteArray(I)
+    ds = None
+    del ds    
+
+datPath = '/Users/Alten005/surfdrive/Eratosthenes/Denali/' 
 # s2Path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VNL_20180225T232042/'
 # fName = 'T05VNL_20180225T214531_B'
 s2Path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VPL_20180225T232042/'
 fName = 'T05VPL_20180225T214531_B'
 # s2Path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VPK_20180225T232042/'
 # fName = 'T05VPK_20180225T214531_B'
+
+s2Path = datPath + s2Path
 
 # read imagery of the different bands
 (B2, crs, geoTransform, targetprj) = read_band_image('02', s2Path)
@@ -311,77 +379,117 @@ B3 = B3[minI:maxI,minI:maxI]
 B4 = B4[minI:maxI,minI:maxI]
 B8 = B8[minI:maxI,minI:maxI]
 
+subTransform = (geoTransform[0]+minI*geoTransform[1]+minI*geoTransform[2], 
+                geoTransform[1], geoTransform[2], 
+                geoTransform[3]+minI*geoTransform[4]+minI*geoTransform[5], 
+                geoTransform[4], geoTransform[5])
+
 # transform to shadow image
 M = ruffenacht(B2,B3,B4,B8)
+makeGeoIm(M,subTransform,crs,"ruffenacht.tif")
 del B2,B3,B4,B8
 
+
 # classify into regions
-sizPix = 300 # 300 in size
-thres = 0.1
-labels = getShadowPolygon(M,sizPix,thres)
-msk = labels<1
+siz = 5
+loop = 500
+labels = getShadows(M,siz,loop)
+makeGeoIm(labels,subTransform,crs,"schur.tif")
 
-#drv = gdal.GetDriverByName("GTiff")
-#ds = drv.Create("dummy.tif", labels.shape[1], labels.shape[0], 6, gdal.GDT_Int32)
-#ds.SetGeoTransform(geoTransform)
-#ds.SetProjection(crs)
-#ds.GetRasterBand(1).WriteArray(labels)
-#ds = None
-#del ds,labels
+#Mmed = M
+#for i in range(10):
+#    Mmed = ndimage.median_filter(M, size=3)
+#makeGeoIm(Mmed,subTransform,crs,"ruffenachtMed.tif")
 
-#with rasterio.open('dummy.tif') as dataset:
-#    labels = dataset.read()        
-
-mypoly=[]
-for shp, val in shapes(labels, mask=msk, connectivity=8):
-#    print('%s: %s' % (val, shape(shp)))
-    mypoly.append(shape(shp))
+#sizPix = 300 # 300 in size
+#thres = 0.05
+#labels, SupPix = getShadowPolygon(Mmed,sizPix,thres)
+# makeGeoIm(SupPix,subTransform,crs,"supPix.tif")
+#makeGeoIm(labels,subTransform,crs,"otsu.tif")
 
 # find self-shadow and cast-shadow
 (sunZn,sunAz) = read_sun_angles(s2Path)
 sunZn = sunZn[minI:maxI,minI:maxI]
 sunAz = sunAz[minI:maxI,minI:maxI]
-Mcan = castOrientation(sunZn,sunAz) 
+
+msk = labels>1
+labels = labels.astype(np.int32)
+mskOrient = castOrientation(msk.astype(np.float),sunZn,sunAz)
+mskOrient = np.sign(mskOrient)
+#makeGeoIm(mskOrient,subTransform,crs,"polyRidges.tif")
+
+polygons=[]
+ridges = [] # using rasterio.features.shape
+for shp, val in shapes(labels, mask=msk, connectivity=8):
+#        coord = shp["coordinates"]
+#        coord = np.uint16(np.squeeze(np.array(coord[:])))    
+#    if val!=0:
+    # get ridge coordinates
+    polygoon = shape(shp)
+    polyRast = labels==val # select the polygon
+    polyInnr = ndimage.binary_erosion(polyRast, np.ones((3,3), dtype=bool))
+    polyBoun = np.logical_xor(polyRast, polyInnr)
+    polyWhe = np.nonzero(polyBoun)
+    ridgIdx = mskOrient[polyWhe[0],polyWhe[1]]==1
+    ridgeI = polyWhe[0][ridgIdx]
+    ridgeJ = polyWhe[1][ridgIdx]    
+    polyIJ = list(zip(polyWhe[0][ridgIdx], polyWhe[1][ridgIdx]))
+#    ridges.append(polyIJ)
+    del polyRast, polyInnr, polyBoun, polyWhe, ridgIdx
+
+    ridgeAzi = sunAz[ridgeI,ridgeJ]
+    for x in ridgeAzi:
+        castLine = LineString([[ridgeI[x],ridgeJ[x]],
+                    [ridgeI[x] + (math.cos(math.radians(ridgeAzi[x]))*1000), 
+                     ridgeI[x] - (math.sin(math.radians(ridgeAzi[x]))*1000)]])
+        castEnd = polygoon.intersection(castLine)
 
 
-fig, ax = plt.subplots()
-im = ax.imshow(Mcan)
-fig.colorbar(im)
-plt.show()
+    # get polygon
+#    polygons.append(polygoon)
 
+# walk through all polygons
+i = 48
+j = 1
 
-plt.hist(np.hstack(1-M), bins='auto')
-plt.show()
-
-values, base = np.histogram(1-M, bins='auto')
-cumulative = np.cumsum(values)
-plt.plot(base[:-1], cumulative, c='blue')
-plt.show()
-
-values, base = np.histogram(mc, bins='auto')
-cumulative = np.cumsum(values)
-plt.plot(base[:-1], cumulative, c='blue')
-plt.show()
-
-# fig, ax = plt.subplots()
-# im = ax.imshow(M)
-# fig.colorbar(im)
-# plt.show()
-
-
-# concat
-
-
-# thresholding along boundaries... making a samplingset to see if the threshold is sufficient
+polygoon = polygons[i]
+ridgeIJ = ridges[i]
+ridgeI = [x[0] for x in ridgeIJ]
+ridgeJ = [x[1] for x in ridgeIJ]
+ridgeAzi = sunAz[ridgeI,ridgeJ]
 
 
 
-import cv2
+
+selec = labels==48 # select a polygon
+selec = ndimage.binary_dilation(selec, np.ones((5,5), dtype=bool))# create extra space at the borders
+(rowMin, rowMax, colMin, colMax) = bboxBoolean(selec)
+subIm = M[rowMin:rowMax,colMin:colMax]
+subLb = selec[rowMin:rowMax,colMin:colMax]
+subSel = subLb
+subOr = mskOrient[rowMin:rowMax,colMin:colMax]
+subLb = subLb.astype(np.int16)
+subLb[subSel] = 48
+shp = shapes(subLb, mask=subSel, connectivity=8)
+subRot = np.mean(sunAz[colMin:colMax,rowMin:rowMax])
+
+subIm = transform.rotate(subIm,subRot+180, resize=True)
+subLb = transform.rotate(subLb,subRot+180, resize=True)
+
+i = 50
+sweepIm = subIm[:,i]
+sweepLb = subLb[:,i]
+
+Mcan = castOrientation(M,sunZn,sunAz) 
+
+Mcan = castOrientation(msk,sunZn,sunAz) 
+Mcan[Mcan<0] = 0
+makeGeoIm(Mcan,subTransform,crs,"shadowRidges.tif")
+
 # use azimuth angle to find selfshadow border
 
-# steerable filters
-kernel = np.ones((3,3),np.float32)/9
-processed_image = cv2.filter2D(image,-1,kernel)
+
+#processed_image = cv2.filter2D(image,-1,kernel)
 
 (viwZn,viwAz) = read_view_angles(s2Path)
 viwZn = viwZn[minI:maxI,minI:maxI]
