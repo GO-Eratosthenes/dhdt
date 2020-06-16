@@ -339,6 +339,73 @@ def bboxBoolean(img):
 
     return rmin, rmax, cmin, cmax
 
+def listOccluderAndCasted(labels, sunZn, sunAz, geoTransform):
+    msk = labels>1
+    labels = labels.astype(np.int32)
+    mskOrient = castOrientation(msk.astype(np.float),sunZn,sunAz)
+    mskOrient = np.sign(mskOrient)
+    #makeGeoIm(mskOrient,subTransform,crs,"polyRidges.tif")
+    
+    castList = []
+    for shp, val in shapes(labels, mask=msk, connectivity=8):
+    #        coord = shp["coordinates"]
+    #        coord = np.uint16(np.squeeze(np.array(coord[:])))    
+    #    if val!=0:
+        if val==48:    
+            # get ridge coordinates
+            polygoon = shape(shp)
+            polyRast = labels==val # select the polygon
+            polyInnr = ndimage.binary_erosion(polyRast, np.ones((3,3), dtype=bool))
+            polyBoun = np.logical_xor(polyRast, polyInnr)
+            polyWhe = np.nonzero(polyBoun)
+            ridgIdx = mskOrient[polyWhe[0],polyWhe[1]]==1
+            ridgeI = polyWhe[0][ridgIdx]
+            ridgeJ = polyWhe[1][ridgIdx]    
+            del polyRast, polyInnr, polyBoun, polyWhe, ridgIdx
+        
+            for x in ridgeI:
+                castLine = LineString([[ridgeJ[x],ridgeI[x]],
+                            [ridgeJ[x] - (math.sin(math.radians(sunAz[ridgeI[x]][ridgeJ[x]]))*1e4), 
+                             ridgeI[x] + (math.cos(math.radians(sunAz[ridgeI[x]][ridgeJ[x]]))*1e4)]])
+                castEnd = polygoon.intersection(castLine)
+                if castEnd.geom_type == 'LineString':
+                    castEnd = castEnd.coords[:]
+                elif castEnd.geom_type == 'MultiLineString':
+                    # castEnd = [list(x.coords) for x in list(castEnd)]
+                    cEnd = []
+                    for m in list(castEnd):
+                        cEnd = cEnd + m.coords[:]
+                    castEnd = cEnd
+                    del m, cEnd
+                elif castEnd.geom_type == 'GeometryCollection':
+                    cEnd = []
+                    for m in range(len(castEnd)):
+                        cEnd = cEnd + castEnd[m].coords[:]
+                    castEnd = cEnd
+                    del m, cEnd
+                else:
+                    print('something went wrong?')
+                
+                # if empty
+                if len(castEnd)>1:
+                # if len(castEnd.coords[:])>1:
+                    # find closest intersection
+                    occluder = Point(ridgeJ[x],ridgeI[x])
+                    #dists = [Point(c).distance(occluder) for c in castEnd.coords]
+                    dists = [Point(c).distance(occluder) for c in castEnd]
+                    dists = [float('Inf') if  i == 0 else i for i in dists]
+                    castIdx = dists.index(min(dists)) 
+                    casted = castEnd[castIdx]
+                    
+                    # transform to UTM and append to array
+                    castLine = np.array([ridgeI[x], ridgeJ[x], casted[1], casted[0], 
+                                         sunAz[ridgeI[x]][ridgeJ[x]] , 
+                                         sunZn[ridgeI[x]][ridgeJ[x]] ])
+                    castList.append(castLine)
+                    del dists, occluder, castIdx, casted
+                del castLine, castEnd
+    return castList
+
 def makeGeoIm(I,R,crs,fName):
     drv = gdal.GetDriverByName("GTiff") # export image
     # type
@@ -351,6 +418,8 @@ def makeGeoIm(I,R,crs,fName):
     ds.GetRasterBand(1).WriteArray(I)
     ds = None
     del ds    
+
+
 
 datPath = '/Users/Alten005/surfdrive/Eratosthenes/Denali/' 
 # s2Path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VNL_20180225T232042/'
@@ -396,21 +465,12 @@ loop = 500
 labels = getShadows(M,siz,loop)
 makeGeoIm(labels,subTransform,crs,"schur.tif")
 
-#Mmed = M
-#for i in range(10):
-#    Mmed = ndimage.median_filter(M, size=3)
-#makeGeoIm(Mmed,subTransform,crs,"ruffenachtMed.tif")
-
-#sizPix = 300 # 300 in size
-#thres = 0.05
-#labels, SupPix = getShadowPolygon(Mmed,sizPix,thres)
-# makeGeoIm(SupPix,subTransform,crs,"supPix.tif")
-#makeGeoIm(labels,subTransform,crs,"otsu.tif")
-
 # find self-shadow and cast-shadow
 (sunZn,sunAz) = read_sun_angles(s2Path)
 sunZn = sunZn[minI:maxI,minI:maxI]
 sunAz = sunAz[minI:maxI,minI:maxI]
+
+castList = listOccluderAndCasted(labels, sunZn, sunAz, subTransform)
 
 msk = labels>1
 labels = labels.astype(np.int32)
@@ -418,33 +478,46 @@ mskOrient = castOrientation(msk.astype(np.float),sunZn,sunAz)
 mskOrient = np.sign(mskOrient)
 #makeGeoIm(mskOrient,subTransform,crs,"polyRidges.tif")
 
-polygons=[]
-ridges = [] # using rasterio.features.shape
+castList = [] # using rasterio.features.shape
 for shp, val in shapes(labels, mask=msk, connectivity=8):
 #        coord = shp["coordinates"]
 #        coord = np.uint16(np.squeeze(np.array(coord[:])))    
 #    if val!=0:
-    # get ridge coordinates
-    polygoon = shape(shp)
-    polyRast = labels==val # select the polygon
-    polyInnr = ndimage.binary_erosion(polyRast, np.ones((3,3), dtype=bool))
-    polyBoun = np.logical_xor(polyRast, polyInnr)
-    polyWhe = np.nonzero(polyBoun)
-    ridgIdx = mskOrient[polyWhe[0],polyWhe[1]]==1
-    ridgeI = polyWhe[0][ridgIdx]
-    ridgeJ = polyWhe[1][ridgIdx]    
-    polyIJ = list(zip(polyWhe[0][ridgIdx], polyWhe[1][ridgIdx]))
-#    ridges.append(polyIJ)
-    del polyRast, polyInnr, polyBoun, polyWhe, ridgIdx
-
-    ridgeAzi = sunAz[ridgeI,ridgeJ]
-    for x in ridgeAzi:
-        castLine = LineString([[ridgeI[x],ridgeJ[x]],
-                    [ridgeI[x] + (math.cos(math.radians(ridgeAzi[x]))*1000), 
-                     ridgeI[x] - (math.sin(math.radians(ridgeAzi[x]))*1000)]])
-        castEnd = polygoon.intersection(castLine)
-
-
+    if val==48:    
+        # get ridge coordinates
+        polygoon = shape(shp)
+        polyRast = labels==val # select the polygon
+        polyInnr = ndimage.binary_erosion(polyRast, np.ones((3,3), dtype=bool))
+        polyBoun = np.logical_xor(polyRast, polyInnr)
+        polyWhe = np.nonzero(polyBoun)
+        ridgIdx = mskOrient[polyWhe[0],polyWhe[1]]==1
+        ridgeI = polyWhe[0][ridgIdx]
+        ridgeJ = polyWhe[1][ridgIdx]    
+    #    polyIJ = list(zip(polyWhe[0][ridgIdx], polyWhe[1][ridgIdx]))
+    #    ridges.append(polyIJ)
+        del polyRast, polyInnr, polyBoun, polyWhe, ridgIdx
+    
+        for x in ridgeI:
+            castLine = LineString([[ridgeJ[x],ridgeI[x]],
+                        [ridgeJ[x] - (math.sin(math.radians(sunAz[ridgeI[x]][ridgeJ[x]]))*1e4), 
+                         ridgeI[x] + (math.cos(math.radians(sunAz[ridgeI[x]][ridgeJ[x]]))*1e4)]])
+            castEnd = polygoon.intersection(castLine)
+            # if empty
+            if len(castEnd.coords[:])>1:
+                # find closest intersection
+                occluder = Point(ridgeJ[x],ridgeI[x])
+                dists = [Point(c).distance(occluder) for c in castEnd.coords]
+                dists = [float('Inf') if  i == 0 else i for i in dists]
+                castIdx = dists.index(min(dists)) 
+                casted = castEnd.coords[castIdx]
+                
+                # transform to UTM and append to array
+                castLine = np.array([ridgeI[x], ridgeJ[x], casted[1], casted[0], 
+                                     sunAz[ridgeI[x]][ridgeJ[x]] , 
+                                     sunZn[ridgeI[x]][ridgeJ[x]] ])
+                castList.append(castLine)
+                del dists, occluder, castIdx, casted
+            del castLine, castEnd
     # get polygon
 #    polygons.append(polygoon)
 
