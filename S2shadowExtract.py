@@ -10,6 +10,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import rasterio
 import glob
+import random # for PCA
 
 from rasterio.plot import show
 from rasterio.mask import mask
@@ -180,7 +181,8 @@ def get_array_from_xml(treeStruc):
             Tn = np.concatenate((Tn, [Trow]),0)
     return Tn
 
-def RGB2HSI(R,G,B):
+# shadow functions
+def rgb2hsi(R,G,B):
     """
     Transform Red Green Blue arrays to Hue Saturation Intensity arrays
     """
@@ -207,17 +209,105 @@ def RGB2HSI(R,G,B):
             
     return Hue, Sat, Int
 
+def nsvi(B2,B3,B4):
+    """
+    Transform Red Green Blue arrays to normalized saturation-value difference index (NSVI)
+    following Ma et al. 2008
+    """
+    (H,S,I) = rgb2hsi(B4,B3,B2) # create HSI bands
+    NSVDI = (S-I)/(S+I)
+    return NSVDI
+
+def mpsi(B2,B3,B4):
+    """
+    Transform Red Green Blue arrays to Mixed property-based shadow index (MPSI)
+    following Han et al. 2018
+    """
+    Green = np.float64(B3)/2**16
+    Blue = np.float64(B2)/2**16
+    
+    (H,S,I) = rgb2hsi(B4,B3,B2) # create HSI bands
+    MPSI = (H-I)*(Green-Blue)
+    return MPSI
+
 def pca(X):
+    """
+    principle component analysis (PCA)
+    """
     # Data matrix X, assumes 0-centered
     n, m = X.shape
-    assert np.allclose(X.mean(axis=0), np.zeros(m))
+# removed, because a sample is taken:    
+#    assert np.allclose(X.mean(axis=0), np.zeros(m))
     # Compute covariance matrix
     C = np.dot(X.T, X) / (n-1)
     # Eigen decomposition
     eigen_vals, eigen_vecs = np.linalg.eig(C)
-    # Project X onto PC space
-    X_pca = np.dot(X, eigen_vecs)
-    return X_pca
+    return eigen_vecs, eigen_vals
+
+def shadowIndex(R,G,B,NIR):
+    """
+    Calculates the shadow index, basically the first component of PCA,
+    following Hui et al. 2013
+    """
+    OK = R!=0 # boolean array with data
+    
+    Red = np.float64(R) 
+    r = np.mean(Red[OK]) 
+    Green = np.float64(G)
+    g = np.mean(Green[OK])
+    Blue = np.float64(B) 
+    b = np.mean(Blue[OK]) 
+    Near = np.float64(NIR)
+    n = np.mean(Near[OK])
+    del R,G,B,NIR
+    
+    Red = Red-r 
+    Green = Green-g 
+    Blue = Blue-b 
+    Near = Near-n
+    del r, g, b, n
+    
+    # sampleset
+    Nsamp = int(min(1e4,np.sum(OK))) # try to have a sampleset of 10'000 points
+    sampSet,other =  np.where(OK) # OK.nonzero()
+    sampling = random.choices(sampSet, k=Nsamp)
+    del sampSet, Nsamp
+    
+    Red = Red.ravel(order='F')
+    Green = Green.ravel(order='F')
+    Blue = Blue.ravel(order='F')
+    Near = Near.ravel(order='F')
+    
+    X = np.transpose(np.array([Red[sampling], Green[sampling], Blue[sampling], Near[sampling]]))
+    e,lamb = pca(X) 
+    del X
+    PC1 = np.dot(e[0,:], np.array([Red, Green, Blue, Near]))
+    SI = np.transpose(np.reshape(PC1, OK.shape))
+    return SI
+
+def shadeIndex(R,G,B,NIR):
+    """
+    Amplify dark regions by simple multiplication
+    following Altena 2008
+    """
+    NanBol = R==0 # boolean array with no data
+    
+    Red = np.float64(R) # /2**16
+    Red[~NanBol] = np.interp(Red[~NanBol], (Red[~NanBol].min(), Red[~NanBol].max()), (0, +1))
+    Red[NanBol] = 0
+    Green = np.float64(G) # /2**16
+    Green[~NanBol] = np.interp(Green[~NanBol], (Green[~NanBol].min(), Green[~NanBol].max()), (0, +1))
+    Green[NanBol] = 0
+    Blue = np.float64(B) # /2**16
+    Blue[~NanBol] = np.interp(Blue[~NanBol], (Blue[~NanBol].min(), Blue[~NanBol].max()), (0, +1))
+    Blue[NanBol] = 0
+    Near = np.float64(NIR) # /2**16 
+    Near[~NanBol] = np.interp(Near[~NanBol], (Near[~NanBol].min(), Near[~NanBol].max()), (0, +1))
+    Near[NanBol] = 0
+    del R,G,B,NIR
+    SI = np.prod(np.dstack([(1-Red),(1-Green),(1-Blue),(1-Near)]), axis=2)
+    return SI
+
 
 def ruffenacht(R,G,B,NIR):
     """
@@ -322,7 +412,6 @@ def findValley(values,base,neighbors):
     #selec = values<walls    
     return dips
     
-
 def castOrientation(I,sunZn,sunAz):
 #    kernel = np.array([[-1, 0, +1], [-2, 0, +2], [-1, 0, +1]])
     kernel = np.array([[17], [61], [17]])*np.array([-1, 0, 1])/95
@@ -420,7 +509,6 @@ def makeGeoIm(I,R,crs,fName):
     del ds    
 
 
-
 datPath = '/Users/Alten005/surfdrive/Eratosthenes/Denali/' 
 # s2Path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VNL_20180225T232042/'
 # fName = 'T05VNL_20180225T214531_B'
@@ -455,9 +543,14 @@ subTransform = (geoTransform[0]+minI*geoTransform[1]+minI*geoTransform[2],
 
 # transform to shadow image
 M = ruffenacht(B2,B3,B4,B8)
-makeGeoIm(M,subTransform,crs,"ruffenacht.tif")
-del B2,B3,B4,B8
+# makeGeoIm(M,subTransform,crs,"ruffenacht.tif")
+# M = shadowIndex(B2,B3,B4,B8)
+# M = shadeIndex(B2,B3,B4,B8)
+# M = nsvi(B2,B3,B4)
+# M = mpsi(B2,B3,B4)
 
+
+del B2,B3,B4,B8
 
 # classify into regions
 siz = 5
@@ -575,26 +668,6 @@ im = ax.imshow(viwZn)
 fig.colorbar(im)
 plt.show()
 
-
-
-
-# create HSI bands
-# (H,S,I) = RGB2HSI(B2,B3,B4)
-
-# normalized saturation-value difference index
-# NSVDI = (S-I)/(S+I) # following Ma et al. 2008
-
-# Mixed property-based shadow index (MPSI)
-# MPSI = (H-I)*(B3-B4) # following Han et al. 2018
-
-# 
-
-# plt.imshow(MPSI)
-# plt.show()
-
-
-# 
-# SI = (PC1)# following Hui et al. 2013
 
 
 
