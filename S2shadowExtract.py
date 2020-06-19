@@ -439,8 +439,8 @@ def listOccluderAndCasted(labels, sunZn, sunAz, geoTransform):
     for shp, val in shapes(labels, mask=msk, connectivity=8):
     #        coord = shp["coordinates"]
     #        coord = np.uint16(np.squeeze(np.array(coord[:])))    
-    #    if val!=0:
-        if val==48:    
+        if val!=0:
+    #    if val==48:    
             # get ridge coordinates
             polygoon = shape(shp)
             polyRast = labels==val # select the polygon
@@ -487,7 +487,13 @@ def listOccluderAndCasted(labels, sunZn, sunAz, geoTransform):
                     casted = castEnd[castIdx]
                     
                     # transform to UTM and append to array
-                    castLine = np.array([ridgeI[x], ridgeJ[x], casted[1], casted[0], 
+                    ridgeX = ridgeI[x]*geoTransform[2] + ridgeJ[x]*geoTransform[1] + geoTransform[0]
+                    ridgeY = ridgeI[x]*geoTransform[5] + ridgeJ[x]*geoTransform[4] + geoTransform[3]
+                    castX = casted[1]*geoTransform[2] + casted[0]*geoTransform[1] + geoTransform[0]
+                    castY = casted[1]*geoTransform[5] + casted[0]*geoTransform[4] + geoTransform[3]
+                    
+                    
+                    castLine = np.array([ridgeX, ridgeY, castX, castY, 
                                          sunAz[ridgeI[x]][ridgeJ[x]] , 
                                          sunZn[ridgeI[x]][ridgeJ[x]] ])
                     castList.append(castLine)
@@ -564,95 +570,13 @@ sunZn = sunZn[minI:maxI,minI:maxI]
 sunAz = sunAz[minI:maxI,minI:maxI]
 
 castList = listOccluderAndCasted(labels, sunZn, sunAz, subTransform)
+# transform to UTM coordinates
 
-msk = labels>1
-labels = labels.astype(np.int32)
-mskOrient = castOrientation(msk.astype(np.float),sunZn,sunAz)
-mskOrient = np.sign(mskOrient)
-#makeGeoIm(mskOrient,subTransform,crs,"polyRidges.tif")
-
-castList = [] # using rasterio.features.shape
-for shp, val in shapes(labels, mask=msk, connectivity=8):
-#        coord = shp["coordinates"]
-#        coord = np.uint16(np.squeeze(np.array(coord[:])))    
-#    if val!=0:
-    if val==48:    
-        # get ridge coordinates
-        polygoon = shape(shp)
-        polyRast = labels==val # select the polygon
-        polyInnr = ndimage.binary_erosion(polyRast, np.ones((3,3), dtype=bool))
-        polyBoun = np.logical_xor(polyRast, polyInnr)
-        polyWhe = np.nonzero(polyBoun)
-        ridgIdx = mskOrient[polyWhe[0],polyWhe[1]]==1
-        ridgeI = polyWhe[0][ridgIdx]
-        ridgeJ = polyWhe[1][ridgIdx]    
-    #    polyIJ = list(zip(polyWhe[0][ridgIdx], polyWhe[1][ridgIdx]))
-    #    ridges.append(polyIJ)
-        del polyRast, polyInnr, polyBoun, polyWhe, ridgIdx
-    
-        for x in ridgeI:
-            castLine = LineString([[ridgeJ[x],ridgeI[x]],
-                        [ridgeJ[x] - (math.sin(math.radians(sunAz[ridgeI[x]][ridgeJ[x]]))*1e4), 
-                         ridgeI[x] + (math.cos(math.radians(sunAz[ridgeI[x]][ridgeJ[x]]))*1e4)]])
-            castEnd = polygoon.intersection(castLine)
-            # if empty
-            if len(castEnd.coords[:])>1:
-                # find closest intersection
-                occluder = Point(ridgeJ[x],ridgeI[x])
-                dists = [Point(c).distance(occluder) for c in castEnd.coords]
-                dists = [float('Inf') if  i == 0 else i for i in dists]
-                castIdx = dists.index(min(dists)) 
-                casted = castEnd.coords[castIdx]
-                
-                # transform to UTM and append to array
-                castLine = np.array([ridgeI[x], ridgeJ[x], casted[1], casted[0], 
-                                     sunAz[ridgeI[x]][ridgeJ[x]] , 
-                                     sunZn[ridgeI[x]][ridgeJ[x]] ])
-                castList.append(castLine)
-                del dists, occluder, castIdx, casted
-            del castLine, castEnd
-    # get polygon
-#    polygons.append(polygoon)
-
-# walk through all polygons
-i = 48
-j = 1
-
-polygoon = polygons[i]
-ridgeIJ = ridges[i]
-ridgeI = [x[0] for x in ridgeIJ]
-ridgeJ = [x[1] for x in ridgeIJ]
-ridgeAzi = sunAz[ridgeI,ridgeJ]
-
-
-
-
-selec = labels==48 # select a polygon
-selec = ndimage.binary_dilation(selec, np.ones((5,5), dtype=bool))# create extra space at the borders
-(rowMin, rowMax, colMin, colMax) = bboxBoolean(selec)
-subIm = M[rowMin:rowMax,colMin:colMax]
-subLb = selec[rowMin:rowMax,colMin:colMax]
-subSel = subLb
-subOr = mskOrient[rowMin:rowMax,colMin:colMax]
-subLb = subLb.astype(np.int16)
-subLb[subSel] = 48
-shp = shapes(subLb, mask=subSel, connectivity=8)
-subRot = np.mean(sunAz[colMin:colMax,rowMin:rowMax])
-
-subIm = transform.rotate(subIm,subRot+180, resize=True)
-subLb = transform.rotate(subLb,subRot+180, resize=True)
-
-i = 50
-sweepIm = subIm[:,i]
-sweepLb = subLb[:,i]
 
 Mcan = castOrientation(M,sunZn,sunAz) 
-
 Mcan = castOrientation(msk,sunZn,sunAz) 
 Mcan[Mcan<0] = 0
 makeGeoIm(Mcan,subTransform,crs,"shadowRidges.tif")
-
-# use azimuth angle to find selfshadow border
 
 
 #processed_image = cv2.filter2D(image,-1,kernel)
