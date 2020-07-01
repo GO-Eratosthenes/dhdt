@@ -20,6 +20,8 @@ from shapely.geometry import mapping
 from shapely.geometry import shape
 from shapely.geometry import Point, LineString
 
+from shapely.geos import TopologicalError # for troubleshooting
+
 import math
 
 from xml.etree import ElementTree
@@ -308,7 +310,6 @@ def shadeIndex(R,G,B,NIR):
     SI = np.prod(np.dstack([(1-Red),(1-Green),(1-Blue),(1-Near)]), axis=2)
     return SI
 
-
 def ruffenacht(R,G,B,NIR):
     """
     Transform Red Green Blue NIR to shadow intensities/probabilities
@@ -351,6 +352,7 @@ def S_curve(x,a,b):
     del fe,x
     return fx
 
+# geometric functions
 def getShadowPolygon(M,sizPix,thres):
     mn = np.ceil(np.divide(np.nanprod(M.shape),sizPix));
     SupPix = segmentation.slic(M, sigma = 1, 
@@ -452,11 +454,20 @@ def listOccluderAndCasted(labels, sunZn, sunAz, geoTransform):
             ridgeJ = polyWhe[1][ridgIdx]    
             del polyRast, polyInnr, polyBoun, polyWhe, ridgIdx
         
-            for x in ridgeI:
-                castLine = LineString([[ridgeJ[x],ridgeI[x]],
-                            [ridgeJ[x] - (math.sin(math.radians(sunAz[ridgeI[x]][ridgeJ[x]]))*1e4), 
-                             ridgeI[x] + (math.cos(math.radians(sunAz[ridgeI[x]][ridgeJ[x]]))*1e4)]])
-                castEnd = polygoon.intersection(castLine)
+            for x in range(len(ridgeI)): #ridgeI:
+                try:
+                    castLine = LineString([[ridgeJ[x],ridgeI[x]],
+                                [ridgeJ[x] - (math.sin(math.radians(sunAz[ridgeI[x]][ridgeJ[x]]))*1e4), 
+                                 ridgeI[x] + (math.cos(math.radians(sunAz[ridgeI[x]][ridgeJ[x]]))*1e4)]])
+                except IndexError:
+                    continue
+                try:
+                    castEnd = polygoon.intersection(castLine)
+                except TopologicalError:
+                    # somehow the exterior of the polygon crosses or touches itself, making it a LinearRing
+                    polygoon = polygoon.buffer(0) 
+                    castEnd = polygoon.intersection(castLine)
+
                 if castEnd.geom_type == 'LineString':
                     castEnd = castEnd.coords[:]
                 elif castEnd.geom_type == 'MultiLineString':
@@ -472,6 +483,8 @@ def listOccluderAndCasted(labels, sunZn, sunAz, geoTransform):
                         cEnd = cEnd + castEnd[m].coords[:]
                     castEnd = cEnd
                     del m, cEnd
+                elif castEnd.geom_type == 'Point':
+                    castEnd = []
                 else:
                     print('something went wrong?')
                 
@@ -501,6 +514,7 @@ def listOccluderAndCasted(labels, sunZn, sunAz, geoTransform):
                 del castLine, castEnd
     return castList
 
+# I/O functions
 def makeGeoIm(I,R,crs,fName):
     drv = gdal.GetDriverByName("GTiff") # export image
     # type
@@ -516,61 +530,76 @@ def makeGeoIm(I,R,crs,fName):
 
 
 datPath = '/Users/Alten005/surfdrive/Eratosthenes/Denali/' 
-# s2Path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VNL_20180225T232042/'
-# fName = 'T05VNL_20180225T214531_B'
-s2Path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VPL_20180225T232042/'
-fName = 'T05VPL_20180225T214531_B'
-# s2Path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VPK_20180225T232042/'
-# fName = 'T05VPK_20180225T214531_B'
+#s2Path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VPL_20180225T232042/'
+#fName = 'T05VPL_20180225T214531_B'
 
-s2Path = datPath + s2Path
+s2Path = ('Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VNK_20180225T232042/',
+          'Data/S2B_MSIL1C_20190225T214529_N0207_R129_T05VNK_20190226T010218/',
+          'Data/S2A_MSIL1C_20200225T214531_N0209_R129_T05VNK_20200225T231600/')
+fName = ('T05VNK_20180225T214531_B', 'T05VNK_20190225T214529_B', 'T05VNK_20200225T214531_B')
 
-# read imagery of the different bands
-(B2, crs, geoTransform, targetprj) = read_band_image('02', s2Path)
-(B3, crs, geoTransform, targetprj) = read_band_image('03', s2Path)
-(B4, crs, geoTransform, targetprj) = read_band_image('04', s2Path)
-(B8, crs, geoTransform, targetprj) = read_band_image('08', s2Path)
+for i in range(len(s2Path)):
 
-mI = np.size(B2,axis=0)
-nI = np.size(B2,axis=1)
-
-# reduce image space, so it fit in memory
-minI = 6000
-maxI = 8000
-B2 = B2[minI:maxI,minI:maxI]
-B3 = B3[minI:maxI,minI:maxI]
-B4 = B4[minI:maxI,minI:maxI]
-B8 = B8[minI:maxI,minI:maxI]
-
-subTransform = (geoTransform[0]+minI*geoTransform[1]+minI*geoTransform[2], 
-                geoTransform[1], geoTransform[2], 
-                geoTransform[3]+minI*geoTransform[4]+minI*geoTransform[5], 
-                geoTransform[4], geoTransform[5])
-
-# transform to shadow image
-M = ruffenacht(B2,B3,B4,B8)
-# makeGeoIm(M,subTransform,crs,"ruffenacht.tif")
-# M = shadowIndex(B2,B3,B4,B8)
-# M = shadeIndex(B2,B3,B4,B8)
-# M = nsvi(B2,B3,B4)
-# M = mpsi(B2,B3,B4)
-
-
-del B2,B3,B4,B8
-
-# classify into regions
-siz = 5
-loop = 500
-labels = getShadows(M,siz,loop)
-makeGeoIm(labels,subTransform,crs,"schur.tif")
-
-# find self-shadow and cast-shadow
-(sunZn,sunAz) = read_sun_angles(s2Path)
-sunZn = sunZn[minI:maxI,minI:maxI]
-sunAz = sunAz[minI:maxI,minI:maxI]
-
-castList = listOccluderAndCasted(labels, sunZn, sunAz, subTransform)
-# transform to UTM coordinates
+    sen2Path = datPath + s2Path[i]
+    
+    # read imagery of the different bands
+    (B2, crs, geoTransform, targetprj) = read_band_image('02', sen2Path)
+    (B3, crs, geoTransform, targetprj) = read_band_image('03', sen2Path)
+    (B4, crs, geoTransform, targetprj) = read_band_image('04', sen2Path)
+    (B8, crs, geoTransform, targetprj) = read_band_image('08', sen2Path)
+    
+    mI = np.size(B2,axis=0)
+    nI = np.size(B2,axis=1)
+    
+    # reduce image space, so it fit in memory
+    minI = 4000
+    maxI = 6000
+    B2 = B2[minI:maxI,minI:maxI]
+    B3 = B3[minI:maxI,minI:maxI]
+    B4 = B4[minI:maxI,minI:maxI]
+    B8 = B8[minI:maxI,minI:maxI]
+    
+    subTransform = (geoTransform[0]+minI*geoTransform[1]+minI*geoTransform[2], 
+                    geoTransform[1], geoTransform[2], 
+                    geoTransform[3]+minI*geoTransform[4]+minI*geoTransform[5], 
+                    geoTransform[4], geoTransform[5])
+    
+    # transform to shadow image
+    M = ruffenacht(B2,B3,B4,B8)
+    # makeGeoIm(M,subTransform,crs,sen2Path + "ruffenacht.tif")
+    # M = shadowIndex(B2,B3,B4,B8)
+    # makeGeoIm(M,subTransform,crs,sen2Path + "swIdx.tif") # pc1
+    # M = shadeIndex(B2,B3,B4,B8)
+    # makeGeoIm(M,subTransform,crs,sen2Path + "shIdx.tif")
+    # M = nsvi(B2,B3,B4)
+    # makeGeoIm(M,subTransform,crs,sen2Path + "nsvi.tif")
+    # M = mpsi(B2,B3,B4)
+    # makeGeoIm(M,subTransform,crs,sen2Path + "mpsi.tif")
+    
+    del B2,B3,B4,B8
+    
+    # classify into regions
+    siz = 5
+    loop = 500
+    labels = getShadows(M,siz,loop)
+    makeGeoIm(labels,subTransform,crs, sen2Path + "schur.tif")
+    
+    # find self-shadow and cast-shadow
+    (sunZn,sunAz) = read_sun_angles(sen2Path)
+    sunZn = sunZn[minI:maxI,minI:maxI]
+    sunAz = sunAz[minI:maxI,minI:maxI]
+    
+    castList = listOccluderAndCasted(labels, sunZn, sunAz, subTransform)
+    
+    # write data to txt-file
+    # Header = ('ridgeX', 'ridgeY', 'castX', 'castY', 'sunAzi', 'sunZn')
+    fCast = fName[i][0:-2]+'.txt'
+    with open(fCast, 'w') as f:
+        for item in castList:
+            np.savetxt(f,item.reshape(1,6), fmt="%.2f", delimiter=",", 
+                       newline='\n', header='', footer='', comments='# ')
+    #        np.savetxt("test2.txt", x, fmt="%2.1f", delimiter=",")
+    #        f.write("%s\n" % item)
 
 
 Mcan = castOrientation(M,sunZn,sunAz) 
