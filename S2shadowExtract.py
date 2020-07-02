@@ -515,7 +515,7 @@ def listOccluderAndCasted(labels, sunZn, sunAz, geoTransform):
     return castList
 
 # image matching functions
-def LucasKanade(I1, I2, window_size, tau=1e-2): 
+def LucasKanade(I1, I2, window_size, stepSize=False, tau=1e-2): 
     kernel_x = np.array([[-1., 1.], [-1., 1.]])
     kernel_t = np.array([[1., 1.], [1., 1.]])*.25
     radius = np.floor(window_size/2).astype('int') # window_size should be odd
@@ -523,12 +523,23 @@ def LucasKanade(I1, I2, window_size, tau=1e-2):
     fx = ndimage.convolve(I1, kernel_x)
     fy = ndimage.convolve(I1, np.flip(np.transpose(kernel_x),axis=0))
     ft = ndimage.convolve(I2, kernel_t) + ndimage.convolve(I1, -kernel_t)
-    u = np.zeros(I1.shape)
-    v = np.zeros(I1.shape)
     
     # double loop to visit all pixels 
-    for i in range(radius, I1.shape[0]-radius):
-        for j in range(radius, I1.shape[1]-radius):
+    if stepSize:
+        stepsI = np.arange(radius, I1.shape[0]-radius, window_size)
+        stepsJ = np.arange(radius, I1.shape[1]-radius, window_size)
+        u = np.zeros((len(stepsI),len(stepsJ)))
+        v = np.zeros((len(stepsI),len(stepsJ)))
+    else:
+        stepsI = range(radius, I1.shape[0]-radius)
+        stepsJ = range(radius, I1.shape[1]-radius)
+        u = np.zeros(I1.shape)
+        v = np.zeros(I1.shape)
+    
+    for iIdx in range(len(stepsI)):
+        i = stepsI[iIdx]
+        for jIdx in range(len(stepsJ)):
+            j = stepsI[jIdx]
             # get templates
             Ix = fx[i-radius:i+radius+1, j-radius:j+radius+1].flatten()
             Iy = fy[i-radius:i+radius+1, j-radius:j+radius+1].flatten()
@@ -541,10 +552,18 @@ def LucasKanade(I1, I2, window_size, tau=1e-2):
                 # threshold tau should be larger than the smallest eigenvalue of A'A
                 if np.min(abs(np.linalg.eigvals(np.matmul(A.T, A))))>=tau:
                     nu = np.matmul(np.linalg.pinv(A), b) # get velocity here
-                    u[i,j]=nu[0]
-                    v[i,j]=nu[1]
+                    u[iIdx,jIdx]=nu[0]
+                    v[iIdx,jIdx]=nu[1]
  
     return (u,v)
+
+def rotMat(theta):
+    """
+    build rotation matrix, theta is in degrees
+    """
+    R = np.array([[np.cos(np.radians(theta)), -np.sin(np.radians(theta))], 
+                  [np.sin(np.radians(theta)), np.cos(np.radians(theta))]]);
+    return R
 
 def getNetworkIndices(n):
     '''
@@ -566,12 +585,24 @@ def makeGeoIm(I,R,crs,fName):
         ds = drv.Create(fName, I.shape[1], I.shape[0], 6, gdal.GDT_Float64)
     else:
         ds = drv.Create(fName, I.shape[1], I.shape[0], 6, gdal.GDT_Int32)
-    ds.SetGeoTransform(subTransform)
+    ds.SetGeoTransform(R)
     ds.SetProjection(crs)
     ds.GetRasterBand(1).WriteArray(I)
     ds = None
     del ds    
 
+def RefTrans(Transform,dI,dJ):
+    newTransform = (Transform[0]+dI*Transform[1]+dJ*Transform[2], 
+                    Transform[1], Transform[2], 
+                    Transform[3]+dI*Transform[4]+dJ*Transform[5], 
+                    Transform[4], Transform[5])
+    return newTransform
+
+def RefScale(Transform,scaling):
+    # not using center of pixel
+    newTransform = (Transform[0], Transform[1]*scaling, Transform[2]*scaling,                    
+                    Transform[3], Transform[4]*scaling, Transform[5]*scaling)    
+    return newTransform
 
 datPath = '/Users/Alten005/surfdrive/Eratosthenes/Denali/' 
 #s2Path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VPL_20180225T232042/'
@@ -603,11 +634,8 @@ for i in range(len(s2Path)):
     B4 = B4[minI:maxI,minI:maxI]
     B8 = B8[minI:maxI,minI:maxI]
     
-    subTransform = (geoTransform[0]+minI*geoTransform[1]+minI*geoTransform[2], 
-                    geoTransform[1], geoTransform[2], 
-                    geoTransform[3]+minI*geoTransform[4]+minI*geoTransform[5], 
-                    geoTransform[4], geoTransform[5])
-    
+    subTransform = RefTrans(geoTransform,minI,minI) # create georeference for subframe
+        
     # transform to shadow image
     M = ruffenacht(B2,B3,B4,B8)
     makeGeoIm(M,subTransform,crs,sen2Path + "ruffenacht.tif")
@@ -673,12 +701,23 @@ for i in range(len(s2Path)):
 
 # get network
 GridIdxs = getNetworkIndices(len(s2Path))
-tempSize = 9
+tempSize = 15
+stepSize = True
 for i in range(GridIdxs.shape[1]):
     D = LucasKanade(Mstack[:,:,GridIdxs[0,i]], Mstack[:,:,GridIdxs[1,i]],
-                    tempSize)
-makeGeoIm(D[0],subTransform,crs,"DispAx1.tif")
-makeGeoIm(D[1],subTransform,crs,"DispAx2.tif")
+                    tempSize, stepSize)
+    if i==0:
+        Dstack = D
+    else:
+        Dstack = Dstack + D
+        
+# weighted least-squares adjustment    
+sig_y = 10;
+
+lkTransform = RefScale(RefTrans(subTransform,tempSize/2,tempSize/2),tempSize)
+    
+makeGeoIm(Dstack[0],lkTransform,crs,"DispAx1.tif")
+makeGeoIm(Dstack[1],lkTransform,crs,"DispAx2.tif")
 
 # Lukas Kanade
 
@@ -693,7 +732,7 @@ for i in range(len(s2Path)):
     
 #processed_image = cv2.filter2D(image,-1,kernel)
 
-(viwZn,viwAz) = read_view_angles(s2Path)
+(viwZn,viwAz) = read_view_angles(sen2Path)
 viwZn = viwZn[minI:maxI,minI:maxI]
 viwAz = viwAz[minI:maxI,minI:maxI]
 
