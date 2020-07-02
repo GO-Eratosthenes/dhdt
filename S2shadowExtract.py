@@ -514,6 +514,50 @@ def listOccluderAndCasted(labels, sunZn, sunAz, geoTransform):
                 del castLine, castEnd
     return castList
 
+# image matching functions
+def LucasKanade(I1, I2, window_size, tau=1e-2): 
+    kernel_x = np.array([[-1., 1.], [-1., 1.]])
+    kernel_t = np.array([[1., 1.], [1., 1.]])*.25
+    radius = np.floor(window_size/2).astype('int') # window_size should be odd
+    
+    fx = ndimage.convolve(I1, kernel_x)
+    fy = ndimage.convolve(I1, np.flip(np.transpose(kernel_x),axis=0))
+    ft = ndimage.convolve(I2, kernel_t) + ndimage.convolve(I1, -kernel_t)
+    u = np.zeros(I1.shape)
+    v = np.zeros(I1.shape)
+    
+    # double loop to visit all pixels 
+    for i in range(radius, I1.shape[0]-radius):
+        for j in range(radius, I1.shape[1]-radius):
+            # get templates
+            Ix = fx[i-radius:i+radius+1, j-radius:j+radius+1].flatten()
+            Iy = fy[i-radius:i+radius+1, j-radius:j+radius+1].flatten()
+            It = ft[i-radius:i+radius+1, j-radius:j+radius+1].flatten()
+            
+            # look if variation is present
+            if np.std(It)!=0:
+                b = np.reshape(It, (It.shape[0],1)) # get b here
+                A = np.vstack((Ix, Iy)).T # get A here
+                # threshold tau should be larger than the smallest eigenvalue of A'A
+                if np.min(abs(np.linalg.eigvals(np.matmul(A.T, A))))>=tau:
+                    nu = np.matmul(np.linalg.pinv(A), b) # get velocity here
+                    u[i,j]=nu[0]
+                    v[i,j]=nu[1]
+ 
+    return (u,v)
+
+def getNetworkIndices(n):
+    '''
+    for a number (n) of images, generate a list with all matchable combinations
+    '''
+    Grids = np.indices((len(s2Path),len(s2Path)))
+    Grid1 = np.triu(Grids[0]+1,+1).flatten()
+    Grid1 = Grid1[Grid1 != 0]-1
+    Grid2 = np.triu(Grids[1]+1,+1).flatten()
+    Grid2 = Grid2[Grid2 != 0]-1
+    GridIdxs = np.vstack((Grid1, Grid2))
+    return GridIdxs
+
 # I/O functions
 def makeGeoIm(I,R,crs,fName):
     drv = gdal.GetDriverByName("GTiff") # export image
@@ -566,7 +610,7 @@ for i in range(len(s2Path)):
     
     # transform to shadow image
     M = ruffenacht(B2,B3,B4,B8)
-    # makeGeoIm(M,subTransform,crs,sen2Path + "ruffenacht.tif")
+    makeGeoIm(M,subTransform,crs,sen2Path + "ruffenacht.tif")
     # M = shadowIndex(B2,B3,B4,B8)
     # makeGeoIm(M,subTransform,crs,sen2Path + "swIdx.tif") # pc1
     # M = shadeIndex(B2,B3,B4,B8)
@@ -578,36 +622,75 @@ for i in range(len(s2Path)):
     
     del B2,B3,B4,B8
     
-    # classify into regions
-    siz = 5
-    loop = 500
-    labels = getShadows(M,siz,loop)
-    makeGeoIm(labels,subTransform,crs, sen2Path + "schur.tif")
-    
-    # find self-shadow and cast-shadow
+    if not os.path.exists(sen2Path+fName[i][0:-2]+'.txt'):
+        # classify into regions
+        siz = 5
+        loop = 500
+        labels = getShadows(M,siz,loop)
+        makeGeoIm(labels,subTransform,crs, sen2Path + "schur.tif")
+        
+        # find self-shadow and cast-shadow
+        (sunZn,sunAz) = read_sun_angles(sen2Path)
+        sunZn = sunZn[minI:maxI,minI:maxI]
+        sunAz = sunAz[minI:maxI,minI:maxI]
+        
+        castList = listOccluderAndCasted(labels, sunZn, sunAz, subTransform)
+        
+        # write data to txt-file
+        # Header = ('ridgeX', 'ridgeY', 'castX', 'castY', 'sunAzi', 'sunZn')
+        fCast = sen2Path+fName[i][0:-2]+'.txt'
+        with open(fCast, 'w') as f:
+            for item in castList:
+                np.savetxt(f,item.reshape(1,6), fmt="%.2f", delimiter=",", 
+                           newline='\n', header='', footer='', comments='# ')
+        #        np.savetxt("test2.txt", x, fmt="%2.1f", delimiter=",")
+        #        f.write("%s\n" % item)
+        print('wrote '+fCast)
+
+## co-register
+
+# get shadow images into one array
+for i in range(len(s2Path)):
+    sen2Path = datPath + s2Path[i]
+    # get sun orientation
     (sunZn,sunAz) = read_sun_angles(sen2Path)
     sunZn = sunZn[minI:maxI,minI:maxI]
     sunAz = sunAz[minI:maxI,minI:maxI]
+    # read shadow image
+    img = gdal.Open(sen2Path + "ruffenacht.tif")
+    M = np.array(img.GetRasterBand(1).ReadAsArray())   
+    # create ridge image 
+    Mcan = castOrientation(M,sunZn,sunAz) 
+    # Mcan = castOrientation(msk,sunZn,sunAz) 
+    Mcan[Mcan<0] = 0
+    # stack into 3D array
+    if i==0:
+        Mstack = Mcan
+    elif i==1:
+        Mstack = np.stack((Mstack, Mcan), axis=2)
+    else:
+        Mstack = np.dstack((Mstack, Mcan))    
+
+# get network
+GridIdxs = getNetworkIndices(len(s2Path))
+tempSize = 9
+for i in range(GridIdxs.shape[1]):
+    D = LucasKanade(Mstack[:,:,GridIdxs[0,i]], Mstack[:,:,GridIdxs[1,i]],
+                    tempSize)
+makeGeoIm(D[0],subTransform,crs,"DispAx1.tif")
+makeGeoIm(D[1],subTransform,crs,"DispAx2.tif")
+
+# Lukas Kanade
+
+# weights through observation angle
+
     
-    castList = listOccluderAndCasted(labels, sunZn, sunAz, subTransform)
+# makeGeoIm(Mcan,subTransform,crs,"shadowRidges.tif")
+
+# merge lists
+for i in range(len(s2Path)):
+    print('getting together')
     
-    # write data to txt-file
-    # Header = ('ridgeX', 'ridgeY', 'castX', 'castY', 'sunAzi', 'sunZn')
-    fCast = fName[i][0:-2]+'.txt'
-    with open(fCast, 'w') as f:
-        for item in castList:
-            np.savetxt(f,item.reshape(1,6), fmt="%.2f", delimiter=",", 
-                       newline='\n', header='', footer='', comments='# ')
-    #        np.savetxt("test2.txt", x, fmt="%2.1f", delimiter=",")
-    #        f.write("%s\n" % item)
-
-
-Mcan = castOrientation(M,sunZn,sunAz) 
-Mcan = castOrientation(msk,sunZn,sunAz) 
-Mcan[Mcan<0] = 0
-makeGeoIm(Mcan,subTransform,crs,"shadowRidges.tif")
-
-
 #processed_image = cv2.filter2D(image,-1,kernel)
 
 (viwZn,viwAz) = read_view_angles(s2Path)
