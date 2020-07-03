@@ -29,6 +29,10 @@ from xml.etree import ElementTree
 from scipy.interpolate import griddata #for grid interpolation
 from scipy import ndimage # for image filtering
 from scipy import signal # for convolution filter
+from scipy.linalg import block_diag # for co-variance matrix
+
+import statsmodels.api as sm # for generalized least squares
+
 #import cv2
 
 from skimage import measure
@@ -430,12 +434,40 @@ def bboxBoolean(img):
 
     return rmin, rmax, cmin, cmax
 
+def RefTrans(Transform,dI,dJ):
+    newTransform = (Transform[0]+dI*Transform[1]+dJ*Transform[2], 
+                    Transform[1], Transform[2], 
+                    Transform[3]+dI*Transform[4]+dJ*Transform[5], 
+                    Transform[4], Transform[5])
+    return newTransform
+
+def RefScale(Transform,scaling):
+    # not using center of pixel
+    newTransform = (Transform[0], Transform[1]*scaling, Transform[2]*scaling,                    
+                    Transform[3], Transform[4]*scaling, Transform[5]*scaling)    
+    return newTransform
+
+def rotMat(theta):
+    """
+    build rotation matrix, theta is in degrees
+    """
+    R = np.array([[np.cos(np.radians(theta)), -np.sin(np.radians(theta))], 
+                  [np.sin(np.radians(theta)), np.cos(np.radians(theta))]]);
+    return R
+
+#todo
 def listOccluderAndCasted(labels, sunZn, sunAz, geoTransform):
     msk = labels>1
     labels = labels.astype(np.int32)
     mskOrient = castOrientation(msk.astype(np.float),sunZn,sunAz)
     mskOrient = np.sign(mskOrient)
     #makeGeoIm(mskOrient,subTransform,crs,"polyRidges.tif")
+    
+    # polygon based
+    
+    #another option is Bresenham's line algorithm
+    # skimage.draw.line
+    
     
     castList = []
     for shp, val in shapes(labels, mask=msk, connectivity=8):
@@ -557,14 +589,6 @@ def LucasKanade(I1, I2, window_size, stepSize=False, tau=1e-2):
  
     return (u,v)
 
-def rotMat(theta):
-    """
-    build rotation matrix, theta is in degrees
-    """
-    R = np.array([[np.cos(np.radians(theta)), -np.sin(np.radians(theta))], 
-                  [np.sin(np.radians(theta)), np.cos(np.radians(theta))]]);
-    return R
-
 def getNetworkIndices(n):
     '''
     for a number (n) of images, generate a list with all matchable combinations
@@ -591,19 +615,6 @@ def makeGeoIm(I,R,crs,fName):
     ds = None
     del ds    
 
-def RefTrans(Transform,dI,dJ):
-    newTransform = (Transform[0]+dI*Transform[1]+dJ*Transform[2], 
-                    Transform[1], Transform[2], 
-                    Transform[3]+dI*Transform[4]+dJ*Transform[5], 
-                    Transform[4], Transform[5])
-    return newTransform
-
-def RefScale(Transform,scaling):
-    # not using center of pixel
-    newTransform = (Transform[0], Transform[1]*scaling, Transform[2]*scaling,                    
-                    Transform[3], Transform[4]*scaling, Transform[5]*scaling)    
-    return newTransform
-
 datPath = '/Users/Alten005/surfdrive/Eratosthenes/Denali/' 
 #s2Path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VPL_20180225T232042/'
 #fName = 'T05VPL_20180225T214531_B'
@@ -612,6 +623,10 @@ s2Path = ('Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VNK_20180225T232042/',
           'Data/S2B_MSIL1C_20190225T214529_N0207_R129_T05VNK_20190226T010218/',
           'Data/S2A_MSIL1C_20200225T214531_N0209_R129_T05VNK_20200225T231600/')
 fName = ('T05VNK_20180225T214531_B', 'T05VNK_20190225T214529_B', 'T05VNK_20200225T214531_B')
+
+# do a subset of the imagery
+minI = 4000
+maxI = 6000
 
 for i in range(len(s2Path)):
 
@@ -627,8 +642,6 @@ for i in range(len(s2Path)):
     nI = np.size(B2,axis=1)
     
     # reduce image space, so it fit in memory
-    minI = 4000
-    maxI = 6000
     B2 = B2[minI:maxI,minI:maxI]
     B3 = B3[minI:maxI,minI:maxI]
     B4 = B4[minI:maxI,minI:maxI]
@@ -676,7 +689,6 @@ for i in range(len(s2Path)):
         print('wrote '+fCast)
 
 ## co-register
-
 # get shadow images into one array
 for i in range(len(s2Path)):
     sen2Path = datPath + s2Path[i]
@@ -703,23 +715,94 @@ for i in range(len(s2Path)):
 GridIdxs = getNetworkIndices(len(s2Path))
 tempSize = 15
 stepSize = True
+# get observation angle
+(obsZn,obsAz) = read_view_angles(sen2Path)
+obsZn = obsZn[minI:maxI,minI:maxI]
+obsAz = obsAz[minI:maxI,minI:maxI]
+if stepSize: # reduce to kernel resolution
+    radius = np.floor(tempSize/2).astype('int')
+    Iidx = np.arange(radius, obsZn.shape[0]-radius, tempSize)
+    Jidx = np.arange(radius, obsZn.shape[1]-radius, tempSize)
+    IidxNew = np.repeat(np.transpose([Iidx]), len(Jidx), axis=1)
+    Jidx = np.repeat([Jidx], len(Iidx), axis=0)
+    Iidx = IidxNew 
+    
+    obsZn = obsZn[Iidx,Jidx]
+    obsAz = obsAz[Iidx,Jidx]
+    del IidxNew,radius,Iidx,Jidx
+    
+sig_y = 10; # matching precision
 for i in range(GridIdxs.shape[1]):
-    D = LucasKanade(Mstack[:,:,GridIdxs[0,i]], Mstack[:,:,GridIdxs[1,i]],
+    # optical flow following Lukas Kanade
+    
+    #####################
+    # blur with gaussian?
+    #####################
+    
+    (y_N,y_E) = LucasKanade(Mstack[:,:,GridIdxs[0,i]], Mstack[:,:,GridIdxs[1,i]],
                     tempSize, stepSize)
+    # select correct displacements
+    Msk = y_N!=0
+    
+    #########################
+    # also get stable ground?
+    #########################
+    
+    # robust selection through group statistics
+    med_N = np.median(y_N[Msk])
+    mad_N = np.median(np.abs(y_N[Msk] - med_N))
+    
+    med_E = np.median(y_E[Msk])
+    mad_E = np.median(np.abs(y_E[Msk] - med_E))
+    
+    alpha = 3
+    IN_N = (y_N > med_N-alpha*mad_N) & (y_N < med_N+alpha*mad_N)
+    IN_E = (y_E > med_E-alpha*mad_E) & (y_E < med_E+alpha*mad_E)
+    IN = IN_N & IN_E
+    del IN_N,IN_E,med_N,mad_N,med_E,mad_E
+    
+    # keep selection and get their observation angles
+    IN = IN & Msk
+    y_N = y_N[IN]
+    y_E = y_E[IN]
+    y_Zn = abs(obsZn[IN]) # no negative values permitted
+    y_Az = obsAz[IN]
+    
+    # Generalized Least Squares adjustment, as there might be some heteroskedasticity
+    # construct measurement vector and variance matrix
+    A = np.repeat(np.identity(2, dtype = float), len(y_N), axis=0) 
+    y = np.reshape(np.hstack((y_N[:,np.newaxis],y_E[:,np.newaxis])),(-1,1))
+    
+    # build 2*2*n covariance matrix
+    q_yy = np.zeros((2,2,len(y_Zn)), dtype = float)
+    for b in range(len(y_Zn)):
+        q_yy[:,:,b] = np.matmul(rotMat(y_Az[b]),np.array([[sig_y, 0], [0, (1+np.tan(np.radians(y_Zn[b])))*sig_y]]))
+    # transform to diagonal matrix
+    Q_yy = block_diag(*q_yy)  
+    del q_yy,y_N,y_E,y_Zn,y_Az
+    
+    gls_model = sm.GLS(A, y, sigma=Q_yy)
+    x_hat = gls_model.fit()
+
+    
     if i==0:
         Dstack = D
     else:
         Dstack = Dstack + D
-        
-# weighted least-squares adjustment    
-sig_y = 10;
 
-lkTransform = RefScale(RefTrans(subTransform,tempSize/2,tempSize/2),tempSize)
+#lkTransform = RefScale(RefTrans(subTransform,tempSize/2,tempSize/2),tempSize)   
+#makeGeoIm(Dstack[0],lkTransform,crs,"DispAx1.tif")
+
+      
+
     
-makeGeoIm(Dstack[0],lkTransform,crs,"DispAx1.tif")
-makeGeoIm(Dstack[1],lkTransform,crs,"DispAx2.tif")
 
-# Lukas Kanade
+        
+
+
+
+
+
 
 # weights through observation angle
 
