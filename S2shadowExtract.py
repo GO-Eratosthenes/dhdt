@@ -36,6 +36,7 @@ import statsmodels.api as sm # for generalized least squares
 #import cv2
 
 from skimage import measure
+#from skimage import draw
 #from skimage import graph 
 from skimage.future import graph # for rag
 from skimage import segmentation # for superpixels
@@ -455,7 +456,86 @@ def rotMat(theta):
                   [np.sin(np.radians(theta)), np.cos(np.radians(theta))]]);
     return R
 
-#todo
+def labelOccluderAndCasted(labels, sunZn, sunAz, subTransform):
+    labels = labels.astype(np.int32)
+    msk = labels>=1
+    mL,nL = labels.shape
+    shadowIdx = np.zeros((mL,nL), dtype=np.int16)
+    inner = ndimage.morphology.binary_erosion(msk)
+    bndOrient = castOrientation(inner.astype(np.float),sunZn,sunAz)
+    del mL,nL,inner
+    
+    for i in range(1,labels.max()): # loop through all polygons
+        loc = ndimage.find_objects(labels==i, max_label=2)[0]
+        if loc is not None:
+            subLabel = labels[loc] # generate subset covering only the polygon 
+            subLabel[subLabel!=i] = 0   
+            subOrient = np.sign(bndOrient[loc])    
+            
+            subMsk = subLabel==i
+            subBound = subMsk ^ ndimage.morphology.binary_erosion(subMsk)
+            subOrient[~subBound] = 0
+            
+            subAz = sunAz[loc]
+            
+            subWhe = np.nonzero(subMsk)
+            ridgIdx = subOrient[subWhe[0],subWhe[1]]==1
+            try:
+                ridgeI = subWhe[0][ridgIdx]
+                ridgeJ = subWhe[1][ridgIdx]
+            except IndexError:
+                continue    
+            
+            cast = subOrient==-1 # boundary of the polygon that receives cast shadow
+            
+            m,n = subMsk.shape
+            subShadowIdx = np.zeros((m,n), dtype=np.int16)
+            for x in range(len(ridgeI)): # loop through all occluders
+                sunDir = subAz[ridgeI[x]][ridgeJ[x]] # degrees [-180 180]
+                
+                # Bresenham's line algorithm
+                dI = -math.cos(math.radians(subAz[ridgeI[x]][ridgeJ[x]])) # flip axis to get from world into image coords
+                dJ = -math.sin(math.radians(subAz[ridgeI[x]][ridgeJ[x]])) #
+                if abs(sunDir)>90: # northern or southern hemisphere
+                    if dI>dJ:
+                        rr = np.arange(start=0, stop=ridgeI[x], step=1)
+                        cc = np.round(rr*dJ) + ridgeJ[x]
+                    else:
+                        cc = np.arange(start=0, stop=ridgeJ[x], step=1)
+                        rr = np.round(rr*dI) + ridgeI[x]  
+                else:
+                    if dI>dJ:
+                        rr = np.arange(start=ridgeI[x], stop=m, step=1)
+                        cc = np.round(rr*dJ) + ridgeJ[x]
+                    else:
+                        cc = np.arange(start=ridgeJ[x], stop=n, step=1)
+                        rr = np.round(rr*dI) + ridgeI[x]   
+                # generate cast line in sub-image        
+                rr = rr.astype(np.int64)
+                cc = cc.astype(np.int64)
+                subCast = np.zeros((m, n), dtype=np.uint8)
+                subCast[rr, cc] = 1
+                
+                # find closest casted
+                castHit = cast&subCast
+                castIdx = castHit[subWhe[0],subWhe[1]]==True
+                castI = subWhe[0][castIdx]
+                castJ = subWhe[1][castIdx] 
+                del castIdx, castHit, subCast, rr, cc, dI, dJ, sunDir
+                
+                if len(castI)>1:
+                    # do selection, of the closest casted
+                    dist = np.sqrt((castI-ridgeI[x])**2 + (castJ-ridgeJ[x])**2)
+                    idx = np.where(dist == np.amin(dist))
+                    castI = castI[idx[0]]
+                    castJ = castJ[idx[0]]   
+                
+                if len(castI)>0:
+                    # write out
+                    subShadowIdx[ridgeI[x]][ridgeJ[x]] = x # ridge
+                    subShadowIdx[castI[0]][castJ[0]] = x # casted
+            shadowIdx[loc] = subShadowIdx        
+
 def listOccluderAndCasted(labels, sunZn, sunAz, geoTransform):
     msk = labels>1
     labels = labels.astype(np.int32)
@@ -663,7 +743,7 @@ for i in range(len(s2Path)):
     
     del B2,B3,B4,B8
     
-    if not os.path.exists(sen2Path+fName[i][0:-2]+'.txt'):
+    if True: #not os.path.exists(sen2Path+fName[i][0:-2]+'.txt'):
         # classify into regions
         siz = 5
         loop = 500
@@ -675,7 +755,12 @@ for i in range(len(s2Path)):
         sunZn = sunZn[minI:maxI,minI:maxI]
         sunAz = sunAz[minI:maxI,minI:maxI]
         
+        # raster-based
+        castList = labelOccluderAndCasted(labels, sunZn, sunAz, subTransform)
+        # polygon-based
         castList = listOccluderAndCasted(labels, sunZn, sunAz, subTransform)
+        
+        
         
         # write data to txt-file
         # Header = ('ridgeX', 'ridgeY', 'castX', 'castY', 'sunAzi', 'sunZn')
@@ -770,17 +855,18 @@ for i in range(GridIdxs.shape[1]):
     
     # Generalized Least Squares adjustment, as there might be some heteroskedasticity
     # construct measurement vector and variance matrix
-    A = np.repeat(np.identity(2, dtype = float), len(y_N), axis=0) 
+    A = np.tile(np.identity(2, dtype = float), (len(y_N), 1)) 
     y = np.reshape(np.hstack((y_N[:,np.newaxis],y_E[:,np.newaxis])),(-1,1))
     
     # build 2*2*n covariance matrix
-    q_yy = np.zeros((2,2,len(y_Zn)), dtype = float)
+    q_yy = np.zeros((len(y_Zn),2,2), dtype = float)
     for b in range(len(y_Zn)):
-        q_yy[:,:,b] = np.matmul(rotMat(y_Az[b]),np.array([[sig_y, 0], [0, (1+np.tan(np.radians(y_Zn[b])))*sig_y]]))
+        q_yy[b,:,:] = np.matmul(rotMat(y_Az[b]),np.array([[sig_y, 0], [0, (1+np.tan(np.radians(y_Zn[b])))*sig_y]]))
     # transform to diagonal matrix
     Q_yy = block_diag(*q_yy)  
     del q_yy,y_N,y_E,y_Zn,y_Az
     
+    x_hat = np.linalg.lstsq(A, y, rcond=None)
     gls_model = sm.GLS(A, y, sigma=Q_yy)
     x_hat = gls_model.fit()
 
