@@ -514,40 +514,43 @@ def labelOccluderAndCasted(labels, sunZn, sunAz, subTransform):
                 rr = rr.astype(np.int64)
                 cc = cc.astype(np.int64)
                 subCast = np.zeros((m, n), dtype=np.uint8)
-                subCast[rr, cc] = 1
                 
-                # find closest casted
-                castHit = cast&subCast
-                castIdx = castHit[subWhe[0],subWhe[1]]==True
-                castI = subWhe[0][castIdx]
-                castJ = subWhe[1][castIdx] 
-                del castIdx, castHit, subCast, rr, cc, dI, dJ, sunDir
-                
-                if len(castI)>1:
-                    # do selection, of the closest casted
-                    dist = np.sqrt((castI-ridgeI[x])**2 + (castJ-ridgeJ[x])**2)
-                    idx = np.where(dist == np.amin(dist))
-                    castI = castI[idx[0]]
-                    castJ = castJ[idx[0]]   
-                
-                if len(castI)>0:
-                    # write out
-                    subShadowIdx[ridgeI[x]][ridgeJ[x]] = x # ridge
-                    subShadowIdx[castI[0]][castJ[0]] = x # casted
+                IN = (cc>0) & (cc<m) & (rr>0) & (rr<n) # inside sub-image                
+                if IN.any():
+                    rr = rr[IN]
+                    cc = cc[IN]
+                    try:
+                        subCast[rr, cc] = 1
+                    except IndexError:
+                        continue                
+                    
+                    # find closest casted
+                    castHit = cast&subCast
+                    castIdx = castHit[subWhe[0],subWhe[1]]==True
+                    castI = subWhe[0][castIdx]
+                    castJ = subWhe[1][castIdx] 
+                    del IN, castIdx, castHit, subCast, rr, cc, dI, dJ, sunDir
+                    
+                    if len(castI)>1:
+                        # do selection, of the closest casted
+                        dist = np.sqrt((castI-ridgeI[x])**2 + (castJ-ridgeJ[x])**2)
+                        idx = np.where(dist == np.amin(dist))
+                        castI = castI[idx[0]]
+                        castJ = castJ[idx[0]]   
+                    
+                    if len(castI)>0:
+                        # write out
+                        subShadowIdx[ridgeI[x]][ridgeJ[x]] = x # ridge
+                        subShadowIdx[castI[0]][castJ[0]] = x # casted
             shadowIdx[loc] = subShadowIdx        
-
+    return shadowIdx
+    
 def listOccluderAndCasted(labels, sunZn, sunAz, geoTransform):
     msk = labels>1
     labels = labels.astype(np.int32)
     mskOrient = castOrientation(msk.astype(np.float),sunZn,sunAz)
     mskOrient = np.sign(mskOrient)
     #makeGeoIm(mskOrient,subTransform,crs,"polyRidges.tif")
-    
-    # polygon based
-    
-    #another option is Bresenham's line algorithm
-    # skimage.draw.line
-    
     
     castList = []
     for shp, val in shapes(labels, mask=msk, connectivity=8):
@@ -709,7 +712,7 @@ minI = 4000
 maxI = 6000
 
 for i in range(len(s2Path)):
-
+    print(i)
     sen2Path = datPath + s2Path[i]
     
     # read imagery of the different bands
@@ -743,7 +746,7 @@ for i in range(len(s2Path)):
     
     del B2,B3,B4,B8
     
-    if True: #not os.path.exists(sen2Path+fName[i][0:-2]+'.txt'):
+    if not os.path.exists(sen2Path + 'labelCastConn.tif'):
         # classify into regions
         siz = 5
         loop = 500
@@ -757,21 +760,23 @@ for i in range(len(s2Path)):
         
         # raster-based
         castList = labelOccluderAndCasted(labels, sunZn, sunAz, subTransform)
-        # polygon-based
-        castList = listOccluderAndCasted(labels, sunZn, sunAz, subTransform)
+        # write data 
         
+        makeGeoIm(labels,subTransform,crs,sen2Path + "labelPolygons.tif")
+        makeGeoIm(castList,subTransform,crs,sen2Path + "labelCastConn.tif")
         
-        
-        # write data to txt-file
-        # Header = ('ridgeX', 'ridgeY', 'castX', 'castY', 'sunAzi', 'sunZn')
-        fCast = sen2Path+fName[i][0:-2]+'.txt'
-        with open(fCast, 'w') as f:
-            for item in castList:
-                np.savetxt(f,item.reshape(1,6), fmt="%.2f", delimiter=",", 
-                           newline='\n', header='', footer='', comments='# ')
-        #        np.savetxt("test2.txt", x, fmt="%2.1f", delimiter=",")
-        #        f.write("%s\n" % item)
-        print('wrote '+fCast)
+#        # polygon-based
+#        castList = listOccluderAndCasted(labels, sunZn, sunAz, subTransform)
+#        # write data to txt-file
+#        # Header = ('ridgeX', 'ridgeY', 'castX', 'castY', 'sunAzi', 'sunZn')
+#        fCast = sen2Path+fName[i][0:-2]+'.txt'
+#        with open(fCast, 'w') as f:
+#            for item in castList:
+#                np.savetxt(f,item.reshape(1,6), fmt="%.2f", delimiter=",", 
+#                           newline='\n', header='', footer='', comments='# ')
+#        #        np.savetxt("test2.txt", x, fmt="%2.1f", delimiter=",")
+#        #        f.write("%s\n" % item)
+        print('wrote '+ fName[i][0:-2])
 
 ## co-register
 # get shadow images into one array
