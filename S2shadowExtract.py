@@ -698,6 +698,13 @@ def makeGeoIm(I,R,crs,fName):
     ds = None
     del ds    
 
+def metaS2string(S2str):
+    S2split = S2str.split('_')
+    S2time = S2split[2]
+    S2orbit = S2split[4]
+    S2tile = S2split[5]
+    return S2time, S2orbit, S2tile
+
 datPath = '/Users/Alten005/surfdrive/Eratosthenes/Denali/' 
 #s2Path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VPL_20180225T232042/'
 #fName = 'T05VPL_20180225T214531_B'
@@ -712,8 +719,8 @@ minI = 4000
 maxI = 6000
 
 for i in range(len(s2Path)):
-    print(i)
     sen2Path = datPath + s2Path[i]
+    (S2time,S2orbit,S2tile) = metaS2string(s2Path[i])
     
     # read imagery of the different bands
     (B2, crs, geoTransform, targetprj) = read_band_image('02', sen2Path)
@@ -777,6 +784,88 @@ for i in range(len(s2Path)):
 #        #        np.savetxt("test2.txt", x, fmt="%2.1f", delimiter=",")
 #        #        f.write("%s\n" % item)
         print('wrote '+ fName[i][0:-2])
+    if not os.path.exists(sen2Path + 'rgi.tif'):
+        
+        if not os.path.exists(datPath + S2tile + '.tif'): # create RGI raster
+            rgiPath = datPath+'GIS/'
+            rgiFile = '01_rgi60_alaska.shp'
+            
+            outShp = rgiPath+rgiFile[:-4]+'_utm'+S2tile[1:3]+'.shp'
+            if not os.path.exists(outShp): # project RGI shapefile
+                #making the shapefile as an object.
+                inputShp = ogr.Open(rgiPath+rgiFile)
+                #getting layer information of shapefile.
+                inLayer = inputShp.GetLayer()
+                # get info for coordinate transformation
+                inSpatialRef = inLayer.GetSpatialRef()
+                # output SpatialReference
+                outSpatialRef = osr.SpatialReference()
+                outSpatialRef.ImportFromWkt(crs)
+                coordTrans = osr.CoordinateTransformation(inSpatialRef, outSpatialRef)
+                
+                driver = ogr.GetDriverByName('ESRI Shapefile')
+                # create the output layer
+                if os.path.exists(outShp):
+                    driver.DeleteDataSource(outShp)
+                outDataSet = driver.CreateDataSource(outShp)
+                outLayer = outDataSet.CreateLayer("reproject", outSpatialRef, geom_type=ogr.wkbMultiPolygon)
+ #               outLayer = outDataSet.CreateLayer("reproject", geom_type=ogr.wkbMultiPolygon)
+                
+                # add fields
+                fieldDefn = ogr.FieldDefn('RGIId', ogr.OFTInteger) 
+                fieldDefn.SetWidth(14) 
+                fieldDefn.SetPrecision(1)
+                outLayer.CreateField(fieldDefn)
+                # inLayerDefn = inLayer.GetLayerDefn()
+                # for i in range(0, inLayerDefn.GetFieldCount()):
+                #     fieldDefn = inLayerDefn.GetFieldDefn(i)
+                #     outLayer.CreateField(fieldDefn)
+                
+                # get the output layer's feature definition
+                outLayerDefn = outLayer.GetLayerDefn()
+                
+                # loop through the input features
+                inFeature = inLayer.GetNextFeature()
+                while inFeature:
+                    # get the input geometry
+                    geom = inFeature.GetGeometryRef()
+                    # reproject the geometry
+                    geom.Transform(coordTrans)
+                    # create a new feature
+                    outFeature = ogr.Feature(outLayerDefn)
+                    # set the geometry and attribute
+                    outFeature.SetGeometry(geom)
+                    rgiStr = inFeature.GetField('RGIId')
+                    outFeature.SetField('RGIId', int(rgiStr[9:]))
+                    # add the feature to the shapefile
+                    outLayer.CreateFeature(outFeature)
+                    # dereference the features and get the next input feature
+                    outFeature = None
+                    inFeature = inLayer.GetNextFeature()
+                outDataSet = None # this creates an error but is needed?????
+            
+            #making the shapefile as an object.
+            rgiShp = ogr.Open(outShp)
+            #getting layer information of shapefile.
+            rgiLayer = rgiShp.GetLayer()
+            #get required raster band.
+            
+            driver = gdal.GetDriverByName('GTiff')
+            rgiRaster = driver.Create(datPath+S2tile+'.tif', mI, nI, 1, gdal.GDT_Int16)
+#            rgiRaster = gdal.GetDriverByName('GTiff').Create(datPath+S2tile+'.tif', mI, nI, 1, gdal.GDT_Int16)           
+            rgiRaster.SetGeoTransform(geoTransform)
+            band = rgiRaster.GetRasterBand(1)
+            #assign no data value to empty cells.
+            band.SetNoDataValue(0)
+            # band.FlushCache()
+            
+            #main conversion method
+            err = gdal.RasterizeLayer(rgiRaster, [1], rgiLayer, options=['ATTRIBUTE=RGIId'])
+            rgiRaster = None # missing link.....
+        
+        #
+        datPath + S2tile + '.tif'            
+
 
 ## co-register
 # get shadow images into one array
