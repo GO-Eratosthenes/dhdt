@@ -66,6 +66,25 @@ def read_band_image(band, path):
     targetprj = osr.SpatialReference(wkt = img.GetProjection())
     return data, spatialRef, geoTransform, targetprj
 
+def read_geo_image(fname):
+    """
+    This function takes as input the geotiff name and the path of the 
+    folder that the images are stored, reads the image and returns the data as
+    an array
+    input:   band           string            geotiff name
+             path           string            path of the folder
+    output:  data           array (n x m)     array of the band image
+             spatialRef     string            projection 
+             geoTransform   tuple             affine transformation coefficients
+             targetprj                        spatial reference
+    """
+    img = gdal.Open(fname)
+    data = np.array(img.GetRasterBand(1).ReadAsArray())
+    spatialRef = img.GetProjection()
+    geoTransform = img.GetGeoTransform()
+    targetprj = osr.SpatialReference(wkt = img.GetProjection())
+    return data, spatialRef, geoTransform, targetprj
+
 def read_sun_angles(path):
     """
     This function reads the xml-file of the Sentinel-2 scene and extracts an
@@ -684,6 +703,40 @@ def getNetworkIndices(n):
     GridIdxs = np.vstack((Grid1, Grid2))
     return GridIdxs
 
+def pix2map(geoTransform,i,j):
+    '''
+    Transform image coordinates to map coordinates
+    '''
+    x = geoTransform[0] + geoTransform[1] * j + geoTransform[2] * i
+    y = geoTransform[3] + geoTransform[4] * j + geoTransform[5] * i 
+    
+    # offset the center of the pixel
+    x += geoTransform[2] / 2.0
+    y += geoTransform[5] / 2.0
+    return x, y
+
+def map2pix(geoTransform,x,y):
+    '''
+    Transform map coordinates to image coordinates
+    '''
+    # offset the center of the pixel
+    x -= geoTransform[1] / 2.0
+    y -= geoTransform[5] / 2.0
+    x -= geoTransform[0]
+    y -= geoTransform[3]
+    
+    if geoTransform[2]==0:
+        j = x / geoTransform[1]
+    else:
+        j = x / geoTransform[1] +  y / geoTransform[2]
+    
+    if geoTransform[4]==0:
+        i = y / geoTransform[5]
+    else:
+        i = x / geoTransform[4] + y / geoTransform[5]
+    
+    return i, j
+
 # I/O functions
 def makeGeoIm(I,R,crs,fName):
     drv = gdal.GetDriverByName("GTiff") # export image
@@ -738,7 +791,8 @@ for i in range(len(s2Path)):
     B8 = B8[minI:maxI,minI:maxI]
     
     subTransform = RefTrans(geoTransform,minI,minI) # create georeference for subframe
-        
+    subM = np.size(B2,axis=0)
+    subN = np.size(B2,axis=1)    
     # transform to shadow image
     M = ruffenacht(B2,B3,B4,B8)
     makeGeoIm(M,subTransform,crs,sen2Path + "ruffenacht.tif")
@@ -758,7 +812,7 @@ for i in range(len(s2Path)):
         siz = 5
         loop = 500
         labels = getShadows(M,siz,loop)
-        makeGeoIm(labels,subTransform,crs, sen2Path + "schur.tif")
+        makeGeoIm(labels,subTransform,crs, sen2Path + "shadows.tif")
         
         # find self-shadow and cast-shadow
         (sunZn,sunAz) = read_sun_angles(sen2Path)
@@ -863,9 +917,15 @@ for i in range(len(s2Path)):
             err = gdal.RasterizeLayer(rgiRaster, [1], rgiLayer, options=['ATTRIBUTE=RGIId'])
             rgiRaster = None # missing link.....
         
-        #
-        datPath + S2tile + '.tif'            
-
+        # create subset
+        (Msk, crs, geoTransform, targetprj) = read_geo_image(datPath+S2tile+'.tif')
+        (bboxX,bboxY) = pix2map(subTransform,np.array([1, subM]),np.array([1, subN]))
+        (bboxI,bboxJ) = map2pix(geoTransform, bboxX,bboxY)
+        bboxI = np.round(bboxI).astype(int)
+        bboxJ = np.round(bboxJ).astype(int)
+        msk = Msk[bboxI[0]:bboxI[1],bboxJ[0]:bboxJ[1]]
+        makeGeoIm(msk,subTransform,crs,sen2Path + 'rgi.tif')
+        
 
 ## co-register
 # get shadow images into one array
@@ -892,6 +952,11 @@ for i in range(len(s2Path)):
 
 # get network
 GridIdxs = getNetworkIndices(len(s2Path))
+Astack = np.zeros([GridIdxs.shape[1],len(s2Path)]) # General coregistration adjustment matrix
+Astack[GridIdxs[0,:],np.arange(GridIdxs.shape[1])] = +1
+Astack[GridIdxs[1,:],np.arange(GridIdxs.shape[1])] = -1
+Astack = np.transpose(Astack)
+
 tempSize = 15
 stepSize = True
 # get observation angle
@@ -911,6 +976,7 @@ if stepSize: # reduce to kernel resolution
     del IidxNew,radius,Iidx,Jidx
     
 sig_y = 10; # matching precision
+Dstack = np.zeros([GridIdxs.shape[1],2])
 for i in range(GridIdxs.shape[1]):
     # optical flow following Lukas Kanade
     
@@ -934,6 +1000,7 @@ for i in range(GridIdxs.shape[1]):
     med_E = np.median(y_E[Msk])
     mad_E = np.median(np.abs(y_E[Msk] - med_E))
     
+    # robust 3sigma-filtering
     alpha = 3
     IN_N = (y_N > med_N-alpha*mad_N) & (y_N < med_N+alpha*mad_N)
     IN_E = (y_E > med_E-alpha*mad_E) & (y_E < med_E+alpha*mad_E)
@@ -952,29 +1019,69 @@ for i in range(GridIdxs.shape[1]):
     A = np.tile(np.identity(2, dtype = float), (len(y_N), 1)) 
     y = np.reshape(np.hstack((y_N[:,np.newaxis],y_E[:,np.newaxis])),(-1,1))
     
-    # build 2*2*n covariance matrix
-    q_yy = np.zeros((len(y_Zn),2,2), dtype = float)
-    for b in range(len(y_Zn)):
-        q_yy[b,:,:] = np.matmul(rotMat(y_Az[b]),np.array([[sig_y, 0], [0, (1+np.tan(np.radians(y_Zn[b])))*sig_y]]))
-    # transform to diagonal matrix
-    Q_yy = block_diag(*q_yy)  
-    del q_yy,y_N,y_E,y_Zn,y_Az
+    # # build 2*2*n covariance matrix
+    # q_yy = np.zeros((len(y_Zn),2,2), dtype = float)
+    # for b in range(len(y_Zn)):
+    #     q_yy[b,:,:] = np.matmul(rotMat(y_Az[b]),np.array([[sig_y, 0], [0, (1+np.tan(np.radians(y_Zn[b])))*sig_y]]))
+    # # transform to diagonal matrix
+    # Q_yy = block_diag(*q_yy)  
+    # del q_yy,y_N,y_E,y_Zn,y_Az
     
-    x_hat = np.linalg.lstsq(A, y, rcond=None)
-    gls_model = sm.GLS(A, y, sigma=Q_yy)
-    x_hat = gls_model.fit()
+    xHat = np.linalg.lstsq(A, y, rcond=None)
+    xHat = xHat[0]
+    # gls_model = sm.GLS(A, y, sigma=Q_yy)
+    # x_hat = gls_model.fit()    
+    Dstack[i,:] = np.transpose(xHat)
 
-    
-    if i==0:
-        Dstack = D
-    else:
-        Dstack = Dstack + D
+xCoreg = np.linalg.lstsq(Astack, Dstack, rcond=None)
+xCoreg = xCoreg[0]
+# write co-registration
+f = open(datPath+'coreg.txt', 'w')
+for i in range(xCoreg.shape[0]):
+    line = s2Path[i]+' '+'{:+3.4f}'.format(xCoreg[i,0])+' '+'{:+3.4f}'.format(xCoreg[i,1])
+    f.write(line + '\n')
+f.close()
 
 #lkTransform = RefScale(RefTrans(subTransform,tempSize/2,tempSize/2),tempSize)   
 #makeGeoIm(Dstack[0],lkTransform,crs,"DispAx1.tif")
 
-      
 
+
+# make stack of Labels & Connectivity
+for i in range(len(s2Path)):
+    sen2Path = datPath + s2Path[i]
+    if i==0:
+        Rgi = gdal.Open(sen2Path + 'rgi.tif')
+        Cast = np.zeros([Rgi.shape[0],Rgi.shape[1],len(s2Path)])
+        Cast = Cast.astype(np.int32)
+        Conn = np.zeros([Rgi.shape[0],Rgi.shape[1],len(s2Path)])
+        Conn = Conn.astype(np.int32)
+    cast = gdal.Open(sen2Path + 'labelPolygons.tif')
+    conn = gdal.Open(sen2Path + 'labelCastCon.tif')
+    Cast[:,:,i] = cast
+    Conn[:,:,i] = conn
+    del cast,conn
+
+# walk through glacier polygons      
+rgiList = np.trim_zeros(np.unique(Rgi))
+for j in rgiList:
+    selec = Rgi==j #selection of glacier polygon
+    
+
+
+    
+    # get sun orientation
+    (sunZn,sunAz) = read_sun_angles(sen2Path)
+    sunZn = sunZn[minI:maxI,minI:maxI]
+    sunAz = sunAz[minI:maxI,minI:maxI]
+    # read shadow image
+    img = gdal.Open(sen2Path + "ruffenacht.tif")
+    M = np.array(img.GetRasterBand(1).ReadAsArray())   
+    # create ridge image 
+    Mcan = castOrientation(M,sunZn,sunAz) 
+    # Mcan = castOrientation(msk,sunZn,sunAz) 
+    Mcan[Mcan<0] = 0
+    # stack into 3D array
     
 
         
@@ -1002,7 +1109,7 @@ viwAz = viwAz[minI:maxI,minI:maxI]
 
 
 fig, ax = plt.subplots()
-im = ax.imshow(viwZn)
+im = ax.imshow(Rgi)
 fig.colorbar(im)
 plt.show()
 
