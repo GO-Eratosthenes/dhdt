@@ -45,6 +45,7 @@ from skimage import filters # for Otsu thesholding
 from skimage import transform # for rotation
 
 from sklearn.neighbors import NearestNeighbors
+from sklearn.cluster import MeanShift, estimate_bandwidth
 
 from itertools import compress # for fast indexing
 
@@ -404,7 +405,7 @@ def getShadowPolygon(M,sizPix,thres):
     labels = np.int16(labels) # so it can be used for the boundaries extraction
     return labels, SupPix
 
-def getShadows(M,siz,loop):
+def medianFilShadows(M,siz,loop):
     mn = M.size;
     Mmed = M
     for i in range(loop):
@@ -417,7 +418,7 @@ def getShadows(M,siz,loop):
     imSeparation = Mmed > val
     labels = measure.label(imSeparation, background=0) 
     return labels
-
+    
 def findValley(values,base,neighbors):
     """
     A valley is a point which has "n" consecuative higher values on both sides
@@ -443,7 +444,7 @@ def findValley(values,base,neighbors):
 def castOrientation(I,sunZn,sunAz):
 #    kernel = np.array([[-1, 0, +1], [-2, 0, +2], [-1, 0, +1]])
     kernel = np.array([[17], [61], [17]])*np.array([-1, 0, 1])/95
-    Idx = ndimage.convolve(I, kernel) # steerable filters
+    Idx = ndimage.convolve(I, np.flip(kernel,axis=1)) # steerable filters
     Idy = ndimage.convolve(I, np.flip(np.transpose(kernel),axis=0))
     Ican = np.multiply(np.cos(np.radians(sunAz)),Idy) - np.multiply(np.sin(np.radians(sunAz)),Idx)
     return Ican
@@ -477,94 +478,109 @@ def rotMat(theta):
                   [np.sin(np.radians(theta)), np.cos(np.radians(theta))]]);
     return R
 
-def labelOccluderAndCasted(labels, sunZn, sunAz, subTransform):
+def labelOccluderAndCasted(labels, sunZn, sunAz): # , subTransform
     labels = labels.astype(np.int32)
     msk = labels>=1
     mL,nL = labels.shape
     shadowIdx = np.zeros((mL,nL), dtype=np.int16)
+    shadowRid = np.zeros((mL,nL), dtype=np.int16)
     inner = ndimage.morphology.binary_erosion(msk)
+    # inner = ndimage.morphology.binary_dilation(msk==0)&msk
     bndOrient = castOrientation(inner.astype(np.float),sunZn,sunAz)
     del mL,nL,inner
     
     for i in range(1,labels.max()): # loop through all polygons
-        loc = ndimage.find_objects(labels==i, max_label=2)[0]
-        if loc is not None:
-            subLabel = labels[loc] # generate subset covering only the polygon 
-            subLabel[subLabel!=i] = 0   
-            subOrient = np.sign(bndOrient[loc])    
+        loc = ndimage.find_objects(labels==i, max_label=1)[0]
+        # if loc is not None:
+        subLabel = labels[loc] # generate subset covering only the polygon 
+        subLabel[subLabel!=i] = 0   
+        subOrient = np.sign(bndOrient[loc])    
+        
+        subMsk = subLabel==i
+        # subBound = subMsk & ndimage.morphology.binary_dilation(subMsk==0)
+        subBound = subMsk ^ ndimage.morphology.binary_erosion(subMsk)
+        subOrient[~subBound] = 0 # remove other boundaries
+        
+        subAz = sunAz[loc]
+        
+        subWhe = np.nonzero(subMsk)
+        ridgIdx = subOrient[subWhe[0],subWhe[1]]==1
+        try:
+            ridgeI = subWhe[0][ridgIdx]
+            ridgeJ = subWhe[1][ridgIdx]
+        except IndexError:
+            continue    
+        try:
+            shadowRid[ridgeI+loc[0].start][ridgeJ+loc[1].start] = 1
+        except IndexError:
+            print('iets aan de hand')
             
-            subMsk = subLabel==i
-            subBound = subMsk ^ ndimage.morphology.binary_erosion(subMsk)
-            subOrient[~subBound] = 0
+        cast = subOrient==-1 # boundary of the polygon that receives cast shadow
+        
+        m,n = subMsk.shape
+        for x in range(len(ridgeI)): # loop through all occluders
+            sunDir = subAz[ridgeI[x]][ridgeJ[x]] # degrees [-180 180]
             
-            subAz = sunAz[loc]
-            
-            subWhe = np.nonzero(subMsk)
-            ridgIdx = subOrient[subWhe[0],subWhe[1]]==1
-            try:
-                ridgeI = subWhe[0][ridgIdx]
-                ridgeJ = subWhe[1][ridgIdx]
-            except IndexError:
-                continue    
-            
-            cast = subOrient==-1 # boundary of the polygon that receives cast shadow
-            
-            m,n = subMsk.shape
-            subShadowIdx = np.zeros((m,n), dtype=np.int16)
-            for x in range(len(ridgeI)): # loop through all occluders
-                sunDir = subAz[ridgeI[x]][ridgeJ[x]] # degrees [-180 180]
-                
-                # Bresenham's line algorithm
-                dI = -math.cos(math.radians(subAz[ridgeI[x]][ridgeJ[x]])) #-cos # flip axis to get from world into image coords
-                dJ = -math.sin(math.radians(subAz[ridgeI[x]][ridgeJ[x]])) #-sin #
-                if abs(sunDir)>90: # northern or southern hemisphere
-                    if dI>dJ:
-                        rr = np.arange(start=0, stop=ridgeI[x], step=1)
-                        cc = np.round(rr*dJ) + ridgeJ[x]
-                    else:
-                        cc = np.arange(start=0, stop=ridgeJ[x], step=1)
-                        rr = np.round(rr*dI) + ridgeI[x]  
+            # Bresenham's line algorithm
+            dI = -math.cos(math.radians(subAz[ridgeI[x]][ridgeJ[x]])) #-cos # flip axis to get from world into image coords
+            dJ = -math.sin(math.radians(subAz[ridgeI[x]][ridgeJ[x]])) #-sin #
+            if abs(sunDir)>90: # northern hemisphere
+                if dI>dJ:
+                    rr = np.arange(start=0, stop=ridgeI[x], step=1)
+                    cc = np.flip(np.round(rr*dJ),axis=0) + ridgeJ[x]
                 else:
-                    if dI>dJ:
-                        rr = np.arange(start=ridgeI[x], stop=m, step=1)
-                        cc = np.round(rr*dJ) + ridgeJ[x]
-                    else:
-                        cc = np.arange(start=ridgeJ[x], stop=n, step=1)
-                        rr = np.round(rr*dI) + ridgeI[x]   
-                # generate cast line in sub-image        
-                rr = rr.astype(np.int64)
-                cc = cc.astype(np.int64)
-                subCast = np.zeros((m, n), dtype=np.uint8)
+                    cc = np.arange(start=0, stop=ridgeJ[x], step=1)
+                    rr = np.flip(np.round(cc*dI),axis=0) + ridgeI[x]  
+            else: # southern hemisphere
+                if dI>dJ:
+                    rr = np.arange(start=ridgeI[x], stop=m, step=1)
+                    cc = np.round(rr*dJ) + ridgeJ[x]
+                else:
+                    cc = np.arange(start=ridgeJ[x], stop=n, step=1)
+                    rr = np.round(cc*dI) + ridgeI[x]  
+            # generate cast line in sub-image        
+            rr = rr.astype(np.int64)
+            cc = cc.astype(np.int64)
+            subCast = np.zeros((m, n), dtype=np.uint8)
+            
+            IN = (cc>=0) & (cc<=n) & (rr>=0) & (rr<=m) # inside sub-image                
+            if IN.any():
+                rr = rr[IN]
+                cc = cc[IN]
+                try:
+                    subCast[rr, cc] = 1
+                except IndexError:
+                    continue                
                 
-                IN = (cc>0) & (cc<m) & (rr>0) & (rr<n) # inside sub-image                
-                if IN.any():
-                    rr = rr[IN]
-                    cc = cc[IN]
-                    try:
-                        subCast[rr, cc] = 1
-                    except IndexError:
-                        continue                
-                    
-                    # find closest casted
-                    castHit = cast&subCast
-                    castIdx = castHit[subWhe[0],subWhe[1]]==True
-                    castI = subWhe[0][castIdx]
-                    castJ = subWhe[1][castIdx] 
-                    del IN, castIdx, castHit, subCast, rr, cc, dI, dJ, sunDir
-                    
-                    if len(castI)>1:
-                        # do selection, of the closest casted
-                        dist = np.sqrt((castI-ridgeI[x])**2 + (castJ-ridgeJ[x])**2)
-                        idx = np.where(dist == np.amin(dist))
-                        castI = castI[idx[0]]
-                        castJ = castJ[idx[0]]   
-                    
-                    if len(castI)>0:
-                        # write out
-                        subShadowIdx[ridgeI[x]][ridgeJ[x]] = +x # ridge
-                        subShadowIdx[castI[0]][castJ[0]] = -x # casted
-            shadowIdx[loc] = subShadowIdx        
-    return shadowIdx
+                # find closest casted
+                castHit = cast&subCast
+                castIdx = castHit[subWhe[0],subWhe[1]]==True
+                castI = subWhe[0][castIdx]
+                castJ = subWhe[1][castIdx] 
+                del IN, castIdx, castHit, subCast, rr, cc, dI, dJ, sunDir
+                
+                if len(castI)>1:
+                    # do selection, of the closest casted
+                    dist = np.sqrt((castI-ridgeI[x])**2 + (castJ-ridgeJ[x])**2)
+                    idx = np.where(dist == np.amin(dist))
+                    castI = castI[idx[0]]
+                    castJ = castJ[idx[0]]   
+                
+                if len(castI)>0:
+                    # write out
+                    shadowIdx[ridgeI[x]+loc[0].start][ridgeJ[x]+loc[1].start] = +x # ridge
+                    shadowIdx[castI[0]+loc[0].start][castJ[0]+loc[1].start] = -x # casted
+            #     else:
+            #         print('out of bounds')
+            # else:
+            #     print('out of bounds')
+            
+            subShadowIdx = shadowIdx[loc]
+            # subShadowOld = shadowIdx[loc] # make sur other are not overwritten
+            # OLD = subShadowOld!=0
+            # subShadowIdx[OLD] = subShadowOld[OLD]
+            # shadowIdx[loc] = subShadowIdx        
+    return shadowIdx, shadowRid
     
 def listOccluderAndCasted(labels, sunZn, sunAz, geoTransform):
     msk = labels>1
@@ -812,8 +828,8 @@ for i in range(len(s2Path)):
     if not os.path.exists(sen2Path + 'labelCastConn.tif'):
         # classify into regions
         siz = 5
-        loop = 500
-        labels = getShadows(M,siz,loop)
+        loop = 100
+        labels = medianFilShadows(M,siz,loop)
         makeGeoIm(labels,subTransform,crs, sen2Path + "shadows.tif")
         
         # find self-shadow and cast-shadow
@@ -821,11 +837,10 @@ for i in range(len(s2Path)):
         sunZn = sunZn[minI:maxI,minI:maxI]
         sunAz = sunAz[minI:maxI,minI:maxI]
         
-        # raster-based
-        castList = labelOccluderAndCasted(labels, sunZn, sunAz, subTransform)
-        # write data 
-        
         makeGeoIm(labels,subTransform,crs,sen2Path + "labelPolygons.tif")
+        # raster-based
+        (castList,shadowRid) = labelOccluderAndCasted(labels, sunZn, sunAz)#, subTransform)
+        # write data 
         makeGeoIm(castList,subTransform,crs,sen2Path + "labelCastConn.tif")
         
 #        # polygon-based
