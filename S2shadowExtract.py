@@ -47,6 +47,8 @@ from skimage import transform # for rotation
 from sklearn.neighbors import NearestNeighbors
 from sklearn.cluster import MeanShift, estimate_bandwidth
 
+import mdp # for ICA & PCA
+
 from itertools import compress # for fast indexing
 
 def read_band_image(band, path):
@@ -478,10 +480,10 @@ def rotMat(theta):
                   [np.sin(np.radians(theta)), np.cos(np.radians(theta))]]);
     return R
 
-def labelOccluderAndCasted(labels, sunZn, sunAz): # , subTransform
-    labels = labels.astype(np.int32)
-    msk = labels>=1
-    mL,nL = labels.shape
+def labelOccluderAndCasted(labeling, sunZn, sunAz): # , subTransform
+    labeling = labeling.astype(np.int64)
+    msk = labeling>=1
+    mL,nL = labeling.shape
     shadowIdx = np.zeros((mL,nL), dtype=np.int16)
     shadowRid = np.zeros((mL,nL), dtype=np.int16)
     inner = ndimage.morphology.binary_erosion(msk)
@@ -489,19 +491,39 @@ def labelOccluderAndCasted(labels, sunZn, sunAz): # , subTransform
     bndOrient = castOrientation(inner.astype(np.float),sunZn,sunAz)
     del mL,nL,inner
     
-    for i in range(1,labels.max()): # loop through all polygons
-        loc = ndimage.find_objects(labels==i, max_label=1)[0]
-        # if loc is not None:
-        subLabel = labels[loc] # generate subset covering only the polygon 
-        subLabel[subLabel!=i] = 0   
-        subOrient = np.sign(bndOrient[loc])    
-        
-        subMsk = subLabel==i
+    #labelList = np.unique(labels[msk])
+    #locs = ndimage.find_objects(labeling, max_label=0)
+    
+    labList = np.unique(labeling)
+    labList = labList[labList!=0]
+    for i in labList:
+        selec = labeling==i
+        labIdx = np.nonzero(selec) 
+        labImin = np.min(labIdx[0])
+        labImax = np.max(labIdx[0])
+        labJmin = np.min(labIdx[1])
+        labJmax = np.max(labIdx[1])
+        subMsk = selec[labImin:labImax,labJmin:labJmax]
+    
+#    for i,loc in enumerate(locs):
+#        subLabel = labels[loc]
+    
+#    for i in range(len(locs)): # range(1,labels.max()): # loop through all polygons
+#        # print("Starting on number %s" % (i))
+#        loc = locs[i]
+#        if loc is not None:
+#            subLabel = labels[loc] # generate subset covering only the polygon 
+# slices seem to be coupled.....
+#            subLabel = labels[loc[0].start:loc[0].stop,loc[1].start:loc[1].stop]
+#        subLabel[subLabel!=(i+0)] = 0   # de boosdoener
+        subOrient = np.sign(bndOrient[labImin:labImax,labJmin:labJmax]) #subOrient = np.sign(bndOrient[loc])  
+           
+        # subMsk = subLabel==(i+0)
         # subBound = subMsk & ndimage.morphology.binary_dilation(subMsk==0)
         subBound = subMsk ^ ndimage.morphology.binary_erosion(subMsk)
         subOrient[~subBound] = 0 # remove other boundaries
         
-        subAz = sunAz[loc]
+        subAz = sunAz[labImin:labImax,labJmin:labJmax] #[loc] # subAz = sunAz[loc]
         
         subWhe = np.nonzero(subMsk)
         ridgIdx = subOrient[subWhe[0],subWhe[1]]==1
@@ -511,13 +533,15 @@ def labelOccluderAndCasted(labels, sunZn, sunAz): # , subTransform
         except IndexError:
             continue    
         try:
-            shadowRid[ridgeI+loc[0].start][ridgeJ+loc[1].start] = 1
+            shadowRid[labIdx] = i # shadowRid[loc] = i # shadowRid[ridgeI+(loc[0].start),ridgeJ+(loc[1].start)] = i
         except IndexError:
             print('iets aan de hand')
             
         cast = subOrient==-1 # boundary of the polygon that receives cast shadow
         
         m,n = subMsk.shape
+        print("For number %s : Size is %s is %s finding %s pixels" % (i, m, n, len(ridgeI)))
+        
         for x in range(len(ridgeI)): # loop through all occluders
             sunDir = subAz[ridgeI[x]][ridgeJ[x]] # degrees [-180 180]
             
@@ -560,7 +584,7 @@ def labelOccluderAndCasted(labels, sunZn, sunAz): # , subTransform
                 del IN, castIdx, castHit, subCast, rr, cc, dI, dJ, sunDir
                 
                 if len(castI)>1:
-                    # do selection, of the closest casted
+                    # do selection of the closest casted
                     dist = np.sqrt((castI-ridgeI[x])**2 + (castJ-ridgeJ[x])**2)
                     idx = np.where(dist == np.amin(dist))
                     castI = castI[idx[0]]
@@ -568,14 +592,16 @@ def labelOccluderAndCasted(labels, sunZn, sunAz): # , subTransform
                 
                 if len(castI)>0:
                     # write out
-                    shadowIdx[ridgeI[x]+loc[0].start][ridgeJ[x]+loc[1].start] = +x # ridge
-                    shadowIdx[castI[0]+loc[0].start][castJ[0]+loc[1].start] = -x # casted
+                    shadowIdx[ridgeI[x]+labImin][ridgeJ[x]+labJmin] = +x
+                    # shadowIdx[ridgeI[x]+loc[0].start][ridgeJ[x]+loc[1].start] = +x # ridge
+                    shadowIdx[castI[0]+labImin][castJ[0]+labJmin] = -x 
+                    # shadowIdx[castI[0]+loc[0].start][castJ[0]+loc[1].start] = -x # casted
             #     else:
             #         print('out of bounds')
             # else:
             #     print('out of bounds')
             
-            subShadowIdx = shadowIdx[loc]
+            subShadowIdx = shadowIdx[labImin:labImax,labJmin:labJmax] # subShadowIdx = shadowIdx[loc]
             # subShadowOld = shadowIdx[loc] # make sur other are not overwritten
             # OLD = subShadowOld!=0
             # subShadowIdx[OLD] = subShadowOld[OLD]
@@ -841,6 +867,7 @@ for i in range(len(s2Path)):
         # raster-based
         (castList,shadowRid) = labelOccluderAndCasted(labels, sunZn, sunAz)#, subTransform)
         # write data 
+        makeGeoIm(shadowRid,subTransform,crs,sen2Path + "labelRidges.tif")
         makeGeoIm(castList,subTransform,crs,sen2Path + "labelCastConn.tif")
         
 #        # polygon-based
