@@ -540,7 +540,7 @@ def labelOccluderAndCasted(labeling, sunZn, sunAz): # , subTransform
         cast = subOrient==-1 # boundary of the polygon that receives cast shadow
         
         m,n = subMsk.shape
-        print("For number %s : Size is %s is %s finding %s pixels" % (i, m, n, len(ridgeI)))
+        print("For number %s : Size is %s by %s finding %s pixels" % (i, m, n, len(ridgeI)))
         
         for x in range(len(ridgeI)): # loop through all occluders
             sunDir = subAz[ridgeI[x]][ridgeJ[x]] # degrees [-180 180]
@@ -1170,6 +1170,8 @@ with open(datPath+'coreg.txt') as f:
 coName = [line.split(' ')[0] for line in lines]
 coReg = np.array([list(map(float,line.split(' ')[1:])) for line in lines])
 del lines
+
+# construct connectivity
 for i in range(GridIdxs.shape[1]):
     fnam1 = s2Path[GridIdxs[0][i]]
     fnam2 = s2Path[GridIdxs[1][i]]
@@ -1184,10 +1186,15 @@ for i in range(GridIdxs.shape[1]):
     coDxy = coReg[coid1]-coReg[coid2]
     conn2[:,0] += coDxy[0]
     conn2[:,1] += coDxy[1]
-    conn2[:,2] += coDxy[0]
-    conn2[:,3] += coDxy[1]
-    
+    #conn2[:,2] += coDxy[0]
+    #conn2[:,3] += coDxy[1]
+       
     # find nearest
+    nbrs = NearestNeighbors(n_neighbors=1, algorithm='auto').fit(conn1[:,0:2])
+    distances, indices = nbrs.kneighbors(conn2[:,0:2])
+    IN = distances<20
+    idxConn = np.transpose(np.vstack((np.where(IN)[0], indices[distances<20])))
+    
     
 # walk through glacier polygons      
 # rgiList = np.trim_zeros(np.unique(Rgi))
