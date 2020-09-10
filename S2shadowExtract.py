@@ -141,6 +141,19 @@ def read_sun_angles(path):
     del Igrd,Jgrd,Zij,Aij 
     return Zn, Az
 
+def read_mean_sun_angles(path):
+    """
+    This function reads the xml-file of the Sentinel-2 scene and extracts the 
+    mean sun angles.
+    """
+    fname = os.path.join(path,'MTD_TL.xml')
+    dom = ElementTree.parse(glob.glob(fname)[0])
+    root = dom.getroot()
+
+    Zn = float(root[1][1][1][0].text)
+    Az = float(root[1][1][1][1].text)
+    return Zn, Az
+
 def read_view_angles(path):
     """
     This function reads the xml-file of the Sentinel-2 scene and extracts an
@@ -739,12 +752,34 @@ def getNetworkIndices(n):
     '''
     for a number (n) of images, generate a list with all matchable combinations
     '''
-    Grids = np.indices((len(s2Path),len(s2Path)))
+    Grids = np.indices((n,n))
     Grid1 = np.triu(Grids[0]+1,+1).flatten()
     Grid1 = Grid1[Grid1 != 0]-1
     Grid2 = np.triu(Grids[1]+1,+1).flatten()
     Grid2 = Grid2[Grid2 != 0]-1
     GridIdxs = np.vstack((Grid1, Grid2))
+    return GridIdxs
+
+def getNetworkBySunangles(datPath, sceneList,n):
+    '''
+    Construct network, connecting elements with closest sun angle with eachother.
+
+    '''
+    # can not be more connected than the amount of entries
+    n = min(len(sceneList)-1,n) 
+    
+    # get sun-angles from the imagery into an array
+    L = np.zeros((len(sceneList),2),'float')
+    for i in range(len(s2Path)):
+        sen2Path = datPath + sceneList[i]
+        (sunZn,sunAz) = read_mean_sun_angles(sen2Path)
+        L[i,:] = [sunZn, sunAz]
+    # find nearest
+    nbrs = NearestNeighbors(n_neighbors=n+1, algorithm='auto').fit(L)
+    distances, indices = nbrs.kneighbors(L)
+    Grid2 = indices[:,1:]
+    Grid1, dummy = np.indices((len(sceneList),n))
+    GridIdxs = np.vstack((Grid1.flatten(), Grid2.flatten()))
     return GridIdxs
 
 def pix2map(geoTransform,i,j):
@@ -814,6 +849,8 @@ fName = ('T05VNK_20180225T214531_B', 'T05VNK_20190225T214529_B', 'T05VNK_2020022
 # do a subset of the imagery
 minI = 4000
 maxI = 6000
+minJ = 4000
+maxJ = 6000
 
 for i in range(len(s2Path)):
     sen2Path = datPath + s2Path[i]
@@ -829,12 +866,12 @@ for i in range(len(s2Path)):
     nI = np.size(B2,axis=1)
     
     # reduce image space, so it fit in memory
-    B2 = B2[minI:maxI,minI:maxI]
-    B3 = B3[minI:maxI,minI:maxI]
-    B4 = B4[minI:maxI,minI:maxI]
-    B8 = B8[minI:maxI,minI:maxI]
+    B2 = B2[minI:maxI,minJ:maxJ]
+    B3 = B3[minI:maxI,minJ:maxJ]
+    B4 = B4[minI:maxI,minJ:maxJ]
+    B8 = B8[minI:maxI,minJ:maxJ]
     
-    subTransform = RefTrans(geoTransform,minI,minI) # create georeference for subframe
+    subTransform = RefTrans(geoTransform,minI,minJ) # create georeference for subframe
     subM = np.size(B2,axis=0)
     subN = np.size(B2,axis=1)    
     # transform to shadow image
@@ -860,8 +897,8 @@ for i in range(len(s2Path)):
         
         # find self-shadow and cast-shadow
         (sunZn,sunAz) = read_sun_angles(sen2Path)
-        sunZn = sunZn[minI:maxI,minI:maxI]
-        sunAz = sunAz[minI:maxI,minI:maxI]
+        sunZn = sunZn[minI:maxI,minJ:maxJ]
+        sunAz = sunAz[minI:maxI,minJ:maxJ]
         
         makeGeoIm(labels,subTransform,crs,sen2Path + "labelPolygons.tif")
         # raster-based
@@ -977,8 +1014,8 @@ for i in range(len(s2Path)):
     sen2Path = datPath + s2Path[i]
     # get sun orientation
     (sunZn,sunAz) = read_sun_angles(sen2Path)
-    sunZn = sunZn[minI:maxI,minI:maxI]
-    sunAz = sunAz[minI:maxI,minI:maxI]
+    sunZn = sunZn[minI:maxI,minJ:maxJ]
+    sunAz = sunAz[minI:maxI,minJ:maxJ]
     # read shadow image
     img = gdal.Open(sen2Path + "ruffenacht.tif")
     M = np.array(img.GetRasterBand(1).ReadAsArray())   
@@ -996,6 +1033,9 @@ for i in range(len(s2Path)):
 
 # get network
 GridIdxs = getNetworkIndices(len(s2Path))
+connectivity = 2 # amount of connection
+GridIdxs = getNetworkBySunangles(datPath, s2Path, connectivity)
+
 Astack = np.zeros([GridIdxs.shape[1],len(s2Path)]) # General coregistration adjustment matrix
 Astack[GridIdxs[0,:],np.arange(GridIdxs.shape[1])] = +1
 Astack[GridIdxs[1,:],np.arange(GridIdxs.shape[1])] = -1
@@ -1005,8 +1045,8 @@ tempSize = 15
 stepSize = True
 # get observation angle
 (obsZn,obsAz) = read_view_angles(sen2Path)
-obsZn = obsZn[minI:maxI,minI:maxI]
-obsAz = obsAz[minI:maxI,minI:maxI]
+obsZn = obsZn[minI:maxI,minJ:maxJ]
+obsAz = obsAz[minI:maxI,minJ:maxJ]
 if stepSize: # reduce to kernel resolution
     radius = np.floor(tempSize/2).astype('int')
     Iidx = np.arange(radius, obsZn.shape[0]-radius, tempSize)
@@ -1148,8 +1188,8 @@ for i in range(len(s2Path)):
     # get sun angles, at casting locations
     (sunZn,sunAz) = read_sun_angles(sen2Path)
     #OBS: still in relative coordinates!!!
-    sunZn = sunZn[minI:maxI,minI:maxI]
-    sunAz = sunAz[minI:maxI,minI:maxI]
+    sunZn = sunZn[minI:maxI,minJ:maxJ]
+    sunAz = sunAz[minI:maxI,minJ:maxJ]
     sunZen = sunZn[castngIJ[:,0],castngIJ[:,1]]
     sunAzi = sunAz[castngIJ[:,0],castngIJ[:,1]]
     
