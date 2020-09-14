@@ -43,6 +43,7 @@ from skimage import segmentation # for superpixels
 from skimage import color # for labeling image
 from skimage import filters # for Otsu thesholding
 from skimage import transform # for rotation
+from skimage.feature import match_template # for NCC
 
 from sklearn.neighbors import NearestNeighbors
 from sklearn.cluster import MeanShift, estimate_bandwidth
@@ -398,8 +399,8 @@ def S_curve(x,a,b):
 def getShadowPolygon(M,sizPix,thres):
     mn = np.ceil(np.divide(np.nanprod(M.shape),sizPix));
     SupPix = segmentation.slic(M, sigma = 1, 
-                  n_segments=mn, 
-                  compactness=0.010) # create super pixels
+                               n_segments=mn, 
+                               compactness=0.010) # create super pixels
     
 #    g = graph.rag_mean_color(M, SupPix) # create region adjacency graph
 #    mc = np.empty(len(g))
@@ -637,7 +638,9 @@ def listOccluderAndCasted(labels, sunZn, sunAz, geoTransform):
             # get ridge coordinates
             polygoon = shape(shp)
             polyRast = labels==val # select the polygon
-            polyInnr = ndimage.binary_erosion(polyRast, np.ones((3,3), dtype=bool))
+            polyInnr = ndimage.binary_erosion(polyRast, 
+                                              np.ones((3,3), 
+                                              dtype=bool))
             polyBoun = np.logical_xor(polyRast, polyInnr)
             polyWhe = np.nonzero(polyBoun)
             ridgIdx = mskOrient[polyWhe[0],polyWhe[1]]==1
@@ -648,8 +651,10 @@ def listOccluderAndCasted(labels, sunZn, sunAz, geoTransform):
             for x in range(len(ridgeI)): #ridgeI:
                 try:
                     castLine = LineString([[ridgeJ[x],ridgeI[x]],
-                                [ridgeJ[x] - (math.sin(math.radians(sunAz[ridgeI[x]][ridgeJ[x]]))*1e4), 
-                                 ridgeI[x] + (math.cos(math.radians(sunAz[ridgeI[x]][ridgeJ[x]]))*1e4)]])
+                                           [ridgeJ[x] 
+                                            - (math.sin(math.radians(sunAz[ridgeI[x]][ridgeJ[x]]))*1e4), 
+                                            ridgeI[x] 
+                                            + (math.cos(math.radians(sunAz[ridgeI[x]][ridgeJ[x]]))*1e4)]])
                 except IndexError:
                     continue
                 try:
@@ -665,13 +670,13 @@ def listOccluderAndCasted(labels, sunZn, sunAz, geoTransform):
                     # castEnd = [list(x.coords) for x in list(castEnd)]
                     cEnd = []
                     for m in list(castEnd):
-                        cEnd = cEnd + m.coords[:]
+                        cEnd += m.coords[:]
                     castEnd = cEnd
                     del m, cEnd
                 elif castEnd.geom_type == 'GeometryCollection':
                     cEnd = []
                     for m in range(len(castEnd)):
-                        cEnd = cEnd + castEnd[m].coords[:]
+                        cEnd += castEnd[m].coords[:]
                     castEnd = cEnd
                     del m, cEnd
                 elif castEnd.geom_type == 'Point':
@@ -691,11 +696,22 @@ def listOccluderAndCasted(labels, sunZn, sunAz, geoTransform):
                     casted = castEnd[castIdx]
                     
                     # transform to UTM and append to array
-                    ridgeX = ridgeI[x]*geoTransform[2] + ridgeJ[x]*geoTransform[1] + geoTransform[0]
-                    ridgeY = ridgeI[x]*geoTransform[5] + ridgeJ[x]*geoTransform[4] + geoTransform[3]
-                    castX = casted[1]*geoTransform[2] + casted[0]*geoTransform[1] + geoTransform[0]
-                    castY = casted[1]*geoTransform[5] + casted[0]*geoTransform[4] + geoTransform[3]
-                    
+                    ridgeX = (ridgeI[x]*geoTransform[2] 
+                              + ridgeJ[x]*geoTransform[1] 
+                              + geoTransform[0]
+                              )
+                    ridgeY = (ridgeI[x]*geoTransform[5] 
+                              + ridgeJ[x]*geoTransform[4] 
+                              + geoTransform[3]
+                              )
+                    castX = (casted[1]*geoTransform[2] 
+                             + casted[0]*geoTransform[1] 
+                             + geoTransform[0]
+                             )
+                    castY = (casted[1]*geoTransform[5] 
+                             + casted[0]*geoTransform[4] 
+                             + geoTransform[3]
+                             )
                     
                     castLine = np.array([ridgeX, ridgeY, castX, castY, 
                                          sunAz[ridgeI[x]][ridgeJ[x]] , 
@@ -747,6 +763,15 @@ def LucasKanade(I1, I2, window_size, stepSize=False, tau=1e-2):
                     v[iIdx,jIdx]=nu[1]
  
     return (u,v)
+
+def NormalizedCrossCorr(I1, I2):
+    '''
+    Simple normalized cross correlation, I1: template, I2: search space
+    '''
+    result = match_template(image, coin)
+    ij = np.unravel_index(np.argmax(result), result.shape)
+    x, y = ij[::-1]
+    return (x,y)    
 
 def getNetworkIndices(n):
     '''
@@ -876,7 +901,7 @@ for i in range(len(s2Path)):
     subN = np.size(B2,axis=1)    
     # transform to shadow image
     M = ruffenacht(B2,B3,B4,B8)
-    makeGeoIm(M,subTransform,crs,sen2Path + "ruffenacht.tif")
+    # makeGeoIm(M,subTransform,crs,sen2Path + "ruffenacht.tif")
     # M = shadowIndex(B2,B3,B4,B8)
     # makeGeoIm(M,subTransform,crs,sen2Path + "swIdx.tif") # pc1
     # M = shadeIndex(B2,B3,B4,B8)
@@ -885,6 +910,7 @@ for i in range(len(s2Path)):
     # makeGeoIm(M,subTransform,crs,sen2Path + "nsvi.tif")
     # M = mpsi(B2,B3,B4)
     # makeGeoIm(M,subTransform,crs,sen2Path + "mpsi.tif")
+    makeGeoIm(M,subTransform,crs,sen2Path + "shadows.tif")
     
     del B2,B3,B4,B8
     
@@ -893,7 +919,6 @@ for i in range(len(s2Path)):
         siz = 5
         loop = 100
         labels = medianFilShadows(M,siz,loop)
-        makeGeoIm(labels,subTransform,crs, sen2Path + "shadows.tif")
         
         # find self-shadow and cast-shadow
         (sunZn,sunAz) = read_sun_angles(sen2Path)
@@ -1009,36 +1034,15 @@ for i in range(len(s2Path)):
         
 
 ## co-register
-# get shadow images into one array
-for i in range(len(s2Path)):
-    sen2Path = datPath + s2Path[i]
-    # get sun orientation
-    (sunZn,sunAz) = read_sun_angles(sen2Path)
-    sunZn = sunZn[minI:maxI,minJ:maxJ]
-    sunAz = sunAz[minI:maxI,minJ:maxJ]
-    # read shadow image
-    img = gdal.Open(sen2Path + "ruffenacht.tif")
-    M = np.array(img.GetRasterBand(1).ReadAsArray())   
-    # create ridge image 
-    Mcan = castOrientation(M,sunZn,sunAz) 
-    # Mcan = castOrientation(msk,sunZn,sunAz) 
-    Mcan[Mcan<0] = 0
-    # stack into 3D array
-    if i==0:
-        Mstack = Mcan
-    elif i==1:
-        Mstack = np.stack((Mstack, Mcan), axis=2)
-    else:
-        Mstack = np.dstack((Mstack, Mcan))    
 
-# get network
+# construct network
 GridIdxs = getNetworkIndices(len(s2Path))
 connectivity = 2 # amount of connection
 GridIdxs = getNetworkBySunangles(datPath, s2Path, connectivity)
 
 Astack = np.zeros([GridIdxs.shape[1],len(s2Path)]) # General coregistration adjustment matrix
-Astack[GridIdxs[0,:],np.arange(GridIdxs.shape[1])] = +1
-Astack[GridIdxs[1,:],np.arange(GridIdxs.shape[1])] = -1
+Astack[np.arange(GridIdxs.shape[1]),GridIdxs[0,:]] = +1
+Astack[np.arange(GridIdxs.shape[1]),GridIdxs[1,:]] = -1
 Astack = np.transpose(Astack)
 
 tempSize = 15
@@ -1062,13 +1066,31 @@ if stepSize: # reduce to kernel resolution
 sig_y = 10; # matching precision
 Dstack = np.zeros([GridIdxs.shape[1],2])
 for i in range(GridIdxs.shape[1]):
+    for j in range(2):
+        sen2Path = datPath + s2Path[GridIdxs[j,i]]
+        # get sun orientation
+        (sunZn,sunAz) = read_sun_angles(sen2Path)
+        sunZn = sunZn[minI:maxI,minJ:maxJ]
+        sunAz = sunAz[minI:maxI,minJ:maxJ]
+        # read shadow image
+        img = gdal.Open(sen2Path + "shadows.tif")
+        M = np.array(img.GetRasterBand(1).ReadAsArray())   
+        # create ridge image 
+        Mcan = castOrientation(M,sunZn,sunAz) 
+        # Mcan = castOrientation(msk,sunZn,sunAz) 
+        Mcan[Mcan<0] = 0
+        if j==0:
+            Mstack = Mcan
+        else:
+            Mstack = np.stack((Mstack, Mcan), axis=2)
+    
     # optical flow following Lukas Kanade
     
     #####################
     # blur with gaussian?
     #####################
     
-    (y_N,y_E) = LucasKanade(Mstack[:,:,GridIdxs[0,i]], Mstack[:,:,GridIdxs[1,i]],
+    (y_N,y_E) = LucasKanade(Mstack[:,:,0], Mstack[:,:,1],
                     tempSize, stepSize)
     # select correct displacements
     Msk = y_N!=0
