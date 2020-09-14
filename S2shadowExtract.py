@@ -52,7 +52,16 @@ import mdp # for ICA & PCA
 
 from itertools import compress # for fast indexing
 
-def read_band_image(band, path):
+##
+# labels are added after the semicolon
+# these can be:
+#    - generic
+#    - retrieval
+#    - pre-processing
+#    - processing
+#    - post-processing
+
+def read_band_S2(band, path): # pre-processing
     """
     This function takes as input the Sentinel-2 band name and the path of the 
     folder that the images are stored, reads the image and returns the data as
@@ -72,7 +81,7 @@ def read_band_image(band, path):
     targetprj = osr.SpatialReference(wkt = img.GetProjection())
     return data, spatialRef, geoTransform, targetprj
 
-def read_geo_image(fname):
+def read_geo_image(fname): # generic
     """
     This function takes as input the geotiff name and the path of the 
     folder that the images are stored, reads the image and returns the data as
@@ -91,10 +100,15 @@ def read_geo_image(fname):
     targetprj = osr.SpatialReference(wkt = img.GetProjection())
     return data, spatialRef, geoTransform, targetprj
 
-def read_sun_angles(path):
+def read_sun_angles_S2(path): # pre-processing
     """
     This function reads the xml-file of the Sentinel-2 scene and extracts an
     array with sun angles, as these vary along the scene.
+    input:   path           string            path where xml-file of 
+                                              Sentinel-2 is situated
+    output:  Zn             array (n x m)     array of the Zenith angles
+             Az             array (n x m)     array of the Azimtuh angles
+    
     """
     fname = os.path.join(path,'MTD_TL.xml')
     dom = ElementTree.parse(glob.glob(fname)[0])
@@ -114,11 +128,11 @@ def read_sun_angles(path):
     znSpac = np.stack((znSpac, float(root[1][1][0][0][1].text)),0)
     znSpac = np.divide(znSpac,10) # transform from meters to pixels
     
-    zi = np.linspace(0-10,mI+10,np.size(Zn,axis=0))
-    zj = np.linspace(0-10,nI+10,np.size(Zn,axis=1))
+    zi = np.linspace(0-10, mI+10, np.size(Zn,axis=0))
+    zj = np.linspace(0-10, nI+10, np.size(Zn,axis=1))
     Zi,Zj = np.meshgrid(zi,zj)
     Zij = np.dstack([Zi, Zj]).reshape(-1, 2)
-    del zi,zj,Zi,Zj,znSpac
+    del zi, zj, Zi, Zj, znSpac
     
     iGrd = np.arange(0,mI)
     jGrd = np.arange(0,nI)
@@ -132,17 +146,17 @@ def read_sun_angles(path):
     azSpac = float(root[1][1][0][1][0].text)
     azSpac = np.stack((azSpac, float(root[1][1][0][1][1].text)),0)  
 
-    ai = np.linspace(0-10,mI+10,np.size(Az,axis=0))
-    aj = np.linspace(0-10,nI+10,np.size(Az,axis=1))
+    ai = np.linspace(0-10, mI+10, np.size(Az,axis=0))
+    aj = np.linspace(0-10, nI+10, np.size(Az,axis=1))
     Ai,Aj = np.meshgrid(ai,aj)
     Aij = np.dstack([Ai, Aj]).reshape(-1, 2)
-    del ai,aj,Ai,Aj,azSpac
+    del ai, aj, Ai, Aj, azSpac
     
     Az = griddata(Aij,Az.reshape(-1),(Igrd,Jgrd), method="linear")
     del Igrd,Jgrd,Zij,Aij 
     return Zn, Az
 
-def read_mean_sun_angles(path):
+def read_mean_sun_angles_S2(path): # processing
     """
     This function reads the xml-file of the Sentinel-2 scene and extracts the 
     mean sun angles.
@@ -155,7 +169,7 @@ def read_mean_sun_angles(path):
     Az = float(root[1][1][1][1].text)
     return Zn, Az
 
-def read_view_angles(path):
+def read_view_angles_S2(path): # processing
     """
     This function reads the xml-file of the Sentinel-2 scene and extracts an
     array with sun angles, as these vary along the scene.
@@ -208,7 +222,7 @@ def read_view_angles(path):
     del Igrd,Jgrd,Zij,Aij 
     return Zn, Az
 
-def get_array_from_xml(treeStruc):
+def get_array_from_xml(treeStruc): # generic
     """
     Arrays within a xml structure are given line per line
     Output is an array
@@ -227,9 +241,15 @@ def get_array_from_xml(treeStruc):
     return Tn
 
 # shadow functions
-def rgb2hsi(R,G,B):
+def rgb2hsi(R,G,B): # pre-processing
     """
     Transform Red Green Blue arrays to Hue Saturation Intensity arrays
+    input:   R              array (n x m)     Red band of satellite image
+             G              array (n x m)     Green band of satellite image
+             B              array (n x m)     Blue band of satellite image             
+    output:  Hue            array (m x m)     Hue band
+             Sat            array (n x m)     Saturation band
+             Int            array (n x m)     Intensity band          
     """
     Red = np.float64(R)/2**16
     Green = np.float64(G)/2**16
@@ -254,19 +274,27 @@ def rgb2hsi(R,G,B):
             
     return Hue, Sat, Int
 
-def nsvi(B2,B3,B4):
+def nsvi(B2,B3,B4): # pre-processing
     """
     Transform Red Green Blue arrays to normalized saturation-value difference index (NSVI)
     following Ma et al. 2008
+    input:   B2             array (n x m)     Blue band of satellite image
+             B3             array (n x m)     Green band of satellite image
+             B4             array (n x m)     Red band of satellite image             
+    output:  NSVDI          array (m x m)     array with shadow transform      
     """
     (H,S,I) = rgb2hsi(B4,B3,B2) # create HSI bands
-    NSVDI = (S-I)/(S+I)
+    NSVDI = (S-I) / (S+I)
     return NSVDI
 
-def mpsi(B2,B3,B4):
+def mpsi(B2,B3,B4): # pre-processing
     """
     Transform Red Green Blue arrays to Mixed property-based shadow index (MPSI)
     following Han et al. 2018
+    input:   B2             array (n x m)     Blue band of satellite image
+             B3             array (n x m)     Green band of satellite image
+             B4             array (n x m)     Red band of satellite image             
+    output:  MPSI           array (m x m)     array with shadow transform   
     """
     Green = np.float64(B3)/2**16
     Blue = np.float64(B2)/2**16
@@ -275,9 +303,12 @@ def mpsi(B2,B3,B4):
     MPSI = (H-I)*(Green-Blue)
     return MPSI
 
-def pca(X):
+def pca(X): # pre-processing
     """
     principle component analysis (PCA)
+    input:   data           array (n x m)     array of the band image
+    output:  eigen_vecs     array (m x m)     array with eigenvectors
+             eigen_vals     array (m x 1)     vector with eigenvalues
     """
     # Data matrix X, assumes 0-centered
     n, m = X.shape
@@ -289,10 +320,15 @@ def pca(X):
     eigen_vals, eigen_vecs = np.linalg.eig(C)
     return eigen_vecs, eigen_vals
 
-def shadowIndex(R,G,B,NIR):
+def shadowIndex(R,G,B,NIR): # pre-processing
     """
     Calculates the shadow index, basically the first component of PCA,
     following Hui et al. 2013
+    input:   R              array (n x m)     Red band of satellite image
+             G              array (n x m)     Green band of satellite image
+             B              array (n x m)     Blue band of satellite image
+             NIR            array (n x m)     Near-Infrared band of satellite image             
+    output:  SI             array (m x m)     Shadow band              
     """
     OK = R!=0 # boolean array with data
     
@@ -330,10 +366,15 @@ def shadowIndex(R,G,B,NIR):
     SI = np.transpose(np.reshape(PC1, OK.shape))
     return SI
 
-def shadeIndex(R,G,B,NIR):
+def shadeIndex(R,G,B,NIR): # pre-processing
     """
     Amplify dark regions by simple multiplication
     following Altena 2008
+    input:   R              array (n x m)     Red band of satellite image
+             G              array (n x m)     Green band of satellite image
+             B              array (n x m)     Blue band of satellite image
+             NIR            array (n x m)     Near-Infrared band of satellite image             
+    output:  SI             array (m x m)     Shadow band     
     """
     NanBol = R==0 # boolean array with no data
     
@@ -353,27 +394,42 @@ def shadeIndex(R,G,B,NIR):
     SI = np.prod(np.dstack([(1-Red),(1-Green),(1-Blue),(1-Near)]), axis=2)
     return SI
 
-def ruffenacht(R,G,B,NIR):
+def mat_to_gray(I,notI): # pre-processing or generic
+    """
+    Transform matix to float, omitting nodata values
+    following Ruffenacht
+    input:   I              array (n x m)     matrix of integers with data
+             notI           array (n x m)     matrix of boolean with nodata           
+    output:  Inew           array (m x m)     linear transformed floating point 
+                                              [0...1] 
+    """
+    yesI = ~notI
+    Inew = np.float64(I) # /2**16
+    Inew[yesI] = np.interp(Inew[yesI], 
+                             (Inew[yesI].min(), 
+                              Inew[yesI].max()), (0, +1))
+    Inew[notI] = 0
+    return I
+
+def ruffenacht(R,G,B,NIR): # pre-processing 
     """
     Transform Red Green Blue NIR to shadow intensities/probabilities
+    following Fedembach 2010
+    input:   R              array (n x m)     Red band of satellite image
+             G              array (n x m)     Green band of satellite image
+             B              array (n x m)     Blue band of satellite image
+             NIR            array (n x m)     Near-Infrared band of satellite image             
+    output:  M              array (m x m)     Shadow band 
     """
     ae = 1e+1 
     be = 5e-1
     
     NanBol = R==0 # boolean array with no data
     
-    Red = np.float64(R) # /2**16
-    Red[~NanBol] = np.interp(Red[~NanBol], (Red[~NanBol].min(), Red[~NanBol].max()), (0, +1))
-    Red[NanBol] = 0
-    Green = np.float64(G) # /2**16
-    Green[~NanBol] = np.interp(Green[~NanBol], (Green[~NanBol].min(), Green[~NanBol].max()), (0, +1))
-    Green[NanBol] = 0
-    Blue = np.float64(B) # /2**16
-    Blue[~NanBol] = np.interp(Blue[~NanBol], (Blue[~NanBol].min(), Blue[~NanBol].max()), (0, +1))
-    Blue[NanBol] = 0
-    Near = np.float64(NIR) # /2**16 
-    Near[~NanBol] = np.interp(Near[~NanBol], (Near[~NanBol].min(), Near[~NanBol].max()), (0, +1))
-    Near[NanBol] = 0
+    Blue = mat_to_gray(B,NanBol)
+    Green = mat_to_gray(G,NanBol)
+    Red = mat_to_gray(R,NanBol)
+    Near = mat_to_gray(NIR,NanBol)
     del R,G,B,NIR
     
     Fk = np.amax(np.stack((Red,Green,Blue),axis=2),axis=2)
@@ -389,14 +445,32 @@ def ruffenacht(R,G,B,NIR):
     M = np.multiply(D,(1-F)) 
     return M
     
-def S_curve(x,a,b):
+def S_curve(x,a,b):  # pre-processing 
+    """
+    Transform intensity in non-linear way
+    see Fedembach 2010
+    input:   x              array (n x 1)     array with values
+             a              array (1 x 1)     slope
+             b              array (1 x 1)     intercept          
+    output:  fx             array (n x 1)     array with transform
+    """
     fe = -a*(x-b)
     fx = np.divide(1,1+np.exp(fe))
     del fe,x
     return fx
 
 # geometric functions
-def getShadowPolygon(M,sizPix,thres):
+def getShadowPolygon(M,sizPix,thres): # pre-processing
+    """
+    Use superpixels to group and label an image
+    input:   M              array (m x n)     array with intensity values
+             sizPix         integer           window size of the kernel
+             thres          integer           threshold value for 
+                                              Region Adjacency Graph         
+    output:  labels         array (m x n)     array with numbered labels
+             SupPix         array (m x n)     array with numbered superpixels
+    """      
+    
     mn = np.ceil(np.divide(np.nanprod(M.shape),sizPix));
     SupPix = segmentation.slic(M, sigma = 1, 
                                n_segments=mn, 
@@ -421,13 +495,29 @@ def getShadowPolygon(M,sizPix,thres):
     labels = np.int16(labels) # so it can be used for the boundaries extraction
     return labels, SupPix
 
-def medianFilShadows(M,siz,loop):
-    mn = M.size;
+def medianFilShadows(M,siz,loop): # pre-processing
+    """
+    Transform intensity to more clustered intensity, through iterative 
+    filtering with a median operation
+    input:   M              array (m x n)     array with intensity values
+             siz            integer           window size of the kernel
+             loop           integer           number of iterations          
+    output:  Mmed           array (m x n)     array wit stark edges
+    """    
     Mmed = M
     for i in range(loop):
         Mmed = ndimage.median_filter(M, size=siz)
+    return Mmed
+
+def sturge(M): # pre-processing
+    """
+    Transform intensity to labelled image
+    input:   M              array (m x n)     array with intensity values      
+    output:  labels         array (m x n)     array with numbered labels
+    """   
+    mn = M.size;    
     sturge = 1.6*(math.log2(mn)+1)
-    values, base = np.histogram(np.reshape(Mmed,-1), 
+    values, base = np.histogram(np.reshape(M,-1), 
                                 bins=np.int(np.ceil(sturge)))    
     dips = findValley(values,base,2)
     val = max(dips)
@@ -435,9 +525,14 @@ def medianFilShadows(M,siz,loop):
     labels = measure.label(imSeparation, background=0) 
     return labels
     
-def findValley(values,base,neighbors):
+def findValley(values,base,neighbors=2): # pre-processing
     """
-    A valley is a point which has "n" consecuative higher values on both sides
+    A valley is a point which has "n" consequative higher values on both sides
+    input:   values         array (m x 1)     vector with number of occurances   
+             base           array (m x 1)     vector with central values   
+             neighbors      integer           number of neighbors needed 
+                                              in order to be a valley   
+    output:  dips           array (n x 1)     array with valley locations    
     """
     for i in range(neighbors):
         if i == 0:
@@ -457,15 +552,30 @@ def findValley(values,base,neighbors):
     #selec = values<walls    
     return dips
     
-def castOrientation(I,sunZn,sunAz):
-#    kernel = np.array([[-1, 0, +1], [-2, 0, +2], [-1, 0, +1]])
-    kernel = np.array([[17], [61], [17]])*np.array([-1, 0, 1])/95
+def castOrientation(I,Az): # generic
+    """
+    Emphasises intentisies within a certain direction
+    input:   I              array (n x m)     band with intensity values
+             Az             array (n x m)     band of azimuth values          
+    output:  Ican           array (m x m)     Shadow band 
+    """
+#    kernel = np.array([[-1, 0, +1], [-2, 0, +2], [-1, 0, +1]]) # Sobel
+    kernel = np.array([[17], [61], [17]])*np.array([-1, 0, 1])/95 # Kroon
     Idx = ndimage.convolve(I, np.flip(kernel,axis=1)) # steerable filters
     Idy = ndimage.convolve(I, np.flip(np.transpose(kernel),axis=0))
     Ican = np.multiply(np.cos(np.radians(sunAz)),Idy) - np.multiply(np.sin(np.radians(sunAz)),Idx)
     return Ican
 
-def bboxBoolean(img):
+def bboxBoolean(img): # generic
+    """
+    get image coordinates of maximum bounding box extent of True values in a
+    boolean matrix 
+    input:   img            array (n x m)     band with boolean values        
+    output:  rmin           integer           minimum row
+             rmax           integer           maximum row
+             cmin           integer           minimum collumn
+             cmax           integer           maximum collumn
+    """
     rows = np.any(img, axis=1)
     cols = np.any(img, axis=0)
     rmin, rmax = np.where(rows)[0][[0, -1]]
@@ -473,36 +583,63 @@ def bboxBoolean(img):
 
     return rmin, rmax, cmin, cmax
 
-def RefTrans(Transform,dI,dJ):
+def RefTrans(Transform,dI,dJ): # generic
+    """
+    translate reference transform 
+    input:   Transform      array (1 x 6)     georeference transform of 
+                                              an image  
+             dI             integer           translation in rows
+             dJ             integer           translation in collumns
+    output:  newransform    array (1 x 6)     georeference transform of 
+                                              transformed image  
+    """
     newTransform = (Transform[0]+dI*Transform[1]+dJ*Transform[2], 
                     Transform[1], Transform[2], 
                     Transform[3]+dI*Transform[4]+dJ*Transform[5], 
                     Transform[4], Transform[5])
     return newTransform
 
-def RefScale(Transform,scaling):
+def RefScale(Transform,scaling): # generic
+    """
+    scale reference transform 
+    input:   Transform      array (1 x 6)     georeference transform of 
+                                              an image  
+             scaling        integer           scaling in rows and collumns
+    output:  newransform    array (1 x 6)     georeference transform of 
+                                              transformed image  
+    """
     # not using center of pixel
     newTransform = (Transform[0], Transform[1]*scaling, Transform[2]*scaling,                    
                     Transform[3], Transform[4]*scaling, Transform[5]*scaling)    
     return newTransform
 
-def rotMat(theta):
+def rotMat(theta): # generic
     """
     build rotation matrix, theta is in degrees
+    input:   theta        integer             angle
+    output:  R            array (2 x 2)     2D rotation matrix     
     """
     R = np.array([[np.cos(np.radians(theta)), -np.sin(np.radians(theta))], 
                   [np.sin(np.radians(theta)), np.cos(np.radians(theta))]]);
     return R
 
-def labelOccluderAndCasted(labeling, sunZn, sunAz): # , subTransform
+def labelOccluderAndCasted(labeling, sunAz): # pre-processing
+    """
+    Find along the edge, the casting and casted pixels of a polygon
+    input:   labeling       array (n x m)     array with labelled polygons
+             sunAz          array (n x m)     band of azimuth values
+    output:  shadowIdx      array (m x m)     array with numbered pairs, where
+                                              the caster is the positive number
+                                              the casted is the negative number 
+    """
     labeling = labeling.astype(np.int64)
     msk = labeling>=1
     mL,nL = labeling.shape
     shadowIdx = np.zeros((mL,nL), dtype=np.int16)
-    shadowRid = np.zeros((mL,nL), dtype=np.int16)
+    # shadowRid = np.zeros((mL,nL), dtype=np.int16)
     inner = ndimage.morphology.binary_erosion(msk)
     # inner = ndimage.morphology.binary_dilation(msk==0)&msk
-    bndOrient = castOrientation(inner.astype(np.float),sunZn,sunAz)
+    bndOrient = castOrientation(inner.astype(np.float),sunAz)
     del mL,nL,inner
     
     #labelList = np.unique(labels[msk])
@@ -546,10 +683,10 @@ def labelOccluderAndCasted(labeling, sunZn, sunAz): # , subTransform
             ridgeJ = subWhe[1][ridgIdx]
         except IndexError:
             continue    
-        try:
-            shadowRid[labIdx] = i # shadowRid[loc] = i # shadowRid[ridgeI+(loc[0].start),ridgeJ+(loc[1].start)] = i
-        except IndexError:
-            print('iets aan de hand')
+        # try:
+        #     shadowRid[labIdx] = i # shadowRid[loc] = i # shadowRid[ridgeI+(loc[0].start),ridgeJ+(loc[1].start)] = i
+        # except IndexError:
+        #     print('iets aan de hand')
             
         cast = subOrient==-1 # boundary of the polygon that receives cast shadow
         
@@ -620,12 +757,21 @@ def labelOccluderAndCasted(labeling, sunZn, sunAz): # , subTransform
             # OLD = subShadowOld!=0
             # subShadowIdx[OLD] = subShadowOld[OLD]
             # shadowIdx[loc] = subShadowIdx        
-    return shadowIdx, shadowRid
+    return shadowIdx #, shadowRid
     
-def listOccluderAndCasted(labels, sunZn, sunAz, geoTransform):
+def listOccluderAndCasted(labels, sunZn, sunAz, geoTransform): # pre-processing
+    """
+    Find along the edge, the casting and casted pixels of a polygon
+    input:   labels         array (n x m)     array with labelled polygons
+             sunAz          array (n x m)     band of azimuth values
+             sunZn          array (n x m)     band of zentih values
+    output:  castList       list  (k x 6)     array with image coordinates of
+                                              caster and casted with the
+                                              sun angles of the caster 
+    """
     msk = labels>1
     labels = labels.astype(np.int32)
-    mskOrient = castOrientation(msk.astype(np.float),sunZn,sunAz)
+    mskOrient = castOrientation(msk.astype(np.float),sunAz)
     mskOrient = np.sign(mskOrient)
     #makeGeoIm(mskOrient,subTransform,crs,"polyRidges.tif")
     
@@ -722,9 +868,16 @@ def listOccluderAndCasted(labels, sunZn, sunAz, geoTransform):
     return castList
 
 # image matching functions
-def LucasKanade(I1, I2, window_size, stepSize=False, tau=1e-2): 
-    kernel_x = np.array([[-1., 1.], [-1., 1.]])
-    kernel_t = np.array([[1., 1.], [1., 1.]])*.25
+def LucasKanade(I1, I2, window_size, stepSize=False, tau=1e-2):
+    
+    kernel_x = np.array(
+                        [[-1., 1.], 
+                         [-1., 1.]]
+                        )
+    kernel_t = np.array(
+                        [[1., 1.], 
+                         [1., 1.]]
+                        )*.25
     radius = np.floor(window_size/2).astype('int') # window_size should be odd
     
     fx = ndimage.convolve(I1, kernel_x)
@@ -768,7 +921,7 @@ def NormalizedCrossCorr(I1, I2):
     '''
     Simple normalized cross correlation, I1: template, I2: search space
     '''
-    result = match_template(image, coin)
+    result = match_template(I1, I2)
     ij = np.unravel_index(np.argmax(result), result.shape)
     x, y = ij[::-1]
     return (x,y)    
@@ -797,7 +950,7 @@ def getNetworkBySunangles(datPath, sceneList,n):
     L = np.zeros((len(sceneList),2),'float')
     for i in range(len(s2Path)):
         sen2Path = datPath + sceneList[i]
-        (sunZn,sunAz) = read_mean_sun_angles(sen2Path)
+        (sunZn,sunAz) = read_mean_sun_angles_S2(sen2Path)
         L[i,:] = [sunZn, sunAz]
     # find nearest
     nbrs = NearestNeighbors(n_neighbors=n+1, algorithm='auto').fit(L)
@@ -811,8 +964,14 @@ def pix2map(geoTransform,i,j):
     '''
     Transform image coordinates to map coordinates
     '''
-    x = geoTransform[0] + geoTransform[1] * j + geoTransform[2] * i
-    y = geoTransform[3] + geoTransform[4] * j + geoTransform[5] * i 
+    x = (geoTransform[0] 
+         + geoTransform[1] * j 
+         + geoTransform[2] * i
+         )
+    y = (geoTransform[3] 
+         + geoTransform[4] * j 
+         + geoTransform[5] * i
+         )
     
     # offset the center of the pixel
     x += geoTransform[1] / 2.0
@@ -832,12 +991,14 @@ def map2pix(geoTransform,x,y):
     if geoTransform[2]==0:
         j = x / geoTransform[1]
     else:
-        j = x / geoTransform[1] +  y / geoTransform[2]
+        j = (x / geoTransform[1] 
+             +  y / geoTransform[2])
     
     if geoTransform[4]==0:
         i = y / geoTransform[5]
     else:
-        i = x / geoTransform[4] + y / geoTransform[5]
+        i = (x / geoTransform[4] 
+             + y / geoTransform[5])
     
     return i, j
 
@@ -882,10 +1043,10 @@ for i in range(len(s2Path)):
     (S2time,S2orbit,S2tile) = metaS2string(s2Path[i])
     
     # read imagery of the different bands
-    (B2, crs, geoTransform, targetprj) = read_band_image('02', sen2Path)
-    (B3, crs, geoTransform, targetprj) = read_band_image('03', sen2Path)
-    (B4, crs, geoTransform, targetprj) = read_band_image('04', sen2Path)
-    (B8, crs, geoTransform, targetprj) = read_band_image('08', sen2Path)
+    (B2, crs, geoTransform, targetprj) = read_band_S2('02', sen2Path)
+    (B3, crs, geoTransform, targetprj) = read_band_S2('03', sen2Path)
+    (B4, crs, geoTransform, targetprj) = read_band_S2('04', sen2Path)
+    (B8, crs, geoTransform, targetprj) = read_band_S2('08', sen2Path)
     
     mI = np.size(B2,axis=0)
     nI = np.size(B2,axis=1)
@@ -918,10 +1079,11 @@ for i in range(len(s2Path)):
         # classify into regions
         siz = 5
         loop = 100
-        labels = medianFilShadows(M,siz,loop)
+        Mmed = medianFilShadows(M,siz,loop)
+        labels = sturge(Mmed)
         
         # find self-shadow and cast-shadow
-        (sunZn,sunAz) = read_sun_angles(sen2Path)
+        (sunZn,sunAz) = read_sun_angles_S2(sen2Path)
         sunZn = sunZn[minI:maxI,minJ:maxJ]
         sunAz = sunAz[minI:maxI,minJ:maxJ]
         
@@ -1048,7 +1210,7 @@ Astack = np.transpose(Astack)
 tempSize = 15
 stepSize = True
 # get observation angle
-(obsZn,obsAz) = read_view_angles(sen2Path)
+(obsZn,obsAz) = read_view_angles_S2(sen2Path)
 obsZn = obsZn[minI:maxI,minJ:maxJ]
 obsAz = obsAz[minI:maxI,minJ:maxJ]
 if stepSize: # reduce to kernel resolution
@@ -1069,7 +1231,7 @@ for i in range(GridIdxs.shape[1]):
     for j in range(2):
         sen2Path = datPath + s2Path[GridIdxs[j,i]]
         # get sun orientation
-        (sunZn,sunAz) = read_sun_angles(sen2Path)
+        (sunZn,sunAz) = read_sun_angles_S2(sen2Path)
         sunZn = sunZn[minI:maxI,minJ:maxJ]
         sunAz = sunAz[minI:maxI,minJ:maxJ]
         # read shadow image
@@ -1208,7 +1370,7 @@ for i in range(len(s2Path)):
     (castngX,castngY) = pix2map(geoTransform,castngIJ[:,0],castngIJ[:,1])
     
     # get sun angles, at casting locations
-    (sunZn,sunAz) = read_sun_angles(sen2Path)
+    (sunZn,sunAz) = read_sun_angles_S2(sen2Path)
     #OBS: still in relative coordinates!!!
     sunZn = sunZn[minI:maxI,minJ:maxJ]
     sunAz = sunAz[minI:maxI,minJ:maxJ]
