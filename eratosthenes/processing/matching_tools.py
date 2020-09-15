@@ -1,6 +1,6 @@
 import numpy as np
 
-from scipy import ndimage # for image filtering
+from scipy import ndimage  # for image filtering
 from skimage.feature import match_template
 
 
@@ -50,17 +50,18 @@ def LucasKanade(I1, I2, window_size, stepSize=False, tau=1e-2):  # processing
             j = stepsI[jIdx]
             # get templates
             Ix = fx[i - radius:i + radius + 1,
-                 j - radius:j + radius + 1].flatten()
+                    j - radius:j + radius + 1].flatten()
             Iy = fy[i - radius:i + radius + 1,
-                 j - radius:j + radius + 1].flatten()
+                    j - radius:j + radius + 1].flatten()
             It = ft[i - radius:i + radius + 1,
-                 j - radius:j + radius + 1].flatten()
+                    j - radius:j + radius + 1].flatten()
 
             # look if variation is present
             if np.std(It) != 0:
                 b = np.reshape(It, (It.shape[0], 1))  # get b here
                 A = np.vstack((Ix, Iy)).T  # get A here
-                # threshold tau should be larger than the smallest eigenvalue of A'A
+                # threshold tau should be larger
+                # than the smallest eigenvalue of A'A
                 if np.min(abs(np.linalg.eigvals(np.matmul(A.T, A)))) >= tau:
                     nu = np.matmul(np.linalg.pinv(A), b)  # get velocity here
                     u[iIdx, jIdx] = nu[0]
@@ -69,15 +70,15 @@ def LucasKanade(I1, I2, window_size, stepSize=False, tau=1e-2):  # processing
     return (u, v)
 
 
-def NormalizedCrossCorr(I1, I2): # processing
-    '''
+def NormalizedCrossCorr(I1, I2):  # processing
+    """
     Simple normalized cross correlation
     input:   I1             array (n x m)     template with intensities
              I2             array (n x m)     search space with intensities
     output:  x              integer           location of maximum
              y              integer           location of maximum
-    '''
+    """
     result = match_template(I1, I2)
     ij = np.unravel_index(np.argmax(result), result.shape)
     x, y = ij[::-1]
-    return (x,y)
+    return (x, y)

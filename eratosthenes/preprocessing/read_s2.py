@@ -10,7 +10,7 @@ from xml.etree import ElementTree
 from ..generic.handler_s2 import get_array_from_xml
 
 
-def read_band_S2(band, path): # pre-processing
+def read_band_S2(band, path):  # pre-processing
     """
     This function takes as input the Sentinel-2 band name and the path of the
     folder that the images are stored, reads the image and returns the data as
@@ -19,15 +19,16 @@ def read_band_S2(band, path): # pre-processing
              path           string            path of the folder
     output:  data           array (n x m)     array of the band image
              spatialRef     string            projection
-             geoTransform   tuple             affine transformation coefficients
+             geoTransform   tuple             affine transformation
+                                              coefficients
              targetprj                        spatial reference
     """
-    fname = os.path.join(path,'*B'+band+'.jp2')
+    fname = os.path.join(path, '*B'+band+'.jp2')
     img = gdal.Open(glob.glob(fname)[0])
     data = np.array(img.GetRasterBand(1).ReadAsArray())
     spatialRef = img.GetProjection()
     geoTransform = img.GetGeoTransform()
-    targetprj = osr.SpatialReference(wkt = img.GetProjection())
+    targetprj = osr.SpatialReference(wkt=img.GetProjection())
     return data, spatialRef, geoTransform, targetprj
 
 

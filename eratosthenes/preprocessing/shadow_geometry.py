@@ -1,17 +1,17 @@
 import math
 import numpy as np
 
-from scipy import ndimage # for image filtering
+from scipy import ndimage  # for image filtering
 
 from skimage import measure
-from skimage import segmentation # for superpixels
-from skimage import color # for labeling image
+from skimage import segmentation  # for superpixels
+from skimage import color  # for labeling image
 
-from rasterio.features import shapes # for raster to polygon
+from rasterio.features import shapes  # for raster to polygon
 
 from shapely.geometry import shape
 from shapely.geometry import Point, LineString
-from shapely.geos import TopologicalError # for troubleshooting
+from shapely.geos import TopologicalError  # for troubleshooting
 
 from ..generic.mapping_tools import castOrientation
 
@@ -28,7 +28,7 @@ def getShadowPolygon(M, sizPix, thres):  # pre-processing
              SupPix         array (m x n)     array with numbered superpixels
     """
 
-    mn = np.ceil(np.divide(np.nanprod(M.shape), sizPix));
+    mn = np.ceil(np.divide(np.nanprod(M.shape), sizPix))
     SupPix = segmentation.slic(M, sigma=1,
                                n_segments=mn,
                                compactness=0.010)  # create super pixels
@@ -75,7 +75,7 @@ def sturge(M):  # pre-processing
     input:   M              array (m x n)     array with intensity values
     output:  labels         array (m x n)     array with numbered labels
     """
-    mn = M.size;
+    mn = M.size
     sturge = 1.6 * (math.log2(mn) + 1)
     values, base = np.histogram(np.reshape(M, -1),
                                 bins=np.int(np.ceil(sturge)))
@@ -147,19 +147,23 @@ def labelOccluderAndCasted(labeling, sunAz):  # pre-processing
         labJmax = np.max(labIdx[1])
         subMsk = selec[labImin:labImax, labJmin:labJmax]
 
-        #    for i,loc in enumerate(locs):
-        #        subLabel = labels[loc]
+        # for i,loc in enumerate(locs):
+        #     subLabel = labels[loc]
 
-        #    for i in range(len(locs)): # range(1,labels.max()): # loop through all polygons
-        #        # print("Starting on number %s" % (i))
-        #        loc = locs[i]
-        #        if loc is not None:
-        #            subLabel = labels[loc] # generate subset covering only the polygon
-        # slices seem to be coupled.....
-        #            subLabel = labels[loc[0].start:loc[0].stop,loc[1].start:loc[1].stop]
-        #        subLabel[subLabel!=(i+0)] = 0   # de boosdoener
+        # for i in range(len(locs)): # range(1,labels.max()): # loop through
+        #                                                     # all polygons
+        #    # print("Starting on number %s" % (i))
+        #    loc = locs[i]
+        #    if loc is not None:
+        #        subLabel = labels[loc] # generate subset covering
+        #                               # only the polygon
+        # # slices seem to be coupled.....
+        #        subLabel = labels[loc[0].start:loc[0].stop,
+        #                          loc[1].start:loc[1].stop]
+        #    subLabel[subLabel!=(i+0)] = 0   # de boosdoener
         subOrient = np.sign(bndOrient[labImin:labImax,
-                            labJmin:labJmax])  # subOrient = np.sign(bndOrient[loc])
+                            labJmin:labJmax])
+        # subOrient = np.sign(bndOrient[loc])
 
         # subMsk = subLabel==(i+0)
         # subBound = subMsk & ndimage.morphology.binary_dilation(subMsk==0)
@@ -167,7 +171,7 @@ def labelOccluderAndCasted(labeling, sunAz):  # pre-processing
         subOrient[~subBound] = 0  # remove other boundaries
 
         subAz = sunAz[labImin:labImax,
-                labJmin:labJmax]  # [loc] # subAz = sunAz[loc]
+                      labJmin:labJmax]  # [loc] # subAz = sunAz[loc]
 
         subWhe = np.nonzero(subMsk)
         ridgIdx = subOrient[subWhe[0], subWhe[1]] == 1
@@ -177,15 +181,18 @@ def labelOccluderAndCasted(labeling, sunAz):  # pre-processing
         except IndexError:
             continue
             # try:
-        #     shadowRid[labIdx] = i # shadowRid[loc] = i # shadowRid[ridgeI+(loc[0].start),ridgeJ+(loc[1].start)] = i
+            #     shadowRid[labIdx] = i
+            #     # shadowRid[loc] = i
+            #     # shadowRid[ridgeI+(loc[0].start),ridgeJ+(loc[1].start)] = i
         # except IndexError:
         #     print('iets aan de hand')
 
-        cast = subOrient == -1  # boundary of the polygon that receives cast shadow
+        # boundary of the polygon that receives cast shadow
+        cast = subOrient == -1
 
         m, n = subMsk.shape
-        print("For number %s : Size is %s by %s finding %s pixels" % (
-        i, m, n, len(ridgeI)))
+        print("For number %s : Size is %s by %s finding %s pixels"
+              % (i, m, n, len(ridgeI)))
 
         for x in range(len(ridgeI)):  # loop through all occluders
             sunDir = subAz[ridgeI[x]][ridgeJ[x]]  # degrees [-180 180]
@@ -241,17 +248,21 @@ def labelOccluderAndCasted(labeling, sunAz):  # pre-processing
                 if len(castI) > 0:
                     # write out
                     shadowIdx[ridgeI[x] + labImin][ridgeJ[x] + labJmin] = +x
-                    # shadowIdx[ridgeI[x]+loc[0].start][ridgeJ[x]+loc[1].start] = +x # ridge
+                    # shadowIdx[ridgeI[x]+loc[0].start,
+                    #           ridgeJ[x]+loc[1].start] = +x # ridge
                     shadowIdx[castI[0] + labImin][castJ[0] + labJmin] = -x
-                    # shadowIdx[castI[0]+loc[0].start][castJ[0]+loc[1].start] = -x # casted
+                    # shadowIdx[castI[0]+loc[0].start,
+                    #           castJ[0]+loc[1].start] = -x # casted
             #     else:
             #         print('out of bounds')
             # else:
             #     print('out of bounds')
 
-            subShadowIdx = shadowIdx[labImin:labImax,
-                           labJmin:labJmax]  # subShadowIdx = shadowIdx[loc]
-            # subShadowOld = shadowIdx[loc] # make sur other are not overwritten
+            subShadowIdx = shadowIdx[labImin:labImax, labJmin:labJmax]
+            # subShadowIdx = shadowIdx[loc]
+
+            # subShadowOld = shadowIdx[loc]  # make sure other
+            #                                # are not overwritten
             # OLD = subShadowOld!=0
             # subShadowIdx[OLD] = subShadowOld[OLD]
             # shadowIdx[loc] = subShadowIdx
@@ -310,7 +321,8 @@ def listOccluderAndCasted(labels, sunZn, sunAz,
                 try:
                     castEnd = polygoon.intersection(castLine)
                 except TopologicalError:
-                    # somehow the exterior of the polygon crosses or touches itself, making it a LinearRing
+                    # somehow the exterior of the polygon crosses or touches
+                    # itself, making it a LinearRing
                     polygoon = polygoon.buffer(0)
                     castEnd = polygoon.intersection(castLine)
 
@@ -339,7 +351,8 @@ def listOccluderAndCasted(labels, sunZn, sunAz,
                     # if len(castEnd.coords[:])>1:
                     # find closest intersection
                     occluder = Point(ridgeJ[x], ridgeI[x])
-                    # dists = [Point(c).distance(occluder) for c in castEnd.coords]
+                    # dists = [Point(c).distance(occluder)
+                    #          for c in castEnd.coords]
                     dists = [Point(c).distance(occluder) for c in castEnd]
                     dists = [float('Inf') if i == 0 else i for i in dists]
                     castIdx = dists.index(min(dists))

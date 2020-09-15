@@ -24,8 +24,8 @@ def rgb2hsi(R, G, B):  # pre-processing
 
     # See Tsai, IEEE Trans. Geo and RS, 2006.
     # from Pratt, 1991, Digital Image Processing, Wiley
-    Tsai = np.array([(1 / 3, 1 / 3, 1 / 3), \
-                     (-math.sqrt(6) / 6, -math.sqrt(6) / 6, -math.sqrt(6) / 3), \
+    Tsai = np.array([(1 / 3, 1 / 3, 1 / 3),
+                     (-math.sqrt(6) / 6, -math.sqrt(6) / 6, -math.sqrt(6) / 3),
                      (1 / math.sqrt(6), 2 / -math.sqrt(6), 0)])
 
     for i in range(0, Red.shape[0]):
@@ -77,8 +77,8 @@ def mat_to_gray(I, notI):  # pre-processing or generic
 
 def nsvi(B2, B3, B4):  # pre-processing
     """
-    Transform Red Green Blue arrays to normalized saturation-value difference index (NSVI)
-    following Ma et al. 2008
+    Transform Red Green Blue arrays to normalized saturation-value difference
+    index (NSVI) following Ma et al. 2008
     input:   B2             array (n x m)     Blue band of satellite image
              B3             array (n x m)     Green band of satellite image
              B4             array (n x m)     Red band of satellite image
@@ -113,7 +113,8 @@ def shadowIndex(R, G, B, NIR):  # pre-processing
     input:   R              array (n x m)     Red band of satellite image
              G              array (n x m)     Green band of satellite image
              B              array (n x m)     Blue band of satellite image
-             NIR            array (n x m)     Near-Infrared band of satellite image
+             NIR            array (n x m)     Near-Infrared band of satellite
+                                              image
     output:  SI             array (m x m)     Shadow band
     """
     OK = R != 0  # boolean array with data
@@ -162,7 +163,8 @@ def shadeIndex(R, G, B, NIR):  # pre-processing
     input:   R              array (n x m)     Red band of satellite image
              G              array (n x m)     Green band of satellite image
              B              array (n x m)     Blue band of satellite image
-             NIR            array (n x m)     Near-Infrared band of satellite image
+             NIR            array (n x m)     Near-Infrared band of satellite
+                                              image
     output:  SI             array (m x m)     Shadow band
     """
     NanBol = R == 0  # boolean array with no data
@@ -185,7 +187,8 @@ def ruffenacht(R, G, B, NIR):  # pre-processing
     input:   R              array (n x m)     Red band of satellite image
              G              array (n x m)     Green band of satellite image
              B              array (n x m)     Blue band of satellite image
-             NIR            array (n x m)     Near-Infrared band of satellite image
+             NIR            array (n x m)     Near-Infrared band of satellite
+                                              image
     output:  M              array (m x m)     Shadow band
     """
     ae = 1e+1

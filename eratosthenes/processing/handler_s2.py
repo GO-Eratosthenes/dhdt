@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 
-from scipy.interpolate import griddata #for grid interpolation
+from scipy.interpolate import griddata  # for grid interpolation
 from xml.etree import ElementTree
 
 from ..generic.handler_s2 import get_array_from_xml
