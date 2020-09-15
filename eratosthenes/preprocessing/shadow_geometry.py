@@ -232,7 +232,7 @@ def labelOccluderAndCasted(labeling, sunAz):  # pre-processing
 
                     # find closest casted
                 castHit = cast & subCast
-                castIdx = castHit[subWhe[0], subWhe[1]] == True
+                castIdx = castHit[subWhe[0], subWhe[1]]  # == True
                 castI = subWhe[0][castIdx]
                 castJ = subWhe[1][castIdx]
                 del IN, castIdx, castHit, subCast, rr, cc, dI, dJ, sunDir
