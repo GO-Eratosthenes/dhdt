@@ -1,6 +1,3 @@
-# from IPython import get_ipython
-# get_ipython().magic('reset -sf')
-
 import os
 import osr
 import ogr
@@ -10,12 +7,11 @@ import matplotlib.pyplot as plt
 
 from sklearn.neighbors import NearestNeighbors
 
-from .generic.handler_s2 import meta_S2string
-from .generic.mapping_tools import RefTrans
+from eratosthenes.generic.handler_s2 import meta_S2string
+from eratosthenes.generic.mapping_tools import RefTrans
 
-from .preprocessing.read_s2 import read_band_S2, read_sun_angles_S2
-from .preprocessing
-# from .processing import
+from eratosthenes.preprocessing.read_s2 import read_band_S2, read_sun_angles_S2
+
 
 datPath = '/Users/Alten005/surfdrive/Eratosthenes/Denali/' 
 #s2Path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VPL_20180225T232042/'
