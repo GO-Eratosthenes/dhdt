@@ -274,6 +274,40 @@ def rgb2hsi(R,G,B): # pre-processing
             
     return Hue, Sat, Int
 
+def pca(X): # pre-processing
+    """
+    principle component analysis (PCA)
+    input:   data           array (n x m)     array of the band image
+    output:  eigen_vecs     array (m x m)     array with eigenvectors
+             eigen_vals     array (m x 1)     vector with eigenvalues
+    """
+    # Data matrix X, assumes 0-centered
+    n, m = X.shape
+# removed, because a sample is taken:    
+#    assert np.allclose(X.mean(axis=0), np.zeros(m))
+    # Compute covariance matrix
+    C = np.dot(X.T, X) / (n-1)
+    # Eigen decomposition
+    eigen_vals, eigen_vecs = np.linalg.eig(C)
+    return eigen_vecs, eigen_vals
+
+def mat_to_gray(I,notI): # pre-processing or generic
+    """
+    Transform matix to float, omitting nodata values
+    following Ruffenacht
+    input:   I              array (n x m)     matrix of integers with data
+             notI           array (n x m)     matrix of boolean with nodata           
+    output:  Inew           array (m x m)     linear transformed floating point 
+                                              [0...1] 
+    """
+    yesI = ~notI
+    Inew = np.float64(I) # /2**16
+    Inew[yesI] = np.interp(Inew[yesI], 
+                             (Inew[yesI].min(), 
+                              Inew[yesI].max()), (0, +1))
+    Inew[notI] = 0
+    return I
+
 def nsvi(B2,B3,B4): # pre-processing
     """
     Transform Red Green Blue arrays to normalized saturation-value difference index (NSVI)
@@ -302,23 +336,6 @@ def mpsi(B2,B3,B4): # pre-processing
     (H,S,I) = rgb2hsi(B4,B3,B2) # create HSI bands
     MPSI = (H-I)*(Green-Blue)
     return MPSI
-
-def pca(X): # pre-processing
-    """
-    principle component analysis (PCA)
-    input:   data           array (n x m)     array of the band image
-    output:  eigen_vecs     array (m x m)     array with eigenvectors
-             eigen_vals     array (m x 1)     vector with eigenvalues
-    """
-    # Data matrix X, assumes 0-centered
-    n, m = X.shape
-# removed, because a sample is taken:    
-#    assert np.allclose(X.mean(axis=0), np.zeros(m))
-    # Compute covariance matrix
-    C = np.dot(X.T, X) / (n-1)
-    # Eigen decomposition
-    eigen_vals, eigen_vecs = np.linalg.eig(C)
-    return eigen_vecs, eigen_vals
 
 def shadowIndex(R,G,B,NIR): # pre-processing
     """
@@ -378,38 +395,14 @@ def shadeIndex(R,G,B,NIR): # pre-processing
     """
     NanBol = R==0 # boolean array with no data
     
-    Red = np.float64(R) # /2**16
-    Red[~NanBol] = np.interp(Red[~NanBol], (Red[~NanBol].min(), Red[~NanBol].max()), (0, +1))
-    Red[NanBol] = 0
-    Green = np.float64(G) # /2**16
-    Green[~NanBol] = np.interp(Green[~NanBol], (Green[~NanBol].min(), Green[~NanBol].max()), (0, +1))
-    Green[NanBol] = 0
-    Blue = np.float64(B) # /2**16
-    Blue[~NanBol] = np.interp(Blue[~NanBol], (Blue[~NanBol].min(), Blue[~NanBol].max()), (0, +1))
-    Blue[NanBol] = 0
-    Near = np.float64(NIR) # /2**16 
-    Near[~NanBol] = np.interp(Near[~NanBol], (Near[~NanBol].min(), Near[~NanBol].max()), (0, +1))
-    Near[NanBol] = 0
+    Blue = mat_to_gray(B,NanBol)
+    Green = mat_to_gray(G,NanBol)
+    Red = mat_to_gray(R,NanBol)
+    Near = mat_to_gray(NIR,NanBol)
     del R,G,B,NIR
+    
     SI = np.prod(np.dstack([(1-Red),(1-Green),(1-Blue),(1-Near)]), axis=2)
     return SI
-
-def mat_to_gray(I,notI): # pre-processing or generic
-    """
-    Transform matix to float, omitting nodata values
-    following Ruffenacht
-    input:   I              array (n x m)     matrix of integers with data
-             notI           array (n x m)     matrix of boolean with nodata           
-    output:  Inew           array (m x m)     linear transformed floating point 
-                                              [0...1] 
-    """
-    yesI = ~notI
-    Inew = np.float64(I) # /2**16
-    Inew[yesI] = np.interp(Inew[yesI], 
-                             (Inew[yesI].min(), 
-                              Inew[yesI].max()), (0, +1))
-    Inew[notI] = 0
-    return I
 
 def ruffenacht(R,G,B,NIR): # pre-processing 
     """
@@ -868,8 +861,18 @@ def listOccluderAndCasted(labels, sunZn, sunAz, geoTransform): # pre-processing
     return castList
 
 # image matching functions
-def LucasKanade(I1, I2, window_size, stepSize=False, tau=1e-2):
-    
+def LucasKanade(I1, I2, window_size, stepSize=False, tau=1e-2): # processing
+    """
+    displacement estimation through optical flow
+    following Lucas & Kanade 1981
+    input:   I1             array (n x m)     image with intensities  
+             I2             array (n x m)     image with intensities  
+             window_size    integer           kernel size of the neighborhood
+             stepSize       boolean
+             tau            float             smoothness parameter
+    output:  u              array (n x m)     displacement estimate
+             v              array (n x m)     displacement estimate
+    """    
     kernel_x = np.array(
                         [[-1., 1.], 
                          [-1., 1.]]
@@ -917,18 +920,24 @@ def LucasKanade(I1, I2, window_size, stepSize=False, tau=1e-2):
  
     return (u,v)
 
-def NormalizedCrossCorr(I1, I2):
+def NormalizedCrossCorr(I1, I2): # processing
     '''
-    Simple normalized cross correlation, I1: template, I2: search space
+    Simple normalized cross correlation
+    input:   I1             array (n x m)     template with intensities  
+             I2             array (n x m)     search space with intensities  
+    output:  x              integer           location of maximum
+             y              integer           location of maximum  
     '''
     result = match_template(I1, I2)
     ij = np.unravel_index(np.argmax(result), result.shape)
     x, y = ij[::-1]
     return (x,y)    
 
-def getNetworkIndices(n):
+def getNetworkIndices(n): # processing
     '''
-    for a number (n) of images, generate a list with all matchable combinations
+    generate a list with all matchable combinations
+    input:   n              integer           number of images
+    output:  GridIdxs       array (2 x k)     list of couples  
     '''
     Grids = np.indices((n,n))
     Grid1 = np.triu(Grids[0]+1,+1).flatten()
@@ -938,10 +947,13 @@ def getNetworkIndices(n):
     GridIdxs = np.vstack((Grid1, Grid2))
     return GridIdxs
 
-def getNetworkBySunangles(datPath, sceneList,n):
+def getNetworkBySunangles(datPath, sceneList,n): # processing
     '''
     Construct network, connecting elements with closest sun angle with eachother.
-
+    input:   datPath        string            location of the imagery
+             scenceList     list              list with strings of the images of interest
+             n              integer           connectivity
+    output:  GridIdxs       array (2 x k)     list of couples  
     '''
     # can not be more connected than the amount of entries
     n = min(len(sceneList)-1,n) 
@@ -960,9 +972,15 @@ def getNetworkBySunangles(datPath, sceneList,n):
     GridIdxs = np.vstack((Grid1.flatten(), Grid2.flatten()))
     return GridIdxs
 
-def pix2map(geoTransform,i,j):
+def pix2map(geoTransform,i,j): # generic
     '''
     Transform image coordinates to map coordinates
+    input:   geoTransform   array (1 x 6)     georeference transform of 
+                                              an image  
+             i              array (n x 1)     row coordinates in image space
+             j              array (n x 1)     collumn coordinates in image space
+    output:  x              array (n x 1)     map coordinates
+             y              array (n x 1)     map coordinates
     '''
     x = (geoTransform[0] 
          + geoTransform[1] * j 
@@ -978,9 +996,15 @@ def pix2map(geoTransform,i,j):
     y += geoTransform[5] / 2.0
     return x, y
 
-def map2pix(geoTransform,x,y):
+def map2pix(geoTransform,x,y): # generic
     '''
     Transform map coordinates to image coordinates
+    input:   geoTransform   array (1 x 6)     georeference transform of 
+                                              an image  
+             x              array (n x 1)     map coordinates
+             y              array (n x 1)     map coordinates
+    output:  i              array (n x 1)     row coordinates in image space
+             j              array (n x 1)     collumn coordinates in image space    
     '''
     # offset the center of the pixel
     x -= geoTransform[1] / 2.0
@@ -1004,6 +1028,15 @@ def map2pix(geoTransform,x,y):
 
 # I/O functions
 def makeGeoIm(I,R,crs,fName):
+    '''
+    Create georeference GeoTIFF
+    input:   I              array (n x m)     band image 
+             R              array (1 x 6)     georeference transform of 
+                                              an image
+             crs            string            coordinate reference string
+             fname          string            filename for the image
+    output:  writes file into current folder   
+    '''        
     drv = gdal.GetDriverByName("GTiff") # export image
     # type
     if I.dtype=='float64':
@@ -1016,7 +1049,14 @@ def makeGeoIm(I,R,crs,fName):
     ds = None
     del ds    
 
-def metaS2string(S2str):
+def meta_S2string(S2str): # generic
+    '''
+    get meta data of the Sentinel-2 file name
+    input:   S2str          string            filename of the L1C data
+    output:  S2time         string            date "YYYYMMDD"
+             S2orbit        string            relative orbit "RXXX"
+             S2tile         string            tile code "TXXXXX"
+    ''' 
     S2split = S2str.split('_')
     S2time = S2split[2]
     S2orbit = S2split[4]
@@ -1040,7 +1080,7 @@ maxJ = 6000
 
 for i in range(len(s2Path)):
     sen2Path = datPath + s2Path[i]
-    (S2time,S2orbit,S2tile) = metaS2string(s2Path[i])
+    (S2time,S2orbit,S2tile) = meta_S2string(s2Path[i])
     
     # read imagery of the different bands
     (B2, crs, geoTransform, targetprj) = read_band_S2('02', sen2Path)
@@ -1194,6 +1234,8 @@ for i in range(len(s2Path)):
         msk = Msk[bboxI[0]:bboxI[1],bboxJ[0]:bboxJ[1]]
         makeGeoIm(msk,subTransform,crs,sen2Path + 'rgi.tif')
         
+
+## processing
 
 ## co-register
 
