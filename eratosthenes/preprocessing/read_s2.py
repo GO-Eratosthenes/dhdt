@@ -87,4 +87,3 @@ def read_sun_angles_S2(path):  # pre-processing
     Az = griddata(Aij, Az.reshape(-1), (Igrd, Jgrd), method="linear")
     del Igrd, Jgrd, Zij, Aij
     return Zn, Az
-
