@@ -1,0 +1,7 @@
+gdal
+numpy
+rasterio
+scikit-image
+scikit-learn
+scipy
+shapely

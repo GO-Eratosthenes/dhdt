@@ -1,10 +1,9 @@
 import glob
 import os
-import osr
 
 import numpy as np
 
-from osgeo import gdal
+from osgeo import gdal, osr
 from scipy.interpolate import griddata
 from xml.etree import ElementTree
 

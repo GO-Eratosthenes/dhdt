@@ -1,7 +1,6 @@
-import osr
 import numpy as np
 
-from osgeo import gdal
+from osgeo import gdal, osr
 
 
 def read_geo_image(fname): # generic
