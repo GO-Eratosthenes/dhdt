@@ -6,11 +6,10 @@ from setuptools import setup
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-# To update the package version number, edit CITATION.cff
-with open('CITATION.cff', 'r') as cff:
-    for line in cff:
-        if 'version:' in line:
-            version = line.replace('version:', '').strip().strip('"')
+# To update the package version number, edit eratosthenes/__version__.py
+version = {}
+with open(os.path.join(here, 'eratosthenes', '__version__.py')) as f:
+    exec(f.read(), version)
 
 with open('README.rst') as readme_file:
     readme = readme_file.read()
@@ -57,6 +56,5 @@ setup(
     ],
     extras_require={
         'dev':  ['prospector[with_pyroma]', 'yapf', 'isort'],
-    },
-    data_files=[('citation/eratosthenes', ['CITATION.cff'])]
+    }
 )
