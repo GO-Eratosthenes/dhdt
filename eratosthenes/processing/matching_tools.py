@@ -82,3 +82,24 @@ def NormalizedCrossCorr(I1, I2):  # processing
     ij = np.unravel_index(np.argmax(result), result.shape)
     x, y = ij[::-1]
     return (x, y)
+
+
+def getGridAtTemplateCenters(grid, tempSize):
+    """
+
+    :param grid:
+    :param tempSize:
+    :return:
+    """
+    radius = np.floor(tempSize / 2).astype('int')
+    Iidx = np.arange(radius, grid.shape[0] - radius, tempSize)
+    Jidx = np.arange(radius, grid.shape[1] - radius, tempSize)
+    # FN ###################################
+    # are the following lines equivalent to:
+    # Iidx, Jidx = np.meshgrid(Iidx, Jidx)
+    # It looks like, but Iidx and Jidx are switched!
+    IidxNew = np.repeat(np.transpose([Iidx]), len(Jidx), axis=1)
+    Jidx = np.repeat([Jidx], len(Iidx), axis=0)
+    Iidx = IidxNew
+
+    return grid[Iidx, Jidx]

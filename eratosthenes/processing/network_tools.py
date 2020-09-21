@@ -46,3 +46,16 @@ def getNetworkBySunangles(datPath, sceneList, n):  # processing
     Grid1, dummy = np.indices((len(sceneList), n))
     GridIdxs = np.vstack((Grid1.flatten(), Grid2.flatten()))
     return GridIdxs
+
+
+def getAjacencyMatrixFromNetwork(GridIdxs, number_of_nodes):
+    """
+
+    :param GridIdxs: grid indices
+    :return:
+    """
+    # General coregistration adjustment matrix
+    Astack = np.zeros([GridIdxs.shape[1], number_of_nodes])
+    Astack[np.arange(GridIdxs.shape[1]), GridIdxs[0, :]] = +1
+    Astack[np.arange(GridIdxs.shape[1]), GridIdxs[1, :]] = -1
+    return Astack

@@ -15,10 +15,7 @@ from eratosthenes.preprocessing.shadow_geometry import medianFilShadows, \
     sturge, labelOccluderAndCasted
 from eratosthenes.preprocessing.shadow_transforms import ruffenacht
 
-from eratosthenes.processing.handler_s2 import read_view_angles_S2
-from eratosthenes.processing.network_tools import getNetworkIndices, \
-    getNetworkBySunangles
-from eratosthenes.processing.matching_tools import LucasKanade
+from eratosthenes.processing import coregistration
 
 datPath = '/Users/Alten005/surfdrive/Eratosthenes/Denali/' 
 #s2Path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VPL_20180225T232042/'
@@ -34,6 +31,8 @@ minI = 4000
 maxI = 6000
 minJ = 4000
 maxJ = 6000
+
+bbox = (minI, maxI, minJ, maxJ)
 
 for i in range(len(s2Path)):
     sen2Path = datPath + s2Path[i]
@@ -194,121 +193,8 @@ for i in range(len(s2Path)):
 
 ## processing
 
-## co-register
-
-# construct network
-GridIdxs = getNetworkIndices(len(s2Path))
-connectivity = 2 # amount of connection
-GridIdxs = getNetworkBySunangles(datPath, s2Path, connectivity)
-
-Astack = np.zeros([GridIdxs.shape[1],len(s2Path)]) # General coregistration adjustment matrix
-Astack[np.arange(GridIdxs.shape[1]),GridIdxs[0,:]] = +1
-Astack[np.arange(GridIdxs.shape[1]),GridIdxs[1,:]] = -1
-Astack = np.transpose(Astack)
-
-tempSize = 15
-stepSize = True
-# get observation angle
-(obsZn,obsAz) = read_view_angles_S2(sen2Path)
-obsZn = obsZn[minI:maxI,minJ:maxJ]
-obsAz = obsAz[minI:maxI,minJ:maxJ]
-if stepSize: # reduce to kernel resolution
-    radius = np.floor(tempSize/2).astype('int')
-    Iidx = np.arange(radius, obsZn.shape[0]-radius, tempSize)
-    Jidx = np.arange(radius, obsZn.shape[1]-radius, tempSize)
-    IidxNew = np.repeat(np.transpose([Iidx]), len(Jidx), axis=1)
-    Jidx = np.repeat([Jidx], len(Iidx), axis=0)
-    Iidx = IidxNew 
-    
-    obsZn = obsZn[Iidx,Jidx]
-    obsAz = obsAz[Iidx,Jidx]
-    del IidxNew,radius,Iidx,Jidx
-    
-sig_y = 10; # matching precision
-Dstack = np.zeros([GridIdxs.shape[1],2])
-for i in range(GridIdxs.shape[1]):
-    for j in range(2):
-        sen2Path = datPath + s2Path[GridIdxs[j,i]]
-        # get sun orientation
-        (sunZn,sunAz) = read_sun_angles_S2(sen2Path)
-        sunZn = sunZn[minI:maxI,minJ:maxJ]
-        sunAz = sunAz[minI:maxI,minJ:maxJ]
-        # read shadow image
-        img = gdal.Open(sen2Path + "shadows.tif")
-        M = np.array(img.GetRasterBand(1).ReadAsArray())   
-        # create ridge image 
-        Mcan = castOrientation(M,sunZn,sunAz) 
-        # Mcan = castOrientation(msk,sunZn,sunAz) 
-        Mcan[Mcan<0] = 0
-        if j==0:
-            Mstack = Mcan
-        else:
-            Mstack = np.stack((Mstack, Mcan), axis=2)
-    
-    # optical flow following Lukas Kanade
-    
-    #####################
-    # blur with gaussian?
-    #####################
-    
-    (y_N,y_E) = LucasKanade(Mstack[:,:,0], Mstack[:,:,1],
-                    tempSize, stepSize)
-    # select correct displacements
-    Msk = y_N!=0
-    
-    #########################
-    # also get stable ground?
-    #########################
-    
-    # robust selection through group statistics
-    med_N = np.median(y_N[Msk])
-    mad_N = np.median(np.abs(y_N[Msk] - med_N))
-    
-    med_E = np.median(y_E[Msk])
-    mad_E = np.median(np.abs(y_E[Msk] - med_E))
-    
-    # robust 3sigma-filtering
-    alpha = 3
-    IN_N = (y_N > med_N-alpha*mad_N) & (y_N < med_N+alpha*mad_N)
-    IN_E = (y_E > med_E-alpha*mad_E) & (y_E < med_E+alpha*mad_E)
-    IN = IN_N & IN_E
-    del IN_N,IN_E,med_N,mad_N,med_E,mad_E
-    
-    # keep selection and get their observation angles
-    IN = IN & Msk
-    y_N = y_N[IN]
-    y_E = y_E[IN]
-    y_Zn = abs(obsZn[IN]) # no negative values permitted
-    y_Az = obsAz[IN]
-    
-    # Generalized Least Squares adjustment, as there might be some heteroskedasticity
-    # construct measurement vector and variance matrix
-    A = np.tile(np.identity(2, dtype = float), (len(y_N), 1)) 
-    y = np.reshape(np.hstack((y_N[:,np.newaxis],y_E[:,np.newaxis])),(-1,1))
-    
-    # # build 2*2*n covariance matrix
-    # q_yy = np.zeros((len(y_Zn),2,2), dtype = float)
-    # for b in range(len(y_Zn)):
-    #     q_yy[b,:,:] = np.matmul(rotMat(y_Az[b]),np.array([[sig_y, 0], [0, (1+np.tan(np.radians(y_Zn[b])))*sig_y]]))
-    # # transform to diagonal matrix
-    # Q_yy = block_diag(*q_yy)  
-    # del q_yy,y_N,y_E,y_Zn,y_Az
-    
-    xHat = np.linalg.lstsq(A, y, rcond=None)
-    xHat = xHat[0]
-    # gls_model = sm.GLS(A, y, sigma=Q_yy)
-    # x_hat = gls_model.fit()    
-    Dstack[i,:] = np.transpose(xHat)
-
-xCoreg = np.linalg.lstsq(Astack, Dstack, rcond=None)
-xCoreg = xCoreg[0]
-# write co-registration
-f = open(datPath+'coreg.txt', 'w')
-for i in range(xCoreg.shape[0]):
-    line = s2Path[i]+' '+'{:+3.4f}'.format(xCoreg[i,0])+' '+'{:+3.4f}'.format(xCoreg[i,1])
-    f.write(line + '\n')
-f.close()
-
+coregistration(s2Path, datPath, connectivity=2, stepSize=True, tempSize=15,
+               bbox=bbox, lstsq_mode='simple')
 #lkTransform = RefScale(RefTrans(subTransform,tempSize/2,tempSize/2),tempSize)   
 #makeGeoIm(Dstack[0],lkTransform,crs,"DispAx1.tif")
 
