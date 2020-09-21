@@ -2,7 +2,7 @@ import numpy as np
 
 from sklearn.neighbors import NearestNeighbors
 
-from .handler_s2 import read_mean_sun_angles_S2
+from .handler_s2 import read_mean_sun_angles_s2
 
 
 def getNetworkIndices(n):  # processing
@@ -37,7 +37,7 @@ def getNetworkBySunangles(datPath, sceneList, n):  # processing
     L = np.zeros((len(sceneList), 2), 'float')
     for i in range(len(sceneList)):
         sen2Path = datPath + sceneList[i]
-        (sunZn, sunAz) = read_mean_sun_angles_S2(sen2Path)
+        (sunZn, sunAz) = read_mean_sun_angles_s2(sen2Path)
         L[i, :] = [sunZn, sunAz]
     # find nearest
     nbrs = NearestNeighbors(n_neighbors=n+1, algorithm='auto').fit(L)

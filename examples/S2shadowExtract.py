@@ -2,189 +2,95 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-from osgeo import ogr, osr, gdal
 from sklearn.neighbors import NearestNeighbors
 
 from eratosthenes.generic.handler_s2 import meta_S2string
 from eratosthenes.generic.mapping_tools import RefTrans, pix2map, map2pix, \
     castOrientation
-from eratosthenes.generic.mapping_io import makeGeoIm, read_geo_image
+from eratosthenes.generic.mapping_io import makeGeoIm, read_geo_image, \
+    read_geo_info
+from eratosthenes.generic.gis_tools import ll2utm, shape2raster
 
-from eratosthenes.preprocessing.read_s2 import read_band_S2, read_sun_angles_S2
-from eratosthenes.preprocessing.shadow_geometry import medianFilShadows, \
-    sturge, labelOccluderAndCasted
-from eratosthenes.preprocessing.shadow_transforms import ruffenacht
+from eratosthenes.preprocessing.handler_multispec import create_shadow_image
+from eratosthenes.preprocessing.read_s2 import read_sun_angles_s2
+from eratosthenes.preprocessing.shadow_geometry import create_shadow_polygons
 
-from eratosthenes.processing.handler_s2 import read_view_angles_S2
+from eratosthenes.processing.handler_s2 import read_view_angles_s2
 from eratosthenes.processing.network_tools import getNetworkIndices, \
     getNetworkBySunangles
 from eratosthenes.processing.matching_tools import LucasKanade
 
-datPath = '/Users/Alten005/surfdrive/Eratosthenes/Denali/' 
-#s2Path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VPL_20180225T232042/'
+dat_path = '/Users/Alten005/surfdrive/Eratosthenes/Denali/' 
+#im_path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VPL_20180225T232042/'
 #fName = 'T05VPL_20180225T214531_B'
 
-s2Path = ('Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VNK_20180225T232042/',
+im_path = ('Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VNK_20180225T232042/',
           'Data/S2B_MSIL1C_20190225T214529_N0207_R129_T05VNK_20190226T010218/',
           'Data/S2A_MSIL1C_20200225T214531_N0209_R129_T05VNK_20200225T231600/')
 fName = ('T05VNK_20180225T214531_B', 'T05VNK_20190225T214529_B', 'T05VNK_20200225T214531_B')
 
-# do a subset of the imagery
-minI = 4000
-maxI = 6000
-minJ = 4000
-maxJ = 6000
+shadow_transform = 'ruffenacht' # method to deploy for shadow enhancement
 
-for i in range(len(s2Path)):
-    sen2Path = datPath + s2Path[i]
-    (S2time,S2orbit,S2tile) = meta_S2string(s2Path[i])
-    
-    # read imagery of the different bands
-    (B2, crs, geoTransform, targetprj) = read_band_S2('02', sen2Path)
-    (B3, crs, geoTransform, targetprj) = read_band_S2('03', sen2Path)
-    (B4, crs, geoTransform, targetprj) = read_band_S2('04', sen2Path)
-    (B8, crs, geoTransform, targetprj) = read_band_S2('08', sen2Path)
-    
-    mI = np.size(B2,axis=0)
-    nI = np.size(B2,axis=1)
-    
-    # reduce image space, so it fit in memory
-    B2 = B2[minI:maxI,minJ:maxJ]
-    B3 = B3[minI:maxI,minJ:maxJ]
-    B4 = B4[minI:maxI,minJ:maxJ]
-    B8 = B8[minI:maxI,minJ:maxJ]
-    
-    subTransform = RefTrans(geoTransform,minI,minJ) # create georeference for subframe
-    subM = np.size(B2,axis=0)
-    subN = np.size(B2,axis=1)    
-    # transform to shadow image
-    M = ruffenacht(B2,B3,B4,B8)
-    # makeGeoIm(M,subTransform,crs,sen2Path + "ruffenacht.tif")
-    # M = shadowIndex(B2,B3,B4,B8)
-    # makeGeoIm(M,subTransform,crs,sen2Path + "swIdx.tif") # pc1
-    # M = shadeIndex(B2,B3,B4,B8)
-    # makeGeoIm(M,subTransform,crs,sen2Path + "shIdx.tif")
-    # M = nsvi(B2,B3,B4)
-    # makeGeoIm(M,subTransform,crs,sen2Path + "nsvi.tif")
-    # M = mpsi(B2,B3,B4)
-    # makeGeoIm(M,subTransform,crs,sen2Path + "mpsi.tif")
-    makeGeoIm(M,subTransform,crs,sen2Path + "shadows.tif")
-    
-    del B2,B3,B4,B8
+# do a subset of the imagery
+minI = 4000 # minimal row coordiante
+maxI = 6000 # maximum row coordiante
+minJ = 4000 # minimal collumn coordiante
+maxJ = 6000 # maximum collumn coordiante
+
+for i in range(len(im_path)):
+    sen2Path = dat_path + im_path[i]
+    (sat_time,sat_orbit,sat_tile) = meta_S2string(im_path[i])
+    print('working on '+ fName[i][0:-2]) 
+    if not os.path.exists(sen2Path + 'shadows.tif'):
+        (M, geoTransform, crs) = create_shadow_image(dat_path, im_path[i], \
+                                                   shadow_transform, \
+                                                   minI, maxI, minJ, maxJ \
+                                                   )
+        print('produced shadow transform for '+ fName[i][0:-2])    
+        makeGeoIm(M, geoTransform, crs, sen2Path + 'shadows.tif')            
     
     if not os.path.exists(sen2Path + 'labelCastConn.tif'):
-        # classify into regions
-        siz = 5
-        loop = 100
-        Mmed = medianFilShadows(M,siz,loop)
-        labels = sturge(Mmed)
-        
-        # find self-shadow and cast-shadow
-        (sunZn,sunAz) = read_sun_angles_S2(sen2Path)
-        sunZn = sunZn[minI:maxI,minJ:maxJ]
-        sunAz = sunAz[minI:maxI,minJ:maxJ]
-        
-        makeGeoIm(labels,subTransform,crs,sen2Path + "labelPolygons.tif")
-        # raster-based
-        (castList,shadowRid) = labelOccluderAndCasted(labels, sunZn, sunAz)#, subTransform)
-        # write data 
-        makeGeoIm(shadowRid,subTransform,crs,sen2Path + "labelRidges.tif")
-        makeGeoIm(castList,subTransform,crs,sen2Path + "labelCastConn.tif")
-        
-#        # polygon-based
-#        castList = listOccluderAndCasted(labels, sunZn, sunAz, subTransform)
-#        # write data to txt-file
-#        # Header = ('ridgeX', 'ridgeY', 'castX', 'castY', 'sunAzi', 'sunZn')
-#        fCast = sen2Path+fName[i][0:-2]+'.txt'
-#        with open(fCast, 'w') as f:
-#            for item in castList:
-#                np.savetxt(f,item.reshape(1,6), fmt="%.2f", delimiter=",", 
-#                           newline='\n', header='', footer='', comments='# ')
-#        #        np.savetxt("test2.txt", x, fmt="%2.1f", delimiter=",")
-#        #        f.write("%s\n" % item)
-        print('wrote '+ fName[i][0:-2])
-    if not os.path.exists(sen2Path + 'rgi.tif'):
-        
-        if not os.path.exists(datPath + S2tile + '.tif'): # create RGI raster
-            rgiPath = datPath+'GIS/'
-            rgiFile = '01_rgi60_alaska.shp'
-            
-            outShp = rgiPath+rgiFile[:-4]+'_utm'+S2tile[1:3]+'.shp'
-            if not os.path.exists(outShp): # project RGI shapefile
-                #making the shapefile as an object.
-                inputShp = ogr.Open(rgiPath+rgiFile)
-                #getting layer information of shapefile.
-                inLayer = inputShp.GetLayer()
-                # get info for coordinate transformation
-                inSpatialRef = inLayer.GetSpatialRef()
-                # output SpatialReference
-                outSpatialRef = osr.SpatialReference()
-                outSpatialRef.ImportFromWkt(crs)
-                coordTrans = osr.CoordinateTransformation(inSpatialRef, outSpatialRef)
+        if not 'M' in locals(): # previous step has not been executed
+            (M, crs, geoTransform, targetprj) = read_geo_image(sen2Path + 'shadows.tif')
+ 
+        (labels, cast_conn) = create_shadow_polygons(M,sen2Path, \
+                                                     minI, maxI, minJ, maxJ \
+                                                     )
+ 
+        makeGeoIm(labels, geoTransform, crs, sen2Path + 'labelPolygons.tif')
+        makeGeoIm(cast_conn, geoTransform, crs, sen2Path + 'labelCastConn.tif')
+        print('labelled shadow polygons for '+ fName[i][0:-2]) 
+    
+    # does raster with Randolph glacier mask exist for the tile of this satellite image
+    if not os.path.exists(dat_path + sat_tile + '.tif'): # create RGI raster
+        # create RGI for the extent of the image
+        rgi_path = dat_path+'GIS/'
+        rgi_file = '01_rgi60_alaska.shp'
+        out_shp = rgi_path+rgi_file[:-4]+'_utm'+sat_tile[1:3]+'.shp'
                 
-                driver = ogr.GetDriverByName('ESRI Shapefile')
-                # create the output layer
-                if os.path.exists(outShp):
-                    driver.DeleteDataSource(outShp)
-                outDataSet = driver.CreateDataSource(outShp)
-                outLayer = outDataSet.CreateLayer("reproject", outSpatialRef, geom_type=ogr.wkbMultiPolygon)
- #               outLayer = outDataSet.CreateLayer("reproject", geom_type=ogr.wkbMultiPolygon)
-                
-                # add fields
-                fieldDefn = ogr.FieldDefn('RGIId', ogr.OFTInteger) 
-                fieldDefn.SetWidth(14) 
-                fieldDefn.SetPrecision(1)
-                outLayer.CreateField(fieldDefn)
-                # inLayerDefn = inLayer.GetLayerDefn()
-                # for i in range(0, inLayerDefn.GetFieldCount()):
-                #     fieldDefn = inLayerDefn.GetFieldDefn(i)
-                #     outLayer.CreateField(fieldDefn)
-                
-                # get the output layer's feature definition
-                outLayerDefn = outLayer.GetLayerDefn()
-                
-                # loop through the input features
-                inFeature = inLayer.GetNextFeature()
-                while inFeature:
-                    # get the input geometry
-                    geom = inFeature.GetGeometryRef()
-                    # reproject the geometry
-                    geom.Transform(coordTrans)
-                    # create a new feature
-                    outFeature = ogr.Feature(outLayerDefn)
-                    # set the geometry and attribute
-                    outFeature.SetGeometry(geom)
-                    rgiStr = inFeature.GetField('RGIId')
-                    outFeature.SetField('RGIId', int(rgiStr[9:]))
-                    # add the feature to the shapefile
-                    outLayer.CreateFeature(outFeature)
-                    # dereference the features and get the next input feature
-                    outFeature = None
-                    inFeature = inLayer.GetNextFeature()
-                outDataSet = None # this creates an error but is needed?????
-            
-            #making the shapefile as an object.
-            rgiShp = ogr.Open(outShp)
-            #getting layer information of shapefile.
-            rgiLayer = rgiShp.GetLayer()
-            #get required raster band.
-            
-            driver = gdal.GetDriverByName('GTiff')
-            rgiRaster = driver.Create(datPath+S2tile+'.tif', mI, nI, 1, gdal.GDT_Int16)
-#            rgiRaster = gdal.GetDriverByName('GTiff').Create(datPath+S2tile+'.tif', mI, nI, 1, gdal.GDT_Int16)           
-            rgiRaster.SetGeoTransform(geoTransform)
-            band = rgiRaster.GetRasterBand(1)
-            #assign no data value to empty cells.
-            band.SetNoDataValue(0)
-            # band.FlushCache()
-            
-            #main conversion method
-            err = gdal.RasterizeLayer(rgiRaster, [1], rgiLayer, options=['ATTRIBUTE=RGIId'])
-            rgiRaster = None # missing link.....
-        
+        if not os.path.exists(out_shp): # project RGI shapefile 
+            # get geo-meta data
+            im_name = dat_path+im_path[i]+fName[i]+'04.jp2'
+            (tile_spatialRef, tile_geoTransform, tile_targetprj,\
+             tile_rows, tile_cols, tile_bands) = read_geo_info(im_name)
+            aoi='RGIId'
+            # transform shapefile from lat-long to UTM           
+            ll2utm(rgi_path+rgi_file,rgi_path+out_shp,crs,aoi) 
+            # convert polygon file to raster file
+            col_num = 1
+            shape2raster(rgi_path+out_shp,dat_path+sat_tile, \
+                         tile_geoTransform, tile_rows, tile_cols, aoi)                    
+    
+    # if a subset is used && file is not yet present    
+    if ('minI' in locals()) and not os.path.exists(sen2Path + 'rgi.tif'):    
         # create subset
-        (Msk, crs, geoTransform, targetprj) = read_geo_image(datPath+S2tile+'.tif')
-        (bboxX,bboxY) = pix2map(subTransform,np.array([0, subM]),np.array([0, subN]))
+        (Msk, crs, geoTransform, targetprj) = read_geo_image(dat_path+sat_tile+'.tif')
+        (crs, subTransform, targetprj,sub_rows, sub_cols, sub_bands) = \
+            read_geo_info(sen2Path + 'labelPolygons.tif')
+        
+        (bboxX,bboxY) = pix2map(subTransform, \
+                                np.array([0, sub_rows]), np.array([0, sub_col])
+                                )
         (bboxI,bboxJ) = map2pix(geoTransform, bboxX,bboxY)
         bboxI = np.round(bboxI).astype(int)
         bboxJ = np.round(bboxJ).astype(int)
@@ -197,11 +103,11 @@ for i in range(len(s2Path)):
 ## co-register
 
 # construct network
-GridIdxs = getNetworkIndices(len(s2Path))
+GridIdxs = getNetworkIndices(len(im_path))
 connectivity = 2 # amount of connection
-GridIdxs = getNetworkBySunangles(datPath, s2Path, connectivity)
+GridIdxs = getNetworkBySunangles(dat_path, im_path, connectivity)
 
-Astack = np.zeros([GridIdxs.shape[1],len(s2Path)]) # General coregistration adjustment matrix
+Astack = np.zeros([GridIdxs.shape[1],len(im_path)]) # General coregistration adjustment matrix
 Astack[np.arange(GridIdxs.shape[1]),GridIdxs[0,:]] = +1
 Astack[np.arange(GridIdxs.shape[1]),GridIdxs[1,:]] = -1
 Astack = np.transpose(Astack)
@@ -209,7 +115,7 @@ Astack = np.transpose(Astack)
 tempSize = 15
 stepSize = True
 # get observation angle
-(obsZn,obsAz) = read_view_angles_S2(sen2Path)
+(obsZn,obsAz) = read_view_angles_s2(sen2Path)
 obsZn = obsZn[minI:maxI,minJ:maxJ]
 obsAz = obsAz[minI:maxI,minJ:maxJ]
 if stepSize: # reduce to kernel resolution
@@ -228,9 +134,9 @@ sig_y = 10; # matching precision
 Dstack = np.zeros([GridIdxs.shape[1],2])
 for i in range(GridIdxs.shape[1]):
     for j in range(2):
-        sen2Path = datPath + s2Path[GridIdxs[j,i]]
+        sen2Path = dat_path + im_path[GridIdxs[j,i]]
         # get sun orientation
-        (sunZn,sunAz) = read_sun_angles_S2(sen2Path)
+        (sunZn,sunAz) = read_sun_angles_s2(sen2Path)
         sunZn = sunZn[minI:maxI,minJ:maxJ]
         sunAz = sunAz[minI:maxI,minJ:maxJ]
         # read shadow image
@@ -303,9 +209,9 @@ for i in range(GridIdxs.shape[1]):
 xCoreg = np.linalg.lstsq(Astack, Dstack, rcond=None)
 xCoreg = xCoreg[0]
 # write co-registration
-f = open(datPath+'coreg.txt', 'w')
+f = open(dat_path+'coreg.txt', 'w')
 for i in range(xCoreg.shape[0]):
-    line = s2Path[i]+' '+'{:+3.4f}'.format(xCoreg[i,0])+' '+'{:+3.4f}'.format(xCoreg[i,1])
+    line = im_path[i]+' '+'{:+3.4f}'.format(xCoreg[i,0])+' '+'{:+3.4f}'.format(xCoreg[i,1])
     f.write(line + '\n')
 f.close()
 
@@ -315,15 +221,15 @@ f.close()
 
 
 # make stack of Labels & Connectivity
-for i in range(len(s2Path)):
-    sen2Path = datPath + s2Path[i]
+for i in range(len(im_path)):
+    sen2Path = dat_path + im_path[i]
     # if i==0:
     (Rgi, spatialRef, geoTransform, targetprj) = read_geo_image(sen2Path + 'rgi.tif')
     # img = gdal.Open(sen2Path + 'rgi.tif')
     # Rgi = np.array(img.GetRasterBand(1).ReadAsArray())
-        # Cast = np.zeros([Rgi.shape[0],Rgi.shape[1],len(s2Path)])
+        # Cast = np.zeros([Rgi.shape[0],Rgi.shape[1],len(im_path)])
         # Cast = Cast.astype(np.int32)
-        # Conn = np.zeros([Rgi.shape[0],Rgi.shape[1],len(s2Path)])
+        # Conn = np.zeros([Rgi.shape[0],Rgi.shape[1],len(im_path)])
         # Conn = Conn.astype(np.int32)
     img = gdal.Open(sen2Path + 'labelPolygons.tif')
     cast = np.array(img.GetRasterBand(1).ReadAsArray())
@@ -369,7 +275,7 @@ for i in range(len(s2Path)):
     (castngX,castngY) = pix2map(geoTransform,castngIJ[:,0],castngIJ[:,1])
     
     # get sun angles, at casting locations
-    (sunZn,sunAz) = read_sun_angles_S2(sen2Path)
+    (sunZn,sunAz) = read_sun_angles_s2(sen2Path)
     #OBS: still in relative coordinates!!!
     sunZn = sunZn[minI:maxI,minJ:maxJ]
     sunAz = sunAz[minI:maxI,minJ:maxJ]
@@ -388,7 +294,7 @@ for i in range(len(s2Path)):
     del cast,conn
 
 # get co-registration information
-with open(datPath+'coreg.txt') as f:
+with open(dat_path+'coreg.txt') as f:
     lines = f.read().splitlines()
 coName = [line.split(' ')[0] for line in lines]
 coReg = np.array([list(map(float,line.split(' ')[1:])) for line in lines])
@@ -396,12 +302,12 @@ del lines
 
 # construct connectivity
 for i in range(GridIdxs.shape[1]):
-    fnam1 = s2Path[GridIdxs[0][i]]
-    fnam2 = s2Path[GridIdxs[1][i]]
+    fnam1 = im_path[GridIdxs[0][i]]
+    fnam2 = im_path[GridIdxs[1][i]]
     
     # get start and finish points of shadow edges
-    conn1 = np.loadtxt(fname = datPath+fnam1+'conn.txt')
-    conn2 = np.loadtxt(fname = datPath+fnam2+'conn.txt')
+    conn1 = np.loadtxt(fname = dat_path+fnam1+'conn.txt')
+    conn2 = np.loadtxt(fname = dat_path+fnam2+'conn.txt')
     
     # compensate for coregistration
     coid1 = coName.index(fnam1)
@@ -452,7 +358,7 @@ plt.show()
 # makeGeoIm(Mcan,subTransform,crs,"shadowRidges.tif")
 
 # merge lists
-for i in range(len(s2Path)):
+for i in range(len(im_path)):
     print('getting together')
     
 #processed_image = cv2.filter2D(image,-1,kernel)
