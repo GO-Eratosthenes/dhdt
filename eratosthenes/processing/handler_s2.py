@@ -9,7 +9,7 @@ from xml.etree import ElementTree
 from ..generic.handler_s2 import get_array_from_xml
 
 
-def read_mean_sun_angles_S2(path):  # processing
+def read_mean_sun_angles_s2(path):  # processing
     """
     This function reads the xml-file of the Sentinel-2 scene and extracts the
     mean sun angles.
@@ -23,7 +23,7 @@ def read_mean_sun_angles_S2(path):  # processing
     return Zn, Az
 
 
-def read_view_angles_S2(path):  # processing
+def read_view_angles_s2(path):  # processing
     """
     This function reads the xml-file of the Sentinel-2 scene and extracts an
     array with sun angles, as these vary along the scene.

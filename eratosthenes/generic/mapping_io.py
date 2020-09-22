@@ -2,6 +2,29 @@ import numpy as np
 
 from osgeo import gdal, osr
 
+def read_geo_info(fname):  # generic
+    """
+    This function takes as input the geotiff name and the path of the
+    folder that the images are stored, reads the geographic information of
+    the image
+    input:   band           string            geotiff name
+             path           string            path of the folder
+    output:  spatialRef     string            projection
+             geoTransform   tuple             affine transformation
+                                              coefficients
+             targetprj                        spatial reference
+             rows           integer           number of rows in the image             
+             cols           integer           number of collumns in the image
+             bands          integer           number of bands in the image             
+    """
+    img = gdal.Open(fname)
+    spatialRef = img.GetProjection()
+    geoTransform = img.GetGeoTransform()
+    targetprj = osr.SpatialReference(wkt=img.GetProjection())
+    rows = img.RasterYSize    
+    cols = img.RasterXSize
+    bands = img.RasterCount
+    return spatialRef, geoTransform, targetprj, rows, cols, bands
 
 def read_geo_image(fname):  # generic
     """

@@ -10,7 +10,7 @@ from xml.etree import ElementTree
 from ..generic.handler_s2 import get_array_from_xml
 
 
-def read_band_S2(band, path):  # pre-processing
+def read_band_s2(band, path):  # pre-processing
     """
     This function takes as input the Sentinel-2 band name and the path of the
     folder that the images are stored, reads the image and returns the data as
@@ -32,7 +32,7 @@ def read_band_S2(band, path):  # pre-processing
     return data, spatialRef, geoTransform, targetprj
 
 
-def read_sun_angles_S2(path):  # pre-processing
+def read_sun_angles_s2(path):  # pre-processing
     """
     This function reads the xml-file of the Sentinel-2 scene and extracts an
     array with sun angles, as these vary along the scene.
