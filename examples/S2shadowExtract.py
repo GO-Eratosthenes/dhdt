@@ -75,10 +75,10 @@ for i in range(len(im_path)):
              tile_rows, tile_cols, tile_bands) = read_geo_info(im_name)
             aoi='RGIId'
             # transform shapefile from lat-long to UTM           
-            ll2utm(rgi_path+rgi_file,rgi_path+out_shp,crs,aoi) 
+            ll2utm(rgi_path+rgi_file,out_shp,crs,aoi) 
             # convert polygon file to raster file
             col_num = 1
-            shape2raster(rgi_path+out_shp,dat_path+sat_tile, \
+            shape2raster(out_shp,dat_path+sat_tile, \
                          tile_geoTransform, tile_rows, tile_cols, aoi)                    
     
     # if a subset is used && file is not yet present    
@@ -370,7 +370,6 @@ fig, ax = plt.subplots()
 im = ax.imshow(Rgi)
 fig.colorbar(im)
 plt.show()
-
 
 
 
