@@ -89,7 +89,7 @@ for i in range(len(im_path)):
             read_geo_info(sen2Path + 'labelPolygons.tif')
         
         (bboxX,bboxY) = pix2map(subTransform, \
-                                np.array([0, sub_rows]), np.array([0, sub_col])
+                                np.array([0, sub_rows]), np.array([0, sub_cols])
                                 )
         (bboxI,bboxJ) = map2pix(geoTransform, bboxX,bboxY)
         bboxI = np.round(bboxI).astype(int)
@@ -370,7 +370,6 @@ fig, ax = plt.subplots()
 im = ax.imshow(Rgi)
 fig.colorbar(im)
 plt.show()
-
 
 
 
