@@ -7,27 +7,27 @@ from scipy.linalg import block_diag
 from .matching_tools import get_coordinates_of_template_centers, \
     get_grid_at_template_centers, lucas_kanade
 from .network_tools import getNetworkIndices, getNetworkBySunangles, \
-    getAjacencyMatrixFromNetwork
-from .handler_s2 import read_view_angles_S2
+    getAdjacencyMatrixFromNetwork
+from .handler_s2 import read_view_angles_s2
 from ..generic.mapping_tools import castOrientation, rotMat
 from ..generic.filtering_statistical import mad_filtering
-from ..preprocessing.read_s2 import read_sun_angles_S2
+from ..preprocessing.read_s2 import read_sun_angles_s2
 
 
 def coregistration(sat_path, dat_path, connectivity=2, step_size=True,
-                   temp_size=15, bbox=None, sig_y=10, lstsq_mode='ordinary', 
+                   temp_size=15, bbox=None, sig_y=10, lstsq_mode='ordinary',
                    rgi_mask=None):
     """
     Find the relative position between imagery, using the illuminated direction
-    of the image. A network of images is constructed, so a bundle block 
+    of the image. A network of images is constructed, so a bundle block
     adjustment is possible, with associated error-propagation.
 
     input:   sat_path       list              image names
              dat_path       string            location of the images
-             connectivity   integer           amount of connections for each 
+             connectivity   integer           amount of connections for each
                                               node in the network
-             step_size      boolean           reduce sampling grid to kernel 
-                                              resolution, so estimates are 
+             step_size      boolean           reduce sampling grid to kernel
+                                              resolution, so estimates are
                                               uncorrelated
              temp_size      integer           size of the kernel, in pixels
              bbox           array (4 x 1)     array giving a subset, if this is
@@ -44,28 +44,28 @@ def coregistration(sat_path, dat_path, connectivity=2, step_size=True,
     # construct network
     GridIdxs = getNetworkIndices(len(sat_path))
     GridIdxs = getNetworkBySunangles(dat_path, sat_path, connectivity)
-    Astack = getAjacencyMatrixFromNetwork(GridIdxs, len(sat_path))
+    Astack = getAdjacencyMatrixFromNetwork(GridIdxs, len(sat_path))
 
     if lstsq_mode in ('weighted', 'generalized'):
         # get observation angle
         sen2Path = dat_path + sat_path[0]
-        (obsZn, obsAz) = read_view_angles_S2(sen2Path)
+        (obsZn, obsAz) = read_view_angles_s2(sen2Path)
         if bbox is not None:
             obsZn = obsZn[bbox[0]:bbox[1], bbox[2]:bbox[3]]
             obsAz = obsAz[bbox[0]:bbox[1], bbox[2]:bbox[3]]
-                
+
     Dstack = np.zeros(GridIdxs.T.shape)
     for i in range(GridIdxs.shape[1]):
         for j in range(GridIdxs.shape[0]):
             sen2Path = dat_path + sat_path[GridIdxs[j, i]]
             # get sun orientation
-            (_, sunAz) = read_sun_angles_S2(sen2Path)
+            (_, sunAz) = read_sun_angles_s2(sen2Path)
             if bbox is not None:
                 sunAz = sunAz[bbox[0]:bbox[1], bbox[2]:bbox[3]]
             # read shadow image
             img = gdal.Open(sen2Path + "shadows.tif")
             M = np.array(img.GetRasterBand(1).ReadAsArray())
-            
+
             if i==0 & j==0:
                 if step_size:  # reduce to kernel resolution
                     (sampleI, sampleJ) = get_coordinates_of_template_centers(\
@@ -74,7 +74,7 @@ def coregistration(sat_path, dat_path, connectivity=2, step_size=True,
                     # sampling grid will be a full resolution, for every pixel
                     (sampleJ, sampleI) = np.meshgrid(np.arange(M.shape[1]), \
                                                      np.arangec(M.shape[0]))
-                      
+
             # create ridge image
             Mcan = castOrientation(M, sunAz)
             Mcan[Mcan < 0] = 0
@@ -91,20 +91,20 @@ def coregistration(sat_path, dat_path, connectivity=2, step_size=True,
 
         (y_N, y_E) = lucas_kanade(Mstack[:, :, 0], Mstack[:, :, 1],
                                  temp_size, sampleI, sampleJ)
-        
-        
+
+
         # select correct displacements
         if rgi_mask is None:
             Msk = y_N != 0
         else:
             # also get stable ground?
             raise NotImplementedError('Not implemented yet!')
-        
+
         # robust 3sigma-filtering
         cut_off = 3
         IN = mad_filtering(y_N[Msk], cut_off) and \
             mad_filtering(y_N[Msk], cut_off)
-        
+
         # keep selection and get their observation angles
         IN = IN & Msk
         y_N = y_N[IN]

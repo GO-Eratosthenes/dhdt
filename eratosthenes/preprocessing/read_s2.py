@@ -24,6 +24,7 @@ def read_band_s2(band, path):  # pre-processing
              targetprj                        spatial reference
     """
     fname = os.path.join(path, '*B'+band+'.jp2')
+    print(fname)
     img = gdal.Open(glob.glob(fname)[0])
     data = np.array(img.GetRasterBand(1).ReadAsArray())
     spatialRef = img.GetProjection()
