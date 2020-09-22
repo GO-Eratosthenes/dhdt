@@ -59,44 +59,27 @@ for i in range(len(im_path)):
 
         makeGeoIm(labels, geoTransform, crs, sen2Path + 'labelPolygons.tif')
         makeGeoIm(cast_conn, geoTransform, crs, sen2Path + 'labelCastConn.tif')
-        print('labelled shadow polygons for '+ fName[i][0:-2]) 
-    
-    # does raster with Randolph glacier mask exist for the tile of this satellite image
-    if not os.path.exists(dat_path + sat_tile + '.tif'): # create RGI raster
-        # create RGI for the extent of the image
-        rgi_path = dat_path+'GIS/'
-        rgi_file = '01_rgi60_alaska.shp'
-        out_shp = rgi_path+rgi_file[:-4]+'_utm'+sat_tile[1:3]+'.shp'
-                
-        if not os.path.exists(out_shp): # project RGI shapefile 
-            # get geo-meta data
-            im_name = dat_path+im_path[i]+fName[i]+'04.jp2'
-            (tile_spatialRef, tile_geoTransform, tile_targetprj,\
-             tile_rows, tile_cols, tile_bands) = read_geo_info(im_name)
-            aoi='RGIId'
-            # transform shapefile from lat-long to UTM           
-            ll2utm(rgi_path+rgi_file,out_shp,crs,aoi) 
-            # convert polygon file to raster file
-            col_num = 1
-            shape2raster(out_shp,dat_path+sat_tile, \
-                         tile_geoTransform, tile_rows, tile_cols, aoi)                    
-    
-    # if a subset is used && file is not yet present    
-    if ('minI' in locals()) and not os.path.exists(sen2Path + 'rgi.tif'):    
-        # create subset
-        (Msk, crs, geoTransform, targetprj) = read_geo_image(dat_path+sat_tile+'.tif')
-        (crs, subTransform, targetprj,sub_rows, sub_cols, sub_bands) = \
-            read_geo_info(sen2Path + 'labelPolygons.tif')
-        
-        (bboxX,bboxY) = pix2map(subTransform, \
-                                np.array([0, sub_rows]), np.array([0, sub_cols])
-                                )
-        (bboxI,bboxJ) = map2pix(geoTransform, bboxX,bboxY)
-        bboxI = np.round(bboxI).astype(int)
-        bboxJ = np.round(bboxJ).astype(int)
-        msk = Msk[bboxI[0]:bboxI[1],bboxJ[0]:bboxJ[1]]
-        makeGeoIm(msk,subTransform,crs,sen2Path + 'rgi.tif')
-        
+        print('labelled shadow polygons for '+ fName[i][0:-2])
+
+# make raster with Randolph glacier mask for the tile
+if not os.path.exists(dat_path + sat_tile + '.tif'):
+    # create RGI raster for the extent of the image
+    rgi_path = dat_path+'GIS/'
+    rgi_file = '01_rgi60_Alaska.shp'
+    out_shp = rgi_path+rgi_file[:-4]+'_utm'+sat_tile[1:3]+'.shp'
+    # get geo-meta data for a tile
+    fname = dat_path + im_path[0] + fName[0] + '04.jp2'
+    crs, geoTransform, targetprj, rows, cols, bands = read_geo_info(fname)
+    aoi = 'RGIId'
+    if not os.path.exists(out_shp):  # project RGI shapefile
+        # transform shapefile from lat-long to UTM
+        ll2utm(rgi_path+rgi_file,out_shp,crs,aoi)
+    # convert polygon file to raster file
+    shape2raster(out_shp, dat_path+sat_tile, geoTransform, rows, cols, aoi)
+
+(rgi_mask, crs, geoTransform, targetprj) = read_geo_image(dat_path
+                                                          +sat_tile+'.tif')
+rgi_mask = rgi_mask[minI:maxI,minJ:maxJ]
 
 ## processing
 
