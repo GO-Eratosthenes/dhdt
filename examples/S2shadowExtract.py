@@ -40,7 +40,7 @@ maxJ = 6000 # maximum collumn coordiante
 for i in range(len(im_path)):
     sen2Path = dat_path + im_path[i]
     (sat_time,sat_orbit,sat_tile) = meta_S2string(im_path[i])
-    print('working on '+ fName[i][0:-2]) 
+    print('working on '+ fName[i][0:-2])
     if not os.path.exists(sen2Path + 'shadows.tif'):
         (M, geoTransform, crs) = create_shadow_image(dat_path, im_path[i], \
                                                    shadow_transform, \
@@ -50,13 +50,10 @@ for i in range(len(im_path)):
         makeGeoIm(M, geoTransform, crs, sen2Path + 'shadows.tif')            
     
     if not os.path.exists(sen2Path + 'labelCastConn.tif'):
-        if not 'M' in locals(): # previous step has not been executed
-            (M, crs, geoTransform, targetprj) = read_geo_image(sen2Path + 'shadows.tif')
- 
         (labels, cast_conn) = create_shadow_polygons(M,sen2Path, \
                                                      minI, maxI, minJ, maxJ \
                                                      )
- 
+
         makeGeoIm(labels, geoTransform, crs, sen2Path + 'labelPolygons.tif')
         makeGeoIm(cast_conn, geoTransform, crs, sen2Path + 'labelCastConn.tif')
         print('labelled shadow polygons for '+ fName[i][0:-2]) 
@@ -124,12 +121,12 @@ if stepSize: # reduce to kernel resolution
     Jidx = np.arange(radius, obsZn.shape[1]-radius, tempSize)
     IidxNew = np.repeat(np.transpose([Iidx]), len(Jidx), axis=1)
     Jidx = np.repeat([Jidx], len(Iidx), axis=0)
-    Iidx = IidxNew 
-    
+    Iidx = IidxNew
+
     obsZn = obsZn[Iidx,Jidx]
     obsAz = obsAz[Iidx,Jidx]
     del IidxNew,radius,Iidx,Jidx
-    
+
 sig_y = 10; # matching precision
 Dstack = np.zeros([GridIdxs.shape[1],2])
 for i in range(GridIdxs.shape[1]):
@@ -141,69 +138,69 @@ for i in range(GridIdxs.shape[1]):
         sunAz = sunAz[minI:maxI,minJ:maxJ]
         # read shadow image
         img = gdal.Open(sen2Path + "shadows.tif")
-        M = np.array(img.GetRasterBand(1).ReadAsArray())   
-        # create ridge image 
-        Mcan = castOrientation(M,sunZn,sunAz) 
-        # Mcan = castOrientation(msk,sunZn,sunAz) 
+        M = np.array(img.GetRasterBand(1).ReadAsArray())
+        # create ridge image
+        Mcan = castOrientation(M,sunZn,sunAz)
+        # Mcan = castOrientation(msk,sunZn,sunAz)
         Mcan[Mcan<0] = 0
         if j==0:
             Mstack = Mcan
         else:
             Mstack = np.stack((Mstack, Mcan), axis=2)
-    
+
     # optical flow following Lukas Kanade
-    
+
     #####################
     # blur with gaussian?
     #####################
-    
+
     (y_N,y_E) = LucasKanade(Mstack[:,:,0], Mstack[:,:,1],
                     tempSize, stepSize)
     # select correct displacements
     Msk = y_N!=0
-    
+
     #########################
     # also get stable ground?
     #########################
-    
+
     # robust selection through group statistics
     med_N = np.median(y_N[Msk])
     mad_N = np.median(np.abs(y_N[Msk] - med_N))
-    
+
     med_E = np.median(y_E[Msk])
     mad_E = np.median(np.abs(y_E[Msk] - med_E))
-    
+
     # robust 3sigma-filtering
     alpha = 3
     IN_N = (y_N > med_N-alpha*mad_N) & (y_N < med_N+alpha*mad_N)
     IN_E = (y_E > med_E-alpha*mad_E) & (y_E < med_E+alpha*mad_E)
     IN = IN_N & IN_E
     del IN_N,IN_E,med_N,mad_N,med_E,mad_E
-    
+
     # keep selection and get their observation angles
     IN = IN & Msk
     y_N = y_N[IN]
     y_E = y_E[IN]
     y_Zn = abs(obsZn[IN]) # no negative values permitted
     y_Az = obsAz[IN]
-    
+
     # Generalized Least Squares adjustment, as there might be some heteroskedasticity
     # construct measurement vector and variance matrix
-    A = np.tile(np.identity(2, dtype = float), (len(y_N), 1)) 
+    A = np.tile(np.identity(2, dtype = float), (len(y_N), 1))
     y = np.reshape(np.hstack((y_N[:,np.newaxis],y_E[:,np.newaxis])),(-1,1))
-    
+
     # # build 2*2*n covariance matrix
     # q_yy = np.zeros((len(y_Zn),2,2), dtype = float)
     # for b in range(len(y_Zn)):
     #     q_yy[b,:,:] = np.matmul(rotMat(y_Az[b]),np.array([[sig_y, 0], [0, (1+np.tan(np.radians(y_Zn[b])))*sig_y]]))
     # # transform to diagonal matrix
-    # Q_yy = block_diag(*q_yy)  
+    # Q_yy = block_diag(*q_yy)
     # del q_yy,y_N,y_E,y_Zn,y_Az
-    
+
     xHat = np.linalg.lstsq(A, y, rcond=None)
     xHat = xHat[0]
     # gls_model = sm.GLS(A, y, sigma=Q_yy)
-    # x_hat = gls_model.fit()    
+    # x_hat = gls_model.fit()
     Dstack[i,:] = np.transpose(xHat)
 
 xCoreg = np.linalg.lstsq(Astack, Dstack, rcond=None)
@@ -215,7 +212,7 @@ for i in range(xCoreg.shape[0]):
     f.write(line + '\n')
 f.close()
 
-#lkTransform = RefScale(RefTrans(subTransform,tempSize/2,tempSize/2),tempSize)   
+#lkTransform = RefScale(RefTrans(subTransform,tempSize/2,tempSize/2),tempSize)
 #makeGeoIm(Dstack[0],lkTransform,crs,"DispAx1.tif")
 
 
@@ -235,26 +232,26 @@ for i in range(len(im_path)):
     cast = np.array(img.GetRasterBand(1).ReadAsArray())
     img = gdal.Open(sen2Path + 'labelCastConn.tif')
     conn = np.array(img.GetRasterBand(1).ReadAsArray())
-    
+
     # keep it image-based
-    selec = Rgi!=0 
+    selec = Rgi!=0
     #OBS! use a single RGI entity for debugging
     selec = Rgi==22216
     IN = np.logical_and(selec,conn<0) # are shadow edges on the glacier
     linIdx1 = np.transpose(np.array(np.where(IN)))
-    
+
     # find the postive number (caster), that is an intersection of lists
-    castPtId = conn[IN] 
+    castPtId = conn[IN]
     castPtId *= -1 # switch sign to get caster
     polyId = cast[IN]
     casted = np.transpose(np.vstack((castPtId,polyId))) #.tolist()
-    
-    IN = conn>0 # make a selection to reduce the list 
+
+    IN = conn>0 # make a selection to reduce the list
     linIdx2 = np.transpose(np.array(np.where(IN)))
     caster = conn[IN]
-    polyCa = cast[IN]    
+    polyCa = cast[IN]
     casters = np.transpose(np.vstack((caster,polyCa))).tolist()
-    
+
     indConn = np.zeros((casted.shape[0]))
     for x in range(casted.shape[0]):
         #idConn = np.where(np.all(casters==casted[x], axis=1))
@@ -269,11 +266,11 @@ for i in range(len(im_path)):
     idMated = indConn[OK].astype(int)
     castedIJ = linIdx1[OK,:]
     castngIJ = linIdx2[idMated,:]
-    
-    # transform to map coordinates  
+
+    # transform to map coordinates
     (castedX,castedY) = pix2map(geoTransform,castedIJ[:,0],castedIJ[:,1])
     (castngX,castngY) = pix2map(geoTransform,castngIJ[:,0],castngIJ[:,1])
-    
+
     # get sun angles, at casting locations
     (sunZn,sunAz) = read_sun_angles_s2(sen2Path)
     #OBS: still in relative coordinates!!!
@@ -281,7 +278,7 @@ for i in range(len(im_path)):
     sunAz = sunAz[minI:maxI,minJ:maxJ]
     sunZen = sunZn[castngIJ[:,0],castngIJ[:,1]]
     sunAzi = sunAz[castngIJ[:,0],castngIJ[:,1]]
-    
+
     # write to file
     f = open(sen2Path+'conn.txt', 'w')
     for i in range(castedX.shape[0]):
@@ -290,7 +287,7 @@ for i in range(len(im_path)):
         line = line + '{:+3.4f}'.format(sunAzi[i])+' '+'{:+3.4f}'.format(sunZen[i])
         f.write(line + '\n')
     f.close()
-    
+
     del cast,conn
 
 # get co-registration information
@@ -304,11 +301,11 @@ del lines
 for i in range(GridIdxs.shape[1]):
     fnam1 = im_path[GridIdxs[0][i]]
     fnam2 = im_path[GridIdxs[1][i]]
-    
+
     # get start and finish points of shadow edges
     conn1 = np.loadtxt(fname = dat_path+fnam1+'conn.txt')
     conn2 = np.loadtxt(fname = dat_path+fnam2+'conn.txt')
-    
+
     # compensate for coregistration
     coid1 = coName.index(fnam1)
     coid2 = coName.index(fnam2)
@@ -317,22 +314,22 @@ for i in range(GridIdxs.shape[1]):
     conn2[:,1] += coDxy[1]
     #conn2[:,2] += coDxy[0]
     #conn2[:,3] += coDxy[1]
-       
+
     # find nearest
     nbrs = NearestNeighbors(n_neighbors=1, algorithm='auto').fit(conn1[:,0:2])
     distances, indices = nbrs.kneighbors(conn2[:,0:2])
     IN = distances<20
     idxConn = np.transpose(np.vstack((np.where(IN)[0], indices[distances<20])))
-    
-    
-# walk through glacier polygons      
+
+
+# walk through glacier polygons
 # rgiList = np.trim_zeros(np.unique(Rgi))
 # for j in rgiList:
 #selection of glacier polygon
-    # selec = Rgi==j     
-    
+    # selec = Rgi==j
+
 # keep it image-based
-selec = Rgi!=0 
+selec = Rgi!=0
 
 linIdx = np.where(IN)
 
@@ -343,9 +340,9 @@ listOfCoordinates= list(zip(linIdx[0], linIdx[1], linIdx[2]))
 fig, ax = plt.subplots()
 im = ax.imshow(selec.astype(int))
 fig.colorbar(im)
-plt.show()    
-    
-        
+plt.show()
+
+
 
 
 
@@ -354,13 +351,13 @@ plt.show()
 
 # weights through observation angle
 
-    
+
 # makeGeoIm(Mcan,subTransform,crs,"shadowRidges.tif")
 
 # merge lists
 for i in range(len(im_path)):
     print('getting together')
-    
+
 #processed_image = cv2.filter2D(image,-1,kernel)
 
 
