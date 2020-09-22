@@ -46,9 +46,12 @@ for i in range(len(im_path)):
                                                    shadow_transform, \
                                                    minI, maxI, minJ, maxJ \
                                                    )
-        print('produced shadow transform for '+ fName[i][0:-2])    
-        makeGeoIm(M, geoTransform, crs, sen2Path + 'shadows.tif')            
-    
+        print('produced shadow transform for '+ fName[i][0:-2])
+        makeGeoIm(M, geoTransform, crs, sen2Path + 'shadows.tif')
+    else:
+        (M, crs, geoTransform, targetprj) = read_geo_image(
+            sen2Path + 'shadows.tif')
+
     if not os.path.exists(sen2Path + 'labelCastConn.tif'):
         (labels, cast_conn) = create_shadow_polygons(M,sen2Path, \
                                                      minI, maxI, minJ, maxJ \
