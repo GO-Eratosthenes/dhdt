@@ -7,7 +7,7 @@ from .handler_s2 import read_mean_sun_angles_s2
 
 def getNetworkIndices(n):  # processing
     """
-    generate a list with all matchable combinations
+    Generate a list with all matchable combinations
     input:   n              integer           number of images
     output:  GridIdxs       array (2 x k)     list of couples
     """
@@ -46,3 +46,17 @@ def getNetworkBySunangles(datPath, sceneList, n):  # processing
     Grid1, dummy = np.indices((len(sceneList), n))
     GridIdxs = np.vstack((Grid1.flatten(), Grid2.flatten()))
     return GridIdxs
+
+
+def getAdjacencyMatrixFromNetwork(GridIdxs, number_of_nodes):
+    """
+    Transforms an edge list into an Adjacency matrix
+    input:   GridIdxs        array (2 x k)    list of couples
+             number_of_nodes integer          amount of nodes in the network
+    output:  Astack          array (m x l)    design matrix
+    """
+    # General coregistration adjustment matrix
+    Astack = np.zeros([GridIdxs.shape[1], number_of_nodes])
+    Astack[np.arange(GridIdxs.shape[1]), GridIdxs[0, :]] = +1
+    Astack[np.arange(GridIdxs.shape[1]), GridIdxs[1, :]] = -1
+    return Astack
