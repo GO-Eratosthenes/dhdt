@@ -18,7 +18,7 @@ from eratosthenes.preprocessing.shadow_geometry import create_shadow_polygons
 
 from eratosthenes.processing.coregistration import coregistration
 
-datPath = '/Users/Alten005/surfdrive/Eratosthenes/Denali/'
+dat_path = '/Users/Alten005/surfdrive/Eratosthenes/Denali/'
 #im_path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VPL_20180225T232042/'
 #fName = 'T05VPL_20180225T214531_B'
 
@@ -84,7 +84,7 @@ rgi_mask = rgi_mask[minI:maxI,minJ:maxJ]
 ## processing
 
 coregistration(im_path, dat_path, connectivity=2, step_size=True, temp_size=15,
-               bbox=bbox, lstsq_mode='simple')
+               bbox=bbox, lstsq_mode='ordinary')
 #lkTransform = RefScale(RefTrans(subTransform,tempSize/2,tempSize/2),tempSize)
 #makeGeoIm(Dstack[0],lkTransform,crs,"DispAx1.tif")
 
