@@ -7,14 +7,14 @@ from scipy.linalg import block_diag
 from .matching_tools import get_coordinates_of_template_centers, \
     get_grid_at_template_centers, lucas_kanade
 from .network_tools import getNetworkIndices, getNetworkBySunangles, \
-    getAjacencyMatrixFromNetwork
-from .handler_s2 import read_view_angles_S2
+    getAdjacencyMatrixFromNetwork
+from .handler_s2 import read_view_angles_s2
 from ..generic.mapping_tools import castOrientation, rotMat
 from ..generic.filtering_statistical import mad_filtering
-from ..preprocessing.read_s2 import read_sun_angles_S2
+from ..preprocessing.read_s2 import read_sun_angles_s2
 
 
-def coregistration(sat_path, dat_path, connectivity=2, step_size=True,
+def coregister(sat_path, dat_path, connectivity=2, step_size=True,
                    temp_size=15, bbox=None, sig_y=10, lstsq_mode='ordinary', 
                    rgi_mask=None):
     """
@@ -44,12 +44,12 @@ def coregistration(sat_path, dat_path, connectivity=2, step_size=True,
     # construct network
     GridIdxs = getNetworkIndices(len(sat_path))
     GridIdxs = getNetworkBySunangles(dat_path, sat_path, connectivity)
-    Astack = getAjacencyMatrixFromNetwork(GridIdxs, len(sat_path))
+    Astack = getAdjacencyMatrixFromNetwork(GridIdxs, len(sat_path))
 
     if lstsq_mode in ('weighted', 'generalized'):
         # get observation angle
         sen2Path = dat_path + sat_path[0]
-        (obsZn, obsAz) = read_view_angles_S2(sen2Path)
+        (obsZn, obsAz) = read_view_angles_s2(sen2Path)
         if bbox is not None:
             obsZn = obsZn[bbox[0]:bbox[1], bbox[2]:bbox[3]]
             obsAz = obsAz[bbox[0]:bbox[1], bbox[2]:bbox[3]]
@@ -59,7 +59,7 @@ def coregistration(sat_path, dat_path, connectivity=2, step_size=True,
         for j in range(GridIdxs.shape[0]):
             sen2Path = dat_path + sat_path[GridIdxs[j, i]]
             # get sun orientation
-            (_, sunAz) = read_sun_angles_S2(sen2Path)
+            (_, sunAz) = read_sun_angles_s2(sen2Path)
             if bbox is not None:
                 sunAz = sunAz[bbox[0]:bbox[1], bbox[2]:bbox[3]]
             # read shadow image
@@ -149,3 +149,28 @@ def coregistration(sat_path, dat_path, connectivity=2, step_size=True,
             xCoreg[i, 0]) + ' ' + '{:+3.4f}'.format(xCoreg[i, 1])
         f.write(line + '\n')
     f.close()
+
+def get_coregistration(dat_path,im_list=None):
+    """
+    The co-registration parameters are written in a specific file. This
+    function retrieves these parameters, and finds the corresponding values
+    of the images given by im_list
+    
+    input:   dat_path       string            location of the images
+             im_list        list (k x 1)      image names
+    output:  co_name        list (k x 1)      code of the image or image name
+             co_reg         array  (k x 2)    relative coordinates of the 
+                                              network adjustment
+    """
+    # read file
+    with open(dat_path+'coreg.txt') as f:
+        lines = f.read().splitlines()
+        co_name = [line.split(' ')[0] for line in lines]
+        co_reg = np.array([list(map(float,line.split(' ')[1:])) for line in lines])
+    del lines
+    
+    # make a selection
+    if im_list is not None:
+        raise NotImplementedError('Not implemented yet!')
+    
+    return co_name, co_reg

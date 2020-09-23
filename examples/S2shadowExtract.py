@@ -10,12 +10,14 @@ from eratosthenes.generic.mapping_tools import RefTrans, pix2map, map2pix, \
     castOrientation
 from eratosthenes.generic.mapping_io import makeGeoIm, read_geo_image
 
-from eratosthenes.preprocessing.read_s2 import read_band_S2, read_sun_angles_S2
+from eratosthenes.preprocessing.read_s2 import read_band_s2, read_sun_angles_s2
 from eratosthenes.preprocessing.shadow_geometry import medianFilShadows, \
     sturge, labelOccluderAndCasted
 from eratosthenes.preprocessing.shadow_transforms import ruffenacht
+from eratosthenes.preprocessing.handler_multispec import \
+    create_caster_casted_list_from_polygons
 
-from eratosthenes.processing import coregistration
+from eratosthenes.processing.coregistration import coregister, get_coregistration
 
 datPath = '/Users/Alten005/surfdrive/Eratosthenes/Denali/' 
 #s2Path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VPL_20180225T232042/'
@@ -191,94 +193,22 @@ for i in range(len(s2Path)):
         makeGeoIm(msk,subTransform,crs,sen2Path + 'rgi.tif')
         
 
+# make stack of Labels & Connectivity
+for i in range(len(s2Path)):
+    create_caster_casted_list_from_polygons(datPath, s2Path[i], bbox)
+
 ## processing
 
-coregistration(s2Path, datPath, connectivity=2, stepSize=True, tempSize=15,
+
+
+coregister(s2Path, datPath, connectivity=2, stepSize=True, tempSize=15,
                bbox=bbox, lstsq_mode='simple')
 #lkTransform = RefScale(RefTrans(subTransform,tempSize/2,tempSize/2),tempSize)   
 #makeGeoIm(Dstack[0],lkTransform,crs,"DispAx1.tif")
 
 
-
-# make stack of Labels & Connectivity
-for i in range(len(s2Path)):
-    sen2Path = datPath + s2Path[i]
-    # if i==0:
-    (Rgi, spatialRef, geoTransform, targetprj) = read_geo_image(sen2Path + 'rgi.tif')
-    # img = gdal.Open(sen2Path + 'rgi.tif')
-    # Rgi = np.array(img.GetRasterBand(1).ReadAsArray())
-        # Cast = np.zeros([Rgi.shape[0],Rgi.shape[1],len(s2Path)])
-        # Cast = Cast.astype(np.int32)
-        # Conn = np.zeros([Rgi.shape[0],Rgi.shape[1],len(s2Path)])
-        # Conn = Conn.astype(np.int32)
-    img = gdal.Open(sen2Path + 'labelPolygons.tif')
-    cast = np.array(img.GetRasterBand(1).ReadAsArray())
-    img = gdal.Open(sen2Path + 'labelCastConn.tif')
-    conn = np.array(img.GetRasterBand(1).ReadAsArray())
-    
-    # keep it image-based
-    selec = Rgi!=0 
-    #OBS! use a single RGI entity for debugging
-    selec = Rgi==22216
-    IN = np.logical_and(selec,conn<0) # are shadow edges on the glacier
-    linIdx1 = np.transpose(np.array(np.where(IN)))
-    
-    # find the postive number (caster), that is an intersection of lists
-    castPtId = conn[IN] 
-    castPtId *= -1 # switch sign to get caster
-    polyId = cast[IN]
-    casted = np.transpose(np.vstack((castPtId,polyId))) #.tolist()
-    
-    IN = conn>0 # make a selection to reduce the list 
-    linIdx2 = np.transpose(np.array(np.where(IN)))
-    caster = conn[IN]
-    polyCa = cast[IN]    
-    casters = np.transpose(np.vstack((caster,polyCa))).tolist()
-    
-    indConn = np.zeros((casted.shape[0]))
-    for x in range(casted.shape[0]):
-        #idConn = np.where(np.all(casters==casted[x], axis=1))
-        try:
-            idConn = casters.index(casted[x].tolist())
-        except ValueError:
-            idConn = -1
-        indConn[x] = idConn
-    # transform to image coordinates
-    # idMated = np.transpose(np.array(np.where(indConn!=-1)))
-    OK = indConn!=-1
-    idMated = indConn[OK].astype(int)
-    castedIJ = linIdx1[OK,:]
-    castngIJ = linIdx2[idMated,:]
-    
-    # transform to map coordinates  
-    (castedX,castedY) = pix2map(geoTransform,castedIJ[:,0],castedIJ[:,1])
-    (castngX,castngY) = pix2map(geoTransform,castngIJ[:,0],castngIJ[:,1])
-    
-    # get sun angles, at casting locations
-    (sunZn,sunAz) = read_sun_angles_S2(sen2Path)
-    #OBS: still in relative coordinates!!!
-    sunZn = sunZn[minI:maxI,minJ:maxJ]
-    sunAz = sunAz[minI:maxI,minJ:maxJ]
-    sunZen = sunZn[castngIJ[:,0],castngIJ[:,1]]
-    sunAzi = sunAz[castngIJ[:,0],castngIJ[:,1]]
-    
-    # write to file
-    f = open(sen2Path+'conn.txt', 'w')
-    for i in range(castedX.shape[0]):
-        line = '{:+8.2f}'.format(castngX[i])+' '+'{:+8.2f}'.format(castngY[i])+' '
-        line = line + '{:+8.2f}'.format(castedX[i])+' '+'{:+8.2f}'.format(castedY[i])+' '
-        line = line + '{:+3.4f}'.format(sunAzi[i])+' '+'{:+3.4f}'.format(sunZen[i])
-        f.write(line + '\n')
-    f.close()
-    
-    del cast,conn
-
 # get co-registration information
-with open(datPath+'coreg.txt') as f:
-    lines = f.read().splitlines()
-coName = [line.split(' ')[0] for line in lines]
-coReg = np.array([list(map(float,line.split(' ')[1:])) for line in lines])
-del lines
+(coName,coReg) = get_coregistration(datPath,s2Path)
 
 # construct connectivity
 for i in range(GridIdxs.shape[1]):
