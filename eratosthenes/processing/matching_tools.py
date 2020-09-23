@@ -5,7 +5,7 @@ from skimage.feature import match_template
 
 
 # image matching functions
-def lucas_kanade(I1, I2, window_size, stepSize=False, tau=1e-2):  # processing
+def lucas_kanade(I1, I2, window_size, sampleI, sampleJ, tau=1e-2):  # processing
     """
     displacement estimation through optical flow
     following Lucas & Kanade 1981
@@ -34,20 +34,20 @@ def lucas_kanade(I1, I2, window_size, stepSize=False, tau=1e-2):  # processing
 
     # double loop to visit all pixels
     if stepSize:
-        stepsI = np.arange(radius, I1.shape[0] - radius, window_size)
-        stepsJ = np.arange(radius, I1.shape[1] - radius, window_size)
-        u = np.zeros((len(stepsI), len(stepsJ)))
-        v = np.zeros((len(stepsI), len(stepsJ)))
+        sampleI = np.arange(radius, I1.shape[0] - radius, window_size)
+        sampleJ = np.arange(radius, I1.shape[1] - radius, window_size)
+        u = np.zeros((len(sampleI), len(sampleJ)))
+        v = np.zeros((len(sampleI), len(sampleJ)))
     else:
-        stepsI = range(radius, I1.shape[0] - radius)
-        stepsJ = range(radius, I1.shape[1] - radius)
+        sampleI = range(radius, I1.shape[0] - radius)
+        sampleJ = range(radius, I1.shape[1] - radius)
         u = np.zeros(I1.shape)
         v = np.zeros(I1.shape)
 
-    for iIdx in range(len(stepsI)):
-        i = stepsI[iIdx]
-        for jIdx in range(len(stepsJ)):
-            j = stepsI[jIdx]
+    for iIdx in range(len(sampleI)):
+        i = sampleI[iIdx]
+        for jIdx in range(len(sampleJ)):
+            j = sampleJ[jIdx]
             # get templates
             Ix = fx[i - radius:i + radius + 1,
                     j - radius:j + radius + 1].flatten()
