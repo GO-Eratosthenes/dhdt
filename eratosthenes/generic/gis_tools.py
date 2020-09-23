@@ -54,8 +54,8 @@ def ll2utm(ll_fname,utm_fname,crs,aoi='RGIId'):
         outFeature = ogr.Feature(outLayerDefn)
         # set the geometry and attribute
         outFeature.SetGeometry(geom)
-        rgiStr = inFeature.GetField(lyr_oi)
-        outFeature.SetField(lyr_oi, int(rgiStr[9:]))
+        rgiStr = inFeature.GetField(aoi)
+        outFeature.SetField(aoi, int(rgiStr[9:]))
         # add the feature to the shapefile
         outLayer.CreateFeature(outFeature)
         # dereference the features and get the next input feature

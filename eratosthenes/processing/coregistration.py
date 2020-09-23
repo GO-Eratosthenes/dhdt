@@ -15,19 +15,19 @@ from ..preprocessing.read_s2 import read_sun_angles_s2
 
 
 def coregister(sat_path, dat_path, connectivity=2, step_size=True,
-                   temp_size=15, bbox=None, sig_y=10, lstsq_mode='ordinary', 
+                   temp_size=15, bbox=None, sig_y=10, lstsq_mode='ordinary',
                    rgi_mask=None):
     """
     Find the relative position between imagery, using the illuminated direction
-    of the image. A network of images is constructed, so a bundle block 
+    of the image. A network of images is constructed, so a bundle block
     adjustment is possible, with associated error-propagation.
 
     input:   sat_path       list              image names
              dat_path       string            location of the images
-             connectivity   integer           amount of connections for each 
+             connectivity   integer           amount of connections for each
                                               node in the network
-             step_size      boolean           reduce sampling grid to kernel 
-                                              resolution, so estimates are 
+             step_size      boolean           reduce sampling grid to kernel
+                                              resolution, so estimates are
                                               uncorrelated
              temp_size      integer           size of the kernel, in pixels
              bbox           array (4 x 1)     array giving a subset, if this is
@@ -53,7 +53,7 @@ def coregister(sat_path, dat_path, connectivity=2, step_size=True,
         if bbox is not None:
             obsZn = obsZn[bbox[0]:bbox[1], bbox[2]:bbox[3]]
             obsAz = obsAz[bbox[0]:bbox[1], bbox[2]:bbox[3]]
-                
+
     Dstack = np.zeros(GridIdxs.T.shape)
     for i in range(GridIdxs.shape[1]):
         for j in range(GridIdxs.shape[0]):
@@ -65,7 +65,7 @@ def coregister(sat_path, dat_path, connectivity=2, step_size=True,
             # read shadow image
             img = gdal.Open(sen2Path + "shadows.tif")
             M = np.array(img.GetRasterBand(1).ReadAsArray())
-            
+
             if i==0 & j==0:
                 if step_size:  # reduce to kernel resolution
                     (sampleI, sampleJ) = get_coordinates_of_template_centers(\
@@ -74,7 +74,7 @@ def coregister(sat_path, dat_path, connectivity=2, step_size=True,
                     # sampling grid will be a full resolution, for every pixel
                     (sampleJ, sampleI) = np.meshgrid(np.arange(M.shape[1]), \
                                                      np.arangec(M.shape[0]))
-                      
+
             # create ridge image
             Mcan = castOrientation(M, sunAz)
             Mcan[Mcan < 0] = 0
@@ -91,20 +91,20 @@ def coregister(sat_path, dat_path, connectivity=2, step_size=True,
 
         (y_N, y_E) = lucas_kanade(Mstack[:, :, 0], Mstack[:, :, 1],
                                  temp_size, sampleI, sampleJ)
-        
-        
+
+
         # select correct displacements
         if rgi_mask is None:
             Msk = y_N != 0
         else:
             # also get stable ground?
             raise NotImplementedError('Not implemented yet!')
-        
+
         # robust 3sigma-filtering
         cut_off = 3
         IN = mad_filtering(y_N[Msk], cut_off) and \
             mad_filtering(y_N[Msk], cut_off)
-        
+
         # keep selection and get their observation angles
         IN = IN & Msk
         y_N = y_N[IN]
@@ -155,11 +155,11 @@ def get_coregistration(dat_path,im_list=None):
     The co-registration parameters are written in a specific file. This
     function retrieves these parameters, and finds the corresponding values
     of the images given by im_list
-    
+
     input:   dat_path       string            location of the images
              im_list        list (k x 1)      image names
     output:  co_name        list (k x 1)      code of the image or image name
-             co_reg         array  (k x 2)    relative coordinates of the 
+             co_reg         array  (k x 2)    relative coordinates of the
                                               network adjustment
     """
     # read file
@@ -168,9 +168,9 @@ def get_coregistration(dat_path,im_list=None):
         co_name = [line.split(' ')[0] for line in lines]
         co_reg = np.array([list(map(float,line.split(' ')[1:])) for line in lines])
     del lines
-    
+
     # make a selection
     if im_list is not None:
         raise NotImplementedError('Not implemented yet!')
-    
+
     return co_name, co_reg
