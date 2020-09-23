@@ -2,19 +2,15 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-from osgeo import ogr, osr, gdal
 from sklearn.neighbors import NearestNeighbors
 
 from eratosthenes.generic.handler_s2 import meta_S2string
-from eratosthenes.generic.mapping_tools import RefTrans, pix2map, map2pix, \
-    castOrientation
 from eratosthenes.generic.mapping_io import makeGeoIm, read_geo_image, \
     read_geo_info
 from eratosthenes.generic.gis_tools import ll2utm, shape2raster
 
 from eratosthenes.preprocessing.handler_multispec import create_shadow_image, \
     create_caster_casted_list_from_polygons
-from eratosthenes.preprocessing.read_s2 import read_sun_angles_s2
 from eratosthenes.preprocessing.shadow_geometry import create_shadow_polygons
 
 from eratosthenes.processing.coregistration import coregister, get_coregistration
