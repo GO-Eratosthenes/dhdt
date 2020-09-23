@@ -12,7 +12,8 @@ from eratosthenes.generic.mapping_io import makeGeoIm, read_geo_image, \
     read_geo_info
 from eratosthenes.generic.gis_tools import ll2utm, shape2raster
 
-from eratosthenes.preprocessing.handler_multispec import create_shadow_image
+from eratosthenes.preprocessing.handler_multispec import create_shadow_image, \
+    create_caster_casted_list_from_polygons
 from eratosthenes.preprocessing.read_s2 import read_sun_angles_s2
 from eratosthenes.preprocessing.shadow_geometry import create_shadow_polygons
 
@@ -82,8 +83,8 @@ if not os.path.exists(dat_path + sat_tile + '.tif'):
 rgi_mask = rgi_mask[minI:maxI,minJ:maxJ]
 
 # make stack of Labels & Connectivity
-for i in range(len(s2Path)):
-    create_caster_casted_list_from_polygons(datPath, s2Path[i], bbox)
+for i in range(len(im_path)):
+    create_caster_casted_list_from_polygons(dat_path, im_path[i], bbox)
 
 ## processing
 
