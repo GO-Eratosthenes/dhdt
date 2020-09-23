@@ -32,7 +32,7 @@ def mad_filtering(y,thres=3):
 
     """
     med_y = np.median(y)
-    mad_y = np.median(np.abs(med_y - med_y))
+    mad_y = np.median(np.abs(y - med_y))
 
     IN = (y > (med_y - thres*mad_y)) & \
         (y < med_y + thres*mad_y)
