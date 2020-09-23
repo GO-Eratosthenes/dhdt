@@ -5,7 +5,7 @@ from skimage.feature import match_template
 
 
 # image matching functions
-def LucasKanade(I1, I2, window_size, stepSize=False, tau=1e-2):  # processing
+def lucas_kanade(I1, I2, window_size, sampleI, sampleJ, tau=1e-2):  # processing
     """
     displacement estimation through optical flow
     following Lucas & Kanade 1981
@@ -34,20 +34,20 @@ def LucasKanade(I1, I2, window_size, stepSize=False, tau=1e-2):  # processing
 
     # double loop to visit all pixels
     if stepSize:
-        stepsI = np.arange(radius, I1.shape[0] - radius, window_size)
-        stepsJ = np.arange(radius, I1.shape[1] - radius, window_size)
-        u = np.zeros((len(stepsI), len(stepsJ)))
-        v = np.zeros((len(stepsI), len(stepsJ)))
+        sampleI = np.arange(radius, I1.shape[0] - radius, window_size)
+        sampleJ = np.arange(radius, I1.shape[1] - radius, window_size)
+        u = np.zeros((len(sampleI), len(sampleJ)))
+        v = np.zeros((len(sampleI), len(sampleJ)))
     else:
-        stepsI = range(radius, I1.shape[0] - radius)
-        stepsJ = range(radius, I1.shape[1] - radius)
+        sampleI = range(radius, I1.shape[0] - radius)
+        sampleJ = range(radius, I1.shape[1] - radius)
         u = np.zeros(I1.shape)
         v = np.zeros(I1.shape)
 
-    for iIdx in range(len(stepsI)):
-        i = stepsI[iIdx]
-        for jIdx in range(len(stepsJ)):
-            j = stepsI[jIdx]
+    for iIdx in range(len(sampleI)):
+        i = sampleI[iIdx]
+        for jIdx in range(len(sampleJ)):
+            j = sampleJ[jIdx]
             # get templates
             Ix = fx[i - radius:i + radius + 1,
                     j - radius:j + radius + 1].flatten()
@@ -70,7 +70,7 @@ def LucasKanade(I1, I2, window_size, stepSize=False, tau=1e-2):  # processing
     return (u, v)
 
 
-def NormalizedCrossCorr(I1, I2):  # processing
+def normalized_cross_corr(I1, I2):  # processing
     """
     Simple normalized cross correlation
     input:   I1             array (n x m)     template with intensities
@@ -82,3 +82,38 @@ def NormalizedCrossCorr(I1, I2):  # processing
     ij = np.unravel_index(np.argmax(result), result.shape)
     x, y = ij[::-1]
     return (x, y)
+
+def get_coordinates_of_template_centers(grid, temp_size):
+    """
+    When tiling an array into small templates, this function
+    gives the locations of the centers.
+    input:   grid           array (n x m)     array with data values
+             temp_size       integer           size of the kernel in pixels
+    output:  Iidx           array (k x l)     array with row coordinates
+             Jidx           array (k x l)     array with collumn coordinates
+    """
+    radius = np.floor(temp_size / 2).astype('int')
+    Iidx = np.arange(radius, grid.shape[0] - radius, temp_size)
+    Jidx = np.arange(radius, grid.shape[1] - radius, temp_size)
+    # FN ###################################
+    # are the following lines equivalent to:
+    # Iidx, Jidx = np.meshgrid(Iidx, Jidx)
+    # It looks like, but Iidx and Jidx are switched!
+    IidxNew = np.repeat(np.transpose([Iidx]), len(Jidx), axis=1)
+    Jidx = np.repeat([Jidx], len(Iidx), axis=0)
+    Iidx = IidxNew
+
+    return Iidx, Jidx
+
+def get_grid_at_template_centers(grid, temp_size):
+    """
+    When tiling an array into small templates, this function
+    gives the value of the pixel in its center.
+    input:   grid           array (n x m)     array with data values
+             temp_size       integer           size of the kernel in pixels
+    output:  gridnew        array (k x l)     data value of the pixel in the
+                                              kernels center
+    """
+    (Iidx, Jidx) = get_coordinates_of_template_centers(grid, temp_size)
+
+    return grid[Iidx, Jidx]
