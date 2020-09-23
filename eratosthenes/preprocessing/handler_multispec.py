@@ -1,8 +1,12 @@
+import numpy as np
+
+from osgeo import gdal, osr
 
 from ..generic.handler_im import get_image_subset
 
-from eratosthenes.generic.mapping_tools import RefTrans
-from eratosthenes.preprocessing.read_s2 import read_band_s2
+from eratosthenes.generic.mapping_tools import RefTrans, pix2map
+from eratosthenes.generic.mapping_io import read_geo_image
+from eratosthenes.preprocessing.read_s2 import read_band_s2, read_sun_angles_s2
 from eratosthenes.preprocessing.shadow_transforms import enhance_shadow
 
 def create_shadow_image(dat_path, im_name, shadow_transform='reffenacht', \
@@ -30,6 +34,74 @@ def create_shadow_image(dat_path, im_name, shadow_transform='reffenacht', \
     # transform to shadow image  
     M = enhance_shadow(shadow_transform,Blue,Green,Red,Nir)
     return M, geoTransform, crs
+
+def create_caster_casted_list_from_polygons(dat_path, im_name,bbox=None):
+    """
+    Create a list of casted and casted coordinates, of shadow polygons that
+    are occluding parts of a glacier
+    
+    """
+    im_path = dat_path + im_name
+
+    (Rgi, spatialRef, geoTransform, targetprj) = read_geo_image(im_path + 'rgi.tif')
+    img = gdal.Open(dat_path + 'labelPolygons.tif')
+    cast = np.array(img.GetRasterBand(1).ReadAsArray())
+    img = gdal.Open(dat_path + 'labelCastConn.tif')
+    conn = np.array(img.GetRasterBand(1).ReadAsArray())
+    
+    # keep it image-based
+    selec = Rgi!=0 
+    IN = np.logical_and(selec,conn<0) # are shadow edges on the glacier
+    linIdx1 = np.transpose(np.array(np.where(IN)))
+    
+    # find the postive number (caster), that is an intersection of lists
+    castPtId = conn[IN] 
+    castPtId *= -1 # switch sign to get caster
+    polyId = cast[IN]
+    casted = np.transpose(np.vstack((castPtId,polyId))) #.tolist()
+    
+    IN = conn>0 # make a selection to reduce the list 
+    linIdx2 = np.transpose(np.array(np.where(IN)))
+    caster = conn[IN]
+    polyCa = cast[IN]    
+    casters = np.transpose(np.vstack((caster,polyCa))).tolist()
+    
+    indConn = np.zeros((casted.shape[0]))
+    for x in range(casted.shape[0]):
+        #idConn = np.where(np.all(casters==casted[x], axis=1))
+        try:
+            idConn = casters.index(casted[x].tolist())
+        except ValueError:
+            idConn = -1
+        indConn[x] = idConn
+    # transform to image coordinates
+    # idMated = np.transpose(np.array(np.where(indConn!=-1)))
+    OK = indConn!=-1
+    idMated = indConn[OK].astype(int)
+    castedIJ = linIdx1[OK,:]
+    castngIJ = linIdx2[idMated,:]
+    
+    # transform to map coordinates  
+    (castedX,castedY) = pix2map(geoTransform,castedIJ[:,0],castedIJ[:,1])
+    (castngX,castngY) = pix2map(geoTransform,castngIJ[:,0],castngIJ[:,1])
+    
+    # get sun angles, at casting locations
+    (sunZn,sunAz) = read_sun_angles_S2(im_path)
+    #OBS: still in relative coordinates!!!
+    if bbox is not None:
+        sunZn = get_image_subset(sunZn,bbox)
+        sunAz = get_image_subset(sunAz,bbox)
+    sunZen = sunZn[castngIJ[:,0],castngIJ[:,1]]
+    sunAzi = sunAz[castngIJ[:,0],castngIJ[:,1]]
+    
+    # write to file
+    f = open(dat_path+'conn.txt', 'w')
+    for i in range(castedX.shape[0]):
+        line = '{:+8.2f}'.format(castngX[i])+' '+'{:+8.2f}'.format(castngY[i])+' '
+        line = line + '{:+8.2f}'.format(castedX[i])+' '+'{:+8.2f}'.format(castedY[i])+' '
+        line = line + '{:+3.4f}'.format(sunAzi[i])+' '+'{:+3.4f}'.format(sunZen[i])
+        f.write(line + '\n')
+    f.close()
 
 def get_shadow_bands(satellite_name):
     """

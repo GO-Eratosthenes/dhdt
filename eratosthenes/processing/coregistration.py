@@ -14,7 +14,7 @@ from ..generic.filtering_statistical import mad_filtering
 from ..preprocessing.read_s2 import read_sun_angles_s2
 
 
-def coregistration(sat_path, dat_path, connectivity=2, step_size=True,
+def coregister(sat_path, dat_path, connectivity=2, step_size=True,
                    temp_size=15, bbox=None, sig_y=10, lstsq_mode='ordinary',
                    rgi_mask=None):
     """
@@ -153,3 +153,28 @@ def coregistration(sat_path, dat_path, connectivity=2, step_size=True,
             xCoreg[i, 0]) + ' ' + '{:+3.4f}'.format(xCoreg[i, 1])
         f.write(line + '\n')
     f.close()
+
+def get_coregistration(dat_path,im_list=None):
+    """
+    The co-registration parameters are written in a specific file. This
+    function retrieves these parameters, and finds the corresponding values
+    of the images given by im_list
+
+    input:   dat_path       string            location of the images
+             im_list        list (k x 1)      image names
+    output:  co_name        list (k x 1)      code of the image or image name
+             co_reg         array  (k x 2)    relative coordinates of the
+                                              network adjustment
+    """
+    # read file
+    with open(dat_path+'coreg.txt') as f:
+        lines = f.read().splitlines()
+        co_name = [line.split(' ')[0] for line in lines]
+        co_reg = np.array([list(map(float,line.split(' ')[1:])) for line in lines])
+    del lines
+
+    # make a selection
+    if im_list is not None:
+        raise NotImplementedError('Not implemented yet!')
+
+    return co_name, co_reg
