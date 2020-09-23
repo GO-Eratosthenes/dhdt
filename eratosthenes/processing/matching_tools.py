@@ -12,10 +12,11 @@ def lucas_kanade(I1, I2, window_size, sampleI, sampleJ, tau=1e-2):  # processing
     input:   I1             array (n x m)     image with intensities
              I2             array (n x m)     image with intensities
              window_size    integer           kernel size of the neighborhood
-             stepSize       boolean
+             sampleI        array (k x l)     grid with image coordinates
+             sampleJ        array (k x l)     grid with image coordinates
              tau            float             smoothness parameter
-    output:  u              array (n x m)     displacement estimate
-             v              array (n x m)     displacement estimate
+    output:  Ugrd           array (k x l)     displacement estimate
+             Vgrd           array (k x l)     displacement estimate
     """
     kernel_x = np.array(
         [[-1., 1.],
@@ -32,42 +33,35 @@ def lucas_kanade(I1, I2, window_size, sampleI, sampleJ, tau=1e-2):  # processing
     fy = ndimage.convolve(I1, np.flip(np.transpose(kernel_x), axis=0))
     ft = ndimage.convolve(I2, kernel_t) + ndimage.convolve(I1, -kernel_t)
 
-    # double loop to visit all pixels
-    if stepSize:
-        sampleI = np.arange(radius, I1.shape[0] - radius, window_size)
-        sampleJ = np.arange(radius, I1.shape[1] - radius, window_size)
-        u = np.zeros((len(sampleI), len(sampleJ)))
-        v = np.zeros((len(sampleI), len(sampleJ)))
-    else:
-        sampleI = range(radius, I1.shape[0] - radius)
-        sampleJ = range(radius, I1.shape[1] - radius)
-        u = np.zeros(I1.shape)
-        v = np.zeros(I1.shape)
+    Ugrd = np.zeros((len(sampleI), len(sampleJ)))
+    Vgrd = np.zeros((len(sampleI), len(sampleJ)))
 
-    for iIdx in range(len(sampleI)):
-        i = sampleI[iIdx]
-        for jIdx in range(len(sampleJ)):
-            j = sampleJ[jIdx]
-            # get templates
-            Ix = fx[i - radius:i + radius + 1,
-                    j - radius:j + radius + 1].flatten()
-            Iy = fy[i - radius:i + radius + 1,
-                    j - radius:j + radius + 1].flatten()
-            It = ft[i - radius:i + radius + 1,
-                    j - radius:j + radius + 1].flatten()
+    for iIdx in range(sampleI.size):
+        iIm = sampleI.flat[iIdx]
+        jIm = sampleJ.flat[iIdx]
+        
+        (iGrd, jGrd) = np.unravel_index(iIdx, sampleI.shape) 
+        
+        # get templates
+        Ix = fx[iIm - radius:iIm + radius + 1,
+                jIm - radius:jIm + radius + 1].flatten()
+        Iy = fy[iIm - radius:iIm + radius + 1,
+                jIm - radius:jIm + radius + 1].flatten()
+        It = ft[iIm - radius:iIm + radius + 1,
+                jIm - radius:jIm + radius + 1].flatten()
 
-            # look if variation is present
-            if np.std(It) != 0:
-                b = np.reshape(It, (It.shape[0], 1))  # get b here
-                A = np.vstack((Ix, Iy)).T  # get A here
-                # threshold tau should be larger
-                # than the smallest eigenvalue of A'A
-                if np.min(abs(np.linalg.eigvals(np.matmul(A.T, A)))) >= tau:
-                    nu = np.matmul(np.linalg.pinv(A), b)  # get velocity here
-                    u[iIdx, jIdx] = nu[0]
-                    v[iIdx, jIdx] = nu[1]
+        # look if variation is present
+        if np.std(It) != 0:
+            b = np.reshape(It, (It.shape[0], 1))  # get b here
+            A = np.vstack((Ix, Iy)).T  # get A here
+            # threshold tau should be larger
+            # than the smallest eigenvalue of A'A
+            if np.min(abs(np.linalg.eigvals(np.matmul(A.T, A)))) >= tau:
+                nu = np.matmul(np.linalg.pinv(A), b)  # get velocity here
+                Ugrd[iGrd, jGrd] = nu[0]
+                Vgrd[iGrd, jGrd] = nu[1]
 
-    return (u, v)
+    return (Ugrd, Vgrd)
 
 
 def normalized_cross_corr(I1, I2):  # processing

@@ -91,6 +91,7 @@ def coregister(sat_path, dat_path, connectivity=2, step_size=True,
 
         (y_N, y_E) = lucas_kanade(Mstack[:, :, 0], Mstack[:, :, 1],
                                  temp_size, sampleI, sampleJ)
+        
 
 
         # select correct displacements
@@ -102,13 +103,16 @@ def coregister(sat_path, dat_path, connectivity=2, step_size=True,
 
         # robust 3sigma-filtering
         cut_off = 3
-        IN = mad_filtering(y_N[Msk], cut_off) and \
-            mad_filtering(y_N[Msk], cut_off)
+        IN = np.logical_and(mad_filtering(y_N[Msk], cut_off), \
+                            mad_filtering(y_E[Msk], cut_off))
 
         # keep selection and get their observation angles
-        IN = IN & Msk
-        y_N = y_N[IN]
-        y_E = y_E[IN]
+        (iIN,jIN) = np.nonzero(Msk) 
+        iIN = iIN[IN]
+        jIN = jIN[IN]
+
+        y_N = y_N[iIN,jIN]
+        y_E = y_E[iIN,jIN]
 
         # construct design matrix and measurement vector
         A = np.tile(np.identity(2, dtype=float), (len(y_N), 1))
