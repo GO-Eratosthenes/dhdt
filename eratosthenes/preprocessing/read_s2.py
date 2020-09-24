@@ -1,36 +1,11 @@
-import glob
-import os
 import pathlib
 
 import numpy as np
 
-from osgeo import gdal, osr
 from scipy.interpolate import griddata
 from xml.etree import ElementTree
 
-from ..generic.handler_s2 import get_array_from_xml
-
-
-def read_band_s2(band, path):  # pre-processing
-    """
-    This function takes as input the Sentinel-2 band name and the path of the
-    folder that the images are stored, reads the image and returns the data as
-    an array
-    input:   band           string            Sentinel-2 band name
-             path           string            path of the folder
-    output:  data           array (n x m)     array of the band image
-             spatialRef     string            projection
-             geoTransform   tuple             affine transformation
-                                              coefficients
-             targetprj                        spatial reference
-    """
-    fname = list(pathlib.Path(path).glob(f'*B{band}.jp2'))[0]
-    img = gdal.Open(fname.as_posix())
-    data = np.array(img.GetRasterBand(1).ReadAsArray())
-    spatialRef = img.GetProjection()
-    geoTransform = img.GetGeoTransform()
-    targetprj = osr.SpatialReference(wkt=img.GetProjection())
-    return data, spatialRef, geoTransform, targetprj
+from eratosthenes.generic.handler_s2 import get_array_from_xml
 
 
 def read_sun_angles_s2(path):  # pre-processing

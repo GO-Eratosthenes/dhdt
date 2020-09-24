@@ -14,7 +14,8 @@ from eratosthenes.preprocessing.handler_multispec import create_shadow_image, \
     create_caster_casted_list_from_polygons
 from eratosthenes.preprocessing.shadow_geometry import create_shadow_polygons
 
-from eratosthenes.processing.coregistration import coregister, get_coregistration
+from eratosthenes.processing.coregistration import coregister, \
+    get_coregistration
 
 dat_path = '/Users/Alten005/surfdrive/Eratosthenes/Denali/'
 dat_path = pathlib.Path(dat_path)

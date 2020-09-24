@@ -7,7 +7,7 @@ from ..generic.handler_im import get_image_subset
 
 from eratosthenes.generic.mapping_tools import RefTrans, pix2map
 from eratosthenes.generic.mapping_io import read_geo_image
-from eratosthenes.preprocessing.read_s2 import read_band_s2, read_sun_angles_s2
+from eratosthenes.preprocessing.read_s2 import read_sun_angles_s2
 from eratosthenes.preprocessing.shadow_transforms import enhance_shadow
 
 
@@ -151,15 +151,13 @@ def read_shadow_bands(sat_path, band_num):
     """
     sat_path = pathlib.Path(sat_path)
     if sat_path.match('S2*MSIL1C*'):
+        band_paths = sorted([f for f in sat_path.iterdir()
+                             if f.match(f"*B0{band_num}.jp2")])
         # read imagery of the different bands
-        (Blue, crs, geoTransform, targetprj) = read_band_s2(
-            format(band_num[0], '02d'), sat_path)
-        (Green, crs, geoTransform, targetprj) = read_band_s2(
-            format(band_num[1], '02d'), sat_path)
-        (Red, crs, geoTransform, targetprj) = read_band_s2(
-            format(band_num[2], '02d'), sat_path)
-        (Nir, crs, geoTransform, targetprj) = read_band_s2(
-            format(band_num[3], '02d'), sat_path)
+        (Blue, crs, geoTransform, targetprj) = read_geo_image(band_paths[0])
+        (Green, crs, geoTransform, targetprj) = read_geo_image(band_paths[1])
+        (Red, crs, geoTransform, targetprj) = read_geo_image(band_paths[2])
+        (Nir, crs, geoTransform, targetprj) = read_geo_image(band_paths[3])
 
     # if len(band_num)==5: # include panchromatic band
     #     Pan = ()
