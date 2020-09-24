@@ -33,16 +33,16 @@ def create_shadow_polygons(M, im_path, bbox=None):
              cast_conn      array (m x n)     array with numbered edge pixels
     """
 
-    if 1==2: # do median filtering
+    if 1==2:  # do median filtering
         siz = 5
         loop = 100
         M = medianFilShadows(M,siz,loop)
-    labels = sturge(M) # classify into regions
+    labels = sturge(M)  # classify into regions
 
     # get self-shadow and cast-shadow
     _, sunAz = read_sun_angles_s2(im_path)
     if bbox is not None:
-        sunAz = get_image_subset(sunAz, *bbox)
+        sunAz = get_image_subset(sunAz, bbox)
 
     cast_conn = labelOccluderAndCasted(labels, sunAz)  # , subTransform)
 

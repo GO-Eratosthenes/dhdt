@@ -1,4 +1,5 @@
 import numpy as np
+import pathlib
 
 from osgeo import gdal, osr
 
@@ -10,26 +11,25 @@ from eratosthenes.preprocessing.read_s2 import read_band_s2, read_sun_angles_s2
 from eratosthenes.preprocessing.shadow_transforms import enhance_shadow
 
 
-def create_shadow_image(dat_path, im_name, shadow_transform='reffenacht', \
+def create_shadow_image(scene_path, shadow_transform='reffenacht', \
                         bbox=None):
     """
     Given a specific method, employ shadow transform
-    input:   dat_path          string            directory with images
-             im_name           string            name of one or the
-                                                 multispectral image
+    input:   scene_path        string or Path    directory with images
              shadow_transform  string            shadow transform method
              bbox              list              indices corresponding to
                                                  (minx, maxx, miny, maxy)
     output:  M                 array (n x m)     shadow enhanced satellite
                                                  image
     """
+    scene_path = pathlib.Path(scene_path)
     # get band numbers of the multispectral images
-    bandList = get_shadow_bands(im_name)
-    (Blue, Green, Red, Nir, crs, geoTransform, targetprj) = read_shadow_bands(
-                dat_path + im_name, bandList)
+    bandList = get_shadow_bands(scene_path.name)
+    Blue, Green, Red, Nir, crs, geoTransform, _ = read_shadow_bands(scene_path,
+                                                                    bandList)
     if bbox is not None:
         # reduce image space, so it fits in memory
-        Blue, Green, Red, Nir = (get_image_subset(band)
+        Blue, Green, Red, Nir = (get_image_subset(band, bbox)
                                  for band in (Blue, Green, Red, Nir))
         # create georeference for subframe
         geoTransform = RefTrans(geoTransform, bbox[0], bbox[2])
@@ -145,12 +145,12 @@ def get_shadow_bands(satellite_name):
 def read_shadow_bands(sat_path, band_num):
     """
     Reads the specific band numbers of the multispectral satellite images
-    input:   sat_path       string            path to imagery and file name
+    input:   sat_path       string or Path    path to imagery and file name
              band_num       list (1 x 4)      list of the band numbers
     output:
     """
-
-    if len([n for n in ['S2','MSIL1C'] if n in sat_path])==2:
+    sat_path = pathlib.Path(sat_path)
+    if sat_path.match('S2*MSIL1C*'):
         # read imagery of the different bands
         (Blue, crs, geoTransform, targetprj) = read_band_s2(
             format(band_num[0], '02d'), sat_path)

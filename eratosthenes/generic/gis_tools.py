@@ -1,16 +1,19 @@
 import os
+import pathlib
 
 from osgeo import ogr, osr, gdal
+
 
 def ll2utm(ll_fname,utm_fname,crs,aoi='RGIId'):
     """
     Transfrom shapefile in Lat-Long to UTM coordinates
-    
+
     input:   ll_fname       string            path and filename of input file
-             utm_fname      string            path and filename of output file           
+             utm_fname      string            path and filename of output file
              crs            string            coordinate reference code
-             aoi            string            atribute to include         
+             aoi            string            atribute to include
     """
+    ll_fname = pathlib.Path(ll_fname).as_posix()
     #making the shapefile as an object.
     inputShp = ogr.Open(ll_fname)
     #getting layer information of shapefile.
@@ -21,28 +24,29 @@ def ll2utm(ll_fname,utm_fname,crs,aoi='RGIId'):
     outSpatialRef = osr.SpatialReference()
     outSpatialRef.ImportFromWkt(crs)
     coordTrans = osr.CoordinateTransformation(inSpatialRef, outSpatialRef)
-    
+
     driver = ogr.GetDriverByName('ESRI Shapefile')
     # create the output layer
-    if os.path.exists(utm_fname):
-        driver.DeleteDataSource(utm_fname)
-    outDataSet = driver.CreateDataSource(utm_fname)
+    utm_fname = pathlib.Path(utm_fname)
+    if utm_fname.exists():
+        driver.DeleteDataSource(utm_fname.as_posix())
+    outDataSet = driver.CreateDataSource(utm_fname.as_posix())
     outLayer = outDataSet.CreateLayer("reproject", outSpatialRef, geom_type=ogr.wkbMultiPolygon)
  #               outLayer = outDataSet.CreateLayer("reproject", geom_type=ogr.wkbMultiPolygon)
-    
+
     # add fields
-    fieldDefn = ogr.FieldDefn('RGIId', ogr.OFTInteger) 
-    fieldDefn.SetWidth(14) 
+    fieldDefn = ogr.FieldDefn('RGIId', ogr.OFTInteger)
+    fieldDefn.SetWidth(14)
     fieldDefn.SetPrecision(1)
     outLayer.CreateField(fieldDefn)
     # inLayerDefn = inLayer.GetLayerDefn()
     # for i in range(0, inLayerDefn.GetFieldCount()):
     #     fieldDefn = inLayerDefn.GetFieldDefn(i)
     #     outLayer.CreateField(fieldDefn)
-    
+
     # get the output layer's feature definition
     outLayerDefn = outLayer.GetLayerDefn()
-    
+
     # loop through the input features
     inFeature = inLayer.GetNextFeature()
     while inFeature:
@@ -66,29 +70,31 @@ def ll2utm(ll_fname,utm_fname,crs,aoi='RGIId'):
 def shape2raster(shp_fname,im_fname,geoTransform,rows,cols,aoi='RGIId'):
     """
     Converts shapefile into raster
-    
+
     input:   shp_fname      string            path and filename of shape file
-             im_fname       string            path and filename of output file           
+             im_fname       string            path and filename of output file
              geoTransform   array (1 x 6)     reference matrix
-             rows           integer           number of rows in the image             
-             cols           integer           number of collumns in the image             
-             aoi            string            attribute of interest 
+             rows           integer           number of rows in the image
+             cols           integer           number of collumns in the image
+             aoi            string            attribute of interest
     """
+    shp_fname = pathlib.Path(shp_fname).as_posix()
     #making the shapefile as an object.
     rgiShp = ogr.Open(shp_fname)
     #getting layer information of shapefile.
     rgiLayer = rgiShp.GetLayer()
     #get required raster band.
-    
+
     driver = gdal.GetDriverByName('GTiff')
-    rgiRaster = driver.Create(im_fname+'.tif', rows, cols, 1, gdal.GDT_Int16)
-    #            rgiRaster = gdal.GetDriverByName('GTiff').Create(dat_path+sat_tile+'.tif', mI, nI, 1, gdal.GDT_Int16)           
+    im_fname = pathlib.Path(im_fname).as_posix()
+    rgiRaster = driver.Create(im_fname, rows, cols, 1, gdal.GDT_Int16)
+    #            rgiRaster = gdal.GetDriverByName('GTiff').Create(dat_path+sat_tile+'.tif', mI, nI, 1, gdal.GDT_Int16)
     rgiRaster.SetGeoTransform(geoTransform)
     band = rgiRaster.GetRasterBand(1)
     #assign no data value to empty cells.
     band.SetNoDataValue(0)
     # band.FlushCache()
-    
+
     #main conversion method
     gdal.RasterizeLayer(rgiRaster, [1], rgiLayer, options=['ATTRIBUTE='+aoi])
     rgiRaster = None # missing link.....

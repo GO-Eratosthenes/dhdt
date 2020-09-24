@@ -1,5 +1,6 @@
 import glob
 import os
+import pathlib
 
 import numpy as np
 
@@ -23,8 +24,8 @@ def read_band_s2(band, path):  # pre-processing
                                               coefficients
              targetprj                        spatial reference
     """
-    fname = os.path.join(path, '*B'+band+'.jp2')
-    img = gdal.Open(glob.glob(fname)[0])
+    fname = list(pathlib.Path(path).glob(f'*B{band}.jp2'))[0]
+    img = gdal.Open(fname.as_posix())
     data = np.array(img.GetRasterBand(1).ReadAsArray())
     spatialRef = img.GetProjection()
     geoTransform = img.GetGeoTransform()
@@ -42,8 +43,9 @@ def read_sun_angles_s2(path):  # pre-processing
              Az             array (n x m)     array of the Azimtuh angles
 
     """
-    fname = os.path.join(path, 'MTD_TL.xml')
-    dom = ElementTree.parse(glob.glob(fname)[0])
+    path = pathlib.Path(path)
+    fname = path/'MTD_TL.xml'
+    dom = ElementTree.parse(fname)
     root = dom.getroot()
 
     # image dimensions
