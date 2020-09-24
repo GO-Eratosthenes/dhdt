@@ -40,18 +40,18 @@ for i in range(len(im_path)):
     (sat_time,sat_orbit,sat_tile) = meta_S2string(im_path[i])
     print('working on '+ fName[i][0:-2])
     if not os.path.exists(sen2Path + 'shadows.tif'):
-        (M, geoTransform, crs) = create_shadow_image(dat_path, im_path[i], \
-                                                   shadow_transform, \
+        M, geoTransform, crs = create_shadow_image(dat_path, im_path[i],
+                                                   shadow_transform,
                                                    bbox)
         print('produced shadow transform for '+ fName[i][0:-2])
         makeGeoIm(M, geoTransform, crs, sen2Path + 'shadows.tif')
     else:
-        (M, crs, geoTransform, targetprj) = read_geo_image(
+        M, crs, geoTransform, targetprj = read_geo_image(
             sen2Path + 'shadows.tif')
 
     if not os.path.exists(sen2Path + 'labelCastConn.tif'):
-        (labels, cast_conn) = create_shadow_polygons(M,sen2Path, \
-                                                     bbox \
+        labels, cast_conn = create_shadow_polygons(M,sen2Path,
+                                                     bbox
                                                      )
 
         makeGeoIm(labels, geoTransform, crs, sen2Path + 'labelPolygons.tif')
@@ -74,7 +74,7 @@ if not os.path.exists(dat_path + sat_tile + '.tif'):
     # convert polygon file to raster file
     shape2raster(out_shp, dat_path+sat_tile, geoTransform, rows, cols, aoi)
 
-(rgi_mask, crs, geoTransform, targetprj) = read_geo_image(dat_path
+rgi_mask, crs, geoTransform, targetprj = read_geo_image(dat_path
                                                           +sat_tile+'.tif')
 rgi_mask = get_image_subset(rgi_mask, *bbox)
 
@@ -93,7 +93,7 @@ coregister(im_path, dat_path, connectivity=2, stepSize=True, tempSize=15,
 
 
 # get co-registration information
-(coName,coReg) = get_coregistration(dat_path, im_path)
+coName, coReg = get_coregistration(dat_path, im_path)
 
 # construct connectivity
 for i in range(GridIdxs.shape[1]):
