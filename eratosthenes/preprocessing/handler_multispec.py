@@ -1,7 +1,7 @@
 import numpy as np
 import pathlib
 
-from osgeo import gdal, osr
+from osgeo import gdal
 
 from ..generic.handler_im import get_image_subset
 
@@ -89,7 +89,7 @@ def create_caster_casted_list_from_polygons(dat_path, im_name,bbox=None):
     (castngX,castngY) = pix2map(geoTransform,castngIJ[:,0],castngIJ[:,1])
 
     # get sun angles, at casting locations
-    (sunZn,sunAz) = read_sun_angles_S2(im_path)
+    (sunZn,sunAz) = read_sun_angles_s2(im_path)
     #OBS: still in relative coordinates!!!
     if bbox is not None:
         sunZn = get_image_subset(sunZn,bbox)
