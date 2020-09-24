@@ -2,8 +2,6 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-from sklearn.neighbors import NearestNeighbors
-
 from eratosthenes.generic.handler_s2 import meta_S2string
 from eratosthenes.generic.mapping_io import makeGeoIm, read_geo_image, \
     read_geo_info
@@ -13,7 +11,10 @@ from eratosthenes.preprocessing.handler_multispec import create_shadow_image, \
     create_caster_casted_list_from_polygons
 from eratosthenes.preprocessing.shadow_geometry import create_shadow_polygons
 
-from eratosthenes.processing.coregistration import coregister, get_coregistration
+from eratosthenes.processing.coregistration import coregister, \
+    get_coregistration, getNetworkBySunangles
+from eratosthenes.processing.coupling_tools import pair_images
+
 
 dat_path = '/Users/Alten005/surfdrive/Eratosthenes/Denali/'
 #im_path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VPL_20180225T232042/'
@@ -78,13 +79,15 @@ if not os.path.exists(dat_path + sat_tile + '.tif'):
                                                           +sat_tile+'.tif')
 rgi_mask = rgi_mask[minI:maxI,minJ:maxJ]
 
+# TO DO:
+# make raster with elevation values for the tile
+
+
 # make stack of Labels & Connectivity
+rgi_glac_id = 22216 # None,  select a single glacier
 for i in range(len(im_path)):
-    create_caster_casted_list_from_polygons(dat_path, im_path[i], bbox)
-
-## processing
-
-
+    create_caster_casted_list_from_polygons(dat_path, im_path[i], bbox,  
+                                            rgi_glac_id)
 
 coregister(im_path, dat_path, connectivity=2, stepSize=True, tempSize=15,
            bbox=bbox, lstsq_mode='ordinary')
@@ -92,79 +95,34 @@ coregister(im_path, dat_path, connectivity=2, stepSize=True, tempSize=15,
 #makeGeoIm(Dstack[0],lkTransform,crs,"DispAx1.tif")
 
 
+## processing
+
 # get co-registration information
 (coName,coReg) = get_coregistration(dat_path, im_path)
 
 # construct connectivity
+connectivity = 2
+GridIdxs = getNetworkBySunangles(dat_path, im_path, connectivity)
 for i in range(GridIdxs.shape[1]):
-    fnam1 = im_path[GridIdxs[0][i]]
-    fnam2 = im_path[GridIdxs[1][i]]
-
+    fname1 = im_path[GridIdxs[0][i]]
+    fname2 = im_path[GridIdxs[1][i]]
+    
     # get start and finish points of shadow edges
-    conn1 = np.loadtxt(fname = dat_path+fnam1+'conn.txt')
-    conn2 = np.loadtxt(fname = dat_path+fnam2+'conn.txt')
-
+    conn1 = np.loadtxt(fname = dat_path+fname1+'conn.txt')
+    conn2 = np.loadtxt(fname = dat_path+fname2+'conn.txt')
+    
     # compensate for coregistration
-    coid1 = coName.index(fnam1)
-    coid2 = coName.index(fnam2)
+    coid1 = coName.index(fname1)
+    coid2 = coName.index(fname2)
     coDxy = coReg[coid1]-coReg[coid2]
     conn2[:,0] += coDxy[0]
     conn2[:,1] += coDxy[1]
-    #conn2[:,2] += coDxy[0]
-    #conn2[:,3] += coDxy[1]
 
-    # find nearest
-    nbrs = NearestNeighbors(n_neighbors=1, algorithm='auto').fit(conn1[:,0:2])
-    distances, indices = nbrs.kneighbors(conn2[:,0:2])
-    IN = distances<20
-    idxConn = np.transpose(np.vstack((np.where(IN)[0], indices[distances<20])))
-
-
-# walk through glacier polygons
-# rgiList = np.trim_zeros(np.unique(Rgi))
-# for j in rgiList:
-#selection of glacier polygon
-    # selec = Rgi==j
-
-# keep it image-based
-selec = Rgi!=0
-
-linIdx = np.where(IN)
-
-
-listOfCoordinates= list(zip(linIdx[0], linIdx[1], linIdx[2]))
-
-# find associated caster
-fig, ax = plt.subplots()
-im = ax.imshow(selec.astype(int))
-fig.colorbar(im)
-plt.show()
-
-
-
-
-
-
-
-
-# weights through observation angle
-
-
-# makeGeoIm(Mcan,subTransform,crs,"shadowRidges.tif")
-
-# merge lists
-for i in range(len(im_path)):
-    print('getting together')
-
-#processed_image = cv2.filter2D(image,-1,kernel)
-
-
-
-
-fig, ax = plt.subplots()
-im = ax.imshow(Rgi)
-fig.colorbar(im)
-plt.show()
-
-
-
+    idxConn = pair_images(conn1, conn2)
+    # connected list
+    
+    
+    # refine through image matching
+    
+    
+    # extract elevation change
