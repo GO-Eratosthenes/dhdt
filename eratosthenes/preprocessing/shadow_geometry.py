@@ -15,20 +15,24 @@ from shapely.geometry import shape
 from shapely.geometry import Point, LineString
 from shapely.geos import TopologicalError  # for troubleshooting
 
-from ..generic.mapping_tools import castOrientation
+from eratosthenes.generic.mapping_tools import castOrientation
+from eratosthenes.generic.handler_im import get_image_subset
 from eratosthenes.preprocessing.read_s2 import read_sun_angles_s2
 
-def create_shadow_polygons(M,im_path, minI=0, maxI=0, minJ=0, maxJ=0):
+
+def create_shadow_polygons(M, im_path, bbox=None):
     """
     Generate polygons from floating array, combine this with sun illumination
     information, to generate connected pixels on the edge of these polygons
     input:   M              array (m x n)     array with intensity values
              im_path        string            location of the image metadata
+             bbox           list              indices corresponding to
+                                              (minx, maxx, miny, maxy)
     output:  labels         array (m x n)     array with numbered labels
              label_ridge    array (m x n)     array with numbered superpixels
              cast_conn      array (m x n)     array with numbered edge pixels
     """
-    
+
     if 1==2: # do median filtering
         siz = 5
         loop = 100
@@ -36,13 +40,12 @@ def create_shadow_polygons(M,im_path, minI=0, maxI=0, minJ=0, maxJ=0):
     labels = sturge(M) # classify into regions
 
     # get self-shadow and cast-shadow
-    (sunZn,sunAz) = read_sun_angles_s2(im_path)
-    if (minI!=0 or maxI!=0 and minI!=0 or maxI!=0):
-        sunZn = sunZn[minI:maxI,minJ:maxJ]
-        sunAz = sunAz[minI:maxI,minJ:maxJ]  
-    
-    cast_conn = labelOccluderAndCasted(labels, sunAz)#, subTransform)
-    
+    _, sunAz = read_sun_angles_s2(im_path)
+    if bbox is not None:
+        sunAz = get_image_subset(sunAz, *bbox)
+
+    cast_conn = labelOccluderAndCasted(labels, sunAz)  # , subTransform)
+
     return labels, cast_conn
 
 
@@ -112,7 +115,7 @@ def sturge(M):  # pre-processing
     dips = findValley(values, base, 2)
     val = max(dips)
     imSeparation = M > val
-    
+
     # do morphological operation to remove speckle
     selem = disk(6)
     imSeparation = opening(imSeparation, selem)

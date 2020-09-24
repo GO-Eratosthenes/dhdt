@@ -8,6 +8,7 @@ from eratosthenes.generic.handler_s2 import meta_S2string
 from eratosthenes.generic.mapping_io import makeGeoIm, read_geo_image, \
     read_geo_info
 from eratosthenes.generic.gis_tools import ll2utm, shape2raster
+from eratosthenes.generic.handler_im import get_image_subset
 
 from eratosthenes.preprocessing.handler_multispec import create_shadow_image, \
     create_caster_casted_list_from_polygons
@@ -41,8 +42,7 @@ for i in range(len(im_path)):
     if not os.path.exists(sen2Path + 'shadows.tif'):
         (M, geoTransform, crs) = create_shadow_image(dat_path, im_path[i], \
                                                    shadow_transform, \
-                                                   minI, maxI, minJ, maxJ \
-                                                   )
+                                                   bbox)
         print('produced shadow transform for '+ fName[i][0:-2])
         makeGeoIm(M, geoTransform, crs, sen2Path + 'shadows.tif')
     else:
@@ -51,7 +51,7 @@ for i in range(len(im_path)):
 
     if not os.path.exists(sen2Path + 'labelCastConn.tif'):
         (labels, cast_conn) = create_shadow_polygons(M,sen2Path, \
-                                                     minI, maxI, minJ, maxJ \
+                                                     bbox \
                                                      )
 
         makeGeoIm(labels, geoTransform, crs, sen2Path + 'labelPolygons.tif')
@@ -76,7 +76,7 @@ if not os.path.exists(dat_path + sat_tile + '.tif'):
 
 (rgi_mask, crs, geoTransform, targetprj) = read_geo_image(dat_path
                                                           +sat_tile+'.tif')
-rgi_mask = rgi_mask[minI:maxI,minJ:maxJ]
+rgi_mask = get_image_subset(rgi_mask, *bbox)
 
 # make stack of Labels & Connectivity
 for i in range(len(im_path)):
