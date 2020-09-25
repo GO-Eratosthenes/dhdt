@@ -4,6 +4,9 @@ import numpy as np
 
 from sklearn.neighbors import NearestNeighbors
 
+from eratosthenes.generic.mapping_tools import map2pix, pix2map 
+from eratosthenes.processing.matching_tools import normalized_cross_corr
+
 def pair_images(conn1, conn2, thres=20):
     """
     Find the closest correspnding points in two lists, 
@@ -20,6 +23,37 @@ def pair_images(conn1, conn2, thres=20):
 # create file with approx shadow cast locations
 
 # refine by matching, and include correlation score
+
+def match_shadow_casts(M1, M2, geoTransform1, geoTransform2,
+                       post1, post2, temp_radius=7, search_radius=22):
+    """
+    
+    """
+    i1, j1 = map2pix(geoTransform1, post1[:,0], post1[:,1])
+    i2, j2 = map2pix(geoTransform2, post2[:,0], post2[:,1])
+    
+    i1 = np.round(i1).astype(np.int64)
+    j1 = np.round(j1).astype(np.int64)
+    i2 = np.round(i2).astype(np.int64)
+    j2 = np.round(j2).astype(np.int64)
+    
+    ij2_corr = np.zeros(i1.shape[0],2).astype(np.float64)
+    post2_corr = np.zeros(i1.shape[0],2).astype(np.float64)
+    corr_score = np.zeros(i1.shape[0],1).astype(np.float16)
+    for counter in range(len(i1)):
+        M1_sub = M1[i1[counter] - temp_radius:i1[counter] + temp_radius + 1,
+                j1[counter] - temp_radius:j1[counter] + temp_radius + 1]
+        M2_sub = M2[i2[counter] - search_radius:i2[counter] + search_radius + 1,
+                j2[counter] - search_radius:j2[counter] + search_radius + 1]
+        # match
+        di,dj,corr = normalized_cross_corr(M1_sub, M2_sub)
+        corr_score[counter] = corr
+        ij2_corr[counter,0] = di-search_radius
+        ij2_corr[counter,1] = dj-search_radius
+    post2_corr[:,0], post2_corr[:,1] = pix2map(geoTransform1, post1[:,0], post1[:,1])
+    
+    return post2_corr, corr_score
+
 
 # establish dH between locations
 

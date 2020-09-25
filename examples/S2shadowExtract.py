@@ -85,11 +85,14 @@ rgi_mask = rgi_mask[minI:maxI,minJ:maxJ]
 
 # make stack of Labels & Connectivity
 rgi_glac_id = 22216 # None,  select a single glacier
+if rgi_glac_id is not None:
+    print(f'looking at glacier with Randolph ID { rgi_glac_id }.')
 for i in range(len(im_path)):
     create_caster_casted_list_from_polygons(dat_path, im_path[i], bbox,  
                                             rgi_glac_id)
 
-coregister(im_path, dat_path, connectivity=2, stepSize=True, tempSize=15,
+print('co-registring imagery')
+coregister(im_path, dat_path, connectivity=2, step_size=True, temp_size=15,
            bbox=bbox, lstsq_mode='ordinary')
 #lkTransform = RefScale(RefTrans(subTransform,tempSize/2,tempSize/2),tempSize)
 #makeGeoIm(Dstack[0],lkTransform,crs,"DispAx1.tif")
