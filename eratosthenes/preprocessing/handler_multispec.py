@@ -38,20 +38,21 @@ def create_shadow_image(scene_path, shadow_transform='reffenacht',
     return M, geoTransform, crs
 
 
-def create_caster_casted_list_from_polygons(dat_path, im_name, bbox=None):
+def create_caster_casted_list_from_polygons(scene_path,
+                                            rgi_raster_path,
+                                            bbox=None):
     """
     Create a list of casted and casted coordinates, of shadow polygons that
     are occluding parts of a glacier
 
     """
-    im_path = dat_path + im_name
+    Rgi, crs, geoTransform, targetprj = read_geo_image(rgi_raster_path)
+    if bbox is not None:
+        Rgi = get_image_subset(Rgi, bbox)
 
-    (Rgi, spatialRef, geoTransform, targetprj) = read_geo_image(
-        im_path + 'rgi.tif')
-    img = gdal.Open(dat_path + 'labelPolygons.tif')
-    cast = np.array(img.GetRasterBand(1).ReadAsArray())
-    img = gdal.Open(dat_path + 'labelCastConn.tif')
-    conn = np.array(img.GetRasterBand(1).ReadAsArray())
+    scene_path = pathlib.Path(scene_path)
+    cast, _, _, _ = read_geo_image(scene_path/'labelPolygons.tif')
+    conn, _, _, _ = read_geo_image(scene_path/'labelCastConn.tif')
 
     # keep it image-based
     selec = Rgi != 0
@@ -90,7 +91,7 @@ def create_caster_casted_list_from_polygons(dat_path, im_name, bbox=None):
     (castngX, castngY) = pix2map(geoTransform, castngIJ[:, 0], castngIJ[:, 1])
 
     # get sun angles, at casting locations
-    (sunZn, sunAz) = read_sun_angles_s2(im_path)
+    (sunZn, sunAz) = read_sun_angles_s2(scene_path)
     # OBS: still in relative coordinates!!!
     if bbox is not None:
         sunZn = get_image_subset(sunZn, bbox)
@@ -99,7 +100,7 @@ def create_caster_casted_list_from_polygons(dat_path, im_name, bbox=None):
     sunAzi = sunAz[castngIJ[:, 0], castngIJ[:, 1]]
 
     # write to file
-    f = open(dat_path + 'conn.txt', 'w')
+    f = open(scene_path/'conn.txt', 'w')
     for i in range(castedX.shape[0]):
         line = '{:+8.2f}'.format(castngX[i]) + ' ' + '{:+8.2f}'.format(
             castngY[i]) + ' '

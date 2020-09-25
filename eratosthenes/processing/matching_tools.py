@@ -26,8 +26,8 @@ def lucas_kanade(I1, I2, window_size, sampleI, sampleJ, tau=1e-2):
         [[1., 1.],
          [1., 1.]]
     ) * .25
-    radius = np.floor(window_size / 2).astype(
-        'int')  # window_size should be odd
+    # window_size should be odd
+    radius = np.floor(window_size / 2).astype('int')
 
     fx = ndimage.convolve(I1, kernel_x)
     fy = ndimage.convolve(I1, np.flip(np.transpose(kernel_x), axis=0))

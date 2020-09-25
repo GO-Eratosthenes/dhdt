@@ -1,5 +1,4 @@
-import glob
-import os
+import pathlib
 
 import numpy as np
 
@@ -14,8 +13,8 @@ def read_mean_sun_angles_s2(path):  # processing
     This function reads the xml-file of the Sentinel-2 scene and extracts the
     mean sun angles.
     """
-    fname = os.path.join(path, 'MTD_TL.xml')
-    dom = ElementTree.parse(glob.glob(fname)[0])
+    fname = pathlib.Path(path)/'MTD_TL.xml'
+    dom = ElementTree.parse(fname)
     root = dom.getroot()
 
     Zn = float(root[1][1][1][0].text)
@@ -28,8 +27,8 @@ def read_view_angles_s2(path):  # processing
     This function reads the xml-file of the Sentinel-2 scene and extracts an
     array with sun angles, as these vary along the scene.
     """
-    fname = os.path.join(path, 'MTD_TL.xml')
-    dom = ElementTree.parse(glob.glob(fname)[0])
+    fname = pathlib.Path(path)/'MTD_TL.xml'
+    dom = ElementTree.parse(fname)
     root = dom.getroot()
 
     # image dimensions

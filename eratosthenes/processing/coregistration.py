@@ -10,11 +10,13 @@ from .network_tools import getNetworkIndices, getNetworkBySunangles, \
     getAdjacencyMatrixFromNetwork
 from .handler_s2 import read_view_angles_s2
 from ..generic.mapping_tools import castOrientation, rotMat
+from ..generic.mapping_io import read_geo_image
 from ..generic.filtering_statistical import mad_filtering
 from ..preprocessing.read_s2 import read_sun_angles_s2
+from ..generic.handler_im import get_image_subset
 
 
-def coregister(sat_path, dat_path, connectivity=2, step_size=True,
+def coregister(scene_paths, coreg_path, connectivity=2, step_size=True,
                temp_size=15, bbox=None, sig_y=10, lstsq_mode='ordinary',
                rgi_mask=None):
     """
@@ -22,8 +24,9 @@ def coregister(sat_path, dat_path, connectivity=2, step_size=True,
     of the image. A network of images is constructed, so a bundle block
     adjustment is possible, with associated error-propagation.
 
-    input:   sat_path       list              image names
-             dat_path       string            location of the images
+    input:   scene_paths    list              image names
+             coreg_path     string or Path    file name where to save
+                                              coregistration values
              connectivity   integer           amount of connections for each
                                               node in the network
              step_size      boolean           reduce sampling grid to kernel
@@ -42,29 +45,28 @@ def coregister(sat_path, dat_path, connectivity=2, step_size=True,
     """
 
     # construct network
-    GridIdxs = getNetworkIndices(len(sat_path))
-    GridIdxs = getNetworkBySunangles(dat_path, sat_path, connectivity)
-    Astack = getAdjacencyMatrixFromNetwork(GridIdxs, len(sat_path))
+    GridIdxs = getNetworkIndices(len(scene_paths))
+    GridIdxs = getNetworkBySunangles(scene_paths, connectivity)
+    Astack = getAdjacencyMatrixFromNetwork(GridIdxs, len(scene_paths))
 
     if lstsq_mode in ('weighted', 'generalized'):
         # get observation angle
-        sen2Path = dat_path + sat_path[0]
-        (obsZn, obsAz) = read_view_angles_s2(sen2Path)
+        scene_path = scene_paths[0]
+        (obsZn, obsAz) = read_view_angles_s2(scene_path)
         if bbox is not None:
-            obsZn = obsZn[bbox[0]:bbox[1], bbox[2]:bbox[3]]
-            obsAz = obsAz[bbox[0]:bbox[1], bbox[2]:bbox[3]]
+            obsZn = get_image_subset(obsZn, bbox)
+            obsAz = get_image_subset(obsAz, bbox)
 
     Dstack = np.zeros(GridIdxs.T.shape)
     for i in range(GridIdxs.shape[1]):
         for j in range(GridIdxs.shape[0]):
-            sen2Path = dat_path + sat_path[GridIdxs[j, i]]
+            scene_path = scene_paths[GridIdxs[j, i]]
             # get sun orientation
-            (_, sunAz) = read_sun_angles_s2(sen2Path)
+            (_, sunAz) = read_sun_angles_s2(scene_path)
             if bbox is not None:
                 sunAz = sunAz[bbox[0]:bbox[1], bbox[2]:bbox[3]]
             # read shadow image
-            img = gdal.Open(sen2Path + "shadows.tif")
-            M = np.array(img.GetRasterBand(1).ReadAsArray())
+            M, _, _, _ = read_geo_image(scene_path/"shadows.tif")
 
             if i == 0 & j == 0:
                 if step_size:  # reduce to kernel resolution
@@ -145,15 +147,15 @@ def coregister(sat_path, dat_path, connectivity=2, step_size=True,
     xCoreg = xCoreg[0]
 
     # write co-registration
-    f = open(dat_path + 'coreg.txt', 'w')
+    f = open(coreg_path, 'w')
     for i in range(xCoreg.shape[0]):
-        line = sat_path[i] + ' ' + '{:+3.4f}'.format(
+        line = str(scene_paths[i]) + ' ' + '{:+3.4f}'.format(
             xCoreg[i, 0]) + ' ' + '{:+3.4f}'.format(xCoreg[i, 1])
         f.write(line + '\n')
     f.close()
 
 
-def get_coregistration(dat_path, im_list=None):
+def get_coregistration(coreg_path, im_list=None):
     """
     The co-registration parameters are written in a specific file. This
     function retrieves these parameters, and finds the corresponding values
@@ -166,7 +168,7 @@ def get_coregistration(dat_path, im_list=None):
                                               network adjustment
     """
     # read file
-    with open(dat_path+'coreg.txt') as f:
+    with open(coreg_path) as f:
         lines = f.read().splitlines()
         co_name = [line.split(' ')[0] for line in lines]
         co_reg = np.array([list(map(float, line.split(' ')[1:]))

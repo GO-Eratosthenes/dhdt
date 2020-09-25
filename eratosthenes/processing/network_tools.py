@@ -20,7 +20,7 @@ def getNetworkIndices(n):  # processing
     return GridIdxs
 
 
-def getNetworkBySunangles(datPath, sceneList, n):  # processing
+def getNetworkBySunangles(scene_paths, n):  # processing
     """
     Construct network, connecting elements with closest sun angle with each
     other.
@@ -31,19 +31,18 @@ def getNetworkBySunangles(datPath, sceneList, n):  # processing
     output:  GridIdxs       array (2 x k)     list of couples
     """
     # can not be more connected than the amount of entries
-    n = min(len(sceneList) - 1, n)
+    n = min(len(scene_paths) - 1, n)
 
     # get sun-angles from the imagery into an array
-    L = np.zeros((len(sceneList), 2), 'float')
-    for i in range(len(sceneList)):
-        sen2Path = datPath + sceneList[i]
-        (sunZn, sunAz) = read_mean_sun_angles_s2(sen2Path)
+    L = np.zeros((len(scene_paths), 2), 'float')
+    for i, scene_path in enumerate(scene_paths):
+        (sunZn, sunAz) = read_mean_sun_angles_s2(scene_path)
         L[i, :] = [sunZn, sunAz]
     # find nearest
     nbrs = NearestNeighbors(n_neighbors=n+1, algorithm='auto').fit(L)
     distances, indices = nbrs.kneighbors(L)
     Grid2 = indices[:, 1:]
-    Grid1, dummy = np.indices((len(sceneList), n))
+    Grid1, dummy = np.indices((len(scene_paths), n))
     GridIdxs = np.vstack((Grid1.flatten(), Grid2.flatten()))
     return GridIdxs
 
