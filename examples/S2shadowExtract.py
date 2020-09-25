@@ -70,7 +70,7 @@ if not rgi_raster_path.exists():
         # transform shapefile from lat-long to UTM
         ll2utm(rgi_shape_path, rgi_shape_utm_path, crs, aoi)
     # convert polygon file to raster file
-    shape2raster(rgi_shape_path, rgi_raster_path, geoTransform,
+    shape2raster(rgi_shape_utm_path, rgi_raster_path, geoTransform,
                  rows, cols, aoi)
 
 rgi_mask, crs, geoTransform, targetprj = read_geo_image(rgi_raster_path)
