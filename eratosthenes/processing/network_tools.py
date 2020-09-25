@@ -24,9 +24,8 @@ def getNetworkBySunangles(scene_paths, n):  # processing
     """
     Construct network, connecting elements with closest sun angle with each
     other.
-    input:   datPath        string            location of the imagery
-             scenceList     list              list with strings of the images
-                                              of interest
+    input:   scence_paths   list              list with strings (or Paths) of
+                                              the images of interest
              n              integer           connectivity
     output:  GridIdxs       array (2 x k)     list of couples
     """
