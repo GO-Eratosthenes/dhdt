@@ -2,10 +2,11 @@ import math
 import numpy as np
 import random
 
-def enhance_shadow(method,Blue,Green,Red,Nir):
+
+def enhance_shadow(method, Blue, Green, Red, Nir):
     """
     Given a specific method, employ shadow transform
-    input:   method         string            method name to be implemented, 
+    input:   method         string            method name to be implemented,
                                               can be one of the following:
                                               - ruffenacht
                                               - nsvi
@@ -15,26 +16,28 @@ def enhance_shadow(method,Blue,Green,Red,Nir):
              Blue           array (n x m)     blue band of satellite image
              Green          array (n x m)     green band of satellite image
              Red            array (n x m)     red band of satellite image
-             Nir            array (n x m)     near-infrared band of satellite image       
+             Nir            array (n x m)     near-infrared band of satellite
+                                              image
     output:  M              array (n x m)     shadow enhanced satellite image
     """
-    
+
     method = method.lower()
-    
-    if method=='ruffenacht':
-        M = ruffenacht(Blue,Green,Red,Nir)
-    elif len([n for n in ['shadow','index'] if n in method])==2:
-        M = shadow_index(Blue,Green,Red,Nir)
-    elif len([n for n in ['shade','index'] if n in method])==2:
-        M = shade_index(Blue,Green,Red,Nir)
-    elif method=='nsvi':
-        M = nsvi(Blue,Green,Red)
-    elif method=='mpsi':
-        M = mpsi(Blue,Green,Red)    
-    elif method=='gevers':
-        M = gevers(Blue,Green,Red) 
-        
+
+    if method == 'ruffenacht':
+        M = ruffenacht(Blue, Green, Red, Nir)
+    elif len([n for n in ['shadow', 'index'] if n in method]) == 2:
+        M = shadow_index(Blue, Green, Red, Nir)
+    elif len([n for n in ['shade', 'index'] if n in method]) == 2:
+        M = shade_index(Blue, Green, Red, Nir)
+    elif method == 'nsvi':
+        M = nsvi(Blue, Green, Red)
+    elif method == 'mpsi':
+        M = mpsi(Blue, Green, Red)
+    elif method == 'gevers':
+        M = gevers(Blue, Green, Red)
+
     return M
+
 
 # shadow functions
 def rgb2hsi(R, G, B):  # pre-processing
@@ -71,13 +74,14 @@ def rgb2hsi(R, G, B):  # pre-processing
 
     return Hue, Sat, Int
 
+
 def rgb2xyz(Red, Green, Blue):  # pre-processing
     """
     Transform Red Green Blue arrays to XYZ tristimulus values
-    
+
     see Reinhard et al. 2001
     Color Transfer between images
-    
+
     input:   Red            array (n x m)     Red band of satellite image
              Green          array (n x m)     Green band of satellite image
              Blue           array (n x m)     Blue band of satellite image
@@ -103,19 +107,20 @@ def rgb2xyz(Red, Green, Blue):  # pre-processing
 
     return X, Y, Z
 
+
 def xyz2lms(X, Y, Z):  # pre-processing
     """
     Transform XYZ tristimulus values to  LMS arrays
-    
+
     see Reinhard et al. 2001
     Color Transfer between images
-    
+
     input:   X              array (m x m)     modified XYZitu601-1 axis
              Y              array (n x m)     modified XYZitu601-1 axis
              Z              array (n x m)     modified XYZitu601-1 axis
-    output:  L              array (m x m)     
-             M              array (n x m)     
-             S              array (n x m)     
+    output:  L              array (m x m)
+             M              array (n x m)
+             S              array (n x m)
     """
     L = np.copy(X)
     M = np.copy(X)
@@ -134,13 +139,14 @@ def xyz2lms(X, Y, Z):  # pre-processing
             S[i][j] = lms[2]
     return L, M, S
 
+
 def rgb2lms(Red, Green, Blue):  # pre-processing
     """
     Transform Red Green Blue arrays to XYZ tristimulus values
-    
+
     see Reinhard et al. 2001
     Color Transfer between images
-    
+
     input:   Red            array (n x m)     Red band of satellite image
              Green          array (n x m)     Green band of satellite image
              Blue           array (n x m)     Blue band of satellite image
@@ -152,39 +158,41 @@ def rgb2lms(Red, Green, Blue):  # pre-processing
     M = np.copy(Red)
     S = np.copy(Red)
 
-    I = np.array([(0.3811, 0.5783, 0.0402),
-                  (0.1967, 0.7244, 0.0782),
-                  (0.0241, 0.1228, 0.8444)])
+    matrix = np.array([(0.3811, 0.5783, 0.0402),
+                       (0.1967, 0.7244, 0.0782),
+                       (0.0241, 0.1228, 0.8444)])
 
     for i in range(0, Red.shape[0]):
         for j in range(0, Red.shape[1]):
-            lms = np.matmul(I, np.array(
+            lms = np.matmul(matrix, np.array(
                 [[Red[i][j]], [Green[i][j]], [Blue[i][j]]]))
             L[i][j] = lms[0]
             M[i][j] = lms[1]
             S[i][j] = lms[2]
     return L, M, S
 
+
 def lms2lab(L, M, S):
-    l = np.copy(L)
+    k = np.copy(L)
     a = np.copy(L)
     b = np.copy(L)
 
-    I = np.matmul(np.array([(1/math.sqrt(3), 0, 0),
-                            (0, 1/math.sqrt(6), 0),
-                            (0, 0, 1/math.sqrt(2))]), \
-                  np.array([(+1, +1, +1),
-                            (+1, +1, -2),
-                            (+1, -1, +0)]))
+    matrix = np.matmul(np.array([(1 / math.sqrt(3), 0, 0),
+                                 (0, 1 / math.sqrt(6), 0),
+                                 (0, 0, 1 / math.sqrt(2))]),
+                       np.array([(+1, +1, +1),
+                                 (+1, +1, -2),
+                                 (+1, -1, +0)]))
 
-    for i in range(0, Red.shape[0]):
-        for j in range(0, Red.shape[1]):
-            lab = np.matmul(I, np.array(
+    for i in range(0, L.shape[0]):
+        for j in range(0, L.shape[1]):
+            lab = np.matmul(matrix, np.array(
                 [[L[i][j]], [M[i][j]], [S[i][j]]]))
-            l[i][j] = lab[0]
+            k[i][j] = lab[0]
             a[i][j] = lab[1]
             b[i][j] = lab[2]
-    return l, a, b
+    return k, a, b
+
 
 def pca(X):  # pre-processing
     """
@@ -204,22 +212,23 @@ def pca(X):  # pre-processing
     return eigen_vecs, eigen_vals
 
 
-def mat_to_gray(I, notI):  # pre-processing or generic
+def mat_to_gray(matrix, mask_no_data):  # pre-processing or generic
     """
     Transform matix to float, omitting nodata values
     following Ruffenacht
-    input:   I              array (n x m)     matrix of integers with data
-             notI           array (n x m)     matrix of boolean with nodata
-    output:  Inew           array (m x m)     linear transformed floating point
-                                              [0...1]
+    input:   matrix              array (n x m)     matrix of integers with data
+             mask_no_data        array (n x m)     matrix of boolean with
+                                                   nodata
+    output:  matrix_new          array (m x m)     linear transformed floating
+                                                   point [0...1]
     """
-    yesI = ~notI
-    Inew = np.float64(I)  # /2**16
-    Inew[yesI] = np.interp(Inew[yesI],
-                           (Inew[yesI].min(),
-                            Inew[yesI].max()), (0, +1))
-    Inew[notI] = 0
-    return Inew
+    mask_data = ~mask_no_data
+    matrix_new = np.float64(matrix)  # /2**16
+    matrix_new[mask_data] = np.interp(matrix_new[mask_data],
+                                      (matrix_new[mask_data].min(),
+                                       matrix_new[mask_data].max()), (0, +1))
+    matrix_new[mask_no_data] = 0
+    return matrix_new
 
 
 def nsvi(Blue, Green, Red):  # pre-processing
@@ -250,22 +259,23 @@ def mpsi(Blue, Green, Red):  # pre-processing
     # Blue = np.float64(Blue) / 2 ** 16
     Blue = mat_to_gray(Blue, NanBol)
     Green = mat_to_gray(Green, NanBol)
-    
+
     (H, S, I) = rgb2hsi(Red, Green, Blue)  # create HSI bands
     MPSI = (H - I) * (Green - Blue)
     return MPSI
 
+
 def gevers(Blue, Green, Red):  # pre-processing
     """
     Transform Red Green Blue arrays to color invariant (c3)
-    
+
     following Gevers & Smeulders 1999
         Color-based object recognition
         Pattern Recognition 32 (1999) 453—464
     from Arévalo González & G. Ambrosio 2008
         Shadow detection in colour high‐resolution satellite images
         DOI: 10.1080/01431160701395302
-        
+
     input:   Blue           array (n x m)     Blue band of satellite image
              Green          array (n x m)     Green band of satellite image
              Red            array (n x m)     Red band of satellite image
@@ -277,9 +287,10 @@ def gevers(Blue, Green, Red):  # pre-processing
     Blue = mat_to_gray(Blue, NanBol)
     Green = mat_to_gray(Green, NanBol)
     Red = mat_to_gray(Red, NanBol)
-    
-    c3 = np.arctan2( Blue, np.amax( np.dstack((Red, Green))))
+
+    c3 = np.arctan2(Blue, np.amax(np.dstack((Red, Green))))
     return c3
+
 
 def shadow_index(Blue, Green, Red, Nir):  # pre-processing
     """
@@ -330,6 +341,7 @@ def shadow_index(Blue, Green, Red, Nir):  # pre-processing
     SI = np.transpose(np.reshape(PC1, OK.shape))
     return SI
 
+
 def reinhard(Blue, Green, Red):  # pre-processing
     """
     transform colour space
@@ -345,13 +357,13 @@ def reinhard(Blue, Green, Red):  # pre-processing
     Green = mat_to_gray(Green, NanBol)
     Red = mat_to_gray(Red, NanBol)
 
-    (L,M,S) = rgb2lms(Red, Green, Blue)
+    L, M, S = rgb2lms(Red, Green, Blue)
     L = np.log10(L)
     M = np.log10(M)
     S = np.log10(S)
-    (l,alfa,beta) = lms2lab(L, M, S)
-    
-    return l,alfa,beta
+    (l, alfa, beta) = lms2lab(L, M, S)
+
+    return l, alfa, beta
 
 
 def shade_index(Blue, Green, Red, Nir):  # pre-processing
@@ -380,12 +392,12 @@ def shade_index(Blue, Green, Red, Nir):  # pre-processing
 def ruffenacht(Blue, Green, Red, Nir):  # pre-processing
     """
     Transform Red Green Blue NIR to shadow intensities/probabilities
-    
+
     following Fredembach 2010
         info: EPFL Tech Report 165527
     and Rüfenacht et al. 2013
         DOI: 10.1109/TPAMI.2013.229
-    
+
     input:   Blue           array (n x m)     Blue band of satellite image
              Green          array (n x m)     Green band of satellite image
              Red            array (n x m)     Red band of satellite image
@@ -420,10 +432,10 @@ def ruffenacht(Blue, Green, Red, Nir):  # pre-processing
 def s_curve(x, a, b):  # pre-processing
     """
     Transform intensity in non-linear way
-    
+
     see Fredembach 2010
         info: EPFL Tech Report 165527
-    
+
     input:   x              array (n x 1)     array with values
              a              array (1 x 1)     slope
              b              array (1 x 1)     intercept

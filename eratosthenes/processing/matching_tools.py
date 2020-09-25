@@ -5,7 +5,7 @@ from skimage.feature import match_template
 
 
 # image matching functions
-def lucas_kanade(I1, I2, window_size, sampleI, sampleJ, tau=1e-2):  # processing
+def lucas_kanade(I1, I2, window_size, sampleI, sampleJ, tau=1e-2):
     """
     displacement estimation through optical flow
     following Lucas & Kanade 1981
@@ -39,9 +39,9 @@ def lucas_kanade(I1, I2, window_size, sampleI, sampleJ, tau=1e-2):  # processing
     for iIdx in range(sampleI.size):
         iIm = sampleI.flat[iIdx]
         jIm = sampleJ.flat[iIdx]
-        
-        (iGrd, jGrd) = np.unravel_index(iIdx, sampleI.shape) 
-        
+
+        (iGrd, jGrd) = np.unravel_index(iIdx, sampleI.shape)
+
         # get templates
         Ix = fx[iIm - radius:iIm + radius + 1,
                 jIm - radius:jIm + radius + 1].flatten()
@@ -61,7 +61,7 @@ def lucas_kanade(I1, I2, window_size, sampleI, sampleJ, tau=1e-2):  # processing
                 Ugrd[iGrd, jGrd] = nu[0]
                 Vgrd[iGrd, jGrd] = nu[1]
 
-    return (Ugrd, Vgrd)
+    return Ugrd, Vgrd
 
 
 def normalized_cross_corr(I1, I2):  # processing
@@ -75,7 +75,8 @@ def normalized_cross_corr(I1, I2):  # processing
     result = match_template(I1, I2)
     ij = np.unravel_index(np.argmax(result), result.shape)
     x, y = ij[::-1]
-    return (x, y)
+    return x, y
+
 
 def get_coordinates_of_template_centers(grid, temp_size):
     """
@@ -98,6 +99,7 @@ def get_coordinates_of_template_centers(grid, temp_size):
     Iidx = IidxNew
 
     return Iidx, Jidx
+
 
 def get_grid_at_template_centers(grid, temp_size):
     """

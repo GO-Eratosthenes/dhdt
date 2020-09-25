@@ -3,17 +3,18 @@ import numpy as np
 from scipy import ndimage
 
 
-def castOrientation(I, Az):  # generic
+def castOrientation(intensity, Az):  # generic
     """
     Emphasises intentisies within a certain direction
-    input:   I              array (n x m)     band with intensity values
+    input:   intensity      array (n x m)     band with intensity values
              Az             array (n x m)     band of azimuth values
     output:  Ican           array (m x m)     Shadow band
     """
 #    kernel = np.array([[-1, 0, +1], [-2, 0, +2], [-1, 0, +1]]) # Sobel
     kernel = np.array([[17], [61], [17]])*np.array([-1, 0, 1])/95  # Kroon
-    Idx = ndimage.convolve(I, np.flip(kernel, axis=1))  # steerable filters
-    Idy = ndimage.convolve(I, np.flip(np.transpose(kernel), axis=0))
+    # steerable filters
+    Idx = ndimage.convolve(intensity, np.flip(kernel, axis=1))
+    Idy = ndimage.convolve(intensity, np.flip(np.transpose(kernel), axis=0))
     Ican = (np.multiply(np.cos(np.radians(Az)), Idy)
             - np.multiply(np.sin(np.radians(Az)), Idx))
     return Ican

@@ -12,7 +12,7 @@ def get_image_subset(img, bbox):  # generic
                                                   minimum collumn,
                                                   maximum collumn
                                               ]
-    output:  sub_img        array (k x l)     band with values         
+    output:  sub_img        array (k x l)     band with values
     """
-    sub_img = img[bbox[0]:bbox[1],bbox[2]:bbox[3]]
+    sub_img = img[bbox[0]:bbox[1], bbox[2]:bbox[3]]
     return sub_img

@@ -49,21 +49,21 @@ def read_geo_image(fname):  # generic
 
 
 # I/O functions
-def makeGeoIm(I, R, crs, fName):
+def makeGeoIm(data, geoTransform, crs, fName):
     """
     Create georeference GeoTIFF
-    input:   I              array (n x m)     band image
-             R              array (1 x 6)     georeference transform of
+    input:   data           array (n x m)     band image
+             geoTransform   array (1 x 6)     georeference transform of
                                               an image
              crs            string            coordinate reference string
              fname          string            filename for the image
     output:  writes file into current folder
     """
     fName = pathlib.Path(fName).as_posix()
-    ncols, nrows = I.shape
+    ncols, nrows = data.shape
     drv = gdal.GetDriverByName("GTiff")  # export image
-    ftype = gdal.GDT_Float64 if I.dtype == 'float64' else gdal.GDT_Int32
+    ftype = gdal.GDT_Float64 if data.dtype == 'float64' else gdal.GDT_Int32
     ds = drv.Create(fName, ncols, nrows, 6, ftype, ["COMPRESS=LZW"])
-    ds.SetGeoTransform(R)
+    ds.SetGeoTransform(geoTransform)
     ds.SetProjection(crs)
-    ds.GetRasterBand(1).WriteArray(I)
+    ds.GetRasterBand(1).WriteArray(data)

@@ -15,8 +15,8 @@ from ..preprocessing.read_s2 import read_sun_angles_s2
 
 
 def coregister(sat_path, dat_path, connectivity=2, step_size=True,
-                   temp_size=15, bbox=None, sig_y=10, lstsq_mode='ordinary',
-                   rgi_mask=None):
+               temp_size=15, bbox=None, sig_y=10, lstsq_mode='ordinary',
+               rgi_mask=None):
     """
     Find the relative position between imagery, using the illuminated direction
     of the image. A network of images is constructed, so a bundle block
@@ -66,13 +66,13 @@ def coregister(sat_path, dat_path, connectivity=2, step_size=True,
             img = gdal.Open(sen2Path + "shadows.tif")
             M = np.array(img.GetRasterBand(1).ReadAsArray())
 
-            if i==0 & j==0:
+            if i == 0 & j == 0:
                 if step_size:  # reduce to kernel resolution
-                    (sampleI, sampleJ) = get_coordinates_of_template_centers(\
+                    (sampleI, sampleJ) = get_coordinates_of_template_centers(
                                                 M, temp_size)
                 else:
                     # sampling grid will be a full resolution, for every pixel
-                    (sampleJ, sampleI) = np.meshgrid(np.arange(M.shape[1]), \
+                    (sampleJ, sampleI) = np.meshgrid(np.arange(M.shape[1]),
                                                      np.arangec(M.shape[0]))
 
             # create ridge image
@@ -89,10 +89,8 @@ def coregister(sat_path, dat_path, connectivity=2, step_size=True,
         # blur with gaussian?
         #####################
 
-        (y_N, y_E) = lucas_kanade(Mstack[:, :, 0], Mstack[:, :, 1],
-                                 temp_size, sampleI, sampleJ)
-        
-
+        (y_N, y_E) = lucas_kanade(Mstack[:, :, 0], Mstack[:, :, 1], temp_size,
+                                  sampleI, sampleJ)
 
         # select correct displacements
         if rgi_mask is None:
@@ -103,16 +101,16 @@ def coregister(sat_path, dat_path, connectivity=2, step_size=True,
 
         # robust 3sigma-filtering
         cut_off = 3
-        IN = np.logical_and(mad_filtering(y_N[Msk], cut_off), \
+        IN = np.logical_and(mad_filtering(y_N[Msk], cut_off),
                             mad_filtering(y_E[Msk], cut_off))
 
         # keep selection and get their observation angles
-        (iIN,jIN) = np.nonzero(Msk) 
+        (iIN, jIN) = np.nonzero(Msk)
         iIN = iIN[IN]
         jIN = jIN[IN]
 
-        y_N = y_N[iIN,jIN]
-        y_E = y_E[iIN,jIN]
+        y_N = y_N[iIN, jIN]
+        y_E = y_E[iIN, jIN]
 
         # construct design matrix and measurement vector
         A = np.tile(np.identity(2, dtype=float), (len(y_N), 1))
@@ -154,7 +152,8 @@ def coregister(sat_path, dat_path, connectivity=2, step_size=True,
         f.write(line + '\n')
     f.close()
 
-def get_coregistration(dat_path,im_list=None):
+
+def get_coregistration(dat_path, im_list=None):
     """
     The co-registration parameters are written in a specific file. This
     function retrieves these parameters, and finds the corresponding values
@@ -170,7 +169,8 @@ def get_coregistration(dat_path,im_list=None):
     with open(dat_path+'coreg.txt') as f:
         lines = f.read().splitlines()
         co_name = [line.split(' ')[0] for line in lines]
-        co_reg = np.array([list(map(float,line.split(' ')[1:])) for line in lines])
+        co_reg = np.array([list(map(float, line.split(' ')[1:]))
+                           for line in lines])
     del lines
 
     # make a selection

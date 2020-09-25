@@ -8,7 +8,6 @@ from skimage import segmentation  # for superpixels
 from skimage import color  # for labeling image
 from skimage.morphology import opening, disk
 
-
 from rasterio.features import shapes  # for raster to polygon
 
 from shapely.geometry import shape
@@ -33,10 +32,10 @@ def create_shadow_polygons(M, im_path, bbox=None):
              cast_conn      array (m x n)     array with numbered edge pixels
     """
 
-    if 1==2:  # do median filtering
+    if 1 == 2:  # do median filtering
         siz = 5
         loop = 100
-        M = medianFilShadows(M,siz,loop)
+        M = medianFilShadows(M, siz, loop)
     labels = sturge(M)  # classify into regions
 
     # get self-shadow and cast-shadow
@@ -208,8 +207,7 @@ def labelOccluderAndCasted(labeling, sunAz):  # pre-processing
         subBound = subMsk ^ ndimage.morphology.binary_erosion(subMsk)
         subOrient[~subBound] = 0  # remove other boundaries
 
-        subAz = sunAz[labImin:labImax,
-                      labJmin:labJmax]  # [loc] # subAz = sunAz[loc]
+        subAz = sunAz[labImin:labImax, labJmin:labJmax]
 
         subWhe = np.nonzero(subMsk)
         ridgIdx = subOrient[subWhe[0], subWhe[1]] == 1
@@ -229,8 +227,8 @@ def labelOccluderAndCasted(labeling, sunAz):  # pre-processing
         cast = subOrient == -1
 
         m, n = subMsk.shape
-        print("For shadowpolygon #%s: Its size is %s by %s, connecting %s pixels in total"
-              % (i, m, n, len(ridgeI)))
+        print("For shadowpolygon #%s: Its size is %s by %s, "
+              "connecting %s pixels in total" % (i, m, n, len(ridgeI)))
 
         for x in range(len(ridgeI)):  # loop through all occluders
             sunDir = subAz[ridgeI[x]][ridgeJ[x]]  # degrees [-180 180]
@@ -259,7 +257,7 @@ def labelOccluderAndCasted(labeling, sunAz):  # pre-processing
             subCast = np.zeros((m, n), dtype=np.uint8)
 
             IN = (cc >= 0) & (cc <= n) & (rr >= 0) & (
-                        rr <= m)  # inside sub-image
+                rr <= m)  # inside sub-image
             if IN.any():
                 rr = rr[IN]
                 cc = cc[IN]

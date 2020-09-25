@@ -4,7 +4,7 @@ import pathlib
 from osgeo import ogr, osr, gdal
 
 
-def ll2utm(ll_fname,utm_fname,crs,aoi='RGIId'):
+def ll2utm(ll_fname, utm_fname, crs, aoi='RGIId'):
     """
     Transfrom shapefile in Lat-Long to UTM coordinates
 
@@ -14,9 +14,9 @@ def ll2utm(ll_fname,utm_fname,crs,aoi='RGIId'):
              aoi            string            atribute to include
     """
     ll_fname = pathlib.Path(ll_fname).as_posix()
-    #making the shapefile as an object.
+    # making the shapefile as an object.
     inputShp = ogr.Open(ll_fname)
-    #getting layer information of shapefile.
+    # getting layer information of shapefile.
     inLayer = inputShp.GetLayer()
     # get info for coordinate transformation
     inSpatialRef = inLayer.GetSpatialRef()
@@ -31,8 +31,10 @@ def ll2utm(ll_fname,utm_fname,crs,aoi='RGIId'):
     if utm_fname.exists():
         driver.DeleteDataSource(utm_fname.as_posix())
     outDataSet = driver.CreateDataSource(utm_fname.as_posix())
-    outLayer = outDataSet.CreateLayer("reproject", outSpatialRef, geom_type=ogr.wkbMultiPolygon)
- #               outLayer = outDataSet.CreateLayer("reproject", geom_type=ogr.wkbMultiPolygon)
+    outLayer = outDataSet.CreateLayer("reproject", outSpatialRef,
+                                      geom_type=ogr.wkbMultiPolygon)
+    # outLayer = outDataSet.CreateLayer("reproject",
+    #                                   geom_type=ogr.wkbMultiPolygon)
 
     # add fields
     fieldDefn = ogr.FieldDefn('RGIId', ogr.OFTInteger)
@@ -65,9 +67,10 @@ def ll2utm(ll_fname,utm_fname,crs,aoi='RGIId'):
         # dereference the features and get the next input feature
         outFeature = None
         inFeature = inLayer.GetNextFeature()
-    outDataSet = None # this creates an error but is needed?????
+    outDataSet = None  # this creates an error but is needed?????
 
-def shape2raster(shp_fname,im_fname,geoTransform,rows,cols,aoi='RGIId'):
+
+def shape2raster(shp_fname, im_fname, geoTransform, rows, cols, aoi='RGIId'):
     """
     Converts shapefile into raster
 
@@ -79,22 +82,23 @@ def shape2raster(shp_fname,im_fname,geoTransform,rows,cols,aoi='RGIId'):
              aoi            string            attribute of interest
     """
     shp_fname = pathlib.Path(shp_fname).as_posix()
-    #making the shapefile as an object.
+    # making the shapefile as an object.
     rgiShp = ogr.Open(shp_fname)
-    #getting layer information of shapefile.
+    # getting layer information of shapefile.
     rgiLayer = rgiShp.GetLayer()
-    #get required raster band.
+    # get required raster band.
 
     driver = gdal.GetDriverByName('GTiff')
     im_fname = pathlib.Path(im_fname).as_posix()
     rgiRaster = driver.Create(im_fname, rows, cols, 1, gdal.GDT_Int16)
-    #            rgiRaster = gdal.GetDriverByName('GTiff').Create(dat_path+sat_tile+'.tif', mI, nI, 1, gdal.GDT_Int16)
+    # rgiRaster = gdal.GetDriverByName('GTiff').Create(
+    #     dat_path+sat_tile+'.tif', mI, nI, 1, gdal.GDT_Int16)
     rgiRaster.SetGeoTransform(geoTransform)
     band = rgiRaster.GetRasterBand(1)
-    #assign no data value to empty cells.
+    # assign no data value to empty cells.
     band.SetNoDataValue(0)
     # band.FlushCache()
 
-    #main conversion method
-    gdal.RasterizeLayer(rgiRaster, [1], rgiLayer, options=['ATTRIBUTE='+aoi])
-    rgiRaster = None # missing link.....
+    # main conversion method
+    gdal.RasterizeLayer(rgiRaster, [1], rgiLayer, options=['ATTRIBUTE=' + aoi])
+    rgiRaster = None  # missing link.....
