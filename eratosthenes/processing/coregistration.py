@@ -1,11 +1,9 @@
 import numpy as np
 import statsmodels.api as sm
 
-from osgeo import gdal
 from scipy.linalg import block_diag
 
-from .matching_tools import get_coordinates_of_template_centers, \
-    get_grid_at_template_centers, lucas_kanade
+from .matching_tools import get_coordinates_of_template_centers, lucas_kanade
 from .network_tools import getNetworkIndices, getNetworkBySunangles, \
     getAdjacencyMatrixFromNetwork
 from .handler_s2 import read_view_angles_s2
@@ -161,7 +159,7 @@ def get_coregistration(coreg_path, im_list=None):
     function retrieves these parameters, and finds the corresponding values
     of the images given by im_list
 
-    input:   dat_path       string            location of the images
+    input:   coreg_path     string or Path    location of coregistration file
              im_list        list (k x 1)      image names
     output:  co_name        list (k x 1)      code of the image or image name
              co_reg         array  (k x 2)    relative coordinates of the
