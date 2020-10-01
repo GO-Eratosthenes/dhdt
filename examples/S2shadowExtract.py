@@ -13,7 +13,8 @@ from eratosthenes.preprocessing.shadow_geometry import create_shadow_polygons
 
 from eratosthenes.processing.coregistration import coregister, \
     get_coregistration, getNetworkBySunangles
-from eratosthenes.processing.coupling_tools import pair_images
+from eratosthenes.processing.coupling_tools import pair_images, \
+    match_shadow_casts, get_elevation_difference
 
 
 dat_path = '/Users/Alten005/surfdrive/Eratosthenes/Denali/'
@@ -118,14 +119,58 @@ for i in range(GridIdxs.shape[1]):
     coid1 = coName.index(fname1)
     coid2 = coName.index(fname2)
     coDxy = coReg[coid1]-coReg[coid2]
-    conn2[:,0] += coDxy[0]
-    conn2[:,1] += coDxy[1]
+    
+    conn2[:,0] += coDxy[0]*10 # transform to meters?
+    conn2[:,1] += coDxy[1]*10
 
     idxConn = pair_images(conn1, conn2)
     # connected list
+    casters = conn1[idxConn[:,1],0:2]
+    post1 = conn1[idxConn[:,1],2:4] # cast location in xy-coordinates for t1
+    post2 = conn2[idxConn[:,0],2:4] # cast location in xy-coordinates for t1
     
     
     # refine through image matching
+    (M1, crs, geoTransform1, targetprj) = read_geo_image(
+            dat_path + fname1 + 'shadows.tif') # shadow transform template
+    (M2, crs, geoTransform2, targetprj) = read_geo_image(
+            dat_path + fname2 + 'shadows.tif') # shadow transform search space
+    # castOrientation...
+    post2_corr, corr_score = match_shadow_casts(M1, M2, geoTransform1, geoTransform2,
+                       post1, post2)
     
-    
+    post1 = conn1[idxConn[:,1],2:4] # cast location in xy-coordinates for t1
+    post2 = conn2[idxConn[:,0],2:4]
     # extract elevation change
+    sun_1 = conn1[idxConn[:,1],4:6]
+    sun_2 = conn2[idxConn[:,0],4:6]
+    
+    idx = 1
+    xy_1 = post1[idx,:] # x_c = np.array([[post1[idx,0]], [post2_corr[idx,0]]])
+    xy_2 = post2_corr[idx,:] # y_c = np.array([[post1[idx,1]], [post2_corr[idx,1]]]) 
+    dh = get_elevation_difference(sun_1, sun_2, post1, post2_corr, casters)
+    
+    # write elevation distance
+    
+    (time_1, orbit_1, tile_1) = meta_S2string(fname1)
+    (time_2, orbit_2, tile_2) = meta_S2string(fname2)
+    dh_fname = ('dh-' + time_1 +'-'+ time_2 +'-'+ 
+                orbit_1 + '-' + orbit_2 +'-'+ 
+                tile_1 +'-'+ tile_2)
+    if rgi_glac_id is not None:
+        dh_fname = (dh_fname + '-' + '{:08d}'.format(rgi_glac_id) + '.txt')
+    else:
+        dh_fname = (dh_fname + '.txt')
+        
+    f = open(dat_path + 'dh_fname', 'w')
+    for k in range(dh.shape[0]):
+        line = ('{:+8.2f}'.format(     post1[k, 0]) + ' ' + 
+                '{:+8.2f}'.format(     post1[k, 1]) + ' ' +
+                '{:+8.2f}'.format(post2_corr[k, 0]) + ' ' +
+                '{:+8.2f}'.format(post2_corr[k, 1]) + ' ' +
+                '{:+8.2f}'.format(   casters[k, 0]) + ' ' +
+                '{:+8.2f}'.format(   casters[k, 1]) + ' ' +
+                '{:+4.3f}'.format(        dh[k]))
+        f.write(line + '\n')
+    f.close()
+    

@@ -73,8 +73,8 @@ def normalized_cross_corr(I1, I2):  # processing
              y              integer           location of maximum
     """
     result = match_template(I2, I1)
-    max_corr = np.argmax(result)
-    ij = np.unravel_index(max_corr, result.shape)
+    max_corr = np.amax(result)
+    ij = np.unravel_index(np.argmax(result), result.shape)
     x, y = ij[::-1]
     return (x, y, max_corr)
 
