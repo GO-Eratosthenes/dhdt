@@ -8,7 +8,7 @@ from eratosthenes.generic.mapping_tools import map2pix, pix2map, rotMat
 from eratosthenes.generic.mapping_io import read_geo_image
 from eratosthenes.processing.matching_tools import normalized_cross_corr
 
-def couple_pair(dat_path, fname1, fname2):
+def couple_pair(dat_path, fname1, fname2, coName, coReg):
     # get start and finish points of shadow edges
     conn1 = np.loadtxt(fname = dat_path+fname1+'conn.txt')
     conn2 = np.loadtxt(fname = dat_path+fname2+'conn.txt')
