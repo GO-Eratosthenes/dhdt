@@ -5,8 +5,47 @@ import numpy as np
 from sklearn.neighbors import NearestNeighbors
 
 from eratosthenes.generic.mapping_tools import map2pix, pix2map, rotMat 
+from eratosthenes.generic.mapping_io import read_geo_image
 from eratosthenes.processing.matching_tools import normalized_cross_corr
 
+def couple_pair(dat_path, fname1, fname2):
+    # get start and finish points of shadow edges
+    conn1 = np.loadtxt(fname = dat_path+fname1+'conn.txt')
+    conn2 = np.loadtxt(fname = dat_path+fname2+'conn.txt')
+    
+    # compensate for coregistration
+    coid1 = coName.index(fname1)
+    coid2 = coName.index(fname2)
+    coDxy = coReg[coid1]-coReg[coid2]
+    
+    conn2[:,0] += coDxy[0]*10 # transform to meters?
+    conn2[:,1] += coDxy[1]*10
+
+    idxConn = pair_images(conn1, conn2)
+    # connected list
+    casters = conn1[idxConn[:,1],0:2]
+    post1 = conn1[idxConn[:,1],2:4] # cast location in xy-coordinates for t1
+    post2 = conn2[idxConn[:,0],2:4] # cast location in xy-coordinates for t1
+    
+    
+    # refine through image matching
+    (M1, crs, geoTransform1, targetprj) = read_geo_image(
+            dat_path + fname1 + 'shadows.tif') # shadow transform template
+    (M2, crs, geoTransform2, targetprj) = read_geo_image(
+            dat_path + fname2 + 'shadows.tif') # shadow transform search space
+    # castOrientation...
+    post2_corr, corr_score = match_shadow_casts(M1, M2, geoTransform1, geoTransform2,
+                       post1, post2)
+    
+    post1 = conn1[idxConn[:,1],2:4] # cast location in xy-coordinates for t1
+    post2 = conn2[idxConn[:,0],2:4]
+    # extract elevation change
+    sun_1 = conn1[idxConn[:,1],4:6]
+    sun_2 = conn2[idxConn[:,0],4:6]
+    
+    dh = get_elevation_difference(sun_1, sun_2, post1, post2_corr, casters)
+    return post1, post2_corr, casters, dh
+    
 def pair_images(conn1, conn2, thres=20):
     """
     Find the closest correspnding points in two lists, 
