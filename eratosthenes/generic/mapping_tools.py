@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 
 from scipy import ndimage
@@ -181,5 +183,25 @@ def get_bbox_polygon(geoTransform, rows, cols):
     # poly_tile.ExportToWkt()
     return poly
     
+def find_overlapping_DEM_tiles(dem_path,dem_file, poly_tile):
     
+    # Get the DEM tile layer
+    demShp = ogr.Open(os.path.join(dem_path, dem_file))
+    demLayer = demShp.GetLayer()
+    demSpatialRef = demLayer.GetSpatialRef()
+
+    defLayer = demLayer.GetLayerDefn()
+
+    url_list = ()
+    # loop through the tiles and see if there is an intersection
+    for i in range(0, demLayer.GetFeatureCount()):
+        # Get the input Feature
+        demFeature = demLayer.GetFeature(i)
+        geom = demFeature.GetGeometryRef()
+        
+        intersection = poly_tile.Intersection(geom)
+        if(intersection is not None and intersection.Area()>0):
+            url_list += (demFeature.GetField('fileurl'),)
+    
+    return url_list
     

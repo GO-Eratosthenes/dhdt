@@ -101,9 +101,9 @@ if not os.path.exists(dat_path + sat_tile + '_DEM.tif'):
     
     dem_proj_file = reproject_shapefile(dem_path, dem_file, targetprj)
     
-    url_list = find_overlapping_DEM_tiles(dem_path,dem_file, poly_tile)
+    url_list = find_overlapping_DEM_tiles(dem_path,dem_proj_file, poly_tile)
        
-    
+    # download and integrate DEM data into tile
     
     
     
