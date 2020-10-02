@@ -5,7 +5,11 @@ import matplotlib.pyplot as plt
 from eratosthenes.generic.handler_s2 import meta_S2string
 from eratosthenes.generic.mapping_io import makeGeoIm, read_geo_image, \
     read_geo_info
-from eratosthenes.generic.gis_tools import ll2utm, shape2raster
+from eratosthenes.generic.mapping_tools import get_bbox_polygon, \
+    find_overlapping_DEM_tiles
+    
+from eratosthenes.generic.gis_tools import ll2utm, shape2raster, \
+    reproject_shapefile
 
 from eratosthenes.preprocessing.handler_multispec import create_shadow_image, \
     create_caster_casted_list_from_polygons
@@ -74,6 +78,35 @@ if not os.path.exists(dat_path + sat_tile + '.tif'):
         ll2utm(rgi_path+rgi_file,out_shp,crs,aoi)
     # convert polygon file to raster file
     shape2raster(out_shp, dat_path+sat_tile, geoTransform, rows, cols, aoi)
+
+# make raster with elevation data for the tile
+if not os.path.exists(dat_path + sat_tile + '_DEM.tif'):
+    # get geo info of tile
+    crs, geoTransform, targetprj, rows, cols, bands = read_geo_info(dat_path + 
+                                                                    sat_tile + 
+                                                                    '.tif')
+    
+    ### OBS
+    # randolph tile seems to have a missing crs... etc OGR does not see anything
+    ###
+    
+    fname = dat_path + im_path[0] + fName[0] + '04.jp2'
+    crs, geoTransform, targetprj, rows, cols, bands = read_geo_info(fname)
+    
+    # get DEM tile structure
+    dem_path = dat_path+'GIS/'
+    dem_file = 'ArcticDEM_Tile_Index_Rel7.shp'
+    
+    poly_tile = get_bbox_polygon(geoTransform, rows, cols)
+    
+    dem_proj_file = reproject_shapefile(dem_path, dem_file, targetprj)
+    
+    url_list = find_overlapping_DEM_tiles(dem_path,dem_file, poly_tile)
+       
+    
+    
+    
+    
 
 (rgi_mask, crs, geoTransform, targetprj) = read_geo_image(dat_path
                                                           +sat_tile+'.tif')

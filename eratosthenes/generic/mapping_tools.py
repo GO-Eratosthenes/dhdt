@@ -1,7 +1,7 @@
 import numpy as np
 
 from scipy import ndimage
-
+from osgeo import ogr
 
 def castOrientation(I, Az):  # generic
     """
@@ -133,3 +133,53 @@ def map2pix(geoTransform, x, y):  # generic
              + y / geoTransform[5])
 
     return i, j
+
+def get_bbox(geoTransform, rows, cols):
+    '''
+    given array meta data, calculate the bounding box
+    input:   geoTransform   array (1 x 6)     georeference transform of
+                                              an image
+             rows           integer           row size of the image
+             cols           integer           collumn size of the image
+    output:  bbox           array (1 x 4)     min max X, min max Y   
+    '''
+    
+    
+    X = geoTransform[0] + np.array([1, rows])*geoTransform[1]
+    Y = geoTransform[3] + np.array([1, cols])*geoTransform[5]
+    bbox = np.hstack((np.sort(X), np.sort(Y)))
+    return bbox
+    
+def get_map_extent(bbox):
+    """
+    generate coordinate list in counterclockwise direction from boundingbox
+    input:   bbox           array (1 x 4)     min max X, min max Y  
+    output:  xB             array (5 x 1)     coordinate list for x  
+             yB             array (5 x 1)     coordinate list for y      
+    """
+    xB = np.array([[ bbox[0], bbox[0], bbox[1], bbox[1], bbox[0] ]]).T
+    yB = np.array([[ bbox[3], bbox[2], bbox[2], bbox[3], bbox[3] ]]).T
+    return xB, yB    
+    
+def get_bbox_polygon(geoTransform, rows, cols):
+    '''
+    given array meta data, calculate the bounding box
+    input:   geoTransform   array (1 x 6)     georeference transform of
+                                              an image
+             rows           integer           row size of the image
+             cols           integer           collumn size of the image
+    output:  bbox           OGR polygon          
+    '''    
+    # build tile polygon
+    bbox = get_bbox(geoTransform, rows, cols)
+    xB,yB = get_map_extent(bbox)
+    ring = ogr.Geometry(ogr.wkbLinearRing)
+    for i in range(5):
+        ring.AddPoint(float(xB[i]),float(yB[i]))
+    poly = ogr.Geometry(ogr.wkbPolygon)
+    poly.AddGeometry(ring)
+    # poly_tile.ExportToWkt()
+    return poly
+    
+    
+    
