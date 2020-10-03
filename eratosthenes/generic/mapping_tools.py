@@ -100,11 +100,24 @@ def pix2map(geoTransform, i, j):  # generic
          + geoTransform[5] * i
          )
 
-    # offset the center of the pixel
-    x += geoTransform[1] / 2.0
-    y += geoTransform[5] / 2.0
+    # # offset the center of the pixel
+    # x += geoTransform[1] / 2.0
+    # y += geoTransform[5] / 2.0
     return x, y
 
+def pix_centers(geoTransform, rows, cols, make_grid=True):
+    '''
+    Provide the pixel coordinate from the axis, or the whole grid
+    '''
+    i = np.linspace(1, rows, cols)
+    j = np.linspace(1, cols, rows)
+    if make_grid:
+        J, I = np.meshgrid(i, j)
+        X,Y = pix2map(geoTransform, I, J)
+        return X, Y
+    else:
+        x,y = pix2map(geoTransform, i, j)
+        return x, y
 
 def map2pix(geoTransform, x, y):  # generic
     """
@@ -116,9 +129,9 @@ def map2pix(geoTransform, x, y):  # generic
     output:  i              array (n x 1)     row coordinates in image space
              j              array (n x 1)     column coordinates in image space
     """
-    # offset the center of the pixel
-    x -= geoTransform[1] / 2.0
-    y -= geoTransform[5] / 2.0
+    # # offset the center of the pixel
+    # x -= geoTransform[1] / 2.0
+    # y -= geoTransform[5] / 2.0
     x -= geoTransform[0]
     y -= geoTransform[3]
 
@@ -145,10 +158,8 @@ def get_bbox(geoTransform, rows, cols):
              cols           integer           collumn size of the image
     output:  bbox           array (1 x 4)     min max X, min max Y   
     '''
-    
-    
-    X = geoTransform[0] + np.array([1, rows])*geoTransform[1]
-    Y = geoTransform[3] + np.array([1, cols])*geoTransform[5]
+    X = geoTransform[0] + np.array([1, rows])*geoTransform[1] + np.array([1, cols])*geoTransform[2] 
+    Y = geoTransform[3] + np.array([1, rows])*geoTransform[4] + np.array([1, cols])*geoTransform[5]
     bbox = np.hstack((np.sort(X), np.sort(Y)))
     return bbox
     
@@ -184,13 +195,12 @@ def get_bbox_polygon(geoTransform, rows, cols):
     return poly
     
 def find_overlapping_DEM_tiles(dem_path,dem_file, poly_tile):
-    
+    '''
+    loop through a shapefile of tiles, to find overlap with a given geometry
+    '''
     # Get the DEM tile layer
     demShp = ogr.Open(os.path.join(dem_path, dem_file))
     demLayer = demShp.GetLayer()
-    demSpatialRef = demLayer.GetSpatialRef()
-
-    defLayer = demLayer.GetLayerDefn()
 
     url_list = ()
     # loop through the tiles and see if there is an intersection
