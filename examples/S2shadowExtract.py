@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 from osgeo import ogr, osr, gdal
 
 from eratosthenes.generic.handler_s2 import meta_S2string
-from eratosthenes.generic.handler_www import url_exist, get_tar_file, \
-    change_url_resolution
+from eratosthenes.generic.handler_www import bulk_download_and_mosaic, \
+    reduce_deplicate_urls
 from eratosthenes.generic.mapping_io import makeGeoIm, read_geo_image, \
     read_geo_info
 from eratosthenes.generic.mapping_tools import get_bbox_polygon, \
@@ -84,7 +84,7 @@ if not os.path.exists(dat_path + sat_tile + '.tif'):
     shape2raster(out_shp, dat_path+sat_tile, geoTransform, rows, cols, aoi)
 
 # make raster with elevation data for the tile
-if not os.path.exists(dat_path + sat_tile + '_DEM.tif'):
+if not os.path.exists(dat_path+ 'GIS/' + sat_tile + '_DEM.tif'):
     print('building digital elevation model (DEM) for '+ sat_tile )
     # get geo info of tile
     crs, geoTransform, targetprj, rows, cols, bands = read_geo_info(dat_path + 
@@ -109,79 +109,21 @@ if not os.path.exists(dat_path + sat_tile + '_DEM.tif'):
     print('found '+str(len(url_list))+ ' elevation chips connected to this tile')
     
     # create sampling grid   
-    bbox = get_bbox(geoTransform, rows, cols)
+    bbox_tile = get_bbox(geoTransform, rows, cols)
     
     new_res = 10 # change to 10meter url
     
-    # because the shapefiles are in 2 meter, the tiles are 4 fold, therfore 
-    # make a selection, to bypass duplicates
-    tiles = ()
-    for i in url_list: 
-        tiles += (i.split('/')[-2],)
-    uni_set = set(tiles)
-    ids = []
-    for i in range(len(uni_set)):
-        idx = tiles.index(uni_set.pop())
-        ids.append(idx)
-    url_list = [url_list[i] for i in ids]    
-    print('reduced to '+str(len(url_list))+ ' elevation chips')
-    for i in range(len(url_list)):
-        gran_url = url_list[i]
-        gran_url_new = change_url_resolution(gran_url,new_res)
-        
-        # download and integrate DEM data into tile
-        print('starting download of DEM tile')
-        if url_exist(gran_url_new):
-            tar_names = get_tar_file(gran_url_new, dem_path)
-        else:
-            tar_names = get_tar_file(gran_url, dem_path)
-        print('finished download of DEM tile')
-            
-        # load data, interpolate into grid
-        dem_name = [s for s in tar_names if 'dem.tif' in s]
-        if i ==0:
-            dem_new_name = sat_tile + '_DEM.tif'
-        else:
-            dem_new_name = dem_name[0][:-4]+'_utm.tif'
-        
-        ds = gdal.Warp(os.path.join(dem_path, dem_new_name), 
-                       os.path.join(dem_path, dem_name[0]), 
-                       dstSRS=crs,
-                       outputBounds=(bbox[0], bbox[2], bbox[1], bbox[3]),
-                       xRes=new_res, yRes=new_res,
-                       outputType=gdal.GDT_Float64)
-        ds = None
-        
-        if i>0: # mosaic tiles togehter
-            merge_command = ['python', 'gdal_merge.py', 
-                             '-o', os.path.join(dem_path, sat_tile + '_DEM.tif'), 
-                             os.path.join(dem_path, sat_tile + '_DEM.tif'), 
-                             os.path.join(dem_path, dem_new_name)]
-            my_env = os.environ['CONDA_DEFAULT_ENV']
-            os.system('conda run -n ' + my_env + ' '+
-                      ' '.join(merge_command[1:]))
-            os.remove(os.path.join(dem_path,dem_new_name))
-            
-        for fn in tar_names:
-            os.remove(os.path.join(dem_path,fn))
-    print('end of loop, rename now!')        
-        # remove original DEM
- 
-    #os.system('conda run -n '+os.environ['CONDA_DEFAULT_ENV']+''+' '.join(merge_command[1:]))
-    
-     # driver = gdal.GetDriverByName('GTiff')
-    # rgiRaster = driver.Create(im_fname+'.tif', rows, cols, 1, gdal.GDT_Int16)
-    # #            rgiRaster = gdal.GetDriverByName('GTiff').Create(dat_path+sat_tile+'.tif', mI, nI, 1, gdal.GDT_Int16)           
-    # rgiRaster.SetGeoTransform(geoTransform)
-    # band = rgiRaster.GetRasterBand(1)
-    # #assign no data value to empty cells.
-    # band.SetNoDataValue(0)   
-    
+    url_list = reduce_deplicate_urls(url_list)
+    bulk_download_and_mosaic(url_list, dem_path, sat_tile, bbox_tile, crs, new_res)
     
 
 (rgi_mask, crs, geoTransform, targetprj) = read_geo_image(dat_path
                                                           +sat_tile+'.tif')
 rgi_mask = rgi_mask[minI:maxI,minJ:maxJ]
+
+(dem_mask, crs, geoTransform, targetprj) = read_geo_image(dat_path
+                                                          +sat_tile+'.tif')
+dem_mask = dem_mask[minI:maxI,minJ:maxJ]
 
 # TO DO:
 # make raster with elevation values for the tile
