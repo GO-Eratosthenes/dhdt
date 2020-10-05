@@ -90,7 +90,6 @@ if not os.path.exists(dat_path+ 'GIS/' + sat_tile + '_DEM.tif'):
     crs, geoTransform, targetprj, rows, cols, bands = read_geo_info(dat_path + 
                                                                     sat_tile + 
                                                                     '.tif')
-    
     ### OBS
     # randolph tile seems to have a missing crs... etc OGR does not see anything
     ###
