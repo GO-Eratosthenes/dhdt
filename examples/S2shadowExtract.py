@@ -17,6 +17,7 @@ from eratosthenes.generic.gis_tools import ll2utm, shape2raster, \
 
 from eratosthenes.preprocessing.handler_multispec import create_shadow_image, \
     create_caster_casted_list_from_polygons
+from eratosthenes.preprocessing.handler_rgi import which_rgi_region
 from eratosthenes.preprocessing.shadow_geometry import create_shadow_polygons
 
 from eratosthenes.processing.coregistration import coregister, \
@@ -34,6 +35,8 @@ im_path = ('Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VNK_20180225T232042/',
 fName = ('T05VNK_20180225T214531_B', 'T05VNK_20190225T214529_B', 'T05VNK_20200225T214531_B')
 
 shadow_transform = 'ruffenacht' # method to deploy for shadow enhancement
+
+poi = np.array([62.7095217, -151.8519815]) # lat,lon point of interest
 
 # do a subset of the imagery
 minI = 4000 # minimal row coordiante
@@ -69,22 +72,27 @@ for i in range(len(im_path)):
 
 # make raster with Randolph glacier mask for the tile
 if not os.path.exists(dat_path + sat_tile + '.tif'):
-    # create RGI raster for the extent of the image
     rgi_path = dat_path+'GIS/'
-    rgi_file = '01_rgi60_Alaska.shp'
-    out_shp = rgi_path+rgi_file[:-4]+'_utm'+sat_tile[1:3]+'.shp'
-    # get geo-meta data for a tile
-    fname = dat_path + im_path[0] + fName[0] + '04.jp2'
-    crs, geoTransform, targetprj, rows, cols, bands = read_geo_info(fname)
-    aoi = 'RGIId'
-    if not os.path.exists(out_shp):  # project RGI shapefile
-        # transform shapefile from lat-long to UTM
-        ll2utm(rgi_path+rgi_file,out_shp,crs,aoi)
-    # convert polygon file to raster file
-    shape2raster(out_shp, dat_path+sat_tile, geoTransform, rows, cols, aoi)
+    # discover which randolph region is used
+    rgi_file = which_rgi_region(rgi_path,poi)
+
+    if len(rgi_file)==1:  
+        # create RGI raster for the extent of the image   
+        rgi_file = rgi_file[0]
+        # rgi_file = '01_rgi60_Alaska.shp'
+        out_shp = rgi_path+rgi_file[:-4]+'_utm'+sat_tile[1:3]+'.shp'
+        # get geo-meta data for a tile
+        fname = dat_path + im_path[0] + fName[0] + '04.jp2'
+        crs, geoTransform, targetprj, rows, cols, bands = read_geo_info(fname)
+        aoi = 'RGIId'
+        if not os.path.exists(out_shp):  # project RGI shapefile
+            # transform shapefile from lat-long to UTM
+            ll2utm(rgi_path+rgi_file,out_shp,crs,aoi)
+        # convert polygon file to raster file
+        shape2raster(out_shp, dat_path+sat_tile, geoTransform, rows, cols, aoi)
 
 # make raster with elevation data for the tile
-if not os.path.exists(dat_path+ 'GIS/' + sat_tile + '_DEM.tif'):
+if not os.path.exists(dat_path + sat_tile + '_DEM.tif'):
     print('building digital elevation model (DEM) for '+ sat_tile )
     # get geo info of tile
     crs, geoTransform, targetprj, rows, cols, bands = read_geo_info(dat_path + 
@@ -115,13 +123,16 @@ if not os.path.exists(dat_path+ 'GIS/' + sat_tile + '_DEM.tif'):
     url_list = reduce_deplicate_urls(url_list)
     bulk_download_and_mosaic(url_list, dem_path, sat_tile, bbox_tile, crs, new_res)
     
+    os.rename(dem_path + sat_tile + '_DEM.tif', dat_path + sat_tile + '_DEM.tif')
+    
 
 (rgi_mask, crs, geoTransform, targetprj) = read_geo_image(dat_path
                                                           +sat_tile+'.tif')
 rgi_mask = rgi_mask[minI:maxI,minJ:maxJ]
 
 (dem_mask, crs, geoTransform, targetprj) = read_geo_image(dat_path
-                                                          +sat_tile+'.tif')
+                                                          +sat_tile+'_DEM.tif')
+# -9999 is no-data
 dem_mask = dem_mask[minI:maxI,minJ:maxJ]
 
 # TO DO:

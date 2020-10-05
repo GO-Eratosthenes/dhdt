@@ -1,6 +1,7 @@
 import os
 
 import tarfile
+import zipfile
 import urllib.request
 
 from osgeo import gdal
@@ -21,7 +22,7 @@ def url_exist(file_url):
 
 def get_tar_file(tar_url, dump_dir):
     '''
-    Downloads and unpacks comressed folder
+    Downloads and unpacks compressed folder
     
     input:   tar_url        string            url of www location
              dump_dir       string            path to place the content        
@@ -33,6 +34,25 @@ def get_tar_file(tar_url, dump_dir):
     tar_file.extractall(path=dump_dir)
     tar_names = tar_file.getnames()
     return tar_names
+
+def get_zip_file(zip_url, dump_dir):
+    '''
+    Downloads and unpacks compressed folder
+    
+    input:   zip_url        string            url of www location
+             dump_dir       string            path to place the content        
+    output:  zip_names      list of strings   file names in compressed folder    
+    '''
+    zip_resp = urllib.request.urlopen(zip_url)
+    temp_zip = open(dump_dir + 'tempfile.zip', "wb") 
+    temp_zip.write(zip_resp.read())
+    temp_zip.close()
+    
+    zf = zipfile.ZipFile(dump_dir + "tempfile.zip")
+    zf.extractall(path = dump_dir)
+    zf.close()    
+
+    os.remove(dump_dir + 'tempfile.zip')
 
 def bulk_download_and_mosaic(url_list, dem_path, sat_tile, bbox, crs, new_res=10):
 
