@@ -214,4 +214,44 @@ def find_overlapping_DEM_tiles(dem_path,dem_file, poly_tile):
             url_list += (demFeature.GetField('fileurl'),)
     
     return url_list
+
+def make_same_size(Old,geoTransform_old, geoTransform_new, rows_new, cols_new):
+    
+    # look at upper left coordinate
+    dj = np.round((geoTransform_new[0]-geoTransform_old[0])/geoTransform_new[1])
+    di = np.round((geoTransform_new[3]-geoTransform_old[3])/geoTransform_new[1])
+    
+    if np.sign(dj)==-1: # extend array by simple copy of border values
+        Old = np.concatenate((np.repeat(np.expand_dims(Old[:,0], axis = 1), 
+                                        abs(dj), axis=1), Old), axis = 1)
+    elif np.sign(dj)==1: # reduce array
+        Old = Old[:,abs(dj):]
+    
+    if np.sign(di)==-1: # reduce array
+        Old = Old[abs(di):,:]
+    elif np.sign(di)==1: # extend array by simple copy of border values
+        Old = np.concatenate((np.repeat(np.expand_dims(Old[0,:], axis = 1).T, 
+                                        abs(di), axis=0), Old), axis = 0)        
+    
+    # as they are now alligned, look at the lower right corner
+    di = rows_new - Old.shape[0]
+    dj = cols_new - Old.shape[1]
+    
+    
+    if np.sign(dj)==-1: # reduce array
+        Old = Old[:,:dj]
+    elif np.sign(dj)==1: # extend array by simple copy of border values
+        Old = np.concatenate((np.repeat(Old, np.expand_dims(Old[:,-1], axis=1), 
+                                        abs(dj), axis=1)), axis = 1)
+    
+    if np.sign(di)==-1: # reduce array
+        Old = Old[di:,:]
+    elif np.sign(di)==1: # extend array by simple copy of border values
+        Old = np.concatenate((np.repeat(Old, np.expand_dims(Old[-1,:], axis=1).T, 
+                                        abs(di), axis=0)), axis = 0) 
+    
+    New = Old
+    return New
+    
+    
     

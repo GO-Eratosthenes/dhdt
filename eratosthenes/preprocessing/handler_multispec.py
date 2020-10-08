@@ -9,7 +9,7 @@ from eratosthenes.generic.mapping_io import read_geo_image
 from eratosthenes.preprocessing.read_s2 import read_band_s2, read_sun_angles_s2
 from eratosthenes.preprocessing.shadow_transforms import enhance_shadow
 
-def create_shadow_image(dat_path, im_name, shadow_transform='reffenacht', \
+def create_shadow_image(dat_path, im_name, shadow_transform='ruffenacht', \
                         minI=0, maxI=0, minJ=0, maxJ=0):
     """
     Given a specific method, employ shadow transform
