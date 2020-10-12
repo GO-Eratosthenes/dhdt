@@ -206,4 +206,11 @@ for i in range(GridIdxs.shape[1]):
                 '{:+4.3f}'.format(     dh[k]))
         f.write(line + '\n')
     f.close()
+
+# post-processing
+print('post-processing')
+# test dem
+
+
+
     
