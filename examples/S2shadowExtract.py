@@ -157,27 +157,32 @@ for i in range(len(im_path)):
     create_caster_casted_list_from_polygons(dat_path, im_path[i], bbox,  
                                             rgi_glac_id)
 
-print('co-registring imagery')
-coregister(im_path, dat_path, connectivity=2, step_size=True, temp_size=15,
-           bbox=bbox, lstsq_mode='ordinary')
-#lkTransform = RefScale(RefTrans(subTransform,tempSize/2,tempSize/2),tempSize)
-#makeGeoIm(Dstack[0],lkTransform,crs,"DispAx1.tif")
+# get co-registration information
+(co_name,co_reg) = get_coregistration(dat_path, im_path)
 
+im_selec = (set(co_name)^set(im_path))&set(im_path)
+if bool(im_selec): # imagery in set which have not been co-registered
+    print('co-registring imagery')
+    coregister(im_path, dat_path, connectivity=2, step_size=True, temp_size=15,
+               bbox=bbox, lstsq_mode='ordinary')
+    #lkTransform = RefScale(RefTrans(subTransform,tempSize/2,tempSize/2),tempSize)
+    #makeGeoIm(Dstack[0],lkTransform,crs,"DispAx1.tif")
+    
+    # get co-registration information
+    (co_name,co_reg) = get_coregistration(dat_path, im_path)
 
 ## processing
-
-# get co-registration information
-(coName,coReg) = get_coregistration(dat_path, im_path)
-
+print('pairing imagery')
 # construct connectivity
 connectivity = 2
 GridIdxs = getNetworkBySunangles(dat_path, im_path, connectivity)
 for i in range(GridIdxs.shape[1]):
+    
     fname1 = im_path[GridIdxs[0][i]]
     fname2 = im_path[GridIdxs[1][i]]
     
     xy_1, xy_2, casters, dh = couple_pair(dat_path, fname1, fname2,
-                                          coName, coReg)
+                                          co_name, co_reg, rgi_glac_id)
 
     # write elevation distance    
     (time_1, orbit_1, tile_1) = meta_S2string(fname1)
@@ -185,12 +190,12 @@ for i in range(GridIdxs.shape[1]):
     dh_fname = ('dh-' + time_1 +'-'+ time_2 +'-'+ 
                 orbit_1 + '-' + orbit_2 +'-'+ 
                 tile_1 +'-'+ tile_2)
-    if rgi_glac_id is not None:
-        dh_fname = (dh_fname + '-' + '{:08d}'.format(rgi_glac_id) + '.txt')
-    else:
+    if rgi_glac_id is None:
         dh_fname = (dh_fname + '.txt')
+    else:
+        dh_fname = (dh_fname + '-' + '{:08d}'.format(rgi_glac_id) + '.txt')
         
-    f = open(dat_path + 'dh_fname', 'w')
+    f = open(dat_path + dh_fname, 'w')
     for k in range(dh.shape[0]):
         line = ('{:+8.2f}'.format(   xy_1[k, 0]) + ' ' + 
                 '{:+8.2f}'.format(   xy_1[k, 1]) + ' ' +

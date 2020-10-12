@@ -8,15 +8,21 @@ from eratosthenes.generic.mapping_tools import map2pix, pix2map, rotMat
 from eratosthenes.generic.mapping_io import read_geo_image
 from eratosthenes.processing.matching_tools import normalized_cross_corr
 
-def couple_pair(dat_path, fname1, fname2, coName, coReg):
+def couple_pair(dat_path, fname1, fname2, co_name, co_reg, rgi_id=None):
     # get start and finish points of shadow edges
-    conn1 = np.loadtxt(fname = dat_path+fname1+'conn.txt')
-    conn2 = np.loadtxt(fname = dat_path+fname2+'conn.txt')
+    if rgi_id == None:
+        conn1 = np.loadtxt(fname = dat_path+fname1+'conn.txt')
+        conn2 = np.loadtxt(fname = dat_path+fname2+'conn.txt')
+    else:
+        conn1 = np.loadtxt(fname = dat_path + fname1 + 'conn-rgi' + 
+                           '{:08d}'.format(rgi_id) + '.txt')
+        conn2 = np.loadtxt(fname = dat_path + fname2 + 'conn-rgi' + 
+                           '{:08d}'.format(rgi_id) + '.txt')        
     
     # compensate for coregistration
-    coid1 = coName.index(fname1)
-    coid2 = coName.index(fname2)
-    coDxy = coReg[coid1]-coReg[coid2]
+    coid1 = co_name.index(fname1)
+    coid2 = co_name.index(fname2)
+    coDxy = co_reg[coid1]-co_reg[coid2]
     
     conn2[:,0] += coDxy[0]*10 # transform to meters?
     conn2[:,1] += coDxy[1]*10
@@ -76,6 +82,25 @@ def match_shadow_casts(M1, M2, geoTransform1, geoTransform2,
     i2 = np.round(i2).astype(np.int64)
     j2 = np.round(j2).astype(np.int64)
     
+    # remove posts outside image   
+    IN = np.logical_and.reduce((i1>=0, i1<=M1.shape[0], 
+                                j1>=0, j1<=M1.shape[1],
+                                i2>=0, i2<=M2.shape[0], 
+                                j2>=0, j2<=M2.shape[1]))
+    
+    i1 = i1[IN]
+    j1 = j1[IN]
+    i2 = i2[IN]
+    j2 = j2[IN]
+    
+    # extend image size, so search regions at the border can be used as well
+    M1 = np.pad(M1, temp_radius,'constant', constant_values=0)
+    i1 += temp_radius
+    j1 += temp_radius
+    M2 = np.pad(M2, search_radius,'constant', constant_values=0)
+    i2 += search_radius
+    j2 += search_radius
+    
     ij2_corr = np.zeros((i1.shape[0],2)).astype(np.float64)
     xy2_corr = np.zeros((i1.shape[0],2)).astype(np.float64)
     corr_score = np.zeros((i1.shape[0],1)).astype(np.float16)
@@ -89,6 +114,9 @@ def match_shadow_casts(M1, M2, geoTransform1, geoTransform2,
         corr_score[counter] = corr
         ij2_corr[counter,0] = i2[counter] + di - (search_radius - temp_radius)
         ij2_corr[counter,1] = j2[counter] + dj - (search_radius - temp_radius)
+        
+        ij2_corr[counter,0] -= search_radius # compensate for padding
+        ij2_corr[counter,1] -= search_radius
     xy2_corr[:,0], xy2_corr[:,1] = pix2map(geoTransform1, ij2_corr[:,0], ij2_corr[:,1])
     
     return xy2_corr, corr_score
@@ -172,50 +200,50 @@ def get_elevation_difference(sun_1, sun_2, xy_1, xy_2, xy_t):
         
     return dh #, xy_t
 
-def transform_to_elevation_difference(sun_1, sun_2, xy_1, xy_2):
-    """    
-    input:   azimuth_t      array (2 x 1)     argument in degrees of the 
-                                              occluder
-             zenit_t        array (n x m)     zenith angle in degrees of the 
-                                              sun at the location of the 
-                                              occluder
-             x_c            array (2 x 1)     map coordinates of casted shadow
-             y_c            array (2 x 1)     map coordinates of casted shadow
-    output:  dh             array (n x m)     elevation difference
-    """    
+# def transform_to_elevation_difference(sun_1, sun_2, xy_1, xy_2):
+#     """    
+#     input:   azimuth_t      array (2 x 1)     argument in degrees of the 
+#                                               occluder
+#              zenit_t        array (n x m)     zenith angle in degrees of the 
+#                                               sun at the location of the 
+#                                               occluder
+#              x_c            array (2 x 1)     map coordinates of casted shadow
+#              y_c            array (2 x 1)     map coordinates of casted shadow
+#     output:  dh             array (n x m)     elevation difference
+#     """    
     
-    # translate coordinate system to the middle
-    xy_mean = np.stack((xy_1[:,0]/2+xy_2[:,0]/2,xy_1[:,1]/2+xy_2[:,1]/2)).T
-    xy_1_tilde = xy_1 - xy_mean
-    xy_2_tilde = xy_2 - xy_mean
-    del xy_mean
+#     # translate coordinate system to the middle
+#     xy_mean = np.stack((xy_1[:,0]/2+xy_2[:,0]/2,xy_1[:,1]/2+xy_2[:,1]/2)).T
+#     xy_1_tilde = xy_1 - xy_mean
+#     xy_2_tilde = xy_2 - xy_mean
+#     del xy_mean
     
-    # rotate coordinate system towards mean argument
-    azi_mean = np.arctan2(0.5* (np.sin(np.deg2rad(sun_1[:,0])) + 
-                                np.sin(np.deg2rad(sun_2[:,0]))) , 
-                          0.5* (np.cos(np.deg2rad(sun_2[:,0])) + 
-                                np.cos(np.deg2rad(sun_2[:,0])) )
-                          ) # in radians
-    xy_1_tilde = np.stack((+ np.cos(azi_mean) * xy_1_tilde[:,0]
-                           - np.sin(azi_mean) * xy_1_tilde[:,1], 
-                           + np.sin(azi_mean) * xy_1_tilde[:,0]
-                           + np.cos(azi_mean) * xy_1_tilde[:,1])
-                          ).T
-    xy_2_tilde = np.stack((+ np.cos(azi_mean) * xy_2_tilde[:,0]
-                           - np.sin(azi_mean) * xy_2_tilde[:,1], 
-                           + np.sin(azi_mean) * xy_2_tilde[:,0]
-                           + np.cos(azi_mean) * xy_2_tilde[:,1])
-                          ).T
-    del axi_mean
+#     # rotate coordinate system towards mean argument
+#     azi_mean = np.arctan2(0.5* (np.sin(np.deg2rad(sun_1[:,0])) + 
+#                                 np.sin(np.deg2rad(sun_2[:,0]))) , 
+#                           0.5* (np.cos(np.deg2rad(sun_2[:,0])) + 
+#                                 np.cos(np.deg2rad(sun_2[:,0])) )
+#                           ) # in radians
+#     xy_1_tilde = np.stack((+ np.cos(azi_mean) * xy_1_tilde[:,0]
+#                            - np.sin(azi_mean) * xy_1_tilde[:,1], 
+#                            + np.sin(azi_mean) * xy_1_tilde[:,0]
+#                            + np.cos(azi_mean) * xy_1_tilde[:,1])
+#                           ).T
+#     xy_2_tilde = np.stack((+ np.cos(azi_mean) * xy_2_tilde[:,0]
+#                            - np.sin(azi_mean) * xy_2_tilde[:,1], 
+#                            + np.sin(azi_mean) * xy_2_tilde[:,0]
+#                            + np.cos(azi_mean) * xy_2_tilde[:,1])
+#                           ).T
+#     del axi_mean
     
-    # extract length
-    dxy_tilde = xy_1_tilde - xy_2_tilde
-    dzenit = sun_1[:,1] - sun_2[:,1]
+#     # extract length
+#     dxy_tilde = xy_1_tilde - xy_2_tilde
+#     dzenit = sun_1[:,1] - sun_2[:,1]
 
-    # translate to elevation difference
+#     # translate to elevation difference
     
     
     
-    return dh
+#     return dh
     
     

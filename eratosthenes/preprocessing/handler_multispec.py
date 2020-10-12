@@ -99,7 +99,11 @@ def create_caster_casted_list_from_polygons(dat_path, im_name,bbox=None,
     sunAzi = sunAz[castngIJ[:,0],castngIJ[:,1]]
     
     # write to file
-    f = open(im_path+'conn.txt', 'w')
+    if polygon_id is None:
+        f = open(im_path + 'conn.txt', 'w')
+    else:
+        f = open(im_path + 'conn-rgi' + '{:08d}'.format(polygon_id) + '.txt', 'w')  
+    
     for i in range(castedX.shape[0]):
         line = '{:+8.2f}'.format(castngX[i])+' '+'{:+8.2f}'.format(castngY[i])+' '
         line = line + '{:+8.2f}'.format(castedX[i])+' '+'{:+8.2f}'.format(castedY[i])+' '
