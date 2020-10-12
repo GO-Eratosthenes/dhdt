@@ -90,7 +90,7 @@ for i in range(len(im_path)):
     (sat_time,sat_orbit,sat_tile) = meta_S2string(im_path[i])
     print('working on '+ fName[i][0:-2])
     if not os.path.exists(sen2Path + 'shadows.tif'):
-        if len([n for n in ['matte','ruffenacht'] if n in shadow_transform])==1:
+        if len([n for n in ['matte'] if n in shadow_transform])==1:
             # shading estimate is needed as auxillary data
             Shw = make_shadowing(dat_path, sat_tile + '_DEM.tif',
                            dat_path, im_path[i])       
