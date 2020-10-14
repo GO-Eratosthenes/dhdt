@@ -20,6 +20,30 @@ def castOrientation(I, Az):  # generic
             - np.multiply(np.sin(np.radians(Az)), Idx))
     return Ican
 
+def bilinear_interp_excluding_nodat(DEM, i_DEM, j_DEM, noData=-9999):
+    '''
+    do simple bi-linear interpolation
+    '''
+    # do bilinear interpolation
+    i_prio = np.floor(i_DEM).astype(int)
+    i_post = np.ceil(i_DEM).astype(int)
+    j_prio = np.floor(j_DEM).astype(int)
+    j_post = np.ceil(j_DEM).astype(int)
+      
+    wi = np.remainder(i_DEM,1)
+    wj = np.remainder(j_DEM,1)
+    
+    DEM_1 = DEM[i_prio,j_prio]  
+    DEM_2 = DEM[i_prio,j_post]  
+    DEM_3 = DEM[i_post,j_post]  
+    DEM_4 = DEM[i_post,j_prio]  
+    
+    no_dat = np.any(np.vstack((DEM_1,DEM_2,DEM_3,DEM_4))==noData, axis=0)
+    # look at nan
+    
+    DEM_ij = wj*(wi*DEM_1 + (1-wi)*DEM_4) + (1-wj)*(wi*DEM_2 + (1-wi)*DEM_3)
+    DEM_ij[no_dat] = noData
+    return DEM_ij
 
 def bboxBoolean(img):  # generic
     """

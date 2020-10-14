@@ -3,6 +3,8 @@ import glob
 import numpy as np
 import matplotlib.pyplot as plt
 
+from scipy import interpolate
+
 from osgeo import ogr, osr, gdal
 
 from eratosthenes.generic.handler_s2 import meta_S2string
@@ -11,7 +13,7 @@ from eratosthenes.generic.handler_www import bulk_download_and_mosaic, \
 from eratosthenes.generic.mapping_io import makeGeoIm, read_geo_image, \
     read_geo_info
 from eratosthenes.generic.mapping_tools import get_bbox_polygon, \
-    find_overlapping_DEM_tiles, get_bbox, map2pix
+    find_overlapping_DEM_tiles, get_bbox, map2pix, bilinear_interp_excluding_nodat
     
 from eratosthenes.generic.gis_tools import ll2utm, shape2raster, \
     reproject_shapefile
@@ -26,6 +28,7 @@ from eratosthenes.processing.coregistration import coregister, \
     get_coregistration, getNetworkBySunangles
 from eratosthenes.processing.coupling_tools import couple_pair
 
+from eratosthenes.postprocessing.mapping_tools import dh_txt2shp
 
 dat_path = '/Users/Alten005/surfdrive/Eratosthenes/Denali/'
 #im_path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VPL_20180225T232042/'
@@ -228,16 +231,11 @@ for i in range(len(dh_files)):
     # look at DEM
     DEM, crs_DEM, geoTran_DEM, prj_DEM = read_geo_image(
         os.path.join( dat_path, dh_meta[5] + '_DEM.tif'))
-#    OUT = DEM==-9999
     i1_DEM, j1_DEM = map2pix(geoTran_DEM, dh_mat[:,0], dh_mat[:,1])
     i2_DEM, j2_DEM = map2pix(geoTran_DEM, dh_mat[:,2], dh_mat[:,3])
-    # do nearest neighbor, as DEM has holes with NO-DATA
-    i1_DEM = np.round(i1_DEM).astype(int)
-    j1_DEM = np.round(j1_DEM).astype(int)
-    DEM_1 = DEM[i1_DEM,j1_DEM]    
-    i2_DEM = np.round(i2_DEM).astype(int)  
-    j2_DEM = np.round(j2_DEM).astype(int)       
-    DEM_2 = DEM[i2_DEM,j2_DEM]
+   
+    DEM_1 = bilinear_interp_excluding_nodat(DEM, i1_DEM, j1_DEM, -9999)
+    DEM_2 = bilinear_interp_excluding_nodat(DEM, i2_DEM, j2_DEM, -9999)
     del i1_DEM, i2_DEM, j1_DEM, j2_DEM
     
     # add DEM data to file
@@ -251,42 +249,11 @@ for i in range(len(dh_files)):
         dh_mat = np.array([list(map(float,line.split(' '))) for line in lines])
     del lines
 
-    
     ## make shapefile
-    driver = ogr.GetDriverByName('ESRI Shapefile') # set up the shapefile driver
     shp_name = dh_files[i][:-3] + 'shp'
-    if os.path.exists(shp_name):
-         driver.DeleteDataSource(shp_name)
-    ds = driver.CreateDataSource(shp_name) # create the data source
+    dh_txt2shp(dh_mat, DEM_1, DEM_2, shp_name, prj_DEM)
+
     
-    srs = prj_DEM # create the spatial reference from DEM meta info
-    
-    # create the layer
-    layer = ds.CreateLayer('photohypso_matches', srs, geom_type=ogr.wkbLineString)
-    
-    # Add the fields we're interested in
-    layer.CreateField(ogr.FieldDefn('dh', ogr.OFTReal))
-    layer.CreateField(ogr.FieldDefn('h1', ogr.OFTReal))
-    layer.CreateField(ogr.FieldDefn('h2', ogr.OFTReal))
-    
-    # Process the text file and add the attributes and features to the shapefile
-    for j in range(dh_mat.shape[0]):
-        # create the feature
-        feature = ogr.Feature(layer.GetLayerDefn())
-        # Set the attributes using the values from the delimited text file
-        feature.SetField('dh', dh_mat[j,6])
-        feature.SetField('h1', DEM_1[j])
-        feature.SetField('h2', DEM_2[j])
-          
-        line = ogr.Geometry(ogr.wkbLineString)
-        line.AddPoint(dh_mat[j,0], dh_mat[j,1])
-        line.AddPoint(dh_mat[j,2], dh_mat[j,3])
-        feature.SetGeometry(line)
-        
-        layer.CreateFeature(feature) # Create the feature in the layer (shapefile)
-        feature = None # Dereference the feature
-    layer = None
-    # Save and close the data source
-    ds = None
+   
     
     
