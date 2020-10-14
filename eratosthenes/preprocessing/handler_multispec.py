@@ -35,18 +35,16 @@ def create_shadow_image(dat_path, im_name, shadow_transform='ruffenacht', \
     M = enhance_shadow(shadow_transform,Blue,Green,Red,Nir)
     return M, geoTransform, crs
 
-def create_caster_casted_list_from_polygons(dat_path, im_name,bbox=None, 
-                                            polygon_id=None):
+def create_caster_casted_list_from_polygons(dat_path, im_name, Rgi, 
+                                            bbox=None, polygon_id=None):
     """
     Create a list of casted and casted coordinates, of shadow polygons that
     are occluding parts of a glacier
     
     """
     im_path = dat_path + im_name
-
-    (Rgi, spatialRef, geoTransform, targetprj) = read_geo_image(im_path + 'rgi.tif')
-    img = gdal.Open(im_path + 'labelPolygons.tif')
-    cast = np.array(img.GetRasterBand(1).ReadAsArray())
+    
+    (cast, spatialRef, geoTransform, targetprj) = read_geo_image(im_path + 'labelPolygons.tif')
     img = gdal.Open(im_path + 'labelCastConn.tif')
     conn = np.array(img.GetRasterBand(1).ReadAsArray())
     
@@ -54,7 +52,7 @@ def create_caster_casted_list_from_polygons(dat_path, im_name,bbox=None,
     if polygon_id is None:
         selec = Rgi!=0
     else:
-        selec = Rgi!=polygon_id
+        selec = Rgi==polygon_id
     IN = np.logical_and(selec,conn<0) # are shadow edges on the glacier
     linIdx1 = np.transpose(np.array(np.where(IN)))
     

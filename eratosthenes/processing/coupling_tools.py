@@ -1,14 +1,18 @@
+import os
 import math
 
 import numpy as np
 
 from sklearn.neighbors import NearestNeighbors
 
-from eratosthenes.generic.mapping_tools import map2pix, pix2map, rotMat 
+from eratosthenes.generic.mapping_tools import map2pix, pix2map, rotMat, castOrientation 
 from eratosthenes.generic.mapping_io import read_geo_image
+
+from eratosthenes.preprocessing.read_s2 import read_sun_angles_s2
+
 from eratosthenes.processing.matching_tools import normalized_cross_corr
 
-def couple_pair(dat_path, fname1, fname2, co_name, co_reg, rgi_id=None):
+def couple_pair(dat_path, fname1, fname2, bbox, co_name, co_reg, rgi_id=None):
     # get start and finish points of shadow edges
     if rgi_id == None:
         conn1 = np.loadtxt(fname = dat_path+fname1+'conn.txt')
@@ -39,7 +43,13 @@ def couple_pair(dat_path, fname1, fname2, co_name, co_reg, rgi_id=None):
             dat_path + fname1 + 'shadows.tif') # shadow transform template
     (M2, crs, geoTransform2, targetprj) = read_geo_image(
             dat_path + fname2 + 'shadows.tif') # shadow transform search space
-    # castOrientation...
+    
+    # put emphasis on 
+    (sunZn,sunAz) = read_sun_angles_s2(os.path.join(dat_path, fname1))
+    M1 = castOrientation(M1, sunZn[bbox[0]:bbox[1],bbox[2]:bbox[3]])
+    (sunZn,sunAz) = read_sun_angles_s2(os.path.join(dat_path, fname2))
+    M2 = castOrientation(M2, sunZn[bbox[0]:bbox[1],bbox[2]:bbox[3]])
+    
     post2_corr, corr_score = match_shadow_casts(M1, M2, geoTransform1, geoTransform2,
                        post1, post2)
     
@@ -48,6 +58,14 @@ def couple_pair(dat_path, fname1, fname2, co_name, co_reg, rgi_id=None):
     # extract elevation change
     sun_1 = conn1[idxConn[:,1],4:6]
     sun_2 = conn2[idxConn[:,0],4:6]
+
+    IN = corr_score>0.8
+    post1 = post1[IN.flatten(),:]
+    post2 = post2[IN.flatten(),:]
+    post2_corr = post2_corr[IN.flatten(),:]
+    sun_1 = sun_1[IN.flatten(),:]
+    sun_2 = sun_2[IN.flatten(),:]
+    casters = casters[IN.flatten(),:]
     
     dh = get_elevation_difference(sun_1, sun_2, post1, post2_corr, casters)
     return post1, post2_corr, casters, dh

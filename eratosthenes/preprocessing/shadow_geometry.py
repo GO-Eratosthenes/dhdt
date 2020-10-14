@@ -10,7 +10,7 @@ from scipy import special  # for trigonometric functions
 from skimage import measure
 from skimage import segmentation  # for superpixels
 from skimage import color  # for labeling image
-from skimage.morphology import opening, disk
+from skimage.morphology import remove_small_objects # opening, disk, erosion, closing
 
 
 from rasterio.features import shapes  # for raster to polygon
@@ -131,9 +131,9 @@ def create_shadow_polygons(M,im_path, minI=0, maxI=0, minJ=0, maxJ=0):
              cast_conn      array (m x n)     array with numbered edge pixels
     """
     
-    if 1==2: # do median filtering
+    if 1==1: # do median filtering
         siz = 5
-        loop = 100
+        loop = 10
         M = medianFilShadows(M,siz,loop)
     labels = sturge(M) # classify into regions
 
@@ -215,12 +215,13 @@ def sturge(M):  # pre-processing
     val = max(dips)
     imSeparation = M > val
     
-    # do morphological operation to remove speckle
-    selem = disk(6)
-    imSeparation = opening(imSeparation, selem)
-
-    labels = measure.label(imSeparation, background=0)
+    
+    labels = remove_small_objects(imSeparation, min_size=10)
     return labels
+
+
+
+segmentation.clear_border
 
 
 def findValley(values, base, neighbors=2):  # pre-processing
@@ -368,26 +369,28 @@ def labelOccluderAndCasted(labeling, sunAz):  # pre-processing
                     continue
 
                     # find closest casted
-                castHit = cast & subCast
-                castIdx = castHit[subWhe[0], subWhe[1]]  # == True
-                castI = subWhe[0][castIdx]
-                castJ = subWhe[1][castIdx]
-                del IN, castIdx, castHit, subCast, rr, cc, dI, dJ, sunDir
+                castedHit = cast & subCast
+                (castedIdx) = np.where(castedHit[subWhe[0], subWhe[1]] == 1)
+                castedI = subWhe[0][castedIdx[0]]
+                castedJ = subWhe[1][castedIdx[0]]
+                del IN, castedIdx, castedHit, subCast, rr, cc, dI, dJ, sunDir
 
-                if len(castI) > 1:
+                if len(castedI) > 1:
                     # do selection of the closest casted
                     dist = np.sqrt(
-                        (castI - ridgeI[x]) ** 2 + (castJ - ridgeJ[x]) ** 2)
+                        (castedI - ridgeI[x]) ** 2 + (castedJ - ridgeJ[x]) ** 2)
                     idx = np.where(dist == np.amin(dist))
-                    castI = castI[idx[0]]
-                    castJ = castJ[idx[0]]
+                    castedI = castedI[idx[0]]
+                    castedJ = castedJ[idx[0]]
 
-                if len(castI) > 0:
+                if len(castedI) > 0:
                     # write out
-                    shadowIdx[ridgeI[x] + labImin][ridgeJ[x] + labJmin] = +x
+                    shadowIdx[ridgeI[x] + labImin][ridgeJ[x] + labJmin] = +(x+1)
                     # shadowIdx[ridgeI[x]+loc[0].start,
                     #           ridgeJ[x]+loc[1].start] = +x # ridge
-                    shadowIdx[castI[0] + labImin][castJ[0] + labJmin] = -x
+                    shadowIdx[castedI[0] + labImin][castedJ[0] + labJmin] = -(x+1)
+        
+        print("polygon done")
                     # shadowIdx[castI[0]+loc[0].start,
                     #           castJ[0]+loc[1].start] = -x # casted
             #     else:

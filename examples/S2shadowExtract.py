@@ -155,8 +155,8 @@ rgi_glac_id = 22216 # None,  select a single glacier
 if rgi_glac_id is not None:
     print(f'looking at glacier with Randolph ID { rgi_glac_id }.')
 for i in range(len(im_path)):
-    create_caster_casted_list_from_polygons(dat_path, im_path[i], bbox,  
-                                            rgi_glac_id)
+    create_caster_casted_list_from_polygons(dat_path, im_path[i], rgi_mask, 
+                                            bbox, rgi_glac_id)
 
 # get co-registration information
 (co_name,co_reg) = get_coregistration(dat_path, im_path)
@@ -182,7 +182,7 @@ for i in range(GridIdxs.shape[1]):
     fname1 = im_path[GridIdxs[0][i]]
     fname2 = im_path[GridIdxs[1][i]]
     
-    xy_1, xy_2, casters, dh = couple_pair(dat_path, fname1, fname2,
+    xy_1, xy_2, casters, dh = couple_pair(dat_path, fname1, fname2, bbox,
                                           co_name, co_reg, rgi_glac_id)
 
     # write elevation distance    
@@ -224,7 +224,7 @@ for i in range(len(dh_files)):
         lines = f.read().splitlines()
         dh_mat = np.array([list(map(float,line.split(' '))) for line in lines])
     del lines
-    
+   
     # look at DEM
     DEM, crs_DEM, geoTran_DEM, prj_DEM = read_geo_image(
         os.path.join( dat_path, dh_meta[5] + '_DEM.tif'))
@@ -241,15 +241,28 @@ for i in range(len(dh_files)):
     del i1_DEM, i2_DEM, j1_DEM, j2_DEM
     
     # add DEM data to file
-    dh_mat = np.concatenate((dh_mat, np.vstack((DEM_1, DEM_2)).T), axis=1)
+    #DH = np.concatenate((dh_mat, np.vstack((DEM_1, DEM_2)).T), axis=1)
+    
+    ### OBS
+    # python is strange and adjust dh_mat....
+    
+    with open(dh_files[i]) as f:
+        lines = f.read().splitlines()
+        dh_mat = np.array([list(map(float,line.split(' '))) for line in lines])
+    del lines
+
     
     ## make shapefile
     driver = ogr.GetDriverByName('ESRI Shapefile') # set up the shapefile driver
-    data_source = driver.CreateDataSource(dh_files[i][:-3] + 'shp') # create the data source
+    shp_name = dh_files[i][:-3] + 'shp'
+    if os.path.exists(shp_name):
+         driver.DeleteDataSource(shp_name)
+    ds = driver.CreateDataSource(shp_name) # create the data source
+    
     srs = prj_DEM # create the spatial reference from DEM meta info
     
     # create the layer
-    layer = data_source.CreateLayer('photohypso_matches', srs, ogr.wkbLineString)
+    layer = ds.CreateLayer('photohypso_matches', srs, geom_type=ogr.wkbLineString)
     
     # Add the fields we're interested in
     layer.CreateField(ogr.FieldDefn('dh', ogr.OFTReal))
@@ -262,8 +275,8 @@ for i in range(len(dh_files)):
         feature = ogr.Feature(layer.GetLayerDefn())
         # Set the attributes using the values from the delimited text file
         feature.SetField('dh', dh_mat[j,6])
-        feature.SetField('h1', dh_mat[j,7])
-        feature.SetField('h2', dh_mat[j,8])
+        feature.SetField('h1', DEM_1[j])
+        feature.SetField('h2', DEM_2[j])
           
         line = ogr.Geometry(ogr.wkbLineString)
         line.AddPoint(dh_mat[j,0], dh_mat[j,1])
@@ -272,8 +285,8 @@ for i in range(len(dh_files)):
         
         layer.CreateFeature(feature) # Create the feature in the layer (shapefile)
         feature = None # Dereference the feature
-    
+    layer = None
     # Save and close the data source
-    data_source = None
+    ds = None
     
     
