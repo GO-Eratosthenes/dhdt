@@ -2,6 +2,34 @@ import math
 
 import numpy as np
 
+def make_2D_Gaussian(size, fwhm = 3, center=None):
+    """ 
+    Make a 2D Gaussian kernel.
+
+    input:
+    size integer
+    fwhm float full-width-half-maximum
+    can be thought of as an effective radius.
+    center position of peak
+    output:
+        array
+    """
+    if len(size)==1:
+        size = (size, size)
+    
+    x = np.arange(0, size[0], 1, float)
+    y = np.arange(0, size[1], 1, float) #x[:,np.newaxis]
+    y = y[:,np.newaxis]
+
+    if center is None:
+        x0 = size[0] / 2 # // 2 to round to integer
+        y0 = size[1] / 2
+    else:
+        x0 = center[0]
+        y0 = center[1]
+
+    return np.exp(-4*np.log(2) * ((x-x0)**2 + (y-y0)**2) / fwhm**2)
+
 def sigma_filtering(y,thres=3):
     """
     3-sigma filtering

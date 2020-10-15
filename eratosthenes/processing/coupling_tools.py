@@ -10,7 +10,7 @@ from eratosthenes.generic.mapping_io import read_geo_image
 
 from eratosthenes.preprocessing.read_s2 import read_sun_angles_s2
 
-from eratosthenes.processing.matching_tools import normalized_cross_corr
+from eratosthenes.processing.matching_tools import normalized_cross_corr, lucas_kanade_single
 
 def couple_pair(dat_path, fname1, fname2, bbox, co_name, co_reg, rgi_id=None):
     # get start and finish points of shadow edges
@@ -129,12 +129,24 @@ def match_shadow_casts(M1, M2, geoTransform1, geoTransform2,
                 j2[counter] - search_radius:j2[counter] + search_radius + 1]
         # matching
         di,dj,corr = normalized_cross_corr(M1_sub, M2_sub)
+        di = di - (search_radius - temp_radius)
+        dj = dj - (search_radius - temp_radius)
+        # optical flow refinement
+        M2_new = M2[i2[counter]-di - temp_radius:i2[counter]-di + temp_radius + 1,
+                j2[counter]-dj - temp_radius:j2[counter]-dj + temp_radius + 1]
+        ddi,ddj = lucas_kanade_single(M1_sub, M2_new)
+        
+        if (abs(ddi)>0.5) or (abs(ddj)>0.5): # divergence
+            ddi = 0
+            ddj = 0
+        
         corr_score[counter] = corr
-        ij2_corr[counter,0] = i2[counter] + di - (search_radius - temp_radius)
-        ij2_corr[counter,1] = j2[counter] + dj - (search_radius - temp_radius)
+        ij2_corr[counter,0] = i2[counter] - di - ddi
+        ij2_corr[counter,1] = j2[counter] - dj - ddj
         
         ij2_corr[counter,0] -= search_radius # compensate for padding
         ij2_corr[counter,1] -= search_radius
+        
     xy2_corr[:,0], xy2_corr[:,1] = pix2map(geoTransform1, ij2_corr[:,0], ij2_corr[:,1])
     
     return xy2_corr, corr_score

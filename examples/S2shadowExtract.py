@@ -28,7 +28,7 @@ from eratosthenes.processing.coregistration import coregister, \
     get_coregistration, getNetworkBySunangles
 from eratosthenes.processing.coupling_tools import couple_pair
 
-from eratosthenes.postprocessing.mapping_tools import dh_txt2shp
+from eratosthenes.postprocessing.mapping_io import dh_txt2shp
 
 dat_path = '/Users/Alten005/surfdrive/Eratosthenes/Denali/'
 #im_path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VPL_20180225T232042/'
@@ -231,7 +231,7 @@ for i in range(len(dh_files)):
     # look at DEM
     DEM, crs_DEM, geoTran_DEM, prj_DEM = read_geo_image(
         os.path.join( dat_path, dh_meta[5] + '_DEM.tif'))
-    i1_DEM, j1_DEM = map2pix(geoTran_DEM, dh_mat[:,0], dh_mat[:,1])
+    i1_DEM, j1_DEM = map2pix(geoTran_DEM, dh_mat[:,0].copy() , dh_mat[:,1])
     i2_DEM, j2_DEM = map2pix(geoTran_DEM, dh_mat[:,2], dh_mat[:,3])
    
     DEM_1 = bilinear_interp_excluding_nodat(DEM, i1_DEM, j1_DEM, -9999)

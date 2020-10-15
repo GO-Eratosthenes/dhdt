@@ -3,6 +3,7 @@ import numpy as np
 from scipy import ndimage  # for image filtering
 from skimage.feature import match_template
 
+from eratosthenes.generic.filtering_statistical import make_2D_Gaussian
 
 # image matching functions
 def lucas_kanade(I1, I2, window_size, sampleI, sampleJ, tau=1e-2):  # processing
@@ -26,16 +27,17 @@ def lucas_kanade(I1, I2, window_size, sampleI, sampleJ, tau=1e-2):  # processing
         [[1., 1.],
          [1., 1.]]
     ) * .25
-    radius = np.floor(window_size / 2).astype(
-        'int')  # window_size should be odd
 
     fx = ndimage.convolve(I1, kernel_x)
     fy = ndimage.convolve(I1, np.flip(np.transpose(kernel_x), axis=0))
     ft = ndimage.convolve(I2, kernel_t) + ndimage.convolve(I1, -kernel_t)
 
+    # grid or single estimation
     Ugrd = np.zeros((len(sampleI), len(sampleJ)))
     Vgrd = np.zeros((len(sampleI), len(sampleJ)))
 
+    radius = np.floor(window_size / 2).astype(
+            'int')  # window_size should be odd
     for iIdx in range(sampleI.size):
         iIm = sampleI.flat[iIdx]
         jIm = sampleJ.flat[iIdx]
@@ -62,6 +64,55 @@ def lucas_kanade(I1, I2, window_size, sampleI, sampleJ, tau=1e-2):  # processing
                 Vgrd[iGrd, jGrd] = nu[1]
 
     return (Ugrd, Vgrd)
+
+def lucas_kanade_single(I1, I2, weighting=True, tau=1e-2):  # processing
+    """
+    displacement estimation through optical flow
+    following Lucas & Kanade 1981
+    input:   I1             array (n x m)     image with intensities
+             I2             array (n x m)     image with intensities
+             tau            float             smoothness parameter
+    output:  u              float             displacement estimate
+             v              float             displacement estimate
+    """
+    kernel_x = np.array(
+        [[-1., 1.],
+         [-1., 1.]]
+    )
+    kernel_t = np.array(
+        [[1., 1.],
+         [1., 1.]]
+    ) * .25
+
+    Ix = ndimage.convolve(I1, kernel_x)
+    Iy = ndimage.convolve(I1, np.flip(np.transpose(kernel_x), axis=0))
+    It = ndimage.convolve(I2, kernel_t) + ndimage.convolve(I1, -kernel_t)
+
+    # look if variation is present
+    if np.std(It) != 0:
+        b = np.reshape(It, (It.size, 1))  # get b here
+        A = np.hstack((np.reshape(Ix, (Ix.size, -1)), 
+                       np.reshape(Iy, (Iy.size, -1))
+                       ))  # get A here
+        
+        # incorparate weighting, with emphasis on the center
+        if weighting is True:
+            W = make_2D_Gaussian(I1.shape, np.min(I1.shape))
+            W = np.reshape(W, (W.size,-1))
+            A = A * np.sqrt(np.diagonal(W))
+            b = b * np.sqrt(np.diagonal(W))
+        
+        # threshold tau should be larger
+        # than the smallest eigenvalue of A'A
+        if np.min(abs(np.linalg.eigvals(np.matmul(A.T, A)))) >= tau:
+            nu = np.matmul(np.linalg.pinv(A), b)  # get displacement here
+            u = nu[0]
+            v = nu[1]
+        else:
+            u = 0
+            v = 0
+
+    return (u, v)
 
 
 def normalized_cross_corr(I1, I2):  # processing
