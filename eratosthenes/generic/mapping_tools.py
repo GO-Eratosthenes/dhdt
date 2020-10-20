@@ -1,7 +1,9 @@
+import os
+
 import numpy as np
 
 from scipy import ndimage
-
+from osgeo import ogr
 
 def castOrientation(I, Az):  # generic
     """
@@ -98,11 +100,24 @@ def pix2map(geoTransform, i, j):  # generic
          + geoTransform[5] * i
          )
 
-    # offset the center of the pixel
-    x += geoTransform[1] / 2.0
-    y += geoTransform[5] / 2.0
+    # # offset the center of the pixel
+    # x += geoTransform[1] / 2.0
+    # y += geoTransform[5] / 2.0
     return x, y
 
+def pix_centers(geoTransform, rows, cols, make_grid=True):
+    '''
+    Provide the pixel coordinate from the axis, or the whole grid
+    '''
+    i = np.linspace(1, rows, cols)
+    j = np.linspace(1, cols, rows)
+    if make_grid:
+        J, I = np.meshgrid(i, j)
+        X,Y = pix2map(geoTransform, I, J)
+        return X, Y
+    else:
+        x,y = pix2map(geoTransform, i, j)
+        return x, y
 
 def map2pix(geoTransform, x, y):  # generic
     """
@@ -114,9 +129,9 @@ def map2pix(geoTransform, x, y):  # generic
     output:  i              array (n x 1)     row coordinates in image space
              j              array (n x 1)     column coordinates in image space
     """
-    # offset the center of the pixel
-    x -= geoTransform[1] / 2.0
-    y -= geoTransform[5] / 2.0
+    # # offset the center of the pixel
+    # x -= geoTransform[1] / 2.0
+    # y -= geoTransform[5] / 2.0
     x -= geoTransform[0]
     y -= geoTransform[3]
 
@@ -133,3 +148,70 @@ def map2pix(geoTransform, x, y):  # generic
              + y / geoTransform[5])
 
     return i, j
+
+def get_bbox(geoTransform, rows, cols):
+    '''
+    given array meta data, calculate the bounding box
+    input:   geoTransform   array (1 x 6)     georeference transform of
+                                              an image
+             rows           integer           row size of the image
+             cols           integer           collumn size of the image
+    output:  bbox           array (1 x 4)     min max X, min max Y   
+    '''
+    X = geoTransform[0] + np.array([1, rows])*geoTransform[1] + np.array([1, cols])*geoTransform[2] 
+    Y = geoTransform[3] + np.array([1, rows])*geoTransform[4] + np.array([1, cols])*geoTransform[5]
+    bbox = np.hstack((np.sort(X), np.sort(Y)))
+    return bbox
+    
+def get_map_extent(bbox):
+    """
+    generate coordinate list in counterclockwise direction from boundingbox
+    input:   bbox           array (1 x 4)     min max X, min max Y  
+    output:  xB             array (5 x 1)     coordinate list for x  
+             yB             array (5 x 1)     coordinate list for y      
+    """
+    xB = np.array([[ bbox[0], bbox[0], bbox[1], bbox[1], bbox[0] ]]).T
+    yB = np.array([[ bbox[3], bbox[2], bbox[2], bbox[3], bbox[3] ]]).T
+    return xB, yB    
+    
+def get_bbox_polygon(geoTransform, rows, cols):
+    '''
+    given array meta data, calculate the bounding box
+    input:   geoTransform   array (1 x 6)     georeference transform of
+                                              an image
+             rows           integer           row size of the image
+             cols           integer           collumn size of the image
+    output:  bbox           OGR polygon          
+    '''    
+    # build tile polygon
+    bbox = get_bbox(geoTransform, rows, cols)
+    xB,yB = get_map_extent(bbox)
+    ring = ogr.Geometry(ogr.wkbLinearRing)
+    for i in range(5):
+        ring.AddPoint(float(xB[i]),float(yB[i]))
+    poly = ogr.Geometry(ogr.wkbPolygon)
+    poly.AddGeometry(ring)
+    # poly_tile.ExportToWkt()
+    return poly
+    
+def find_overlapping_DEM_tiles(dem_path,dem_file, poly_tile):
+    '''
+    loop through a shapefile of tiles, to find overlap with a given geometry
+    '''
+    # Get the DEM tile layer
+    demShp = ogr.Open(os.path.join(dem_path, dem_file))
+    demLayer = demShp.GetLayer()
+
+    url_list = ()
+    # loop through the tiles and see if there is an intersection
+    for i in range(0, demLayer.GetFeatureCount()):
+        # Get the input Feature
+        demFeature = demLayer.GetFeature(i)
+        geom = demFeature.GetGeometryRef()
+        
+        intersection = poly_tile.Intersection(geom)
+        if(intersection is not None and intersection.Area()>0):
+            url_list += (demFeature.GetField('fileurl'),)
+    
+    return url_list
+    

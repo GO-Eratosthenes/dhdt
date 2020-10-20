@@ -92,3 +92,59 @@ def shape2raster(shp_fname,im_fname,geoTransform,rows,cols,aoi='RGIId'):
     #main conversion method
     gdal.RasterizeLayer(rgiRaster, [1], rgiLayer, options=['ATTRIBUTE='+aoi])
     rgiRaster = None # missing link.....
+
+def reproject_shapefile(path, in_file, targetprj):
+    """
+    Transforms shapefile into other projection
+    """
+    out_file = in_file[:-4]+'_utm.shp'
+    
+    #getting layer information of shapefile.
+    inShp = ogr.Open(os.path.join(path, in_file))
+    inLayer = inShp.GetLayer()
+    inSpatialRef = inLayer.GetSpatialRef()
+   
+    # create the CoordinateTransformation
+    coordTrans = osr.CoordinateTransformation(inSpatialRef, targetprj)
+       
+    # create the output layer
+    outputShapefile = os.path.join(path, out_file)
+    driver = ogr.GetDriverByName('ESRI Shapefile')
+    if os.path.exists(outputShapefile):
+        driver.DeleteDataSource(outputShapefile)
+    outDataSet = driver.CreateDataSource(outputShapefile)
+    outLayer = outDataSet.CreateLayer(out_file, geom_type=ogr.wkbMultiPolygon)
+    
+    # add fields
+    inLayerDefn = inLayer.GetLayerDefn()
+    for i in range(0, inLayerDefn.GetFieldCount()):
+        fieldDefn = inLayerDefn.GetFieldDefn(i)
+        outLayer.CreateField(fieldDefn)
+    
+    # get the output layer's feature definition
+    outLayerDefn = outLayer.GetLayerDefn()
+    
+    # loop through the input features
+    inFeature = inLayer.GetNextFeature()
+    while inFeature:
+        # get the input geometry
+        geom = inFeature.GetGeometryRef()
+        # reproject the geometry
+        geom.Transform(coordTrans)
+        # create a new feature
+        outFeature = ogr.Feature(outLayerDefn)
+        # set the geometry and attribute
+        outFeature.SetGeometry(geom)
+        for i in range(0, outLayerDefn.GetFieldCount()):
+            outFeature.SetField(outLayerDefn.GetFieldDefn(i).GetNameRef(), inFeature.GetField(i))
+        # add the feature to the shapefile
+        outLayer.CreateFeature(outFeature)
+        # dereference the features and get the next input feature
+        outFeature = None
+        inFeature = inLayer.GetNextFeature()
+    
+    # Save and close the shapefiles
+    inShp = None
+    outDataSet = None
+    
+    return out_file
