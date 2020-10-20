@@ -72,10 +72,11 @@ def normalized_cross_corr(I1, I2):  # processing
     output:  x              integer           location of maximum
              y              integer           location of maximum
     """
-    result = match_template(I1, I2)
+    result = match_template(I2, I1)
+    max_corr = np.amax(result)
     ij = np.unravel_index(np.argmax(result), result.shape)
     x, y = ij[::-1]
-    return (x, y)
+    return (x, y, max_corr)
 
 def get_coordinates_of_template_centers(grid, temp_size):
     """

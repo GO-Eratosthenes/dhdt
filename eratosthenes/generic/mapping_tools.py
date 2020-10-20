@@ -79,7 +79,6 @@ def rotMat(theta):  # generic
                   [np.sin(np.radians(theta)), np.cos(np.radians(theta))]])
     return R
 
-
 def pix2map(geoTransform, i, j):  # generic
     """
     Transform image coordinates to map coordinates

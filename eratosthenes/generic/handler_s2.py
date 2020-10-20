@@ -29,7 +29,7 @@ def meta_S2string(S2str):  # generic
              S2tile         string            tile code "TXXXXX"
     """
     S2split = S2str.split('_')
-    S2time = S2split[2]
+    S2time = S2split[2][0:8]
     S2orbit = S2split[4]
     S2tile = S2split[5]
     return S2time, S2orbit, S2tile

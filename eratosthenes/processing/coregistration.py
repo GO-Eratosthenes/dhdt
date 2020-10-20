@@ -174,7 +174,20 @@ def get_coregistration(dat_path,im_list=None):
     del lines
 
     # make a selection
-    if im_list is not None:
-        raise NotImplementedError('Not implemented yet!')
+    # if im_list is not None:
+    #     # IN = set(co_name).intersection(im_list)
+    #     im_list = list(im_list[:])
+    #     IN = np.zeros(len(co_name),dtype=bool)
+    #     for idx in range(len(co_name)):
+    #         if co_name[idx] in im_list:
+    #             IN[idx] = True
+    #     (i) = np.nonzero(IN)
+    #     co_name = co_name[i]
+        
+    #     IN = [s for s in co_name if any(xs in s for xs in im_list)]
+        
+    #     [item for item in co_name if item not in im_list]
+        
+    #     raise NotImplementedError('Not implemented yet!')
 
     return co_name, co_reg
