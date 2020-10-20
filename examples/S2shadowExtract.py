@@ -18,7 +18,8 @@ from eratosthenes.generic.gis_tools import ll2utm, shape2raster, \
 from eratosthenes.preprocessing.handler_multispec import create_shadow_image, \
     create_caster_casted_list_from_polygons
 from eratosthenes.preprocessing.handler_rgi import which_rgi_region
-from eratosthenes.preprocessing.shadow_geometry import create_shadow_polygons
+from eratosthenes.preprocessing.shadow_geometry import create_shadow_polygons, \
+    make_shadowing
 
 from eratosthenes.processing.coregistration import coregister, \
     get_coregistration, getNetworkBySunangles
@@ -46,11 +47,54 @@ maxJ = 6000 # maximum collumn coordiante
 
 bbox = (minI, maxI, minJ, maxJ)
 
+
+sen2Path = dat_path + im_path[0]
+(sat_time,sat_orbit,sat_tile) = meta_S2string(im_path[0])
+
+# make raster with elevation data for the tile
+if not os.path.exists(dat_path + sat_tile + '_DEM.tif'):
+    print('building digital elevation model (DEM) for '+ sat_tile )
+    # get geo info of tile
+    crs, geoTransform, targetprj, rows, cols, bands = read_geo_info(dat_path + 
+                                                                    sat_tile + 
+                                                                    '.tif')
+    ### OBS
+    # randolph tile seems to have a missing crs... etc OGR does not see anything
+    ###
+    
+    fname = dat_path + im_path[0] + fName[0] + '04.jp2'
+    crs, geoTransform, targetprj, rows, cols, bands = read_geo_info(fname)
+    
+    # get DEM tile structure
+    dem_path = dat_path+'GIS/'
+    dem_file = 'ArcticDEM_Tile_Index_Rel7.shp'
+    
+    # find overlapping tiles of the granual
+    poly_tile = get_bbox_polygon(geoTransform, rows, cols)
+    dem_proj_file = reproject_shapefile(dem_path, dem_file, targetprj)
+    url_list = find_overlapping_DEM_tiles(dem_path,dem_proj_file, poly_tile)
+    print('found '+str(len(url_list))+ ' elevation chips connected to this tile')
+    
+    # create sampling grid   
+    bbox_tile = get_bbox(geoTransform, rows, cols)
+    
+    new_res = 10 # change to 10meter url
+    
+    url_list = reduce_deplicate_urls(url_list)
+    bulk_download_and_mosaic(url_list, dem_path, sat_tile, bbox_tile, crs, new_res)
+    
+    os.rename(dem_path + sat_tile + '_DEM.tif', dat_path + sat_tile + '_DEM.tif')
+
 for i in range(len(im_path)):
     sen2Path = dat_path + im_path[i]
     (sat_time,sat_orbit,sat_tile) = meta_S2string(im_path[i])
     print('working on '+ fName[i][0:-2])
     if not os.path.exists(sen2Path + 'shadows.tif'):
+        if len([n for n in ['matte','ruffenacht'] if n in shadow_transform])==1:
+            # shading estimate is needed as auxillary data
+            Shw = make_shadowing(dat_path, sat_tile + '_DEM.tif',
+                           dat_path, im_path[i])       
+        
         (M, geoTransform, crs) = create_shadow_image(dat_path, im_path[i], \
                                                    shadow_transform, \
                                                    minI, maxI, minJ, maxJ \
@@ -90,41 +134,7 @@ if not os.path.exists(dat_path + sat_tile + '.tif'):
             ll2utm(rgi_path+rgi_file,out_shp,crs,aoi)
         # convert polygon file to raster file
         shape2raster(out_shp, dat_path+sat_tile, geoTransform, rows, cols, aoi)
-
-# make raster with elevation data for the tile
-if not os.path.exists(dat_path + sat_tile + '_DEM.tif'):
-    print('building digital elevation model (DEM) for '+ sat_tile )
-    # get geo info of tile
-    crs, geoTransform, targetprj, rows, cols, bands = read_geo_info(dat_path + 
-                                                                    sat_tile + 
-                                                                    '.tif')
-    ### OBS
-    # randolph tile seems to have a missing crs... etc OGR does not see anything
-    ###
-    
-    fname = dat_path + im_path[0] + fName[0] + '04.jp2'
-    crs, geoTransform, targetprj, rows, cols, bands = read_geo_info(fname)
-    
-    # get DEM tile structure
-    dem_path = dat_path+'GIS/'
-    dem_file = 'ArcticDEM_Tile_Index_Rel7.shp'
-    
-    # find overlapping tiles of the granual
-    poly_tile = get_bbox_polygon(geoTransform, rows, cols)
-    dem_proj_file = reproject_shapefile(dem_path, dem_file, targetprj)
-    url_list = find_overlapping_DEM_tiles(dem_path,dem_proj_file, poly_tile)
-    print('found '+str(len(url_list))+ ' elevation chips connected to this tile')
-    
-    # create sampling grid   
-    bbox_tile = get_bbox(geoTransform, rows, cols)
-    
-    new_res = 10 # change to 10meter url
-    
-    url_list = reduce_deplicate_urls(url_list)
-    bulk_download_and_mosaic(url_list, dem_path, sat_tile, bbox_tile, crs, new_res)
-    
-    os.rename(dem_path + sat_tile + '_DEM.tif', dat_path + sat_tile + '_DEM.tif')
-    
+  
 
 (rgi_mask, crs, geoTransform, targetprj) = read_geo_image(dat_path
                                                           +sat_tile+'.tif')

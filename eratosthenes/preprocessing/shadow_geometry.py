@@ -1,7 +1,11 @@
+import os
+import glob
 import math
 import numpy as np
 
 from scipy import ndimage  # for image filtering
+from scipy import special  # for trigonometric functions
+
 
 from skimage import measure
 from skimage import segmentation  # for superpixels
@@ -16,7 +20,105 @@ from shapely.geometry import Point, LineString
 from shapely.geos import TopologicalError  # for troubleshooting
 
 from ..generic.mapping_tools import castOrientation
+from eratosthenes.generic.mapping_io import read_geo_image, read_geo_info
+from eratosthenes.generic.mapping_tools import make_same_size
+
 from eratosthenes.preprocessing.read_s2 import read_sun_angles_s2
+
+from eratosthenes.processing.handler_s2 import read_mean_sun_angles_s2
+
+def make_shadowing(dem_path, dem_file, im_path, im_name):
+    
+    (dem_mask, crs_dem, geoTransform_dem, targetprj_dem) = read_geo_image(
+        os.path.join(dem_path, dem_file))
+    if 'MSIL1C' in im_name: # for Sentinel-2
+        fname = os.path.join(im_path, im_name, '*B08.jp2')
+        (crs_im, geoTransform_im, targetprj_im, rows, cols, bands) = read_geo_info(
+            glob.glob(fname)[0])
+    
+    dem = make_same_size(dem_mask, geoTransform_dem, geoTransform_im, 
+                         rows, cols)
+    
+    Zn, Az = read_mean_sun_angles_s2(os.path.join(im_path, im_name))
+    
+    # turn towards the sun
+    dem_rot = ndimage.rotate(dem, Az, 
+                             axes=(1, 0), reshape=True, output=None, 
+                             order=3, mode='constant', cval=-9999)
+    msk_rot = ndimage.rotate(dem==-9999, Az, 
+                             axes=(1, 0), reshape=True, output=None, 
+                             order=0, mode='constant', cval=True)
+    del dem
+    shw_rot = np.zeros_like(dem_rot, dtype=bool)
+    
+    dZ = special.tandg(90-Zn) * np.sqrt(1 + 
+                                        min(special.tandg(Az)**2,
+                                            special.cotdg(Az)**2)) * geoTransform_dem[1]
+    
+    cls_rot = np.bitwise_not(ndimage.binary_dilation(msk_rot, 
+                                                    structure=np.ones((7,7)))
+                             ).astype(int)
+    # sweep over matrix
+    for swp in range(1,dem_rot.shape[0]):
+        shw_rot[swp,:] = (dem_rot[swp,:] < dem_rot[swp-1,:]-dZ) & ( cls_rot[swp,:]==1 )
+        dem_rot[swp,:] = np.maximum((dem_rot[swp,:]*cls_rot[swp,:]), 
+                                    (dem_rot[swp-1,:]*cls_rot[swp-1,:]) - dZ*cls_rot[swp,:])
+    del dem_rot, cls_rot
+    msk_new = ndimage.rotate(msk_rot, -Az, 
+                             axes=(1, 0), reshape=True, output=None, 
+                             order=0, mode='constant', cval=True)
+    i_in = np.where(np.any(msk_new == False, axis=0))
+    i_min = i_in[0][0]
+    i_max = i_in[-1][-1]
+    j_in = np.where(np.any(msk_new == False, axis=1))
+    j_min = j_in[0][0]
+    j_max = j_in[-1][-1]    
+    
+    #shw_rot.astype(int)
+    shw_new = ndimage.rotate(shw_rot, -Az, 
+                         axes=(1, 0), reshape=True, output=None, 
+                         order=3, mode='constant', cval=False)   
+    Shw = shw_new[i_min:i_max+1,j_min:j_max+1]
+    return Shw 
+
+def make_shading(dem_path, dem_file, im_path, im_name):
+    """
+    make hillshading from elevation model and meta data of image file
+
+    """
+    (dem_mask, crs_dem, geoTransform_dem, targetprj_dem) = read_geo_image(
+        os.path.join(dem_path, dem_file))
+    if 'MSIL1C' in im_name: # for Sentinel-2
+        fname = os.path.join(im_path, im_name, '*B08.jp2')
+        (crs_im, geoTransform_im, targetprj_im, rows, cols, bands) = read_geo_info(
+            glob.glob(fname)[0])
+    
+    dem = make_same_size(dem_mask, geoTransform_dem, geoTransform_im, 
+                         rows, cols)
+    
+    Zn, Az = read_mean_sun_angles_s2(os.path.join(im_path, im_name))
+    Zn = np.radians(Zn)
+    Az = np.radians(Az)
+
+    
+    # convert to unit vectors
+    sun = np.dstack((np.sin(Az), np.cos(Az), np.tan(Zn)))
+    n = np.linalg.norm(sun, axis=2)
+    sun[:, :, 0] /= n
+    sun[:, :, 1] /= n
+    sun[:, :, 2] /= n
+    
+    # estimate surface normals
+    dy, dx = np.gradient(dem*geoTransform_im[1])  
+
+    normal = np.dstack((dx, dy, np.ones_like(dem)))
+    n = np.linalg.norm(normal, axis=2)
+    normal[:, :, 0] /= n
+    normal[:, :, 1] /= n
+    normal[:, :, 2] /= n
+
+    Shd = normal[:,:,0]*sun[:,:,0] + normal[:,:,1]*sun[:,:,1] + normal[:,:,2]*sun[:,:,2]
+    return Shd
 
 def create_shadow_polygons(M,im_path, minI=0, maxI=0, minJ=0, maxJ=0):
     """
