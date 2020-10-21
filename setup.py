@@ -14,9 +14,12 @@ with open(os.path.join(here, 'eratosthenes', '__version__.py')) as f:
 with open('README.rst') as readme_file:
     readme = readme_file.read()
 
+with open('requirements.txt') as requirements_file:
+    requirements = requirements_file.read().split()
+
 setup(
     name='eratosthenes',
-    version=version,
+    version=version['__version__'],
     description="extracting topography from mountain glaciers, through the use of shadow casted by surrounding mountains. imagery from optical satellite systems are used, over all mountain ranges on Earth.",
     long_description=readme + '\n\n',
     author="Bas Altena",
@@ -40,7 +43,7 @@ setup(
         'Programming Language :: Python :: 3.7',
     ],
     test_suite='tests',
-    install_requires=[],  # FIXME: add your package's dependencies to this list
+    install_requires=requirements,
     setup_requires=[
         # dependency for `python setup.py test`
         'pytest-runner',
