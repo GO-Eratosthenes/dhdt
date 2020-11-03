@@ -2,41 +2,130 @@ import math
 import numpy as np
 import random
 
-def enhance_shadow(method,Blue,Green,Red,Nir):
+from scipy import ndimage # for image filters
+
+def enhance_shadow(method, Blue, Green, Red, RedEdge, Nir, Shw):
     """
     Given a specific method, employ shadow transform
     input:   method         string            method name to be implemented, 
                                               can be one of the following:
                                               - ruffenacht
                                               - nsvi
+                                              - sdi
+                                              - sisdi
                                               - mpsi
                                               - shadow_index
                                               - shade_index
+                                              - levin
              Blue           array (n x m)     blue band of satellite image
              Green          array (n x m)     green band of satellite image
              Red            array (n x m)     red band of satellite image
-             Nir            array (n x m)     near-infrared band of satellite image       
+             Nir            array (n x m)     near-infrared band of satellite image   
+             Shw            array (n x m)     synthetic shading from for example
+                                              a digital elevation model
     output:  M              array (n x m)     shadow enhanced satellite image
     """
     
     method = method.lower()
     
     if method=='ruffenacht':
-        M = ruffenacht(Blue,Green,Red,Nir)
+        M = ruffenacht(Blue, Green, Red, Nir)
     elif len([n for n in ['shadow','index'] if n in method])==2:
-        M = shadow_index(Blue,Green,Red,Nir)
+        M = shadow_index(Blue, Green, Red, Nir)
     elif len([n for n in ['shade','index'] if n in method])==2:
-        M = shade_index(Blue,Green,Red,Nir)
+        M = shade_index(Blue, Green, Red, Nir)
     elif method=='nsvi':
-        M = nsvi(Blue,Green,Red)
+        M = nsvi(Blue, Green, Red)
+    elif method=='sdi':
+        M = sdi(Blue, Green, Red)
+    elif method=='sisdi':
+        M = sisdi(Blue, RedEdge, Nir)
     elif method=='mpsi':
-        M = mpsi(Blue,Green,Red)    
+        M = mpsi(Blue, Green, Red)    
     elif method=='gevers':
-        M = gevers(Blue,Green,Red) 
+        M = gevers(Blue, Green, Red) 
+    elif method=='levin':
+        M = levin(Blue, Green, Red, Nir, Shw)
         
     return M
 
 # shadow functions
+def matting_laplacian(I, Label, Mask=None, win_rad=1, eps=-10**7):
+    """
+    see Levin et al. 2006
+    A closed form solution to natural image matting    
+    """
+    
+    # dI = np.arange(start=-win_rad,stop=+win_rad+1)
+    # dI,dJ = np.meshgrid(dI,dI)
+    
+    # dI = dI.ravel()
+    # dJ = dJ.ravel()
+    # N = dI.size
+    # for i in range(dI.size):
+    #     if i == 0:
+    #         Istack = np.expand_dims( np.roll(I, 
+    #                                          [dI[i], dJ[i]], axis=(0, 1)), 
+    #                                 axis=3)
+    #     else:
+    #         Istack = np.concatenate((Istack, 
+    #                                 np.expand_dims(np.roll(I, 
+    #                                     [dI[i], dJ[i]], axis=(0, 1)),
+    #                                                axis=3)), axis=3)
+                                    
+    # muI = np.mean(Istack, axis=3)
+    # dI = Istack - np.repeat(np.expand_dims(muI, axis=3), 
+    #                         N, axis=3)
+    # del Istack
+    # aap = np.einsum('ijkl,qrs->km',dI,dI) /(N - 1)
+    # aap = np.einsum('ijkl,ijkn->ijk',dI,dI) /(N - 1)
+    
+    # win_siz = 2*win_rad+1
+    
+    
+    
+    
+    
+    # mean_kernel = np.ones((win_siz, win_siz))/win_siz**2
+    
+    # muI = I.copy()
+    # varI = I.copy()
+    # for i in range(I.shape[2]):
+    #     muI[:,:,i] = ndimage.convolve(I[:,:,i], mean_kernel, mode='reflect')
+    #     dI = (I[:,:,i] - muI[:,:,i])**2
+    #     varI[:,:,i] = ndimage.convolve(dI, mean_kernel, mode='reflect')
+    #     del dI
+    
+    # local mean colors
+    L = 0
+    return L
+
+def levin(Blue, Green, Red, Near, Shade):
+    """
+    Transform Red Green Blue arrays to Hue Saturation Intensity arrays
+    
+    see Levin et al. 2006
+    A closed form solution to natural image matting
+    
+    input:   Blue           array (n x m)     Blue band of satellite image
+             Green          array (n x m)     Green band of satellite image
+             Red            array (n x m)     Red band of satellite image
+             Near           array (n x m)     Near infrared band of satellite image
+             Shade          array (n x m)     shadow estimate from DEM
+    output:  alpha          array (m x m)     alpha matting channel
+    """
+    NanBol = Blue == 0
+    Blue = mat_to_gray(Blue, NanBol)
+    Green = mat_to_gray(Green, NanBol)
+    Red = mat_to_gray(Red, NanBol)
+    Near = mat_to_gray(Near, NanBol)
+
+    Stack = np.dstack((Blue, Green, Red, Near))
+    
+    L = matting_laplacian(Stack, Shade)
+    alpha = 0*L
+    return alpha
+
 def rgb2hsi(R, G, B):  # pre-processing
     """
     Transform Red Green Blue arrays to Hue Saturation Intensity arrays
@@ -69,6 +158,48 @@ def rgb2hsi(R, G, B):  # pre-processing
             Sat[i][j] = math.sqrt(hsi[1] ** 2 + hsi[2] ** 2)
             Hue[i][j] = math.atan2(hsi[1], hsi[2])
 
+    return Hue, Sat, Int
+
+def erdas2hsi(Blue, Green, Red):  # pre-processing
+    """
+    Transform Red Green Blue arrays to Hue Saturation Intensity arrays
+    following ERDAS 2013 (pp.197)
+    input:   Blue           array (n x m)     Blue band of satellite image
+             Green        array (n x m)     Green band of satellite image
+             Red           array (n x m)     Red infrared band of satellite image
+    output:  Hue            array (m x m)     Hue band
+             Sat            array (n x m)     Saturation band
+             Int            array (n x m)     Intensity band
+    """
+    NanBol = Blue == 0
+    Blue = mat_to_gray(Blue, NanBol)
+    Green = mat_to_gray(Green, NanBol)
+    Red = mat_to_gray(Red, NanBol)
+
+    Stack = np.dstack((Blue, Green, Red))
+    min_Stack = np.amin(Stack, axis=2)
+    max_Stack = np.amax(Stack, axis=2)
+    Int = (max_Stack + min_Stack)/2
+
+    Sat = np.copy(Blue)
+    Sat[Int==0] = 0
+    Sat[Int<=.5] = (max_Stack[Int<=.5] - 
+                    min_Stack[Int<=.5]) / (max_Stack[Int<=.5] + 
+                                           min_Stack[Int<=.5])
+    Sat[Int>.5] = (max_Stack[Int>.5] - 
+                   min_Stack[Int>.5]) / ( 2 - max_Stack[Int>.5] + 
+                                         min_Stack[Int>.5])
+
+    Hue = np.copy(Blue)
+    Hue[Blue==max_Stack] = (1/6) *(6 
+                                   + Green[Blue==max_Stack] 
+                                   - Red[Blue==max_Stack])
+    Hue[Green==max_Stack] = (1/6) *(4 
+                                      + Red[Green==max_Stack] 
+                                      - Blue[Green==max_Stack])
+    Hue[Red==max_Stack] = (1/6) *(2
+                                   + Blue[Red==max_Stack] 
+                                   - Green[Red==max_Stack])    
     return Hue, Sat, Int
 
 def rgb2xyz(Red, Green, Blue):  # pre-processing
@@ -207,7 +338,6 @@ def pca(X):  # pre-processing
 def mat_to_gray(I, notI):  # pre-processing or generic
     """
     Transform matix to float, omitting nodata values
-    following Ruffenacht
     input:   I              array (n x m)     matrix of integers with data
              notI           array (n x m)     matrix of boolean with nodata
     output:  Inew           array (m x m)     linear transformed floating point
@@ -235,6 +365,71 @@ def nsvi(Blue, Green, Red):  # pre-processing
     NSVDI = (S - I) / (S + I)
     return NSVDI
 
+def sdi(Blue, Green, Red):  # pre-processing
+    """
+    Transform Red Green Blue arrays to Shadow detector index (SDI)
+    following Mustafa and Abedehafez 2017
+    input:   Blue           array (n x m)     Blue band of satellite image
+             Green          array (n x m)     Green band of satellite image
+             Red            array (n x m)     Red band of satellite image
+    output:  SDI           array (m x m)     array with shadow transform
+    """
+    OK = Blue != 0  # boolean array with data
+
+    R = np.float64(Red)
+    r = np.mean(Red[OK])
+    G = np.float64(Green)
+    g = np.mean(Green[OK])
+    B = np.float64(Blue)
+    b = np.mean(Blue[OK])
+
+    Red = R - r
+    Green = G - g
+    Blue = B - b
+    del r, g, b
+
+    # sampleset
+    Nsamp = int(
+        min(1e4, np.sum(OK)))  # try to have a sampleset of 10'000 points
+    sampSet, other = np.where(OK)  # OK.nonzero()
+    sampling = random.choices(sampSet, k=Nsamp)
+    del sampSet, Nsamp
+
+    Red = Red.ravel(order='F')
+    Green = Green.ravel(order='F')
+    Blue = Blue.ravel(order='F')
+
+    X = np.transpose(np.array(
+        [Red[sampling], Green[sampling], Blue[sampling]]))
+    e, lamb = pca(X)
+    del X
+    PC1 = np.dot(e[0, :], np.array([Red, Green, Blue]))
+    
+    Red = mat_to_gray(Red, not(OK))
+    Green = mat_to_gray(Green, not(OK))
+    Blue = mat_to_gray(Blue, not(OK))
+        
+    SDI = ((1 - PC1) + 1)/(((Green - Blue) * Red) + 1)
+    return SDI
+
+def sisdi(Blue, RedEdge, Near):
+    """
+    Transform Near RedEdge Blue arrays to 
+    Saturation-intensity Shadow detector index (SISDI)
+    following Mustafa et al. 2018
+    input:   Blue           array (n x m)     Blue band of satellite image
+             RedEdge        array (n x m)     RedEdge band of satellite image
+             Near           array (n x m)     Near band of satellite image
+    output:  SISDI          array (m x m)     array with shadow transform
+    """       
+    NanBol = Blue == 0
+    Blue = mat_to_gray(Blue, NanBol)
+    RedEdge = mat_to_gray(RedEdge, NanBol)
+    Near = mat_to_gray(Near, NanBol)
+    
+    (H, S, I) = erdas2hsi(Blue, RedEdge, Near)
+    SISDI = S - (2*I)
+    return SISDI
 
 def mpsi(Blue, Green, Red):  # pre-processing
     """
@@ -250,6 +445,7 @@ def mpsi(Blue, Green, Red):  # pre-processing
     # Blue = np.float64(Blue) / 2 ** 16
     Blue = mat_to_gray(Blue, NanBol)
     Green = mat_to_gray(Green, NanBol)
+    Red = mat_to_gray(Red, NanBol)
     
     (H, S, I) = rgb2hsi(Red, Green, Blue)  # create HSI bands
     MPSI = (H - I) * (Green - Blue)
@@ -434,11 +630,5 @@ def s_curve(x, a, b):  # pre-processing
     del fe, x
     return fx
 
-# Gevers and Smulders 1999
-# Colour-based object recognition. Pattern Recognition, 32, pp. 453–464.
-# c3 = arctan(B/max(G,R))
-
-
 # TO DO:
 # Wu 2007, Natural Shadow Matting. DOI: 10.1145/1243980.1243982
-# Reinhard 2001, Color transfer between images DOI: 10.1109/38.946629

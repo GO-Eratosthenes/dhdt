@@ -63,7 +63,7 @@ def bboxBoolean(img):  # generic
     return rmin, rmax, cmin, cmax
 
 
-def RefTrans(Transform, dI, dJ):  # generic
+def ref_trans(Transform, dI, dJ):  # generic
     """
     translate reference transform
     input:   Transform      array (1 x 6)     georeference transform of
@@ -73,9 +73,9 @@ def RefTrans(Transform, dI, dJ):  # generic
     output:  newransform    array (1 x 6)     georeference transform of
                                               transformed image
     """
-    newTransform = (Transform[0]+dI*Transform[1]+dJ*Transform[2],
+    newTransform = (Transform[0]+ dJ*Transform[1] + dI*Transform[2],
                     Transform[1], Transform[2],
-                    Transform[3]+dI*Transform[4]+dJ*Transform[5],
+                    Transform[3]+ dJ*Transform[4] + dI*Transform[5],
                     Transform[4], Transform[5])
     return newTransform
 

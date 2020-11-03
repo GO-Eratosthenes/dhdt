@@ -50,9 +50,13 @@ def couple_pair(dat_path, fname1, fname2, bbox, co_name, co_reg, rgi_id=None):
     (sunZn,sunAz) = read_sun_angles_s2(os.path.join(dat_path, fname2))
     M2 = castOrientation(M2, sunZn[bbox[0]:bbox[1],bbox[2]:bbox[3]])
     
-    post2_corr, corr_score = match_shadow_casts(M1, M2, geoTransform1, geoTransform2,
-                       post1, post2)
-    
+    temp_radius=7 
+    search_radius=22
+    post2_corr, corr_score = match_shadow_casts(M1, M2, 
+                                                geoTransform1, geoTransform2, 
+                                                post1, post2,
+                                                temp_radius, search_radius
+                                                )
     post1 = conn1[idxConn[:,1],2:4] # cast location in xy-coordinates for t1
     post2 = conn2[idxConn[:,0],2:4]
     # extract elevation change

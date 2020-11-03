@@ -120,7 +120,7 @@ def make_shading(dem_path, dem_file, im_path, im_name):
     Shd = normal[:,:,0]*sun[:,:,0] + normal[:,:,1]*sun[:,:,1] + normal[:,:,2]*sun[:,:,2]
     return Shd
 
-def create_shadow_polygons(M,im_path, minI=0, maxI=0, minJ=0, maxJ=0):
+def create_shadow_polygons(M,im_path, bbox=(0, 0, 0, 0)):
     """
     Generate polygons from floating array, combine this with sun illumination
     information, to generate connected pixels on the edge of these polygons
@@ -130,6 +130,11 @@ def create_shadow_polygons(M,im_path, minI=0, maxI=0, minJ=0, maxJ=0):
              label_ridge    array (m x n)     array with numbered superpixels
              cast_conn      array (m x n)     array with numbered edge pixels
     """
+    
+    minI = bbox[0] 
+    maxI = bbox[1] 
+    minJ = bbox[2]
+    maxJ = bbox[3] 
     
     if 1==1: # do median filtering
         siz = 5
@@ -146,7 +151,6 @@ def create_shadow_polygons(M,im_path, minI=0, maxI=0, minJ=0, maxJ=0):
     cast_conn = labelOccluderAndCasted(labels, sunAz)#, subTransform)
     
     return labels, cast_conn
-
 
 # geometric functions
 def getShadowPolygon(M, sizPix, thres):  # pre-processing
@@ -185,7 +189,6 @@ def getShadowPolygon(M, sizPix, thres):  # pre-processing
         labels)  # so it can be used for the boundaries extraction
     return labels, SupPix
 
-
 def medianFilShadows(M, siz, loop):  # pre-processing
     """
     Transform intensity to more clustered intensity, through iterative
@@ -199,7 +202,6 @@ def medianFilShadows(M, siz, loop):  # pre-processing
     for i in range(loop):
         Mmed = ndimage.median_filter(M, size=siz)
     return Mmed
-
 
 def sturge(M):  # pre-processing
     """
@@ -219,10 +221,7 @@ def sturge(M):  # pre-processing
     labels = remove_small_objects(imSeparation, min_size=10)
     return labels
 
-
-
-segmentation.clear_border
-
+# segmentation.clear_border
 
 def findValley(values, base, neighbors=2):  # pre-processing
     """

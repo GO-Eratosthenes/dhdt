@@ -4,13 +4,13 @@ from osgeo import gdal, osr
 
 from ..generic.handler_im import get_image_subset
 
-from eratosthenes.generic.mapping_tools import RefTrans, pix2map
+from eratosthenes.generic.mapping_tools import ref_trans, pix2map
 from eratosthenes.generic.mapping_io import read_geo_image
 from eratosthenes.preprocessing.read_s2 import read_band_s2, read_sun_angles_s2
 from eratosthenes.preprocessing.shadow_transforms import enhance_shadow
 
 def create_shadow_image(dat_path, im_name, shadow_transform='ruffenacht', \
-                        minI=0, maxI=0, minJ=0, maxJ=0):
+                        bbox=(0, 0, 0, 0), Shw=None):
     """
     Given a specific method, employ shadow transform
     input:   dat_path       string            directory the image is residing
@@ -20,6 +20,11 @@ def create_shadow_image(dat_path, im_name, shadow_transform='ruffenacht', \
     bandList = get_shadow_bands(im_name) # get band numbers of the multispectral images
     (Blue, Green, Red, Nir, crs, geoTransform, targetprj) = read_shadow_bands( \
                 dat_path + im_name, bandList)
+        
+    minI = bbox[0] 
+    maxI = bbox[1] 
+    minJ = bbox[2]
+    maxJ = bbox[3]    
     if (minI!=0 or maxI!=0 and minI!=0 or maxI!=0):        
         # reduce image space, so it fits in memory
         Blue = get_image_subset(Blue, (minI, maxI, minJ, maxJ))
@@ -27,12 +32,16 @@ def create_shadow_image(dat_path, im_name, shadow_transform='ruffenacht', \
         Red = get_image_subset(Red, (minI, maxI, minJ, maxJ))
         Nir = get_image_subset(Nir, (minI, maxI, minJ, maxJ))
             
-        geoTransform = RefTrans(geoTransform,minI,minJ) # create georeference for subframe
+        geoTransform = ref_trans(geoTransform,minI,minJ) # create georeference for subframe
     else:
         geoTransform = geoTransform
     
     # transform to shadow image  
-    M = enhance_shadow(shadow_transform,Blue,Green,Red,Nir)
+    RedEdge = None
+    M = enhance_shadow(shadow_transform,
+                       Blue, Green, Red,
+                       RedEdge, Nir,
+                       Shw )
     return M, geoTransform, crs
 
 def create_caster_casted_list_from_polygons(dat_path, im_name, Rgi, 

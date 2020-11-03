@@ -36,21 +36,22 @@ dat_path = '/Users/Alten005/surfdrive/Eratosthenes/Denali/'
 
 im_path = ('Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VNK_20180225T232042/',
           'Data/S2B_MSIL1C_20190225T214529_N0207_R129_T05VNK_20190226T010218/',
-          'Data/S2A_MSIL1C_20200225T214531_N0209_R129_T05VNK_20200225T231600/')
-fName = ('T05VNK_20180225T214531_B', 'T05VNK_20190225T214529_B', 'T05VNK_20200225T214531_B')
-
-shadow_transform = 'ruffenacht' # method to deploy for shadow enhancement
-
-poi = np.array([62.7095217, -151.8519815]) # lat,lon point of interest
+          'Data/S2A_MSIL1C_20200225T214531_N0209_R129_T05VNK_20200225T231600/',
+          'Data/S2A_MSIL1C_20201009T213541_N0209_R086_T05VNK_20201009T220458/')
+fName = ('T05VNK_20180225T214531_B', 'T05VNK_20190225T214529_B', 
+         'T05VNK_20200225T214531_B', 'T05VNK_20201009T213541_B')
 
 # do a subset of the imagery
-minI = 4000 # minimal row coordiante
-maxI = 6000 # maximum row coordiante
-minJ = 4000 # minimal collumn coordiante
-maxJ = 6000 # maximum collumn coordiante
+minI = 1500 # minimal row coordiante
+maxI = 4000 # maximum row coordiante
+minJ = 4500 # minimal collumn coordiante
+maxJ = 6500 # maximum collumn coordiante
 
-bbox = (minI, maxI, minJ, maxJ)
-
+inputArg = dict(shadow_transform = 'ruffenacht',  # method to deploy for shadow enhancement
+                rgi_glac_id = 22215, # None,  select a single glacier
+                bbox = (minI, maxI, minJ, maxJ),
+                poi = np.array([62.7095217, -151.8519815])  # lat,lon point of interest
+                )
 
 sen2Path = dat_path + im_path[0]
 (sat_time,sat_orbit,sat_tile) = meta_S2string(im_path[0])
@@ -94,15 +95,19 @@ for i in range(len(im_path)):
     (sat_time,sat_orbit,sat_tile) = meta_S2string(im_path[i])
     print('working on '+ fName[i][0:-2])
     if not os.path.exists(sen2Path + 'shadows.tif'):
-        if len([n for n in ['matte'] if n in shadow_transform])==1:
+        if len([n for n in ['levin'] if n in inputArg['shadow_transform']])==1:
             # shading estimate is needed as auxillary data
             Shw = make_shadowing(dat_path, sat_tile + '_DEM.tif',
-                           dat_path, im_path[i])       
-        
+                           dat_path, im_path[i])  
+            if inputArg['bbox'] is not None:
+                Shw = Shw[minI:maxI,minJ:maxJ]
+        else:
+            Shw = None
+            
         (M, geoTransform, crs) = create_shadow_image(dat_path, im_path[i], \
-                                                   shadow_transform, \
-                                                   minI, maxI, minJ, maxJ \
-                                                   )
+                                                   inputArg['shadow_transform'], \
+                                                   inputArg['bbox'], \
+                                                   Shw )
         print('produced shadow transform for '+ fName[i][0:-2])
         makeGeoIm(M, geoTransform, crs, sen2Path + 'shadows.tif')
     else:
@@ -110,8 +115,8 @@ for i in range(len(im_path)):
             sen2Path + 'shadows.tif')
 
     if not os.path.exists(sen2Path + 'labelCastConn.tif'):
-        (labels, cast_conn) = create_shadow_polygons(M,sen2Path, \
-                                                     minI, maxI, minJ, maxJ \
+        (labels, cast_conn) = create_shadow_polygons(M, sen2Path, \
+                                                     inputArg['bbox'] \
                                                      )
 
         makeGeoIm(labels, geoTransform, crs, sen2Path + 'labelPolygons.tif')
@@ -122,7 +127,7 @@ for i in range(len(im_path)):
 if not os.path.exists(dat_path + sat_tile + '.tif'):
     rgi_path = dat_path+'GIS/'
     # discover which randolph region is used
-    rgi_file = which_rgi_region(rgi_path,poi)
+    rgi_file = which_rgi_region(rgi_path, inputArg['poi'])
 
     if len(rgi_file)==1:  
         # create RGI raster for the extent of the image   
@@ -132,7 +137,7 @@ if not os.path.exists(dat_path + sat_tile + '.tif'):
         # get geo-meta data for a tile
         fname = dat_path + im_path[0] + fName[0] + '04.jp2'
         crs, geoTransform, targetprj, rows, cols, bands = read_geo_info(fname)
-        aoi = 'RGIId'
+        aoi = 'RGIId' # attribute of interest
         if not os.path.exists(out_shp):  # project RGI shapefile
             # transform shapefile from lat-long to UTM
             ll2utm(rgi_path+rgi_file,out_shp,crs,aoi)
@@ -142,24 +147,24 @@ if not os.path.exists(dat_path + sat_tile + '.tif'):
 
 (rgi_mask, crs, geoTransform, targetprj) = read_geo_image(dat_path
                                                           +sat_tile+'.tif')
-rgi_mask = rgi_mask[minI:maxI,minJ:maxJ]
+if inputArg['bbox'] is not None:
+    rgi_mask = rgi_mask[minI:maxI,minJ:maxJ]
 
 (dem_mask, crs, geoTransform, targetprj) = read_geo_image(dat_path
                                                           +sat_tile+'_DEM.tif')
 # -9999 is no-data
-dem_mask = dem_mask[minI:maxI,minJ:maxJ]
-
-# TO DO:
-# make raster with elevation values for the tile
+if inputArg['bbox'] is not None:
+    dem_mask = dem_mask[minI:maxI,minJ:maxJ]
 
 
 # make stack of Labels & Connectivity
-rgi_glac_id = 22216 # None,  select a single glacier
-if rgi_glac_id is not None:
-    print(f'looking at glacier with Randolph ID { rgi_glac_id }.')
+if inputArg['rgi_glac_id'] is not None:
+    rgid = inputArg['rgi_glac_id']
+    print(f'looking at glacier with Randolph ID { rgid }.')
 for i in range(len(im_path)):
     create_caster_casted_list_from_polygons(dat_path, im_path[i], rgi_mask, 
-                                            bbox, rgi_glac_id)
+                                            inputArg['bbox'], 
+                                            inputArg['rgi_glac_id'])
 
 # get co-registration information
 (co_name,co_reg) = get_coregistration(dat_path, im_path)
@@ -168,7 +173,7 @@ im_selec = (set(co_name)^set(im_path))&set(im_path)
 if bool(im_selec): # imagery in set which have not been co-registered
     print('co-registring imagery')
     coregister(im_path, dat_path, connectivity=2, step_size=True, temp_size=15,
-               bbox=bbox, lstsq_mode='ordinary')
+               bbox=inputArg['bbox'], lstsq_mode='ordinary')
     #lkTransform = RefScale(RefTrans(subTransform,tempSize/2,tempSize/2),tempSize)
     #makeGeoIm(Dstack[0],lkTransform,crs,"DispAx1.tif")
     
@@ -185,8 +190,13 @@ for i in range(GridIdxs.shape[1]):
     fname1 = im_path[GridIdxs[0][i]]
     fname2 = im_path[GridIdxs[1][i]]
     
-    xy_1, xy_2, casters, dh = couple_pair(dat_path, fname1, fname2, bbox,
-                                          co_name, co_reg, rgi_glac_id)
+    xy_1, xy_2, casters, dh = couple_pair(dat_path, fname1, fname2, 
+                                          inputArg['bbox'],
+                                          co_name, co_reg, 
+                                          inputArg['rgi_glac_id'])
+
+    # 
+    #IN = findCoherentPairs(xy_1,xy_2)
 
     # write elevation distance    
     (time_1, orbit_1, tile_1) = meta_S2string(fname1)
@@ -194,10 +204,12 @@ for i in range(GridIdxs.shape[1]):
     dh_fname = ('dh-' + time_1 +'-'+ time_2 +'-'+ 
                 orbit_1 + '-' + orbit_2 +'-'+ 
                 tile_1 +'-'+ tile_2)
-    if rgi_glac_id is None:
+    if inputArg['rgi_glac_id'] is None:
         dh_fname = (dh_fname + '.txt')
     else:
-        dh_fname = (dh_fname + '-' + '{:08d}'.format(rgi_glac_id) + '.txt')
+        dh_fname = (dh_fname + '-' + 
+                    '{:08d}'.format(inputArg['rgi_glac_id']) + '.txt'
+                    )
         
     f = open(dat_path + dh_fname, 'w')
     for k in range(dh.shape[0]):
@@ -231,8 +243,10 @@ for i in range(len(dh_files)):
     # look at DEM
     DEM, crs_DEM, geoTran_DEM, prj_DEM = read_geo_image(
         os.path.join( dat_path, dh_meta[5] + '_DEM.tif'))
-    i1_DEM, j1_DEM = map2pix(geoTran_DEM, dh_mat[:,0].copy() , dh_mat[:,1])
-    i2_DEM, j2_DEM = map2pix(geoTran_DEM, dh_mat[:,2], dh_mat[:,3])
+    i1_DEM, j1_DEM = map2pix(geoTran_DEM, 
+                             dh_mat[:,0].copy() , dh_mat[:,1].copy())
+    i2_DEM, j2_DEM = map2pix(geoTran_DEM, 
+                             dh_mat[:,2].copy(), dh_mat[:,3].copy())
    
     DEM_1 = bilinear_interp_excluding_nodat(DEM, i1_DEM, j1_DEM, -9999)
     DEM_2 = bilinear_interp_excluding_nodat(DEM, i2_DEM, j2_DEM, -9999)
@@ -253,7 +267,7 @@ for i in range(len(dh_files)):
     shp_name = dh_files[i][:-3] + 'shp'
     dh_txt2shp(dh_mat, DEM_1, DEM_2, shp_name, prj_DEM)
 
-    
-   
+# extract geodetic mass balance    
+print('elevation combination')
     
     
