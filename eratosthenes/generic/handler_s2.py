@@ -19,6 +19,21 @@ def get_array_from_xml(treeStruc):  # generic
             Tn = np.concatenate((Tn, [Trow]), 0)
     return Tn
 
+def get_S2_image_locations(fname):
+    """
+    The Sentinel-2 imagery are placed within a folder structure, where one 
+    folder has an ever changing name, when this function finds the path from
+    the meta data
+    """
+    dom = ElementTree.parse(glob.glob(fname)[0])
+    root = dom.getroot()
+    granule_list = root[0][0][11][0][0]
+    
+    im_paths = []
+    for im_loc in root.iter('IMAGE_FILE'):
+        im_paths.append(im_loc.text)
+    #    print(im_loc.text)
+    return im_paths
 
 def meta_S2string(S2str):  # generic
     """
@@ -33,3 +48,5 @@ def meta_S2string(S2str):  # generic
     S2orbit = S2split[4]
     S2tile = S2split[5]
     return S2time, S2orbit, S2tile
+
+

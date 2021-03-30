@@ -4,29 +4,30 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from scipy import interpolate
+from scipy import ndimage  # for image filtering
+from skimage import transform
+from skimage import measure
+
 
 from osgeo import ogr, osr, gdal
 
 from eratosthenes.generic.handler_s2 import meta_S2string
-from eratosthenes.generic.handler_www import bulk_download_and_mosaic, \
-    reduce_deplicate_urls
-from eratosthenes.generic.mapping_io import makeGeoIm, read_geo_image, \
-    read_geo_info
-from eratosthenes.generic.mapping_tools import get_bbox_polygon, \
-    find_overlapping_DEM_tiles, get_bbox, map2pix, bilinear_interp_excluding_nodat
-    
-from eratosthenes.generic.gis_tools import ll2utm, shape2raster, \
-    reproject_shapefile
+from eratosthenes.generic.handler_www import bulk_download_and_mosaic, reduce_duplicate_urls
+from eratosthenes.generic.mapping_io import makeGeoIm, read_geo_image, read_geo_info
+from eratosthenes.generic.mapping_tools import get_bbox_polygon, find_overlapping_DEM_tiles
+from eratosthenes.generic.mapping_tools import get_bbox, map2pix, pix_centers, pix2map
+from eratosthenes.generic.mapping_tools import bilinear_interp_excluding_nodat  
+from eratosthenes.generic.gis_tools import ll2utm, shape2raster, reproject_shapefile
 
-from eratosthenes.preprocessing.handler_multispec import create_shadow_image, \
-    create_caster_casted_list_from_polygons
+from eratosthenes.preprocessing.handler_multispec import create_shadow_image 
+from eratosthenes.preprocessing.handler_multispec import create_caster_casted_list_from_polygons
 from eratosthenes.preprocessing.handler_rgi import which_rgi_region
-from eratosthenes.preprocessing.shadow_geometry import create_shadow_polygons, \
-    make_shadowing
+from eratosthenes.preprocessing.shadow_geometry import shadow_image_to_list, create_shadow_polygons, make_shadowing, draw_shadow_polygons
+from eratosthenes.preprocessing.read_s2 import read_sun_angles_s2
 
-from eratosthenes.processing.coregistration import coregister, \
-    get_coregistration, getNetworkBySunangles
+from eratosthenes.processing.coregistration import coregister, get_coregistration, getNetworkBySunangles
 from eratosthenes.processing.coupling_tools import couple_pair
+from eratosthenes.processing.handler_s2 import read_mean_sun_angles_s2
 
 from eratosthenes.postprocessing.mapping_io import dh_txt2shp
 
@@ -34,24 +35,32 @@ dat_path = '/Users/Alten005/surfdrive/Eratosthenes/Denali/'
 #im_path = 'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VPL_20180225T232042/'
 #fName = 'T05VPL_20180225T214531_B'
 
-im_path = ('Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VNK_20180225T232042/',
-          'Data/S2B_MSIL1C_20190225T214529_N0207_R129_T05VNK_20190226T010218/',
+im_path = (#'Data/S2A_MSIL1C_20180225T214531_N0206_R129_T05VNK_20180225T232042/',
+          #'Data/S2B_MSIL1C_20190225T214529_N0207_R129_T05VNK_20190226T010218/',
           'Data/S2A_MSIL1C_20200225T214531_N0209_R129_T05VNK_20200225T231600/',
           'Data/S2A_MSIL1C_20201009T213541_N0209_R086_T05VNK_20201009T220458/')
-fName = ('T05VNK_20180225T214531_B', 'T05VNK_20190225T214529_B', 
+fName = (#'T05VNK_20180225T214531_B', 'T05VNK_20190225T214529_B', 
          'T05VNK_20200225T214531_B', 'T05VNK_20201009T213541_B')
 
+
+
 # do a subset of the imagery
-minI = 1500 # minimal row coordiante
-maxI = 4000 # maximum row coordiante
+minI = 4000 # minimal row coordiante
+maxI = 5000 # maximum row coordiante
 minJ = 4500 # minimal collumn coordiante
 maxJ = 6500 # maximum collumn coordiante
 
-inputArg = dict(shadow_transform = 'ruffenacht',  # method to deploy for shadow enhancement
-                rgi_glac_id = 22215, # None,  select a single glacier
+inputArg = dict(shadow_transform = 'ruffenacht',             # method to deploy for shadow enhancement
+                rgi_glac_id = np.array([22216]),             # 22215 None,  select a single glacier
                 bbox = (minI, maxI, minJ, maxJ),
-                poi = np.array([62.7095217, -151.8519815])  # lat,lon point of interest
-                )
+                poi = np.array([62.7095217, -151.8519815]),  # lat,lon point of interest
+                pre_process = 'bandpass',                    # imagery operator for enhancement of shadows
+                processing = 'stacking',                     # using multiple or single imagery
+                    # options: shadow, stacking
+                boi = np.array([2, 3, 4, 8]),                # bands of interest
+                registration = 'simple',                     # strategy for distrotion compensation 
+                matching = 'cosi_corr',                       # approach for correspondance
+                sub_pix = 'tpss' )                           # resolving the sub-pixel localization
 
 sen2Path = dat_path + im_path[0]
 (sat_time,sat_orbit,sat_tile) = meta_S2string(im_path[0])
@@ -85,7 +94,7 @@ if not os.path.exists(dat_path + sat_tile + '_DEM.tif'):
     
     new_res = 10 # change to 10meter url
     
-    url_list = reduce_deplicate_urls(url_list)
+    url_list = reduce_duplicate_urls(url_list)
     bulk_download_and_mosaic(url_list, dem_path, sat_tile, bbox_tile, crs, new_res)
     
     os.rename(dem_path + sat_tile + '_DEM.tif', dat_path + sat_tile + '_DEM.tif')
@@ -113,8 +122,14 @@ for i in range(len(im_path)):
     else:
         (M, crs, geoTransform, targetprj) = read_geo_image(
             sen2Path + 'shadows.tif')
-
+    
+    if not os.path.exists(sen2Path + 'conn.txt'):
+        shadow_image_to_list(M, geoTransform, sen2Path, inputArg)
+            
+        
+    
     if not os.path.exists(sen2Path + 'labelCastConn.tif'):
+        #not os.path.exists(sen2Path + 'labelCastConn.tif'):
         (labels, cast_conn) = create_shadow_polygons(M, sen2Path, \
                                                      inputArg['bbox'] \
                                                      )
@@ -122,6 +137,13 @@ for i in range(len(im_path)):
         makeGeoIm(labels, geoTransform, crs, sen2Path + 'labelPolygons.tif')
         makeGeoIm(cast_conn, geoTransform, crs, sen2Path + 'labelCastConn.tif')
         print('labelled shadow polygons for '+ fName[i][0:-2])
+        
+    # # sub-pixel shadow image
+    # (subshade, geoTransform, crs) = draw_shadow_polygons(sen2Path + 'shadows.tif', 
+    #                                 sen2Path + 'labelPolygons.tif', 
+    #                                 alpha=0.00001, beta=1, gamma=0.1)
+    # # write into an array
+    # makeGeoIm(subshade, geoTransform, crs, sen2Path + 'shadowMask.tif')
 
 # make raster with Randolph glacier mask for the tile
 if not os.path.exists(dat_path + sat_tile + '.tif'):
@@ -157,14 +179,50 @@ if inputArg['bbox'] is not None:
     dem_mask = dem_mask[minI:maxI,minJ:maxJ]
 
 
-# make stack of Labels & Connectivity
+if 1==2: # now obsolete?
+    # make stack of Labels & Connectivity
+    if inputArg['rgi_glac_id'] is not None:
+        rgid = inputArg['rgi_glac_id']
+        print(f'looking at glacier with Randolph ID { rgid }.')
+    for i in range(len(im_path)):
+        create_caster_casted_list_from_polygons(dat_path, im_path[i], rgi_mask, 
+                                                inputArg['bbox'], 
+                                                inputArg['rgi_glac_id'])
+
 if inputArg['rgi_glac_id'] is not None:
-    rgid = inputArg['rgi_glac_id']
-    print(f'looking at glacier with Randolph ID { rgid }.')
-for i in range(len(im_path)):
-    create_caster_casted_list_from_polygons(dat_path, im_path[i], rgi_mask, 
-                                            inputArg['bbox'], 
-                                            inputArg['rgi_glac_id'])
+    # filter coordinate list from off glacier trajectories
+    
+    rgi_ids = inputArg['rgi_glac_id']
+    # import data, then loop through all glaciers of interest
+    for k in range(len(im_path)):
+        sen2Path = dat_path + im_path[k]
+        cast_list = np.loadtxt(sen2Path +'conn.txt') # read table with shadow lines
+        
+        casting_i, casting_j = map2pix(geoTransform, cast_list[:,2], cast_list[:,3])
+        if inputArg['bbox'] is not None: # reading geoTrans from tile,  hence look at subset coordinates
+            casting_i -= inputArg['bbox'][0]
+            casting_j -= inputArg['bbox'][2]
+        casting_i, casting_j = np.round(casting_i), np.round(casting_j)
+        casting_i, casting_j = casting_i.astype(int), casting_j.astype(int) 
+        
+        for l in range(len(rgi_ids)):
+            # rgi_mask == rgi_ids[l]
+            rgi_one = np.isin(rgi_mask, rgi_ids[l]) # for multiple: mask = np.isin(element, test_elements)
+            (posts_idx, ) = np.where(rgi_one[(casting_i,casting_j)]) # cast locations which are situated on a glacier
+            
+            if len(posts_idx)>0:
+                # write to file
+                f = open(sen2Path + 'conn-rgi' + '{:08d}'.format(rgi_ids[l]) + '.txt', 'w')  
+                for m in range(len(posts_idx)):
+                    line = '{:+8.2f}'.format(cast_list[posts_idx[m],0])+' '
+                    line = line + '{:+8.2f}'.format(cast_list[posts_idx[m],1])+' '
+                    line = line + '{:+8.2f}'.format(cast_list[posts_idx[m],2])+' '
+                    line = line + '{:+8.2f}'.format(cast_list[posts_idx[m],3])+' '
+                    line = line + '{:+3.4f}'.format(cast_list[posts_idx[m],4])+' '
+                    line = line + '{:+3.4f}'.format(cast_list[posts_idx[m],5])
+                    f.write(line + '\n')
+                f.close()
+ 
 
 # get co-registration information
 (co_name,co_reg) = get_coregistration(dat_path, im_path)
@@ -190,10 +248,17 @@ for i in range(GridIdxs.shape[1]):
     fname1 = im_path[GridIdxs[0][i]]
     fname2 = im_path[GridIdxs[1][i]]
     
+    #use_im = True # false: try using the shadow polygons
     xy_1, xy_2, casters, dh = couple_pair(dat_path, fname1, fname2, 
                                           inputArg['bbox'],
                                           co_name, co_reg, 
-                                          inputArg['rgi_glac_id'])
+                                          inputArg['rgi_glac_id'],
+                                          inputArg['registration'], 
+                                          inputArg['pre_process'], 
+                                          inputArg['matching'], 
+                                          inputArg['boi'],
+                                          inputArg['processing'], 
+                                          inputArg['sub_pix'])
 
     # 
     #IN = findCoherentPairs(xy_1,xy_2)
@@ -208,7 +273,7 @@ for i in range(GridIdxs.shape[1]):
         dh_fname = (dh_fname + '.txt')
     else:
         dh_fname = (dh_fname + '-' + 
-                    '{:08d}'.format(inputArg['rgi_glac_id']) + '.txt'
+                    '{:08d}'.format(inputArg['rgi_glac_id'][0]) + '.txt'
                     )
         
     f = open(dat_path + dh_fname, 'w')

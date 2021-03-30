@@ -1,13 +1,21 @@
+# generic libraries
 import glob
 import os
 
-import numpy as np
-
-from osgeo import gdal, osr
-from scipy.interpolate import griddata
 from xml.etree import ElementTree
 
+import numpy as np
+
+# geospatial libaries
+from osgeo import gdal, osr
+
+# raster/image libraries
+from PIL import Image, ImageDraw
+from scipy.interpolate import griddata
+
 from ..generic.handler_s2 import get_array_from_xml
+
+from eratosthenes.generic.mapping_tools import map2pix
 
 
 def read_band_s2(band, path):  # pre-processing
@@ -87,3 +95,63 @@ def read_sun_angles_s2(path):  # pre-processing
     Az = griddata(Aij, Az.reshape(-1), (Igrd, Jgrd), method="linear")
     del Igrd, Jgrd, Zij, Aij
     return Zn, Az
+
+def read_detector_mask(path_meta, msk_dim, boi, geoTransform):   
+    det_stack = np.zeros(msk_dim, dtype='int8')    
+    for i in range(len(boi)):
+        im_id = boi[i]
+        f_meta = os.path.join(path_meta, 'MSK_DETFOO_B'+ f'{im_id:02.0f}' + '.gml')
+        dom = ElementTree.parse(glob.glob(f_meta)[0])
+        root = dom.getroot()  
+        
+        mask_members = root[2]
+        for k in range(len(mask_members)):
+            # get detector number from meta-data
+            det_id = mask_members[k].attrib
+            det_id = list(det_id.items())[0][1].split('-')[2]
+            det_num = int(det_id)
+        
+            # get footprint
+            pos_dim = mask_members[k][1][0][0][0][0].attrib
+            pos_dim = int(list(pos_dim.items())[0][1])
+            pos_list = mask_members[k][1][0][0][0][0].text
+            pos_row = [float(s) for s in pos_list.split(' ')]
+            pos_arr = np.array(pos_row).reshape((int(len(pos_row)/pos_dim), pos_dim))
+            
+            # transform to image coordinates
+            i_arr, j_arr = map2pix(geoTransform, pos_arr[:,0], pos_arr[:,1])
+            ij_arr = np.hstack((j_arr[:,np.newaxis], i_arr[:,np.newaxis]))
+            # make mask
+            msk = Image.new("L", [np.size(det_stack,0), np.size(det_stack,1)], 0)
+            ImageDraw.Draw(msk).polygon(tuple(map(tuple, ij_arr[:,0:2])), \
+                                        outline=det_num, fill=det_num)
+            msk = np.array(msk)    
+            det_stack[:,:,i] = np.maximum(det_stack[:,:,i], msk)
+    return det_stack
+
+def read_cloud_mask(path_meta, msk_dim, geoTransform):   
+    msk_clouds = np.zeros(msk_dim, dtype='int8')    
+
+    f_meta = os.path.join(path_meta, 'MSK_CLOUDS_B00.gml')
+    dom = ElementTree.parse(glob.glob(f_meta)[0])
+    root = dom.getroot()  
+    
+    mask_members = root[2]
+    for k in range(len(mask_members)):    
+        # get footprint
+        pos_dim = mask_members[k][1][0][0][0][0].attrib
+        pos_dim = int(list(pos_dim.items())[0][1])
+        pos_list = mask_members[k][1][0][0][0][0].text
+        pos_row = [float(s) for s in pos_list.split(' ')]
+        pos_arr = np.array(pos_row).reshape((int(len(pos_row)/pos_dim), pos_dim))
+        
+        # transform to image coordinates
+        i_arr, j_arr = map2pix(geoTransform, pos_arr[:,0], pos_arr[:,1])
+        ij_arr = np.hstack((j_arr[:,np.newaxis], i_arr[:,np.newaxis]))
+        # make mask
+        msk = Image.new("L", [msk_dim[0], msk_dim[1]], 0)
+        ImageDraw.Draw(msk).polygon(tuple(map(tuple, ij_arr[:,0:2])), \
+                                    outline=1, fill=1)
+        msk = np.array(msk)    
+        msk_clouds = np.maximum(msk_clouds, msk)
+    return msk_clouds

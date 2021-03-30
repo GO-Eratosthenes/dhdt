@@ -45,7 +45,8 @@ def create_shadow_image(dat_path, im_name, shadow_transform='ruffenacht', \
     return M, geoTransform, crs
 
 def create_caster_casted_list_from_polygons(dat_path, im_name, Rgi, 
-                                            bbox=None, polygon_id=None):
+                                            bbox=None, polygon_id=None,
+                                            describtor=None):
     """
     Create a list of casted and casted coordinates, of shadow polygons that
     are occluding parts of a glacier

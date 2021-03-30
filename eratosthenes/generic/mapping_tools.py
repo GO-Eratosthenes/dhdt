@@ -2,8 +2,12 @@ import os
 
 import numpy as np
 
-from scipy import ndimage
+# geospatial libaries
 from osgeo import ogr
+
+# raster/image libraries
+from scipy import ndimage
+
 
 def castOrientation(I, Az):  # generic
     """
@@ -62,7 +66,6 @@ def bboxBoolean(img):  # generic
 
     return rmin, rmax, cmin, cmax
 
-
 def ref_trans(Transform, dI, dJ):  # generic
     """
     translate reference transform
@@ -79,7 +82,6 @@ def ref_trans(Transform, dI, dJ):  # generic
                     Transform[4], Transform[5])
     return newTransform
 
-
 def RefScale(Transform, scaling):  # generic
     """
     scale reference transform
@@ -93,7 +95,6 @@ def RefScale(Transform, scaling):  # generic
     newTransform = (Transform[0], Transform[1]*scaling, Transform[2]*scaling,
                     Transform[3], Transform[4]*scaling, Transform[5]*scaling)
     return newTransform
-
 
 def rotMat(theta):  # generic
     """
@@ -133,14 +134,15 @@ def pix_centers(geoTransform, rows, cols, make_grid=True):
     '''
     Provide the pixel coordinate from the axis, or the whole grid
     '''
-    i = np.linspace(1, rows, cols)
-    j = np.linspace(1, cols, rows)
+    i = np.linspace(1, rows, rows)
+    j = np.linspace(1, cols, cols)
     if make_grid:
-        J, I = np.meshgrid(i, j)
+        J, I = np.meshgrid(j, i)
         X,Y = pix2map(geoTransform, I, J)
         return X, Y
     else:
-        x,y = pix2map(geoTransform, i, j)
+        x,y_dummy = pix2map(geoTransform, np.repeat(i[0], len(j)), j)
+        x_dummy,y = pix2map(geoTransform, i, np.repeat(j[0], len(i)))
         return x, y
 
 def map2pix(geoTransform, x, y):  # generic
@@ -156,20 +158,21 @@ def map2pix(geoTransform, x, y):  # generic
     # # offset the center of the pixel
     # x -= geoTransform[1] / 2.0
     # y -= geoTransform[5] / 2.0
-    x -= geoTransform[0]
-    y -= geoTransform[3]
+    # ^- this messes-up python with its pointers....
+    j = x - geoTransform[0]
+    i = y - geoTransform[3]
 
     if geoTransform[2] == 0:
-        j = x / geoTransform[1]
+        j = j / geoTransform[1]
     else:
-        j = (x / geoTransform[1]
-             + y / geoTransform[2])
+        j = (j / geoTransform[1]
+             + i / geoTransform[2])
 
     if geoTransform[4] == 0:
-        i = y / geoTransform[5]
+        i = i / geoTransform[5]
     else:
-        i = (x / geoTransform[4]
-             + y / geoTransform[5])
+        i = (j / geoTransform[4]
+             + i / geoTransform[5])
 
     return i, j
 

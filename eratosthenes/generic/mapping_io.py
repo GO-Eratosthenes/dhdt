@@ -1,5 +1,6 @@
 import numpy as np
 
+# geospatial libaries
 from osgeo import gdal, osr
 
 def read_geo_info(fname):  # generic

@@ -1,6 +1,6 @@
 def meta_REstring(REstr):  # generic
     """
-    get meta data of the Sentinel-2 file name
+    get meta data of the RapidEye file name
     input:   REstr          string            filename of the rapideye data
     output:  REtime         string            date "YYYY-MM-DD"
              REsat          string            which RapedEye satellite

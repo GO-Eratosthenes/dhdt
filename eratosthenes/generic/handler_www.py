@@ -1,9 +1,11 @@
+# generic libraries
 import os
 
 import tarfile
 import zipfile
 import urllib.request
 
+# geospatial libaries
 from osgeo import gdal
 
 def url_exist(file_url):
@@ -95,6 +97,7 @@ def bulk_download_and_mosaic(url_list, dem_path, sat_tile, bbox, crs, new_res=10
             
         for fn in tar_names:
             os.remove(os.path.join(dem_path,fn))
+
 def change_url_resolution(url_string,new_res):
     '''
     the file name can have the spatail resolution within, 
@@ -127,7 +130,7 @@ def change_url_resolution(url_string,new_res):
     gran_url_new = '/'.join(folders)
     return gran_url_new
 
-def reduce_deplicate_urls(url_list):
+def reduce_duplicate_urls(url_list):
     '''
     because the shapefiles are in 2 meter, the tiles are 4 fold, therfore 
     make a selection, to bypass duplicates

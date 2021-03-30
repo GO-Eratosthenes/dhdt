@@ -1,5 +1,6 @@
 import numpy as np
 
+# raster/image libraries
 from skimage.measure import ransac
 from skimage.transform import AffineTransform
 

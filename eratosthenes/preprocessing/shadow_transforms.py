@@ -308,8 +308,8 @@ def lms2lab(L, M, S):
                             (+1, +1, -2),
                             (+1, -1, +0)]))
 
-    for i in range(0, Red.shape[0]):
-        for j in range(0, Red.shape[1]):
+    for i in range(0, L.shape[0]):
+        for j in range(0, L.shape[1]):
             lab = np.matmul(I, np.array(
                 [[L[i][j]], [M[i][j]], [S[i][j]]]))
             l[i][j] = lab[0]
@@ -333,7 +333,6 @@ def pca(X):  # pre-processing
     # Eigen decomposition
     eigen_vals, eigen_vecs = np.linalg.eig(C)
     return eigen_vecs, eigen_vals
-
 
 def mat_to_gray(I, notI):  # pre-processing or generic
     """
@@ -632,3 +631,4 @@ def s_curve(x, a, b):  # pre-processing
 
 # TO DO:
 # Wu 2007, Natural Shadow Matting. DOI: 10.1145/1243980.1243982
+# https://github.com/yaksoy/AffinityBasedMattingToolbox
