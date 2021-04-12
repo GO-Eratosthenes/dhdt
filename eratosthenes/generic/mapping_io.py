@@ -47,9 +47,9 @@ def read_geo_image(fname):  # generic
     targetprj = osr.SpatialReference(wkt=img.GetProjection())
     return data, spatialRef, geoTransform, targetprj
 
-
 # I/O functions
-def makeGeoIm(I, R, crs, fName):
+def makeGeoIm(I, R, crs, fName, meta_descr='project Eratosthenes', \
+              no_dat=np.nan, date_created='-0276-00-00'):
     """
     Create georeference GeoTIFF
     input:   I              array (n x m)     band image
@@ -60,13 +60,28 @@ def makeGeoIm(I, R, crs, fName):
     output:  writes file into current folder
     """
     drv = gdal.GetDriverByName("GTiff")  # export image
-    # type
+    
+    # make it type dependent
     if I.dtype == 'float64':
-        ds = drv.Create(fName, I.shape[1], I.shape[0], 6, gdal.GDT_Float64)
+        ds = drv.Create(fName, \
+                        xsize=I.shape[1], ysize=I.shape[0], \
+                        bands=1, eType=gdal.GDT_Float64)
     else:
-        ds = drv.Create(fName, I.shape[1], I.shape[0], 6, gdal.GDT_Int32)
+        ds = drv.Create(fName, \
+                        xsize=I.shape[1], ysize=I.shape[0], \
+                        bands=1, eType=gdal.GDT_Int32)
+    
+    # set metadata in datasource
+    ds.SetMetadata({'TIFFTAG_SOFTWARE':'dhdt v0', \
+                    'TIFFTAG_ARTIST':'bas altena and team Atlas', \
+                    'TIFFTAG_COPYRIGHT': 'contains modified Copernicus data', \
+                    'TIFFTAG_IMAGEDESCRIPTION': meta_descr, \
+                    'TIFFTAG_DATETIME': date_created})
+    
+    # set georeferencing metadata
     ds.SetGeoTransform(R)
     ds.SetProjection(crs)
     ds.GetRasterBand(1).WriteArray(I)
+    ds.GetRasterBand(1).SetNoDataValue(no_dat)
     ds = None
     del ds

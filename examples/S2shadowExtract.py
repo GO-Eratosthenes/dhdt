@@ -50,7 +50,8 @@ maxI = 5000 # maximum row coordiante
 minJ = 4500 # minimal collumn coordiante
 maxJ = 6500 # maximum collumn coordiante
 
-inputArg = dict(shadow_transform = 'ruffenacht',             # method to deploy for shadow enhancement
+inputArg = dict(shadow_transform = 'finlayson',              # method to deploy for shadow enhancement
+                    # options: ruffenacht
                 rgi_glac_id = np.array([22216]),             # 22215 None,  select a single glacier
                 bbox = (minI, maxI, minJ, maxJ),
                 poi = np.array([62.7095217, -151.8519815]),  # lat,lon point of interest
@@ -103,7 +104,7 @@ for i in range(len(im_path)):
     sen2Path = dat_path + im_path[i]
     (sat_time,sat_orbit,sat_tile) = meta_S2string(im_path[i])
     print('working on '+ fName[i][0:-2])
-    if not os.path.exists(sen2Path + 'shadows.tif'):
+    if 1==1: #not os.path.exists(sen2Path + 'shadows.tif'):
         if len([n for n in ['levin'] if n in inputArg['shadow_transform']])==1:
             # shading estimate is needed as auxillary data
             Shw = make_shadowing(dat_path, sat_tile + '_DEM.tif',
@@ -118,7 +119,10 @@ for i in range(len(im_path)):
                                                    inputArg['bbox'], \
                                                    Shw )
         print('produced shadow transform for '+ fName[i][0:-2])
-        makeGeoIm(M, geoTransform, crs, sen2Path + 'shadows.tif')
+        makeGeoIm(M, geoTransform, crs, sen2Path + 'shadows.tif',\
+                  meta_descr=inputArg['shadow_transform'],\
+                  date_created=sat_time)
+        
     else:
         (M, crs, geoTransform, targetprj) = read_geo_image(
             sen2Path + 'shadows.tif')
@@ -134,8 +138,10 @@ for i in range(len(im_path)):
                                                      inputArg['bbox'] \
                                                      )
 
-        makeGeoIm(labels, geoTransform, crs, sen2Path + 'labelPolygons.tif')
-        makeGeoIm(cast_conn, geoTransform, crs, sen2Path + 'labelCastConn.tif')
+        makeGeoIm(labels, geoTransform, crs, sen2Path + 'labelPolygons.tif', \
+                  date_created=sat_time)
+        makeGeoIm(cast_conn, geoTransform, crs, sen2Path + 'labelCastConn.tif', \
+                  date_created=sat_time)
         print('labelled shadow polygons for '+ fName[i][0:-2])
         
     # # sub-pixel shadow image

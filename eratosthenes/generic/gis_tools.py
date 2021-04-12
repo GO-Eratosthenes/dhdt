@@ -1,4 +1,5 @@
 import os
+import numpy as np
 
 from osgeo import ogr, osr, gdal
 
@@ -148,3 +149,35 @@ def reproject_shapefile(path, in_file, targetprj):
     outDataSet = None
     
     return out_file
+
+def get_geom_for_utm_zone(utm_zone, d_buff=0):
+    '''
+    get the boundary of a UTM zone as a geometry
+    '''
+    central_lon = np.arange(-177., 177., 6)
+    # central_lon = np.arange(-177., 177., 6)
+    
+    lat_min = central_lon[utm_zone-1]-3-d_buff
+    lat_max = central_lon[utm_zone-1]+3+d_buff   
+    
+    # counter clockwise to describe exterior ring
+    ring = ogr.Geometry(ogr.wkbLinearRing)
+    
+    ring.AddPoint(lat_min, +89.99)    
+    for i in np.flip(np.arange( -89.9, +89.9, 10.)):
+        ring.AddPoint(lat_min, i)    
+    ring.AddPoint(lat_min, -89.99)
+    
+    ring.AddPoint(lat_max, -89.99)
+    for i in np.arange( -89.9, +89.9, 10.):
+        ring.AddPoint(lat_max, i)        
+    ring.AddPoint(lat_max, +89.99)
+    ring.AddPoint(lat_min, +89.99)
+
+    utm_poly = ogr.Geometry(ogr.wkbPolygon)
+    utm_poly.AddGeometry(ring)
+    
+    # it seems it generates a 3D polygon, which is not needed
+    utm_poly.FlattenTo2D()
+    return utm_poly
+
