@@ -44,87 +44,64 @@ def enhance_shadow(method, Blue, Green, Red, RedEdge, Nir, Shw):
         M = mpsi(Blue, Green, Red)    
     elif method=='gevers':
         M = gevers(Blue, Green, Red) 
-    elif method=='levin':
-        M = levin(Blue, Green, Red, Nir, Shw)
+    elif method=='finlayson':
+        M = finlayson(Blue, Green, Red)
         
     return M
 
 # shadow functions
-def matting_laplacian(I, Label, Mask=None, win_rad=1, eps=-10**7):
-    """
-    see Levin et al. 2006
-    A closed form solution to natural image matting    
-    """
-    
-    # dI = np.arange(start=-win_rad,stop=+win_rad+1)
-    # dI,dJ = np.meshgrid(dI,dI)
-    
-    # dI = dI.ravel()
-    # dJ = dJ.ravel()
-    # N = dI.size
-    # for i in range(dI.size):
-    #     if i == 0:
-    #         Istack = np.expand_dims( np.roll(I, 
-    #                                          [dI[i], dJ[i]], axis=(0, 1)), 
-    #                                 axis=3)
-    #     else:
-    #         Istack = np.concatenate((Istack, 
-    #                                 np.expand_dims(np.roll(I, 
-    #                                     [dI[i], dJ[i]], axis=(0, 1)),
-    #                                                axis=3)), axis=3)
-                                    
-    # muI = np.mean(Istack, axis=3)
-    # dI = Istack - np.repeat(np.expand_dims(muI, axis=3), 
-    #                         N, axis=3)
-    # del Istack
-    # aap = np.einsum('ijkl,qrs->km',dI,dI) /(N - 1)
-    # aap = np.einsum('ijkl,ijkn->ijk',dI,dI) /(N - 1)
-    
-    # win_siz = 2*win_rad+1
-    
-    
-    
-    
-    
-    # mean_kernel = np.ones((win_siz, win_siz))/win_siz**2
-    
-    # muI = I.copy()
-    # varI = I.copy()
-    # for i in range(I.shape[2]):
-    #     muI[:,:,i] = ndimage.convolve(I[:,:,i], mean_kernel, mode='reflect')
-    #     dI = (I[:,:,i] - muI[:,:,i])**2
-    #     varI[:,:,i] = ndimage.convolve(dI, mean_kernel, mode='reflect')
-    #     del dI
-    
-    # local mean colors
-    L = 0
-    return L
+def shannon_entropy(X,band_width=100):
+    num_bins = np.round(np.nanmax(X)-np.nanmin(X)/band_width)
+    hist, bin_edges = np.histogram(X.flatten(), \
+                                   bins=num_bins.astype(int), \
+                                   density=True)
+    hist = hist[hist!=0]    
+    shannon = -np.sum(hist * np.log2(hist))
+    return shannon
 
-def levin(Blue, Green, Red, Near, Shade):
+def finlayson(Ia, Ib, Ic, a=-1):
     """
-    Transform Red Green Blue arrays to Hue Saturation Intensity arrays
+    Transform ...
     
-    see Levin et al. 2006
-    A closed form solution to natural image matting
+    see Finlayson 2009
+    Entropy Minimization for Shadow Removal
     
-    input:   Blue           array (n x m)     Blue band of satellite image
-             Green          array (n x m)     Green band of satellite image
-             Red            array (n x m)     Red band of satellite image
-             Near           array (n x m)     Near infrared band of satellite image
-             Shade          array (n x m)     shadow estimate from DEM
-    output:  alpha          array (m x m)     alpha matting channel
+    input:   Ia             array (n x m)     highest frequency band of satellite image
+             Ib             array (n x m)     lower frequency band of satellite image
+             Ic             array (n x m)     lowest frequency band of satellite image
+             a              float             angle to use [in degrees]
+    output:  S              array (m x m)     ...
+             R              array (m x m)     ...    
     """
-    NanBol = Blue == 0
-    Blue = mat_to_gray(Blue, NanBol)
-    Green = mat_to_gray(Green, NanBol)
-    Red = mat_to_gray(Red, NanBol)
-    Near = mat_to_gray(Near, NanBol)
-
-    Stack = np.dstack((Blue, Green, Red, Near))
+    In = Ia==0 # pixels outside the scene have 0's 
+    Ia, Ib, Ic = mat_to_gray(Ia,In), mat_to_gray(Ib,In), mat_to_gray(Ic,In)
+    Ia[Ia==0] = 1e-6    
+    Ib[Ib==0] = 1e-6    
+    sqIc = np.power(Ic, 1./2)
+    sqIc[sqIc==0] = 1    
+        
+    chi1 = np.log(np.divide( Ia, sqIc))
+    chi2 = np.log(np.divide( Ib, sqIc))
     
-    L = matting_laplacian(Stack, Shade)
-    alpha = 0*L
-    return alpha
+    if a==-1: # estimate angle from data if angle is not given
+        (m,n) = chi1.shape
+        mn = np.power((m*n),-1./3)
+        # loop through angles
+        angl = np.arange(0,180)
+        shan = np.zeros(angl.shape)
+        for i in angl:
+            chi_rot = np.cos(np.radians(i))*chi1 + \
+                np.sin(np.radians(i))*chi2
+            band_w = 3.5*np.std(chi_rot)*mn   
+            shan[i] = shannon_entropy(chi_rot, band_w)
+        
+        a = angl[np.argmin(shan)]
+        #a = angl[np.argmax(shan)]
+    # create imagery    
+    S = - np.cos(np.radians(a))*chi1 - np.sin(np.radians(a))*chi2
+    #a += 90
+    #R = np.cos(np.radians(a))*chi1 + np.sin(np.radians(a))*chi2
+    return S
 
 def rgb2hsi(R, G, B):  # pre-processing
     """
@@ -216,9 +193,7 @@ def rgb2xyz(Red, Green, Blue):  # pre-processing
              Y              array (n x m)     modified XYZitu601-1 axis
              Z              array (n x m)     modified XYZitu601-1 axis
     """
-    X = np.copy(Red)
-    Y = np.copy(Red)
-    Z = np.copy(Red)
+    X, Y, Z = np.copy(Red), np.copy(Red), np.copy(Red)
 
     M = np.array([(0.5141, 0.3239, 0.1604),
                   (0.2651, 0.6702, 0.0641),
@@ -248,9 +223,7 @@ def xyz2lms(X, Y, Z):  # pre-processing
              M              array (n x m)     
              S              array (n x m)     
     """
-    L = np.copy(X)
-    M = np.copy(X)
-    S = np.copy(X)
+    L, M, S = np.copy(X), np.copy(X), np.copy(X)
 
     N = np.array([(+0.3897, +0.6890, -0.0787),
                   (-0.2298, +1.1834, +0.0464),
@@ -279,9 +252,7 @@ def rgb2lms(Red, Green, Blue):  # pre-processing
              M              array (n x m)     modified XYZitu601-1 axis
              S              array (n x m)     modified XYZitu601-1 axis
     """
-    L = np.copy(Red)
-    M = np.copy(Red)
-    S = np.copy(Red)
+    L, M, S = np.copy(Red), np.copy(Red), np.copy(Red)
 
     I = np.array([(0.3811, 0.5783, 0.0402),
                   (0.1967, 0.7244, 0.0782),
@@ -334,7 +305,7 @@ def pca(X):  # pre-processing
     eigen_vals, eigen_vecs = np.linalg.eig(C)
     return eigen_vecs, eigen_vals
 
-def mat_to_gray(I, notI):  # pre-processing or generic
+def mat_to_gray(I, notI):
     """
     Transform matix to float, omitting nodata values
     input:   I              array (n x m)     matrix of integers with data
@@ -350,6 +321,126 @@ def mat_to_gray(I, notI):  # pre-processing or generic
     Inew[notI] = 0
     return Inew
 
+def rgb2hcv(Blue, Green, Red):
+    """
+    Transform Red Green Blue arrays to a color space
+    
+    following Smith HJ. 
+        Putting colors in order. Dr. Dobb’s J.
+    see also Tsai 2006
+        A comparative study on shadow compensation of color aerial images 
+        in invariant color models    
+
+    input:   Blue           array (n x m)     Blue band of satellite image
+             Green          array (n x m)     Green band of satellite image
+             Red            array (n x m)     Red band of satellite image
+    output:  V              array (m x m)     array with dominant frequency
+             H              array (n x m)     array with amount of color
+             C              array (n x m)     luminance             
+    """
+    NanBol = Blue == 0
+    Blue, Green = mat_to_gray(Blue, NanBol), mat_to_gray(Green, NanBol)
+    Red = Red = mat_to_gray(Red, NanBol)
+    
+    
+    np.amax( np.dstack((Red, Green)))
+    V = 0.3*(Red + Green + Blue)
+    H = np.arctan2( Red-Blue, np.sqrt(3)*(V-Green))
+    
+    IN = abs(np.cos(H))<= 0.2
+    C = np.divide(V-Green, np.cos(H))
+    C2 = np.divide(Red-Blue, np.sqrt(3)*np.sin(H))
+    C[IN] = C2[IN]
+    return V, H, C
+
+def rgb2yiq(Red, Green, Blue):
+    """
+    Transform Red Green Blue arrays to XYZ tristimulus values
+    
+    see Gonzalez & Woods 1992
+    Digital image processing
+    
+    input:   Red            array (n x m)     Red band of satellite image
+             Green          array (n x m)     Green band of satellite image
+             Blue           array (n x m)     Blue band of satellite image
+    output:  Y              array (m x m)     Luminance     
+             I              array (n x m)     Intensity
+             Q              array (n x m)     Chroma
+    """    
+    Y, I, Q = np.zeros(Red.shape), np.zeros(Red.shape), np.zeros(Red.shape)
+
+    L = np.array([(+0.299, +0.587, +0.114),
+                  (+0.596, -0.275, -0.321),
+                  (+0.212, -0.523, +0.311)])
+
+    for i in range(0, Red.shape[0]):
+        for j in range(0, Red.shape[1]):
+            yiq = np.matmul(L, np.array(
+                [[Red[i][j]], [Green[i][j]], [Blue[i][j]]]))
+            Y[i][j] = yiq[0]
+            I[i][j] = yiq[1]
+            Q[i][j] = yiq[2]
+    return Y, I, Q
+
+def rgb2ycbcr(Red, Green, Blue):
+    """
+    Transform Red Green Blue arrays to Y Cb Cr colour space
+    
+    see Tsai 2006
+    A comparative study on shadow compensation of color aerial images 
+    in invariant color models
+    
+    input:   Red            array (n x m)     Red band of satellite image
+             Green          array (n x m)     Green band of satellite image
+             Blue           array (n x m)     Blue band of satellite image
+    output:  Y              array (m x m)     
+             Cb             array (n x m)     
+             Cr             array (n x m)     
+    """    
+    Y, Cb, Cr = np.zeros(Red.shape), np.zeros(Red.shape), np.zeros(Red.shape)
+
+    L = np.array([(+0.257, +0.504, +0.098),
+                  (-0.148, -0.291, +0.439),
+                  (+0.439, -0.368, -0.071)])
+    C = np.array([16, 128, 128])/2**8
+    for i in range(0, Red.shape[0]):
+        for j in range(0, Red.shape[1]):
+            ycc = np.matmul(L, np.array(
+                [[Red[i][j]], [Green[i][j]], [Blue[i][j]]]))
+            Y[i][j] = ycc[0] + C[0]
+            Cb[i][j] = ycc[1] + C[1]
+            Cr[i][j] = ycc[2] + C[2]
+    return Y, Cb, Cr
+
+def si(Blue, Green, Red):
+    
+    
+    Y, Cb, Cr = rgb2ycbcr(Red, Green, Blue)    
+    SI = np.divide(Cb-Y, Cb+Y)
+#    Y, Cb, Cr = rgb2ycbcr(Red, Green, Blue)    
+#    SI = np.divide(Cr+1, Y+1)    
+#    H, C, V = rgb2hcv(Red, Green, Blue)    
+#    SI = np.divide(H+1, V+1)
+#    Y, I, Q = rgb2yiq(Red, Green, Blue)    
+#    SI = np.divide(Q+1, Y+1)
+#    H, S, I = rgb2hsi(Red, Green, Blue)    
+#    SI = np.divide(H+1, I+1)  
+    return SI
+
+def isi(Blue, Green, Red, Near):
+    """
+    Improved shadow index    
+
+    based upon: Zhou et al. 2021
+    Shadow detection and compensation from remote sensing images 
+    under complex urban conditions
+    """
+    
+    
+    SI = si(Blue, Green, Red)
+    ISI = np.divide( SI + (1 - Near), SI + (1 + Near))
+    
+    return ISI
 
 def nsvi(Blue, Green, Red):  # pre-processing
     """
@@ -548,7 +639,6 @@ def reinhard(Blue, Green, Red):  # pre-processing
     
     return l,alfa,beta
 
-
 def shade_index(Blue, Green, Red, Nir):  # pre-processing
     """
     Amplify dark regions by simple multiplication
@@ -570,7 +660,6 @@ def shade_index(Blue, Green, Red, Nir):  # pre-processing
     SI = np.prod(np.dstack([(1 - Red), (1 - Green), (1 - Blue), (1 - Near)]),
                  axis=2)
     return SI
-
 
 def ruffenacht(Blue, Green, Red, Nir):  # pre-processing
     """
@@ -611,7 +700,6 @@ def ruffenacht(Blue, Green, Red, Nir):  # pre-processing
     M = np.multiply(D, (1 - F))
     return M
 
-
 def s_curve(x, a, b):  # pre-processing
     """
     Transform intensity in non-linear way
@@ -628,6 +716,9 @@ def s_curve(x, a, b):  # pre-processing
     fx = np.divide(1, 1 + np.exp(fe))
     del fe, x
     return fx
+
+# recovery - normalized color composite
+# histogram matching....
 
 # TO DO:
 # Wu 2007, Natural Shadow Matting. DOI: 10.1145/1243980.1243982
