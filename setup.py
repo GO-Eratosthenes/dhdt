@@ -43,11 +43,7 @@ setup(
     install_requires=[],  # FIXME: add your package's dependencies to this list
     setup_requires=[
         # dependency for `python setup.py test`
-        'pytest-runner',
-        # dependencies for `python setup.py build_sphinx`
-        'sphinx',
-        'sphinx_rtd_theme',
-        'recommonmark'
+        'pytest-runner'
     ],
     tests_require=[
         'pytest',
