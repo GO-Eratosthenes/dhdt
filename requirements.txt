@@ -8,9 +8,7 @@ rasterio
 scikit-image
 scikit-learn
 scipy
-sklearn
-skimage
 Pillow
-cairo
+pycairo
 shapely
 statsmodels
