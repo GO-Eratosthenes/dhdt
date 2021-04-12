@@ -1,4 +1,4 @@
-osgeo
+GDAL
 pytz
 pysolar
 numpy
