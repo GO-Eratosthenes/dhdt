@@ -1,8 +1,16 @@
+osr 
+ogr
 gdal
+pytz
+pysolar
 numpy
 rasterio
 scikit-image
 scikit-learn
 scipy
+sklearn
+skimage
+Pillow
+cairo
 shapely
 statsmodels
