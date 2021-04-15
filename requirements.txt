@@ -1,6 +1,4 @@
-osr 
-ogr
-gdal
+GDAL
 pytz
 pysolar
 numpy
