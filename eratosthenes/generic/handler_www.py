@@ -5,8 +5,28 @@ import tarfile
 import zipfile
 import urllib.request
 
+import ftps # for Copernicus FTP-download
+
 # geospatial libaries
 from osgeo import gdal
+
+def get_file_from_ftps(url, user, password, \
+                       file_path, file_name, dump_dir=os.getcwd()):
+    '''
+    Downloads a file from a ftps-server
+    input:   url            string            server address
+             user           string            username
+             password       string            password for access
+             file_path      string            location on the server
+             file_name      string            name of the file
+             dump_dir       string            path to place the content        
+    output:  none  
+    '''
+    
+    client = ftps.FTPS('ftps://' +user+ ':' +password+ '@' +url)
+    client.list()
+    client.download(file_path+file_name, dump_dir+file_name)
+    return
 
 def url_exist(file_url):
     '''
@@ -22,7 +42,7 @@ def url_exist(file_url):
     except:
         return False
 
-def get_tar_file(tar_url, dump_dir):
+def get_tar_file(tar_url, dump_dir=os.getcwd()):
     '''
     Downloads and unpacks compressed folder
     
@@ -37,7 +57,7 @@ def get_tar_file(tar_url, dump_dir):
     tar_names = tar_file.getnames()
     return tar_names
 
-def get_zip_file(zip_url, dump_dir):
+def get_zip_file(zip_url, dump_dir=os.getcwd()):
     '''
     Downloads and unpacks compressed folder
     
