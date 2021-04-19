@@ -1,7 +1,7 @@
 import geopandas
 import ftps
 
-from eratosthenes.generic.handler_www import get_file_from_ftps
+from eratosthenes.generic.handler_www import get_file_from_ftps, unpack_tar_file
 
 dem_path = '/Users/Alten005/surfdrive/Eratosthenes/RedGlacier/Cop-DEM-GLO-30/'
 cop_file = 'DGED-30.geojson'

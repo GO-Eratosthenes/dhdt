@@ -22,7 +22,8 @@ def get_file_from_ftps(url, user, password, \
              dump_dir       string            path to place the content        
     output:  none  
     '''
-    
+    if dump_dir[-1]!='/':
+        dump_dir += '/'
     client = ftps.FTPS('ftps://' +user+ ':' +password+ '@' +url)
     client.list()
     client.download(file_path+file_name, dump_dir+file_name)
