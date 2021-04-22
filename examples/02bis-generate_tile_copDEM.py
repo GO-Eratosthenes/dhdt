@@ -6,11 +6,12 @@ import tempfile
 
 import tarfile
 
+import numpy as np
+
 import geopandas
 import pystac
 import rioxarray
 import rioxarray.merge
-import rasterio.transform
 import stac2dcache
 
 from shapely.geometry import Polygon
@@ -98,21 +99,27 @@ def download_and_mosaic_through_ftps(file_list, tmp_path, cds_url, cds_path,
         # in this way, clipping is possible and less transformation is needed        
         for f in dem_tiles_filename:
             dem_tile = rioxarray.open_rasterio(f)
+            dem_tile = dem_tile.rio.write_nodata(-9999)
             # reproject to image CRS
             dem_tile_xy = dem_tile.rio.reproject(crs, transform=transform)
             
             bbox_xy = dem_tile_xy.rio.bounds()
             bbox_xy = (min(bbox[0],bbox_xy[0]), min(bbox[1],bbox_xy[1]),
-                       max(bbox[0],bbox_xy[0]), max(bbox[1],bbox_xy[1]))
+                       max(bbox[2],bbox_xy[2]), max(bbox[3],bbox_xy[3]))
             # extend area
-            dem_tile_xy = dem_tile_xy.rio.pad_box(*bbox_xy)
+            dem_tile_xy = dem_tile_xy.rio.pad_box(*bbox_xy, 
+                                                  constant_values=-9999)
             # crop area within tile
             dem_tile_xy = dem_tile_xy.rio.clip_box(*bbox)
             if 'dem_clip' not in locals():
-                dem_clip = dem_tile    
+                dem_clip = dem_tile_xy    
             else:
                 dem_clip = rioxarray.merge.merge_arrays([dem_clip, 
-                                                        dem_tile_xy])                
+                                                        dem_tile_xy], 
+                                                        nodata=-9999)  
+        # sometimes out of bound tiles are still present,
+        # hence rerun a clip to be sure
+        # dem_clip = dem_clip.rio.clip_box(*bbox)
     return dem_clip
 
 def get_SSO_id(fpath):
