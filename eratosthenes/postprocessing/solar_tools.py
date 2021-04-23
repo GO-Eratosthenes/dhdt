@@ -84,23 +84,26 @@ def make_shadowing(Z, az, zn, spac=10):
     Sw = Zs>Z
     return Sw
 
-def make_shading(Z, az, zn,spac=10):
-    dZdx,dZdy = np.gradient(Z, spac, spac)
-    vx = np.dstack((dZdx, np.ones_like(dZdx), np.zeros_like(dZdx)))
-    vy = np.dstack((dZdy, np.ones_like(dZdy), np.zeros_like(dZdy)))
+def make_shading(Z, az, zn, spac=10):
+    # convert to unit vectors
+    sun = np.dstack((np.sin(az), np.cos(az), np.tan(zn)))
+    n = np.linalg.norm(sun, axis=2)
+    sun[:, :, 0] /= n
+    sun[:, :, 1] /= n
+    sun[:, :, 2] /= n
     
-    # make normals witn unit vectors
-    surf_norm = np.cross(vx, vy)
-    norm_magn = np.linalg.norm(surf_norm, axis=2)
-    norm_unit = np.divide( surf_norm, np.expand_dims(norm_magn, axis=2))
-    
-    sun_unit = np.array([np.sin(np.radians((zn))) * np.cos(np.radians((az))),\
-                         np.sin(np.radians((zn))) * np.sin(np.radians((az))),\
-                         np.cos(np.radians((zn)))])
-    
-    Sh = norm_unit[:,:,0]*sun_unit[0] + \
-        norm_unit[:,:,1]*sun_unit[1] + \
-        norm_unit[:,:,2]*sun_unit[2]
+    # estimate surface normals
+    dy, dx = np.gradient(Z*spac)  
+
+    normal = np.dstack((dx, dy, np.ones_like(Z)))
+    n = np.linalg.norm(normal, axis=2)
+    normal[:, :, 0] /= n
+    normal[:, :, 1] /= n
+    normal[:, :, 2] /= n
+
+    Sh = normal[:,:,0]*sun[:,:,0] + \
+        normal[:,:,1]*sun[:,:,1] + \
+        normal[:,:,2]*sun[:,:,2]  
     return Sh
 
 # topocalc has horizon calculations

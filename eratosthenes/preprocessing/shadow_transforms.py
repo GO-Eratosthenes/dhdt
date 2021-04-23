@@ -113,13 +113,11 @@ def rgb2hsi(R, G, B):  # pre-processing
              Sat            array (n x m)     Saturation band
              Int            array (n x m)     Intensity band
     """
-    Red = np.float64(R) / 2 ** 16
-    Green = np.float64(G) / 2 ** 16
-    Blue = np.float64(B) / 2 ** 16
+    Red = mat_to_gray(R)   # np.float64(R) / 2 ** 16
+    Green = mat_to_gray(G) # np.float64(G) / 2 ** 16
+    Blue = mat_to_gray(B)  # np.float64(B) / 2 ** 16
 
-    Hue = np.copy(Red)
-    Sat = np.copy(Red)
-    Int = np.copy(Red)
+    Hue, Sat, Int = np.zeros(Red.shape()), np.zeros(Red.shape()), np.zeros(Red.shape())
 
     # See Tsai, IEEE Trans. Geo and RS, 2006.
     # from Pratt, 1991, Digital Image Processing, Wiley
@@ -305,7 +303,7 @@ def pca(X):  # pre-processing
     eigen_vals, eigen_vecs = np.linalg.eig(C)
     return eigen_vecs, eigen_vals
 
-def mat_to_gray(I, notI):
+def mat_to_gray(I, notI=np.nan):
     """
     Transform matix to float, omitting nodata values
     input:   I              array (n x m)     matrix of integers with data
@@ -313,7 +311,10 @@ def mat_to_gray(I, notI):
     output:  Inew           array (m x m)     linear transformed floating point
                                               [0...1]
     """
-    yesI = ~notI
+    if np.isnan(notI):
+        yesI = np.ones(I.shape, dtype=bool)
+    else:
+        yesI = ~notI
     Inew = np.float64(I)  # /2**16
     Inew[yesI] = np.interp(Inew[yesI],
                            (Inew[yesI].min(),
