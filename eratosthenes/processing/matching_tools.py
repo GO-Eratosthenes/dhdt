@@ -36,8 +36,9 @@ def lucas_kanade(I1, I2, window_size, sampleI, sampleJ, tau=1e-2):  # processing
     ft = ndimage.convolve(I2, kernel_t) + ndimage.convolve(I1, -kernel_t)
 
     # grid or single estimation
-    Ugrd = np.zeros((len(sampleI), len(sampleJ)))
-    Vgrd = np.zeros((len(sampleI), len(sampleJ)))
+    assert sampleI.shape == sampleJ.shape
+    Ugrd = np.zeros_like(sampleI)
+    Vgrd = np.zeros_like(sampleI)
 
     radius = np.floor(window_size / 2).astype(
             'int')  # window_size should be odd
