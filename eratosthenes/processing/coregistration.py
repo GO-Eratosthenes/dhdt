@@ -66,7 +66,7 @@ def coregister(sat_path, dat_path, connectivity=2, step_size=True,
             img = gdal.Open(sen2Path + "shadows.tif")
             M = np.array(img.GetRasterBand(1).ReadAsArray())
 
-            if i==0 & j==0:
+            if i==0 and j==0:
                 if step_size:  # reduce to kernel resolution
                     (sampleI, sampleJ) = get_coordinates_of_template_centers(\
                                                 M, temp_size)
