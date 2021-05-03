@@ -37,8 +37,8 @@ def lucas_kanade(I1, I2, window_size, sampleI, sampleJ, tau=1e-2):  # processing
 
     # grid or single estimation
     assert sampleI.shape == sampleJ.shape
-    Ugrd = np.zeros_like(sampleI)
-    Vgrd = np.zeros_like(sampleI)
+    Ugrd = np.zeros_like(sampleI, dtype="float")
+    Vgrd = np.zeros_like(sampleI, dtype="float")
 
     radius = np.floor(window_size / 2).astype(
             'int')  # window_size should be odd
