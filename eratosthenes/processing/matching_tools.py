@@ -11,8 +11,13 @@ from eratosthenes.generic.filtering_statistical import make_2D_Gaussian
 # spatial sub-pixel allignment functions
 def lucas_kanade(I1, I2, window_size, sampleI, sampleJ, tau=1e-2):  # processing
     """
-    displacement estimation through optical flow
-    following Lucas & Kanade 1981
+    Displacement estimation through optical flow following Lucas & Kanade 1981.
+    Conventions employed:
+     * X increases along columns (from first to last);
+     * Y increases along rows (from last to first);
+     * time increases from I1 to I2.
+    The arrays returned represent the flow (velocity) vector along X (Ugrd) and
+    Y (Vgrd).
     input:   I1             array (n x m)     image with intensities
              I2             array (n x m)     image with intensities
              window_size    integer           kernel size of the neighborhood
@@ -26,13 +31,17 @@ def lucas_kanade(I1, I2, window_size, sampleI, sampleJ, tau=1e-2):  # processing
         [[-1., 1.],
          [-1., 1.]]
     )
+    kernel_y = np.array(
+        [[1., 1.],
+         [-1., -1.]]
+    )
     kernel_t = np.array(
         [[1., 1.],
          [1., 1.]]
     ) * .25
 
     fx = ndimage.convolve(I1, kernel_x)
-    fy = ndimage.convolve(I1, np.flip(np.transpose(kernel_x), axis=0))
+    fy = ndimage.convolve(I1, kernel_y)
     ft = ndimage.convolve(I2, kernel_t) + ndimage.convolve(I1, -kernel_t)
 
     # grid or single estimation
@@ -40,14 +49,13 @@ def lucas_kanade(I1, I2, window_size, sampleI, sampleJ, tau=1e-2):  # processing
     Ugrd = np.zeros_like(sampleI, dtype="float")
     Vgrd = np.zeros_like(sampleI, dtype="float")
 
-    radius = np.floor(window_size / 2).astype(
-            'int')  # window_size should be odd
+    radius = np.floor(window_size/2).astype('int')  # window_size should be odd
     for iIdx in range(sampleI.size):
         iIm = sampleI.flat[iIdx]
         jIm = sampleJ.flat[iIdx]
-        
-        (iGrd, jGrd) = np.unravel_index(iIdx, sampleI.shape) 
-        
+
+        (iGrd, jGrd) = np.unravel_index(iIdx, sampleI.shape)
+
         # get templates
         Ix = fx[iIm - radius:iIm + radius + 1,
                 jIm - radius:jIm + radius + 1].flatten()
@@ -58,8 +66,8 @@ def lucas_kanade(I1, I2, window_size, sampleI, sampleJ, tau=1e-2):  # processing
 
         # look if variation is present
         if np.std(It) != 0:
-            b = np.reshape(It, (It.shape[0], 1))  # get b here
-            A = np.vstack((Ix, Iy)).T  # get A here
+            b = It  # get b here
+            A = np.stack((Ix, Iy), axis=1)  # get A here
             # threshold tau should be larger
             # than the smallest eigenvalue of A'A
             if np.min(abs(np.linalg.eigvals(np.matmul(A.T, A)))) >= tau:
