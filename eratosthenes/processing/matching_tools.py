@@ -960,14 +960,7 @@ def get_coordinates_of_template_centers(grid, temp_size):
     radius = np.floor(temp_size / 2).astype('int')
     Iidx = np.arange(radius, grid.shape[0] - radius, temp_size)
     Jidx = np.arange(radius, grid.shape[1] - radius, temp_size)
-    # FN ###################################
-    # are the following lines equivalent to:
-    # Iidx, Jidx = np.meshgrid(Iidx, Jidx)
-    # It looks like, but Iidx and Jidx are switched!
-    IidxNew = np.repeat(np.transpose([Iidx]), len(Jidx), axis=1)
-    Jidx = np.repeat([Jidx], len(Iidx), axis=0)
-    Iidx = IidxNew
-
+    Iidx, Jidx = np.meshgrid(Iidx, Jidx, indexing='ij')
     return Iidx, Jidx
 
 # supporting functions
