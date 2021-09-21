@@ -17,6 +17,18 @@ from ..generic.handler_s2 import get_array_from_xml
 
 from eratosthenes.generic.mapping_tools import map2pix
 
+def s2_dn2toa(I):
+    """convert the digital numbers of Sentinel-2 to top of atmosphere (TOA)
+    
+    Notes
+    -----
+    sentinel.esa.int/web/sentinel/technical-guides/sentinel-2-msi/
+    level-1c/algorithm
+    """
+    no_data = 0
+    
+    I = I*10000
+    return I       
 
 def read_band_s2(band, path):  # pre-processing
     """
@@ -38,7 +50,6 @@ def read_band_s2(band, path):  # pre-processing
     geoTransform = img.GetGeoTransform()
     targetprj = osr.SpatialReference(wkt=img.GetProjection())
     return data, spatialRef, geoTransform, targetprj
-
 
 def read_sun_angles_s2(path):  # pre-processing
     """
@@ -155,3 +166,32 @@ def read_cloud_mask(path_meta, msk_dim, geoTransform):
         msk = np.array(msk)    
         msk_clouds = np.maximum(msk_clouds, msk)
     return msk_clouds
+
+def read_detector_time(path):
+    det_time = np.zeros((13, 12), dtype='datetime64[ns]')
+    det_name = [None] * 13
+    det_meta = np.zeros((13, 4), dtype='float')
+    fname = os.path.join(path, 'MTD_DS.xml')
+    dom = ElementTree.parse(glob.glob(fname)[0])
+    root = dom.getroot()
+
+    # image dimensions
+    for meta in root.iter('Band_Time_Stamp'):
+        bnd = int(meta.get('bandId')) # 0..12
+        # <Spectral_Information bandId="8" physicalBand="B8A">
+        for stamps in meta:
+            det = int(stamps.get('detectorId'))            
+            det_time[bnd,det-1] = np.datetime64(stamps[1].text, 'ns') 
+            
+    for meta in root.iter('Spectral_Information'):
+        bnd = int(meta.get('bandId'))
+        bnd_name = meta.get('physicalBand')
+        # at a zero if needed, this seems the correct naming convention
+        if len(bnd_name)==2: 
+            bnd_name = bnd_name[0]+'0'+bnd_name[-1]
+        det_name[bnd] = bnd_name
+        det_meta[bnd,0] = float(meta[0].text) # resolution [m]
+        det_meta[bnd,1] = float(meta[1][0].text) # min
+        det_meta[bnd,2] = float(meta[1][1].text) # max
+        det_meta[bnd,3] = float(meta[1][2].text) # mean
+    return det_time, det_name, det_meta

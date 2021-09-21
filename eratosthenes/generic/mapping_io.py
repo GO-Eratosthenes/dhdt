@@ -49,11 +49,11 @@ def read_geo_image(fname):  # generic
 
 # I/O functions
 def makeGeoIm(I, R, crs, fName, meta_descr='project Eratosthenes', \
-              no_dat=np.nan, date_created='-0276-00-00'):
+              no_dat=np.nan, sun_angles='az:360-zn:90', date_created='-0276-00-00'):
     """
     Create georeference GeoTIFF
     input:   I              array (n x m)     band image
-             R              array (1 x 6)     georeference transform of
+             R              array (1 x 6)     GDAL georeference transform of
                                               an image
              crs            string            coordinate reference string
              fname          string            filename for the image
@@ -63,19 +63,21 @@ def makeGeoIm(I, R, crs, fName, meta_descr='project Eratosthenes', \
     
     # make it type dependent
     if I.dtype == 'float64':
-        ds = drv.Create(fName, \
-                        xsize=I.shape[1], ysize=I.shape[0], \
-                        bands=1, eType=gdal.GDT_Float64)
+        dtype = gdal.GDT_Float64
+    elif I.dtype == 'bool':
+        dtype = gdal.GDT_Byte
     else:
-        ds = drv.Create(fName, \
+        dtype = gdal.GDT_Int32
+    ds = drv.Create(fName, \
                         xsize=I.shape[1], ysize=I.shape[0], \
-                        bands=1, eType=gdal.GDT_Int32)
+                        bands=1, eType=dtype)    
     
     # set metadata in datasource
     ds.SetMetadata({'TIFFTAG_SOFTWARE':'dhdt v0', \
                     'TIFFTAG_ARTIST':'bas altena and team Atlas', \
                     'TIFFTAG_COPYRIGHT': 'contains modified Copernicus data', \
                     'TIFFTAG_IMAGEDESCRIPTION': meta_descr, \
+                    'TIFFTAG_RESOLUTIONUNIT' : sun_angles,\
                     'TIFFTAG_DATETIME': date_created})
     
     # set georeferencing metadata

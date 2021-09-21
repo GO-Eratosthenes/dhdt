@@ -2,7 +2,7 @@ import math
 
 import numpy as np
 
-def make_2D_Gaussian(size, fwhm = 3, center=None):
+def make_2D_Gaussian(size, fwhm=3):
     """ 
     Make a 2D Gaussian kernel.
 
@@ -17,18 +17,11 @@ def make_2D_Gaussian(size, fwhm = 3, center=None):
     if len(size)==1:
         size = (size, size)
     
-    x = np.arange(0, size[0], 1, float)
-    y = np.arange(0, size[1], 1, float) #x[:,np.newaxis]
+    x = np.linspace(-(size[0]-1)/2,+(size[0]-1)/2, size[0], float)
+    y = np.linspace(-(size[1]-1)/2,+(size[1]-1)/2, size[0], float)
     y = y[:,np.newaxis]
 
-    if center is None:
-        x0 = size[0] / 2 # // 2 to round to integer
-        y0 = size[1] / 2
-    else:
-        x0 = center[0]
-        y0 = center[1]
-
-    return np.exp(-4*np.log(2) * ((x-x0)**2 + (y-y0)**2) / fwhm**2)
+    return np.exp(-4*np.log(2) * (x**2 + y**2) / fwhm**2)
 
 def sigma_filtering(y,thres=3):
     """

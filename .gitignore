@@ -23,3 +23,8 @@ docs/apidocs
 
 # Mac
 .DS_Store
+examples/conn/conn-2019-04-13.png
+examples/conn/conn-2019-04-03.txt
+examples/conn/conn-2019-04-03.png
+*.png
+*.txt

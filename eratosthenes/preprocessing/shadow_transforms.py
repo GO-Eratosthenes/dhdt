@@ -49,7 +49,68 @@ def enhance_shadow(method, Blue, Green, Red, RedEdge, Nir, Shw):
         
     return M
 
-# shadow functions
+# generic transforms
+def pca(X):
+    """ principle component analysis (PCA)
+    
+    input:   data           array (n x m)     array of the band image
+    output:  eigen_vecs     array (m x m)     array with eigenvectors
+             eigen_vals     array (m x 1)     vector with eigenvalues
+    """
+    # Data matrix X, assumes 0-centered
+    n, m = X.shape
+    # removed, because a sample is taken:
+    #    assert np.allclose(X.mean(axis=0), np.zeros(m))
+    # Compute covariance matrix
+    C = np.dot(X.T, X) / (n - 1)
+    # Eigen decomposition
+    eigen_vals, eigen_vecs = np.linalg.eig(C)
+    return eigen_vecs, eigen_vals
+
+def pca_rgb_preparation(Red, Green, Blue, min_samp=1e4):
+    OK = Blue != 0  # boolean array with data
+
+    r,g,b = np.mean(Red[OK]), np.mean(Green[OK]), np.mean(Blue[OK])
+    # shift axis origin
+    Red,Green,Blue = Red-r, Green-g, Blue-b
+    del r, g, b
+
+    # sampleset
+    Nsamp = int(
+        min(min_samp, np.sum(OK)))  # try to have a sampleset of 10'000 points
+    sampSet, other = np.where(OK)  # OK.nonzero()
+    sampling = random.choices(sampSet, k=Nsamp)
+    del sampSet, Nsamp
+
+    Red = Red.ravel(order='F')
+    Green = Green.ravel(order='F')
+    Blue = Blue.ravel(order='F')
+
+    X = np.transpose(np.array(
+        [Red[sampling], Green[sampling], Blue[sampling]]))
+    return X    
+
+def mat_to_gray(I, notI=None):
+    """
+    Transform matix to float, omitting nodata values
+    input:   I              array (n x m)     matrix of integers with data
+             notI           array (n x m)     matrix of boolean with nodata
+    output:  Inew           array (m x m)     linear transformed floating point
+                                              [0...1]
+    """
+    if notI is None:
+        yesI = np.ones(I.shape, dtype=bool)
+        notI = ~yesI
+    else:
+        yesI = ~notI
+    Inew = np.float64(I)  # /2**16
+    Inew[yesI] = np.interp(Inew[yesI],
+                           (Inew[yesI].min(),
+                            Inew[yesI].max()), (0, +1))
+    Inew[notI] = 0
+    return Inew
+
+# generic metrics
 def shannon_entropy(X,band_width=100):
     num_bins = np.round(np.nanmax(X)-np.nanmin(X)/band_width)
     hist, bin_edges = np.histogram(X.flatten(), \
@@ -59,60 +120,238 @@ def shannon_entropy(X,band_width=100):
     shannon = -np.sum(hist * np.log2(hist))
     return shannon
 
-def finlayson(Ia, Ib, Ic, a=-1):
-    """
-    Transform ...
-    
-    see Finlayson 2009
-    Entropy Minimization for Shadow Removal
-    
-    input:   Ia             array (n x m)     highest frequency band of satellite image
-             Ib             array (n x m)     lower frequency band of satellite image
-             Ic             array (n x m)     lowest frequency band of satellite image
-             a              float             angle to use [in degrees]
-    output:  S              array (m x m)     ...
-             R              array (m x m)     ...    
-    """
-    In = Ia==0 # pixels outside the scene have 0's 
-    Ia, Ib, Ic = mat_to_gray(Ia,In), mat_to_gray(Ib,In), mat_to_gray(Ic,In)
-    Ia[Ia==0] = 1e-6    
-    Ib[Ib==0] = 1e-6    
-    sqIc = np.power(Ic, 1./2)
-    sqIc[sqIc==0] = 1    
-        
-    chi1 = np.log(np.divide( Ia, sqIc))
-    chi2 = np.log(np.divide( Ib, sqIc))
-    
-    if a==-1: # estimate angle from data if angle is not given
-        (m,n) = chi1.shape
-        mn = np.power((m*n),-1./3)
-        # loop through angles
-        angl = np.arange(0,180)
-        shan = np.zeros(angl.shape)
-        for i in angl:
-            chi_rot = np.cos(np.radians(i))*chi1 + \
-                np.sin(np.radians(i))*chi2
-            band_w = 3.5*np.std(chi_rot)*mn   
-            shan[i] = shannon_entropy(chi_rot, band_w)
-        
-        a = angl[np.argmin(shan)]
-        #a = angl[np.argmax(shan)]
-    # create imagery    
-    S = - np.cos(np.radians(a))*chi1 - np.sin(np.radians(a))*chi2
-    #a += 90
-    #R = np.cos(np.radians(a))*chi1 + np.sin(np.radians(a))*chi2
-    return S
+# image transforms
+def gamma_adjustment(I, gamma=1.0):
+    if I.dtype.type == np.uint8:
+        radio_range = 2**8-1
+        look_up_table = np.array([((i / radio_range) ** gamma) * radio_range
+                                  for i in np.arange(0, radio_range+1)]
+                                 ).astype("uint8")
+    else:
+        radio_range = 2**16-1
+        look_up_table = np.array([((i / radio_range) ** gamma) * radio_range
+                                  for i in np.arange(0, radio_range+1)]
+                                 ).astype("uint16")
+    return look_up_table[I]
 
-def rgb2hsi(R, G, B):  # pre-processing
+def log_adjustment(I):
+    if I.dtype.type == np.uint8:
+        radio_range = 2**8-1
+    else:
+        radio_range = 2**16-1
+    
+    c = radio_range/(np.log(1 + np.amax(I)))
+    I_new = c * np.log(1 + I)
+    if I.dtype.type == np.uint8:
+        I_new = I_new.astype("uint8")
+    else:
+        I_new = I_new.astype("uint16")
+    return I_new
+
+def s_curve(x, a, b):
     """
-    Transform Red Green Blue arrays to Hue Saturation Intensity arrays
-    input:   R              array (n x m)     Red band of satellite image
-             G              array (n x m)     Green band of satellite image
-             B              array (n x m)     Blue band of satellite image
-    output:  Hue            array (m x m)     Hue band
-             Sat            array (n x m)     Saturation band
-             Int            array (n x m)     Intensity band
+    Transform intensity in non-linear way
+    
+    see Fredembach 2010
+        info: EPFL Tech Report 165527
+    
+    input:   x              array (n x 1)     array with values
+             a              array (1 x 1)     slope
+             b              array (1 x 1)     intercept
+    output:  fx             array (n x 1)     array with transform
     """
+    fe = -a * (x - b)
+    fx = np.divide(1, 1 + np.exp(fe))
+    return fx
+
+def inverse_tangent_transformation(I, zeta): # wip
+    """enhance shadow transform, through classification knowledge
+    
+    Parameters
+    ----------      
+    I : np.array, size=(m,n)
+        shadow enhanced imagery
+        
+    Returns
+    -------
+    I_new : np.array, size=(m,n)
+        shadow enriched imagery
+       
+    Notes
+    -----   
+    [1] Li et al. "Shadow detection in remotely sensed images based on 
+    self-adaptive feature selection" IEEE transactions on geoscience and 
+    remote sensing vol.49(12) pp.5092-5103, 2011.
+    """    
+    I_new = (np.random) * np.sqrt(I)
+    return I_new
+
+# color transforms
+def rgb2hcv(Blue, Green, Red):
+    """transform red green blue arrays to a color space
+    
+    Parameters
+    ----------    
+    Blue : np.array, size=(m,n)
+        Blue band of satellite image
+    Green : np.array, size=(m,n)
+        Green band of satellite image
+    Red : np.array, size=(m,n)
+        Red band of satellite image
+        
+    Returns
+    -------
+    V : np.array, size=(m,n)
+        array with dominant frequency
+    H : np.array, size=(m,n)
+        array with amount of color
+    C : np.array, size=(m,n)
+        luminance   
+    
+    See also
+    --------
+    rgb2yiq, rgb2ycbcr, rgb2hsi, rgb2xyz, rgb2lms
+        
+    Notes
+    -----
+    [1] Smith, "Putting colors in order", Dr. Dobb’s Journal, pp 40, 1993.    
+    [2] Tsai, "A comparative study on shadow compensation of color aerial 
+    images in invariant color models", IEEE transactions in geoscience and
+    remote sensing, vol. 44(6) pp. 1661--1671, 2006. 
+    """
+    NanBol = Blue == 0
+    Blue, Green = mat_to_gray(Blue, NanBol), mat_to_gray(Green, NanBol)
+    Red = Red = mat_to_gray(Red, NanBol)
+    
+    
+    np.amax( np.dstack((Red, Green)))
+    V = 0.3*(Red + Green + Blue)
+    H = np.arctan2( Red-Blue, np.sqrt(3)*(V-Green))
+    
+    IN = abs(np.cos(H))<= 0.2
+    C = np.divide(V-Green, np.cos(H))
+    C2 = np.divide(Red-Blue, np.sqrt(3)*np.sin(H))
+    C[IN] = C2[IN]
+    return V, H, C
+
+def rgb2yiq(Red, Green, Blue):
+    """transform red, green, blue to luminance, inphase, quadrature values
+    
+    Parameters
+    ----------    
+    Red : np.array, size=(m,n)
+        red band of satellite image
+    Green : np.array, size=(m,n)
+        green band of satellite image
+    Blue : np.array, size=(m,n)
+        blue band of satellite image
+        
+    Returns
+    -------
+    Y : np.array, size=(m,n)
+        luminance 
+    I : np.array, size=(m,n)
+        inphase
+    Q : np.array, size=(m,n)
+        quadrature
+    
+    See also
+    --------
+    rgb2hcv, rgb2ycbcr, rgb2hsi, rgb2xyz, rgb2lms
+    
+    Notes
+    -----
+    [1] Gonzalez & Woods "Digital image processing", 1992.
+    """
+
+    Y, I, Q = np.zeros(Red.shape), np.zeros(Red.shape), np.zeros(Red.shape)
+
+    L = np.array([(+0.299, +0.587, +0.114),
+                  (+0.596, -0.275, -0.321),
+                  (+0.212, -0.523, +0.311)])
+
+    for i in range(0, Red.shape[0]):
+        for j in range(0, Red.shape[1]):
+            yiq = np.matmul(L, np.array(
+                [[Red[i][j]], [Green[i][j]], [Blue[i][j]]]))
+            Y[i][j] = yiq[0]
+            I[i][j] = yiq[1]
+            Q[i][j] = yiq[2]
+    return Y, I, Q
+
+def rgb2ycbcr(Red, Green, Blue):   
+    """transform red, green, blue arrays to luna and chroma values
+    
+    Parameters
+    ----------    
+    Red : np.array, size=(m,n)
+        red band of satellite image
+    Green : np.array, size=(m,n)
+        green band of satellite image
+    Blue : np.array, size=(m,n)
+        blue band of satellite image
+        
+    Returns
+    -------
+    Y : np.array, size=(m,n)
+        luma
+    Cb : np.array, size=(m,n)
+        chroma
+    Cr : np.array, size=(m,n)
+        chroma
+    
+    See also
+    --------
+    rgb2hcv, rgb2yiq, rgb2hsi, rgb2xyz, rgb2lms
+    
+    Notes
+    -----
+    [1] Tsai, "A comparative study on shadow compensation of color aerial 
+    images in invariant color models", IEEE transactions in geoscience and
+    remote sensing, vol. 44(6) pp. 1661--1671, 2006.  
+    """
+
+    Y, Cb, Cr = np.zeros(Red.shape), np.zeros(Red.shape), np.zeros(Red.shape)
+
+    L = np.array([(+0.257, +0.504, +0.098),
+                  (-0.148, -0.291, +0.439),
+                  (+0.439, -0.368, -0.071)])
+    C = np.array([16, 128, 128])/2**8
+    for i in range(0, Red.shape[0]):
+        for j in range(0, Red.shape[1]):
+            ycc = np.matmul(L, np.array(
+                [[Red[i][j]], [Green[i][j]], [Blue[i][j]]]))
+            Y[i][j] = ycc[0] + C[0]
+            Cb[i][j] = ycc[1] + C[1]
+            Cr[i][j] = ycc[2] + C[2]
+    return Y, Cb, Cr
+
+def rgb2hsi(R, G, B):
+    """transform red, green, blue arrays to hue, saturation, intensity arrays
+    
+    Parameters
+    ----------    
+    R : np.array, size=(m,n)
+        red band of satellite image
+    G : np.array, size=(m,n)
+        green band of satellite image
+    B : np.array, size=(m,n)
+        blue band of satellite image
+        
+    Returns
+    -------
+    H : np.array, size=(m,n)
+        Hue
+    S : np.array, size=(m,n)
+        Saturation
+    I : np.array, size=(m,n)
+        Intensity
+    
+    See also
+    --------
+    erdas2hsi, rgb2hcv, rgb2yiq, rgb2ycbcr, rgb2xyz, rgb2lms
+    """
+
     Red = mat_to_gray(R)   # np.float64(R) / 2 ** 16
     Green = mat_to_gray(G) # np.float64(G) / 2 ** 16
     Blue = mat_to_gray(B)  # np.float64(B) / 2 ** 16
@@ -135,16 +374,35 @@ def rgb2hsi(R, G, B):  # pre-processing
 
     return Hue, Sat, Int
 
-def erdas2hsi(Blue, Green, Red):  # pre-processing
-    """
-    Transform Red Green Blue arrays to Hue Saturation Intensity arrays
-    following ERDAS 2013 (pp.197)
-    input:   Blue           array (n x m)     Blue band of satellite image
-             Green        array (n x m)     Green band of satellite image
-             Red           array (n x m)     Red infrared band of satellite image
-    output:  Hue            array (m x m)     Hue band
-             Sat            array (n x m)     Saturation band
-             Int            array (n x m)     Intensity band
+def erdas2hsi(Blue, Green, Red):
+    """transform red, green, blue arrays to hue, saturation, intensity arrays
+    
+    Parameters
+    ----------    
+    Blue : np.array, size=(m,n)
+        blue band of satellite image
+    Green : np.array, size=(m,n)
+        green band of satellite image
+    Red : np.array, size=(m,n)
+        red band of satellite image
+
+        
+    Returns
+    -------
+    Hue : np.array, size=(m,n)
+        hue
+    Sat : np.array, size=(m,n)
+        saturation
+    Int : np.array, size=(m,n)
+        intensity
+        
+    See also
+    --------
+    rgb2hsi
+        
+    Notes
+    -----
+    [1] ERDAS, "XXX", 2013. 
     """
     NanBol = Blue == 0
     Blue = mat_to_gray(Blue, NanBol)
@@ -177,25 +435,51 @@ def erdas2hsi(Blue, Green, Red):  # pre-processing
                                    - Green[Red==max_Stack])    
     return Hue, Sat, Int
 
-def rgb2xyz(Red, Green, Blue):  # pre-processing
-    """
-    Transform Red Green Blue arrays to XYZ tristimulus values
+def rgb2xyz(Red, Green, Blue):
+    """transform red, green, blue arrays to XYZ tristimulus values
     
-    see Reinhard et al. 2001
-    Color Transfer between images
+    Parameters
+    ----------    
+    Red : np.array, size=(m,n)
+        red band of satellite image
+    Green : np.array, size=(m,n)
+        green band of satellite image
+    Blue : np.array, size=(m,n)
+        blue band of satellite image
+    method : 
+        'reinhardt'
+            XYZitu601-1 axis
+        'ford'
+            D65 illuminant
+        
+    Returns
+    -------
+    X : np.array, size=(m,n)
+    Y : np.array, size=(m,n)
+    Z : np.array, size=(m,n)
     
-    input:   Red            array (n x m)     Red band of satellite image
-             Green          array (n x m)     Green band of satellite image
-             Blue           array (n x m)     Blue band of satellite image
-    output:  X              array (m x m)     modified XYZitu601-1 axis
-             Y              array (n x m)     modified XYZitu601-1 axis
-             Z              array (n x m)     modified XYZitu601-1 axis
+    See also
+    --------
+    rgb2hcv, rgb2ycbcr, rgb2hsi, rgb2yiq, rgb2lms, xyz2lms
+    
+    Notes
+    -----
+    [1] Reinhard et al. "Color transfer between images" IEEE Computer graphics 
+    and applications vol.21(5) pp.34-41, 2001.
+    [2] Ford & Roberts. "Color space conversion", pp. 1--31, 1998.    
     """
+    
     X, Y, Z = np.copy(Red), np.copy(Red), np.copy(Red)
 
-    M = np.array([(0.5141, 0.3239, 0.1604),
-                  (0.2651, 0.6702, 0.0641),
-                  (0.0241, 0.1228, 0.8444)])
+    if method=='ford':
+        M = np.array([(0.4124564, 0.3575761, 0.1804375),
+                      (0.2126729, 0.7151522, 0.0721750),
+                      (0.0193339, 0.1191920, 0.9503041)])
+    else:
+        M = np.array([(0.5141, 0.3239, 0.1604),
+                      (0.2651, 0.6702, 0.0641),
+                      (0.0241, 0.1228, 0.8444)])
+
 
     for i in range(0, Red.shape[0]):
         for j in range(0, Red.shape[1]):
@@ -207,22 +491,36 @@ def rgb2xyz(Red, Green, Blue):  # pre-processing
 
     return X, Y, Z
 
-def xyz2lms(X, Y, Z):  # pre-processing
-    """
-    Transform XYZ tristimulus values to  LMS arrays
+def xyz2lms(X, Y, Z): 
+    """transform XYZ tristimulus arrays to LMS values
     
-    see Reinhard et al. 2001
-    Color Transfer between images
+    Parameters
+    ----------    
+    X : np.array, size=(m,n)
+        modified XYZitu601-1 axis
+    Y : np.array, size=(m,n)
+        modified XYZitu601-1 axis
+    Z : np.array, size=(m,n)
+        modified XYZitu601-1 axis
+        
+    Returns
+    -------
+    L : np.array, size=(m,n)
+    M : np.array, size=(m,n)
+    S : np.array, size=(m,n)
     
-    input:   X              array (m x m)     modified XYZitu601-1 axis
-             Y              array (n x m)     modified XYZitu601-1 axis
-             Z              array (n x m)     modified XYZitu601-1 axis
-    output:  L              array (m x m)     
-             M              array (n x m)     
-             S              array (n x m)     
+    See also
+    --------
+    rgb2hcv, rgb2ycbcr, rgb2hsi, rgb2yiq, rgb2lms
+    
+    Notes
+    -----
+    [1] Reinhard et al. "Color transfer between images" IEEE Computer graphics 
+    and applications vol.21(5) pp.34-41, 2001.
     """
-    L, M, S = np.copy(X), np.copy(X), np.copy(X)
 
+    L, M, S = np.copy(X), np.copy(X), np.copy(X)
+    
     N = np.array([(+0.3897, +0.6890, -0.0787),
                   (-0.2298, +1.1834, +0.0464),
                   (+0.0000, +0.0000, +0.0000)])
@@ -236,20 +534,109 @@ def xyz2lms(X, Y, Z):  # pre-processing
             S[i][j] = lms[2]
     return L, M, S
 
-def rgb2lms(Red, Green, Blue):  # pre-processing
-    """
-    Transform Red Green Blue arrays to XYZ tristimulus values
+def xyz2lab(X, Y, Z, th=0.008856): 
+    """transform XYZ tristimulus arrays to Lab values
     
-    see Reinhard et al. 2001
-    Color Transfer between images
+    Parameters
+    ----------    
+    X : np.array, size=(m,n)
+    Y : np.array, size=(m,n)
+    Z : np.array, size=(m,n)
+        
+    Returns
+    -------
+    L : np.array, size=(m,n)
+    a : np.array, size=(m,n)
+    b : np.array, size=(m,n)
     
-    input:   Red            array (n x m)     Red band of satellite image
-             Green          array (n x m)     Green band of satellite image
-             Blue           array (n x m)     Blue band of satellite image
-    output:  L              array (m x m)     modified XYZitu601-1 axis
-             M              array (n x m)     modified XYZitu601-1 axis
-             S              array (n x m)     modified XYZitu601-1 axis
+    See also
+    --------
+    rgb2xyz, xyz2lms, lms2lch
+    
+    Notes
+    -----
+    [1] Ford & Roberts. "Color space conversion", pp. 1--31, 1998.
+    [2] Silva et al. "Near real-time shadow detection and removal in aerial 
+    motion imagery application" ISPRS journal of photogrammetry and remote
+    sensing, vol.140 pp.104--121, 2018.
     """
+    Xn,Yn,Zn = 95.047, 100.00, 108.883 # D65 illuminant
+    
+    YYn = Y/Yn
+    
+    L_1 = 116* YYn**(1/3.) 
+    L_2 = 903.3 * YYn
+    
+    L = L_1
+    L[YYn<=th] = L_2[YYn<=th]
+    
+    def f(tau, th):    
+        fx = X**(1/3.)
+        fx[X<=th] = 7.787*X[X<th] + 16/116
+        return fx
+    
+    a = 500*( f(X/Xn, th) - f(Z/Zn, th) )
+    b = 200*( f(Y/Yn, th) - f(Z/Zn, th) )
+    return L, a, b
+
+def lab2lch(L, a, b): 
+    """transform XYZ tristimulus arrays to Lab values
+    
+    Parameters
+    ----------    
+    L : np.array, size=(m,n)
+    a : np.array, size=(m,n)
+    b : np.array, size=(m,n)
+        
+    Returns
+    -------
+    C : np.array, size=(m,n)
+    h : np.array, size=(m,n)
+    
+    See also
+    --------
+    rgb2xyz, xyz2lms, xyz2lab
+    
+    Notes
+    -----
+    [1] Ford & Roberts. "Color space conversion", pp. 1--31, 1998.
+    [2] Silva et al. "Near real-time shadow detection and removal in aerial 
+    motion imagery application" ISPRS journal of photogrammetry and remote
+    sensing, vol.140 pp.104--121, 2018.
+    """
+    C = np.sqrt( a**2 + b**2)
+
+    # calculate angle, and let it range from 0...1    
+    h = ((np.arctan2(b, a) + 2*np.pi)% 2*np.pi) / 2*np.pi
+    return C, h
+
+def rgb2lms(Red, Green, Blue):
+    """transform red, green, blue arrays to XYZ tristimulus values
+    
+    Parameters
+    ----------    
+    Red : np.array, size=(m,n)
+        red band of satellite image
+    Green : np.array, size=(m,n)
+        green band of satellite image
+    Blue : np.array, size=(m,n)
+        blue band of satellite image
+        
+    Returns
+    -------
+    L : np.array, size=(m,n)
+    M : np.array, size=(m,n)
+    S : np.array, size=(m,n)
+    
+    See also
+    --------
+    rgb2hcv, rgb2ycbcr, rgb2hsi, rgb2yiq, rgb2xyz, xyz2lms
+    
+    Notes
+    -----
+    [1] Reinhard et al. "Color transfer between images", 2001.
+    """
+    
     L, M, S = np.copy(Red), np.copy(Red), np.copy(Red)
 
     I = np.array([(0.3811, 0.5783, 0.0402),
@@ -266,6 +653,28 @@ def rgb2lms(Red, Green, Blue):  # pre-processing
     return L, M, S
 
 def lms2lab(L, M, S):
+    """transform L, M, S arrays to lab color space
+    
+    Parameters
+    ----------    
+    L : np.array, size=(m,n)
+    M : np.array, size=(m,n)
+    S : np.array, size=(m,n)
+        
+    Returns
+    -------
+    l : np.array, size=(m,n)
+    a : np.array, size=(m,n)
+    b : np.array, size=(m,n)
+    
+    See also
+    --------
+    rgb2hcv, rgb2ycbcr, rgb2hsi, rgb2yiq, rgb2xyz, xyz2lms
+    
+    Notes
+    -----
+    [1] Reinhard et al. "Color transfer between images", 2001.
+    """
     l = np.copy(L)
     a = np.copy(L)
     b = np.copy(L)
@@ -286,135 +695,29 @@ def lms2lab(L, M, S):
             b[i][j] = lab[2]
     return l, a, b
 
-def pca(X):  # pre-processing
-    """
-    principle component analysis (PCA)
-    input:   data           array (n x m)     array of the band image
-    output:  eigen_vecs     array (m x m)     array with eigenvectors
-             eigen_vals     array (m x 1)     vector with eigenvalues
-    """
-    # Data matrix X, assumes 0-centered
-    n, m = X.shape
-    # removed, because a sample is taken:
-    #    assert np.allclose(X.mean(axis=0), np.zeros(m))
-    # Compute covariance matrix
-    C = np.dot(X.T, X) / (n - 1)
-    # Eigen decomposition
-    eigen_vals, eigen_vecs = np.linalg.eig(C)
-    return eigen_vecs, eigen_vals
-
-def mat_to_gray(I, notI=np.nan):
-    """
-    Transform matix to float, omitting nodata values
-    input:   I              array (n x m)     matrix of integers with data
-             notI           array (n x m)     matrix of boolean with nodata
-    output:  Inew           array (m x m)     linear transformed floating point
-                                              [0...1]
-    """
-    if np.isnan(notI):
-        yesI = np.ones(I.shape, dtype=bool)
-    else:
-        yesI = ~notI
-    Inew = np.float64(I)  # /2**16
-    Inew[yesI] = np.interp(Inew[yesI],
-                           (Inew[yesI].min(),
-                            Inew[yesI].max()), (0, +1))
-    Inew[notI] = 0
-    return Inew
-
-def rgb2hcv(Blue, Green, Red):
-    """
-    Transform Red Green Blue arrays to a color space
+# color-based shadow functions
+def shadow_index_zhou(Blue, Green, Red):
+    """transform red, green, blue arrays to shadow index
     
-    following Smith HJ. 
-        Putting colors in order. Dr. Dobb’s J.
-    see also Tsai 2006
-        A comparative study on shadow compensation of color aerial images 
-        in invariant color models    
-
-    input:   Blue           array (n x m)     Blue band of satellite image
-             Green          array (n x m)     Green band of satellite image
-             Red            array (n x m)     Red band of satellite image
-    output:  V              array (m x m)     array with dominant frequency
-             H              array (n x m)     array with amount of color
-             C              array (n x m)     luminance             
-    """
-    NanBol = Blue == 0
-    Blue, Green = mat_to_gray(Blue, NanBol), mat_to_gray(Green, NanBol)
-    Red = Red = mat_to_gray(Red, NanBol)
+    Parameters
+    ----------    
+    Blue : np.array, size=(m,n)
+        blue band of satellite image
+    Green : np.array, size=(m,n)
+        green band of satellite image
+    Red : np.array, size=(m,n)
+        red band of satellite image
+        
+    Returns
+    -------
+    SI : np.array, size=(m,n)
+        array with shadow transform
     
-    
-    np.amax( np.dstack((Red, Green)))
-    V = 0.3*(Red + Green + Blue)
-    H = np.arctan2( Red-Blue, np.sqrt(3)*(V-Green))
-    
-    IN = abs(np.cos(H))<= 0.2
-    C = np.divide(V-Green, np.cos(H))
-    C2 = np.divide(Red-Blue, np.sqrt(3)*np.sin(H))
-    C[IN] = C2[IN]
-    return V, H, C
-
-def rgb2yiq(Red, Green, Blue):
-    """
-    Transform Red Green Blue arrays to XYZ tristimulus values
-    
-    see Gonzalez & Woods 1992
-    Digital image processing
-    
-    input:   Red            array (n x m)     Red band of satellite image
-             Green          array (n x m)     Green band of satellite image
-             Blue           array (n x m)     Blue band of satellite image
-    output:  Y              array (m x m)     Luminance     
-             I              array (n x m)     Intensity
-             Q              array (n x m)     Chroma
-    """    
-    Y, I, Q = np.zeros(Red.shape), np.zeros(Red.shape), np.zeros(Red.shape)
-
-    L = np.array([(+0.299, +0.587, +0.114),
-                  (+0.596, -0.275, -0.321),
-                  (+0.212, -0.523, +0.311)])
-
-    for i in range(0, Red.shape[0]):
-        for j in range(0, Red.shape[1]):
-            yiq = np.matmul(L, np.array(
-                [[Red[i][j]], [Green[i][j]], [Blue[i][j]]]))
-            Y[i][j] = yiq[0]
-            I[i][j] = yiq[1]
-            Q[i][j] = yiq[2]
-    return Y, I, Q
-
-def rgb2ycbcr(Red, Green, Blue):
-    """
-    Transform Red Green Blue arrays to Y Cb Cr colour space
-    
-    see Tsai 2006
-    A comparative study on shadow compensation of color aerial images 
-    in invariant color models
-    
-    input:   Red            array (n x m)     Red band of satellite image
-             Green          array (n x m)     Green band of satellite image
-             Blue           array (n x m)     Blue band of satellite image
-    output:  Y              array (m x m)     
-             Cb             array (n x m)     
-             Cr             array (n x m)     
-    """    
-    Y, Cb, Cr = np.zeros(Red.shape), np.zeros(Red.shape), np.zeros(Red.shape)
-
-    L = np.array([(+0.257, +0.504, +0.098),
-                  (-0.148, -0.291, +0.439),
-                  (+0.439, -0.368, -0.071)])
-    C = np.array([16, 128, 128])/2**8
-    for i in range(0, Red.shape[0]):
-        for j in range(0, Red.shape[1]):
-            ycc = np.matmul(L, np.array(
-                [[Red[i][j]], [Green[i][j]], [Blue[i][j]]]))
-            Y[i][j] = ycc[0] + C[0]
-            Cb[i][j] = ycc[1] + C[1]
-            Cr[i][j] = ycc[2] + C[2]
-    return Y, Cb, Cr
-
-def si(Blue, Green, Red):
-    
+    Notes
+    -----
+    [1] Zhou et al. "Shadow detection and compensation from remote sensing 
+    images under complex urban conditions", 2021.
+    """  
     
     Y, Cb, Cr = rgb2ycbcr(Red, Green, Blue)    
     SI = np.divide(Cb-Y, Cb+Y)
@@ -428,266 +731,542 @@ def si(Blue, Green, Red):
 #    SI = np.divide(H+1, I+1)  
     return SI
 
-def isi(Blue, Green, Red, Near):
-    """
-    Improved shadow index    
-
-    based upon: Zhou et al. 2021
-    Shadow detection and compensation from remote sensing images 
-    under complex urban conditions
-    """
+def improved_shadow_index(Blue, Green, Red, Near):
+    """transform red, green, blue arrays to improved shadow index
     
+    Parameters
+    ----------    
+    Blue : np.array, size=(m,n)
+        blue band of satellite image
+    Green : np.array, size=(m,n)
+        green band of satellite image
+    Red : np.array, size=(m,n)
+        red band of satellite image
+    Near : np.array, size=(m,n)
+        near infrared band of satellite image
+        
+    Returns
+    -------
+    ISI : np.array, size=(m,n)
+        array with shadow transform
     
-    SI = si(Blue, Green, Red)
+    Notes
+    -----
+    [1] Zhou et al. "Shadow detection and compensation from remote sensing 
+    images under complex urban conditions", 2021.
+    """        
+    SI = shadow_index_zhou(Blue, Green, Red)
     ISI = np.divide( SI + (1 - Near), SI + (1 + Near))
     
     return ISI
 
-def nsvi(Blue, Green, Red):  # pre-processing
+def shadow_enhancement_index(Blue,Green,Red,Near):
+    """transform red, green, blue arrays to sei? index
+    
+    Parameters
+    ----------    
+    Blue : np.array, size=(m,n)
+        blue band of satellite image
+    Green : np.array, size=(m,n)
+        green band of satellite image
+    Red : np.array, size=(m,n)
+        red band of satellite image
+    Near : np.array, size=(m,n)
+        near infrared band of satellite image
+        
+    Returns
+    -------
+    SEI : np.array, size=(m,n)
+        array with sei transform
+    
+    Notes
+    -----
+    Based on the bands of Sentinel-2:
+    
+    .. math:: \text{SEI}=\frac{(B_{1}+B_{9})-(B_{3}+B_{8})}{(B_{1}+B_{9})+(B_{3}+B_{8})} 
+    
+    [1] Sun et al. "Combinational shadow index for building shadow extraction 
+    in urban areas from Sentinel-2A MSI imagery" International journal of 
+    applied earth observation and geoinformation, vol. 78 pp. 53--65, 2019.
+    """   
+    SEI = np.divide( (Blue + Near)-(Green + Red), (Blue + Near)+(Green + Red))
+    return SEI
+
+def false_color_shadow_difference_index(Green,Red,Near):
+    """transform red and near infrared arrays to shadow index
+    
+    Parameters
+    ----------    
+    Green : np.array, size=(m,n)
+        green band of satellite image
+    Red : np.array, size=(m,n)
+        red band of satellite image
+    Near : np.array, size=(m,n)
+        near infrared band of satellite image
+        
+    Returns
+    -------
+    FCSI : np.array, size=(m,n)
+        array with shadow enhancement
+        
+    See also
+    --------
+    normalized_sat_value_difference_index   
+    
+    Notes
+    -----
+    [1] Teke et al. "Multi-spectral false color shadow detection" Proceedings
+    of the ISPRS conference on photogrammetric image analysis, pp.109-119, 
+    2011.
+    """ 
+    
+    (H, S, I) = rgb2hsi(Near, Red, Green)  # create HSI bands
+    NSVDI = (S - I) / (S + I)
+    return NSVDI
+    
+    SEI = np.divide( (Blue + Near)-(Green + Red), (Blue + Near)+(Green + Red))
+    return SEI
+
+def normalized_difference_water_index(Green, Near):
+    """transform green and near infrared arrays NDW-index
+    
+    Parameters
+    ----------    
+    Green : np.array, size=(m,n)
+        green band of satellite image
+    Near : np.array, size=(m,n)
+        near infrared band of satellite image
+        
+    Returns
+    -------
+    NDWI : np.array, size=(m,n)
+        array with NDWI transform
+    
+    Notes
+    -----
+    Based on the bands of Sentinel-2:
+    
+    .. math:: \text{NDWI}=\frac{B_{3}-B_{8}}{B_{3}+B_{8}} 
+    
+    [1] Gao, "NDWI - a normalized difference water index for remote sensing of 
+    vegetation liquid water from space" Remote sensing of environonment, 
+    vol. 58 pp. 257–266, 1996
+    """   
+    NDWI = np.divide( (Green - Near), (Green + Near))
+    return NDWI
+
+def combinational_shadow_index(Blue,Green,Red,Near):
+    """transform red, green, blue arrays to combined shadow index
+    
+    Parameters
+    ----------    
+    Blue : np.array, size=(m,n)
+        blue band of satellite image
+    Green : np.array, size=(m,n)
+        green band of satellite image
+    Red : np.array, size=(m,n)
+        red band of satellite image
+    Near : np.array, size=(m,n)
+        near infrared band of satellite image
+        
+    Returns
+    -------
+    CSI : np.array, size=(m,n)
+        array with shadow transform
+    
+    Notes
+    -----
+    [1] Sun et al. "Combinational shadow index for building shadow extraction 
+    in urban areas from Sentinel-2A MSI imagery" International journal of 
+    applied earth observation and geoinformation, vol. 78 pp. 53--65, 2019.
     """
-    Transform Red Green Blue arrays to normalized saturation-value difference
-    index (NSVI) following Ma et al. 2008
-    input:   Blue           array (n x m)     Blue band of satellite image
-             Green          array (n x m)     Green band of satellite image
-             Red            array (n x m)     Red band of satellite image
-    output:  NSVDI          array (m x m)     array with shadow transform
-    """
+    SEI = shadow_enhancement_index(Blue,Green,Red,Near) 
+    NDWI = normalized_difference_water_index(Green, Near)
+    
+    option_1 = SEI-Near
+    option_2 = SEI-NDWI
+    IN_1 = Near >= NDWI
+    
+    CSI = option_2
+    CSI[IN_1] = option_1[IN_1]    
+    return CSI    
+
+def normalized_sat_value_difference_index(Blue, Green, Red):
+    """transform red, green, blue arrays to normalized sat-value difference
+    
+    Parameters
+    ----------    
+    Blue : np.array, size=(m,n)
+        blue band of satellite image
+    Green : np.array, size=(m,n)
+        green band of satellite image
+    Red : np.array, size=(m,n)
+        red band of satellite image
+        
+    Returns
+    -------
+    ISI : np.array, size=(m,n)
+        array with shadow transform
+
+    See also
+    --------
+    false_color_shadow_difference_index
+    
+    Notes
+    -----
+    [1] Ma et al. "Shadow segmentation and compensation in high resolution 
+    satellite images", Proceedings of IEEE IGARSS, pp. II-1036--II-1039, 2008.
+    """    
     (H, S, I) = rgb2hsi(Red, Green, Blue)  # create HSI bands
     NSVDI = (S - I) / (S + I)
     return NSVDI
 
-def sdi(Blue, Green, Red):  # pre-processing
-    """
-    Transform Red Green Blue arrays to Shadow detector index (SDI)
-    following Mustafa and Abedehafez 2017
-    input:   Blue           array (n x m)     Blue band of satellite image
-             Green          array (n x m)     Green band of satellite image
-             Red            array (n x m)     Red band of satellite image
-    output:  SDI           array (m x m)     array with shadow transform
-    """
-    OK = Blue != 0  # boolean array with data
+def shadow_index_liu(Red, Green, Blue):
+    """transform red, green, blue arrays to shadow index
+    
+    Parameters
+    ----------    
+    Blue : np.array, size=(m,n)
+        blue band of satellite image
+    Green : np.array, size=(m,n)
+        green band of satellite image
+    Red : np.array, size=(m,n)
+        red band of satellite image
+    Near : np.array, size=(m,n)
+        near infrared band of satellite image
+        
+    Returns
+    -------
+    SEI : np.array, size=(m,n)
+        array with shadow enhancement
+    
+    Notes
+    -----     
+    [1] Liu & Xie. "Study on shadow detection in high resolution remote sensing
+    image of PCA and HIS model", Remote sensing technology and application, 
+    vol.28(1) pp. 78--84, 2013.    
+    [1] Sun et al. "Combinational shadow index for building shadow extraction 
+    in urban areas from Sentinel-2A MSI imagery" International journal of 
+    applied earth observation and geoinformation, vol. 78 pp. 53--65, 2019.
+    """     
+    (H,S,I) = rgb2hsi(Red, Green, Blue)    
 
-    R = np.float64(Red)
-    r = np.mean(Red[OK])
-    G = np.float64(Green)
-    g = np.mean(Green[OK])
-    B = np.float64(Blue)
-    b = np.mean(Blue[OK])
-
-    Red = R - r
-    Green = G - g
-    Blue = B - b
-    del r, g, b
-
-    # sampleset
-    Nsamp = int(
-        min(1e4, np.sum(OK)))  # try to have a sampleset of 10'000 points
-    sampSet, other = np.where(OK)  # OK.nonzero()
-    sampling = random.choices(sampSet, k=Nsamp)
-    del sampSet, Nsamp
-
-    Red = Red.ravel(order='F')
-    Green = Green.ravel(order='F')
-    Blue = Blue.ravel(order='F')
-
-    X = np.transpose(np.array(
-        [Red[sampling], Green[sampling], Blue[sampling]]))
+    X = pca_rgb_preparation(Red, Green, Blue, min_samp=1e4)
     e, lamb = pca(X)
     del X
     PC1 = np.dot(e[0, :], np.array([Red, Green, Blue]))
     
-    Red = mat_to_gray(Red, not(OK))
-    Green = mat_to_gray(Green, not(OK))
-    Blue = mat_to_gray(Blue, not(OK))
+    SI = np.divide((PC1 - I) * (1 + S), (PC1 + I + S))
+    return SI
+
+def specthem_ratio(Red, Green, Blue):
+    """transform red, green, blue arrays to specthem ratio
+    
+    Parameters
+    ----------    
+    Red : np.array, size=(m,n)
+        red band of satellite image    
+    Green : np.array, size=(m,n)
+        green band of satellite image
+    Blue : np.array, size=(m,n)
+        blue band of satellite image
+        
+    Returns
+    -------
+    Sr : np.array, size=(m,n)
+        array with shadow enhancement
+    
+    Notes
+    -----
+    In the paper the logarithmic is also used further enhance the shadows,
+    
+    .. math:: \tilde{\text{Sr}}=\log{\text{Sr}+1} 
+    
+    [1] Silva et al. "Near real-time shadow detection and removal in aerial 
+    motion imagery application" ISPRS journal of photogrammetry and remote
+    sensing, vol.140 pp.104--121, 2018.
+    """    
+    X,Y,Z = rgb2xyz(Red, Green, Blue, method='Ford')
+    L,a,b = xyz2lab(X,Y,Z)
+    _,h = lab2lch(L,a,b)
+    Sr = np.divide(h+1 , L+1)
+    return Sr
+
+def shadow_detector_index(Blue, Green, Red): 
+    """transform red, green, blue arrays to shadow detector index
+    
+    Parameters
+    ----------      
+    Blue : np.array, size=(m,n)
+        blue band of satellite image
+    Green : np.array, size=(m,n)
+        green band of satellite image
+    Red : np.array, size=(m,n)
+        red band of satellite image      
+
+    Returns
+    -------
+    SDI : np.array, size=(m,n)
+        array with shadow enhancement
+    
+    Notes
+    -----
+    [1] Mustafa & Abedehafez. "Accurate shadow detection from high-resolution 
+    satellite images" IEEE geoscience and remote sensing letters, vol.14(4) 
+    pp. 494--498, 2017.
+    """    
+    X = pca_rgb_preparation(Red, Green, Blue, min_samp=1e4)
+    e, lamb = pca(X)
+    del X
+    PC1 = np.dot(e[0, :], np.array([Red, Green, Blue]))
         
     SDI = ((1 - PC1) + 1)/(((Green - Blue) * Red) + 1)
     return SDI
 
-def sisdi(Blue, RedEdge, Near):
-    """
-    Transform Near RedEdge Blue arrays to 
-    Saturation-intensity Shadow detector index (SISDI)
-    following Mustafa et al. 2018
-    input:   Blue           array (n x m)     Blue band of satellite image
-             RedEdge        array (n x m)     RedEdge band of satellite image
-             Near           array (n x m)     Near band of satellite image
-    output:  SISDI          array (m x m)     array with shadow transform
-    """       
-    NanBol = Blue == 0
-    Blue = mat_to_gray(Blue, NanBol)
-    RedEdge = mat_to_gray(RedEdge, NanBol)
-    Near = mat_to_gray(Near, NanBol)
+def sat_int_shadow_detector_index(Blue, RedEdge, Near):
+    """transform red, green, blue arrays to sat-int shadow detector index
     
+    Parameters
+    ----------      
+    Blue : np.array, size=(m,n)
+        blue band of satellite image
+    RedEdge : np.array, size=(m,n)
+        rededge band of satellite image      
+    Near : np.array, size=(m,n)
+        near infrared band of satellite image   
+        
+    Returns
+    -------
+    SISDI : np.array, size=(m,n)
+        array with shadow enhancement
+    
+    Notes
+    -----
+    [1] Mustafa & Abedelwahab. "Corresponding regions for shadow restoration 
+    in satellite high-resolution images" International journal of remote 
+    sensing, vol.39(20) pp.7014--7028, 2018.
+    """                 
     (H, S, I) = erdas2hsi(Blue, RedEdge, Near)
     SISDI = S - (2*I)
     return SISDI
 
-def mpsi(Blue, Green, Red):  # pre-processing
-    """
-    Transform Red Green Blue arrays to Mixed property-based shadow index (MPSI)
-    following Han et al. 2018
-    input:   Blue           array (n x m)     Blue band of satellite image
-             Green          array (n x m)     Green band of satellite image
-             Red            array (n x m)     Red band of satellite image
-    output:  MPSI           array (m x m)     array with shadow transform
-    """
-    NanBol = Blue == 0
-    # Green = np.float64(Green) / 2 ** 16
-    # Blue = np.float64(Blue) / 2 ** 16
-    Blue = mat_to_gray(Blue, NanBol)
-    Green = mat_to_gray(Green, NanBol)
-    Red = mat_to_gray(Red, NanBol)
+def mixed_property_based_shadow_index(Blue, Green, Red):
+    """transform Red Green Blue arrays to Mixed property-based shadow index
     
+    Parameters
+    ----------      
+    Blue : np.array, size=(m,n)
+        blue band of satellite image
+    Green : np.array, size=(m,n)
+        green band of satellite image      
+    Red : np.array, size=(m,n)
+        red band of satellite image   
+        
+    Returns
+    -------
+    MPSI : np.array, size=(m,n)
+        array with shadow enhancement
+    
+    Notes
+    -----
+    [1] Han et al. "A mixed property-based automatic shadow detection approach 
+    for VHR multispectral remote sensing images" Applied sciences vol.8(10) 
+    pp.1883, 2018.
+    """    
     (H, S, I) = rgb2hsi(Red, Green, Blue)  # create HSI bands
     MPSI = (H - I) * (Green - Blue)
     return MPSI
 
-def gevers(Blue, Green, Red):  # pre-processing
-    """
-    Transform Red Green Blue arrays to color invariant (c3)
+def color_invariant(Blue, Green, Red):
+    """transform Red Green Blue arrays to color invariant (c3)
     
-    following Gevers & Smeulders 1999
-        Color-based object recognition
-        Pattern Recognition 32 (1999) 453—464
-    from Arévalo González & G. Ambrosio 2008
-        Shadow detection in colour high‐resolution satellite images
-        DOI: 10.1080/01431160701395302
+    Parameters
+    ----------      
+    Blue : np.array, size=(m,n)
+        blue band of satellite image
+    Green : np.array, size=(m,n)
+        green band of satellite image      
+    Red : np.array, size=(m,n)
+        red band of satellite image   
         
-    input:   Blue           array (n x m)     Blue band of satellite image
-             Green          array (n x m)     Green band of satellite image
-             Red            array (n x m)     Red band of satellite image
-    output:  c3             array (m x m)     array with color invariant (c3)
-    """
-    NanBol = Blue == 0
-    # Green = np.float64(Green) / 2 ** 16
-    # Blue = np.float64(Blue) / 2 ** 16
-    Blue = mat_to_gray(Blue, NanBol)
-    Green = mat_to_gray(Green, NanBol)
-    Red = mat_to_gray(Red, NanBol)
+    Returns
+    -------
+    c3 : np.array, size=(m,n)
+        array with shadow enhancement
     
+    Notes
+    -----
+    [1] Gevers & Smeulders. "Color-based object recognition" Pattern 
+    recognition, vol.32 pp.453--464, 1999 
+    [2] Arévalo González & G. Ambrosio. "Shadow detection in colour 
+    high‐resolution satellite images" International journal of remote sensing, 
+    vol.29(7) pp.1945--1963, 2008
+    """ 
     c3 = np.arctan2( Blue, np.amax( np.dstack((Red, Green))))
     return c3
 
-def shadow_index(Blue, Green, Red, Nir):  # pre-processing
+def modified_color_invariant(Blue, Green, Red, Near): #wip
+    """transform Red Green Blue arrays to color invariant (c3)
+    
+    Parameters
+    ----------      
+    Blue : np.array, size=(m,n)
+        blue band of satellite image
+    Green : np.array, size=(m,n)
+        green band of satellite image      
+    Red : np.array, size=(m,n)
+        red band of satellite image   
+        
+    Returns
+    -------
+    c3 : np.array, size=(m,n)
+        array with shadow enhancement
+    
+    Notes
+    -----
+    [1] Gevers & Smeulders. "Color-based object recognition" Pattern 
+    recognition, vol.32 pp.453--464, 1999 
+    [2] Besheer & G. Abdelhafiz. "Modified invariant colour model for shadow 
+    detection" International journal of remote sensing, vol.36(24) 
+    pp.6214--6223, 2015.
+    10.1080/01431161.2015.1112930
+    """     
+    c3 = []
+    return c3
+
+def reinhard(Blue, Green, Red):
+    """transform Red Green Blue arrays to luminance
+    
+    Parameters
+    ----------      
+    Blue : np.array, size=(m,n)
+        blue band of satellite image
+    Green : np.array, size=(m,n)
+        green band of satellite image      
+    Red : np.array, size=(m,n)
+        red band of satellite image  
+        
+    Returns
+    -------
+    l : np.array, size=(m,n)
+        shadow enhanced band
+       
+    Notes
+    -----
+    [1] Reinhard et al. "Color transfer between images" IEEE Computer graphics 
+    and applications vol.21(5) pp.34-41, 2001.
     """
-    Calculates the shadow index, basically the first component of PCA,
-    following Hui et al. 2013
-    input:   Blue           array (n x m)     Blue band of satellite image
-             Green          array (n x m)     Green band of satellite image
-             Red            array (n x m)     Red band of satellite image
-             Nir            array (n x m)     Near-Infrared band of satellite
-                                              image
-    output:  SI             array (m x m)     Shadow band
-    """
-    OK = Blue != 0  # boolean array with data
-
-    Red = np.float64(Red)
-    r = np.mean(Red[OK])
-    Green = np.float64(Green)
-    g = np.mean(Green[OK])
-    Blue = np.float64(Blue)
-    b = np.mean(Blue[OK])
-    Near = np.float64(Nir)
-    n = np.mean(Near[OK])
-    del Nir
-
-    Red = Red - r
-    Green = Green - g
-    Blue = Blue - b
-    Near = Near - n
-    del r, g, b, n
-
-    # sampleset
-    Nsamp = int(
-        min(1e4, np.sum(OK)))  # try to have a sampleset of 10'000 points
-    sampSet, other = np.where(OK)  # OK.nonzero()
-    sampling = random.choices(sampSet, k=Nsamp)
-    del sampSet, Nsamp
-
-    Red = Red.ravel(order='F')
-    Green = Green.ravel(order='F')
-    Blue = Blue.ravel(order='F')
-    Near = Near.ravel(order='F')
-
-    X = np.transpose(np.array(
-        [Red[sampling], Green[sampling], Blue[sampling], Near[sampling]]))
-    e, lamb = pca(X)
-    del X
-    PC1 = np.dot(e[0, :], np.array([Red, Green, Blue, Near]))
-    SI = np.transpose(np.reshape(PC1, OK.shape))
-    return SI
-
-def reinhard(Blue, Green, Red):  # pre-processing
-    """
-    transform colour space
-    following Reinhardt 2001
-    input:   Blue           array (n x m)     Blue band of satellite image
-             Green          array (n x m)     Green band of satellite image
-             Red            array (n x m)     Red band of satellite image
-    output:  l              array (m x m)     Shadow band
-    """
-    NanBol = Blue == 0  # boolean array with no data
-
-    Blue = mat_to_gray(Blue, NanBol)
-    Green = mat_to_gray(Green, NanBol)
-    Red = mat_to_gray(Red, NanBol)
-
     (L,M,S) = rgb2lms(Red, Green, Blue)
     L = np.log10(L)
     M = np.log10(M)
     S = np.log10(S)
     (l,alfa,beta) = lms2lab(L, M, S)
     
-    return l,alfa,beta
+    return l
 
-def shade_index(Blue, Green, Red, Nir):  # pre-processing
+def finlayson(Ia, Ib, Ic, a=-1):
     """
-    Amplify dark regions by simple multiplication
-    following Altena 2008
-    input:   Blue           array (n x m)     Blue band of satellite image
-             Green          array (n x m)     Green band of satellite image
-             Red            array (n x m)     Red band of satellite image
-             Nir            array (n x m)     Near-Infrared band of satellite
-    output:  SI             array (m x m)     Shadow band
+    Transform ...
+    
+    see Finlayson 2009
+    Entropy Minimization for Shadow Removal
+    
+    input:   Ia             array (n x m)     highest frequency band of satellite image
+             Ib             array (n x m)     lower frequency band of satellite image
+             Ic             array (n x m)     lowest frequency band of satellite image
+             a              float             angle to use [in degrees]
+    output:  S              array (m x m)     ...
+             R              array (m x m)     ...    
     """
-    NanBol = Blue == 0  # boolean array with no data
+    Ia[Ia==0] = 1e-6    
+    Ib[Ib==0] = 1e-6    
+    sqIc = np.power(Ic, 1./2)
+    sqIc[sqIc==0] = 1    
+        
+    chi1 = np.log(np.divide( Ia, sqIc))
+    chi2 = np.log(np.divide( Ib, sqIc))
+    
+    if a==-1: # estimate angle from data if angle is not given
+        (m,n) = chi1.shape
+        mn = np.power((m*n),-1./3)
+        # loop through angles
+        angl = np.arange(0,180)
+        shan = np.zeros(angl.shape)
+        for i in angl:
+            chi_rot = np.cos(np.radians(i))*chi1 + \
+                np.sin(np.radians(i))*chi2
+            band_w = 3.5*np.std(chi_rot)*mn   
+            shan[i] = shannon_entropy(chi_rot, band_w)
+        
+        a = angl[np.argmin(shan)]
+        #a = angl[np.argmax(shan)]
+    # create imagery    
+    S = - np.cos(np.radians(a))*chi1 - np.sin(np.radians(a))*chi2
+    #a += 90
+    #R = np.cos(np.radians(a))*chi1 + np.sin(np.radians(a))*chi2
+    return S
 
-    Blue = mat_to_gray(Blue, NanBol)
-    Green = mat_to_gray(Green, NanBol)
-    Red = mat_to_gray(Red, NanBol)
-    Near = mat_to_gray(Nir, NanBol)
-    del Nir
 
+def shade_index(Blue, Green, Red, Near):
+    """transform blue, green, red and near infrared arrays to shade index
+    
+    Parameters
+    ----------      
+    Blue : np.array, size=(m,n)
+        blue band of satellite image
+    Green : np.array, size=(m,n)
+        green band of satellite image      
+    Red : np.array, size=(m,n)
+        red band of satellite image  
+    Near : np.array, size=(m,n)
+        near infrared band of satellite image 
+        
+    Returns
+    -------
+    l : np.array, size=(m,n)
+        shadow enhanced band
+       
+    Notes
+    -----
+    Amplify dark regions by simple multiplication:
+        
+    .. math:: \text{SI}= \Pi_{i}^{N}{1 - B_{i}}    
+        
+    [1] Altena "Filling the white gap on the map: Photoclinometry for glacier 
+    elevation modelling" MSc thesis TU Delft, 2012.
+    """
     SI = np.prod(np.dstack([(1 - Red), (1 - Green), (1 - Blue), (1 - Near)]),
                  axis=2)
     return SI
 
-def ruffenacht(Blue, Green, Red, Nir):  # pre-processing
-    """
-    Transform Red Green Blue NIR to shadow intensities/probabilities
+def shadow_probabilities(Blue, Green, Red, Near, ae = 1e+1, be = 5e-1):
+    """transform blue, green, red and near infrared to shade probabilities
     
-    following Fredembach 2010
-        info: EPFL Tech Report 165527
-    and Rüfenacht et al. 2013
-        DOI: 10.1109/TPAMI.2013.229
-    
-    input:   Blue           array (n x m)     Blue band of satellite image
-             Green          array (n x m)     Green band of satellite image
-             Red            array (n x m)     Red band of satellite image
-             Nir            array (n x m)     Near-Infrared band of satellite
-    output:  M              array (m x m)     Shadow band
+    Parameters
+    ----------      
+    Blue : np.array, size=(m,n)
+        blue band of satellite image
+    Green : np.array, size=(m,n)
+        green band of satellite image      
+    Red : np.array, size=(m,n)
+        red band of satellite image  
+    Near : np.array, size=(m,n)
+        near infrared band of satellite image  
+        
+    Returns
+    -------
+    M : np.array, size=(m,n)
+        shadow enhanced band
+       
+    Notes
+    -----   
+    [2] Fredembach & Süsstrunk. "Automatic and accurate shadow detection from 
+    (potentially) a single image using near-infrared information" 
+    EPFL Tech Report 165527, 2010.
+    [2] Rüfenacht et al. "Automatic and accurate shadow detection using 
+    near-infrared information" IEEE transactions on pattern analysis and 
+    machine intelligence, vol.36(8) pp.1672-1678, 2013.
     """
-    ae = 1e+1
-    be = 5e-1
-
-    NanBol = Blue == 0  # boolean array with no data
-
-    Blue = mat_to_gray(Blue, NanBol)
-    Green = mat_to_gray(Green, NanBol)
-    Red = mat_to_gray(Red, NanBol)
-    Near = mat_to_gray(Nir, NanBol)
-    del Nir
-
     Fk = np.amax(np.stack((Red, Green, Blue), axis=2), axis=2)
     F = np.divide(np.clip(Fk, 0, 2), 2)  # (10), see Fredembach 2010
     L = np.divide(Red + Green + Blue, 3)  # (4), see Fredembach 2010
@@ -701,22 +1280,6 @@ def ruffenacht(Blue, Green, Red, Nir):  # pre-processing
     M = np.multiply(D, (1 - F))
     return M
 
-def s_curve(x, a, b):  # pre-processing
-    """
-    Transform intensity in non-linear way
-    
-    see Fredembach 2010
-        info: EPFL Tech Report 165527
-    
-    input:   x              array (n x 1)     array with values
-             a              array (1 x 1)     slope
-             b              array (1 x 1)     intercept
-    output:  fx             array (n x 1)     array with transform
-    """
-    fe = -a * (x - b)
-    fx = np.divide(1, 1 + np.exp(fe))
-    del fe, x
-    return fx
 
 # recovery - normalized color composite
 # histogram matching....
@@ -724,3 +1287,6 @@ def s_curve(x, a, b):  # pre-processing
 # TO DO:
 # Wu 2007, Natural Shadow Matting. DOI: 10.1145/1243980.1243982
 # https://github.com/yaksoy/AffinityBasedMattingToolbox
+
+# to look at:
+# Modified invariant colour model for shadow detection, Besheer    

@@ -4,6 +4,7 @@ import numpy as np
 
 # geospatial libaries
 from osgeo import ogr
+from rasterio import Affine
 
 # raster/image libraries
 from scipy import ndimage
@@ -176,6 +177,18 @@ def map2pix(geoTransform, x, y):  # generic
 
     return i, j
 
+def resize_geotransform(geoTransform, scaling):
+    '''
+    if an zonal operator is apply to an image, the resulting geoTransform needs
+    to change accordingly
+    '''
+    R = np.asarray(geoTransform).reshape((2,3)).T
+    R[0,:] += np.diag(R[1:,:]*scaling/2)
+    R[1:,:] = R[1:,:]*scaling/2
+    new_geotransform = tuple(map(tuple, np.transpose(R).reshape((1,6))))
+    
+    return new_geotransform[0]
+
 def get_bbox(geoTransform, rows, cols):
     '''
     given array meta data, calculate the bounding box
@@ -185,10 +198,29 @@ def get_bbox(geoTransform, rows, cols):
              cols           integer           collumn size of the image
     output:  bbox           array (1 x 4)     min max X, min max Y   
     '''
-    X = geoTransform[0] + np.array([1, rows])*geoTransform[1] + np.array([1, cols])*geoTransform[2] 
-    Y = geoTransform[3] + np.array([1, rows])*geoTransform[4] + np.array([1, cols])*geoTransform[5]
+    X = geoTransform[0] + \
+        np.array([0, cols])*geoTransform[1] + np.array([0, rows])*geoTransform[2] 
+        
+    Y = geoTransform[3] + \
+        np.array([0, cols])*geoTransform[4] + np.array([0, rows])*geoTransform[5]
+    spacing_x = np.sqrt(geoTransform[1]**2 + geoTransform[2]**2)/2
+    spacing_y = np.sqrt(geoTransform[4]**2 + geoTransform[5]**2)/2
     bbox = np.hstack((np.sort(X), np.sort(Y)))
+#    # get extent not pixel centers
+#    bbox += np.array([-spacing_x, +spacing_x, -spacing_y, +spacing_y])
     return bbox
+
+def GDAL_transform_to_affine(GDALtransform):
+    '''
+    the GDAL-style geotransform is like:
+        (c, a, b, f, d, e)
+    but should be an Affine structre to work wit rasterio:
+        affine.Affine(a, b, c,
+                      d, e, f)
+    '''
+    new_transform = Affine(GDALtransform[1], GDALtransform[2], GDALtransform[0], \
+                           GDALtransform[4], GDALtransform[5], GDALtransform[3])
+    return new_transform
     
 def get_map_extent(bbox):
     """

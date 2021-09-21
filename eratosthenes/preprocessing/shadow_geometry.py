@@ -1,7 +1,7 @@
 import os
 import glob
 import math
-import cairo # for drawing of subpixel polygons
+#import cairo # for drawing of subpixel polygons
 import numpy as np
 
 from scipy import ndimage  # for image filtering
@@ -13,6 +13,9 @@ from skimage import color  # for labeling image
 from skimage.morphology import remove_small_objects # opening, disk, erosion, closing
 from skimage.segmentation import active_contour # for snakes
 from skimage.filters import threshold_otsu, threshold_multiotsu
+
+from sklearn.cluster import MeanShift, estimate_bandwidth
+from sklearn import svm
 
 from rasterio.features import shapes  # for raster to polygon
 
@@ -28,7 +31,8 @@ from eratosthenes.preprocessing.read_s2 import read_sun_angles_s2
 
 from eratosthenes.processing.handler_s2 import read_mean_sun_angles_s2
 
-def make_shadowing(dem_path, dem_file, im_path, im_name):
+def make_shadowing(dem_path, dem_file, im_path, im_name, \
+                   Zn=45., Az=-45., nodata=-9999, dtype=bool ):
     
     (dem_mask, crs_dem, geoTransform_dem, targetprj_dem) = read_geo_image(
         os.path.join(dem_path, dem_file))
@@ -36,17 +40,22 @@ def make_shadowing(dem_path, dem_file, im_path, im_name):
         fname = os.path.join(im_path, im_name, '*B08.jp2')
         (crs_im, geoTransform_im, targetprj_im, rows, cols, bands) = read_geo_info(
             glob.glob(fname)[0])
-    
+    else:
+        (crs_im, geoTransform_im, targetprj_im, rows, cols, bands) = read_geo_info(
+            os.path.join(im_path, im_name))
+        
     dem = make_same_size(dem_mask, geoTransform_dem, geoTransform_im, 
                          rows, cols)
+    msk = dem==nodata
     
-    Zn, Az = read_mean_sun_angles_s2(os.path.join(im_path, im_name))
+    if 'MSIL1C' in im_name: # for Sentinel-2
+        Zn, Az = read_mean_sun_angles_s2(os.path.join(im_path, im_name))
     
     # turn towards the sun
     dem_rot = ndimage.rotate(dem, Az, 
                              axes=(1, 0), reshape=True, output=None, 
-                             order=3, mode='constant', cval=-9999)
-    msk_rot = ndimage.rotate(dem==-9999, Az, 
+                             order=3, mode='constant', cval=nodata)
+    msk_rot = ndimage.rotate(msk, Az, 
                              axes=(1, 0), reshape=True, output=None, 
                              order=0, mode='constant', cval=True)
     del dem
@@ -68,21 +77,28 @@ def make_shadowing(dem_path, dem_file, im_path, im_name):
     msk_new = ndimage.rotate(msk_rot, -Az, 
                              axes=(1, 0), reshape=True, output=None, 
                              order=0, mode='constant', cval=True)
-    i_in = np.where(np.any(msk_new == False, axis=0))
-    i_min = i_in[0][0]
-    i_max = i_in[-1][-1]
-    j_in = np.where(np.any(msk_new == False, axis=1))
-    j_min = j_in[0][0]
-    j_max = j_in[-1][-1]    
+        
+    i_min = int(np.floor((msk_new.shape[0] - msk.shape[0])/2))
+    i_max = int(np.floor((msk_new.shape[0] + msk.shape[0])/2))
+    j_min = int(np.floor((msk_new.shape[1] - msk.shape[1])/2))
+    j_max = int(np.floor((msk_new.shape[1] + msk.shape[1])/2))
     
-    #shw_rot.astype(int)
-    shw_new = ndimage.rotate(shw_rot, -Az, 
-                         axes=(1, 0), reshape=True, output=None, 
-                         order=3, mode='constant', cval=False)   
-    Shw = shw_new[i_min:i_max+1,j_min:j_max+1]
+    
+    if isinstance(dtype, (int, float)):
+        shw_rot.astype(dtype)
+        shw_new = ndimage.rotate(shw_rot, -Az, 
+                             axes=(1, 0), reshape=True, output=None, 
+                             order=1, mode='constant', cval=False) 
+    else:    
+        shw_new = ndimage.rotate(shw_rot, -Az, 
+                             axes=(1, 0), reshape=True, output=None, 
+                             order=0, mode='constant', cval=False)   
+
+    Shw = shw_new[i_min:i_max, j_min:j_max]
     return Shw 
 
-def make_shading(dem_path, dem_file, im_path, im_name):
+def make_shading(dem_path, dem_file, im_path, im_name, \
+                 Zn=np.radians(45.), Az=np.radians(-45.), nodata=-9999,):
     """
     make hillshading from elevation model and meta data of image file
 
@@ -93,13 +109,17 @@ def make_shading(dem_path, dem_file, im_path, im_name):
         fname = os.path.join(im_path, im_name, '*B08.jp2')
         (crs_im, geoTransform_im, targetprj_im, rows, cols, bands) = read_geo_info(
             glob.glob(fname)[0])
+    else:
+        (crs_im, geoTransform_im, targetprj_im, rows, cols, bands) = read_geo_info(
+            os.path.join(im_path, im_name))
     
     dem = make_same_size(dem_mask, geoTransform_dem, geoTransform_im, 
                          rows, cols)
     
-    Zn, Az = read_mean_sun_angles_s2(os.path.join(im_path, im_name))
-    Zn = np.radians(Zn)
-    Az = np.radians(Az)
+    if 'MSIL1C' in im_name: # for Sentinel-2
+        Zn, Az = read_mean_sun_angles_s2(os.path.join(im_path, im_name))
+        Zn = np.radians(Zn)
+        Az = np.radians(Az)
 
     
     # convert to unit vectors
@@ -112,7 +132,7 @@ def make_shading(dem_path, dem_file, im_path, im_name):
     # estimate surface normals
     dy, dx = np.gradient(dem*geoTransform_im[1])  
 
-    normal = np.dstack((dx, dy, np.ones_like(dem)))
+    normal = np.dstack((-dx, dy, np.ones_like(dem)))
     n = np.linalg.norm(normal, axis=2)
     normal[:, :, 0] /= n
     normal[:, :, 1] /= n
@@ -121,7 +141,8 @@ def make_shading(dem_path, dem_file, im_path, im_name):
     Shd = normal[:,:,0]*sun[:,:,0] + normal[:,:,1]*sun[:,:,1] + normal[:,:,2]*sun[:,:,2]
     return Shd
 
-def create_shadow_polygons(M,im_path, bbox=(0, 0, 0, 0)):
+def create_shadow_polygons(M, im_path, bbox=(0, 0, 0, 0), \
+                           median_filtering=True):
     """
     Generate polygons from floating array, combine this with sun illumination
     information, to generate connected pixels on the edge of these polygons
@@ -137,10 +158,10 @@ def create_shadow_polygons(M,im_path, bbox=(0, 0, 0, 0)):
     minJ = bbox[2]
     maxJ = bbox[3] 
     
-    if 1==1: # do median filtering
-        siz = 5
-        loop = 10
-        M = medianFilShadows(M,siz,loop)
+    if median_filtering:
+        siz, loop = 5, 10
+        M = median_filter_shadows(M,siz,loop)
+        
     labels,thres_val = sturge(M) # classify into regions
 
     # get self-shadow and cast-shadow
@@ -190,21 +211,39 @@ def getShadowPolygon(M, sizPix, thres):  # pre-processing
         labels)  # so it can be used for the boundaries extraction
     return labels, SupPix
 
-def medianFilShadows(M, siz, loop):  # pre-processing
+# image enhancement
+def median_filter_shadows(M, siz, loop):
     """
     Transform intensity to more clustered intensity, through iterative
     filtering with a median operation
     input:   M              array (m x n)     array with intensity values
              siz            integer           window size of the kernel
              loop           integer           number of iterations
-    output:  Mmed           array (m x n)     array wit stark edges
+    output:  Mmed           array (m x n)     array with stark edges
     """
-    Mmed = M
     for i in range(loop):
-        Mmed = ndimage.median_filter(M, size=siz)
-    return Mmed
+        M = ndimage.median_filter(M, size=siz)
+    return M
 
-def sturge(M):  # pre-processing
+def mean_shift_filter(M, quan=0.1, n=1000):
+    """
+    Transform intensity to more clustered intensity, through mean-shift
+    filtering
+    input:   M              array (m x n)     array with intensity values
+             quantile       float             
+             n              integer           
+    output:  Mmed           array (m x n)     array with stark edges
+    """
+    (m,n) = M.shape
+    bw = estimate_bandwidth(M.reshape(-1,1), quantile=quan, n_samples=n)    
+    ms = MeanShift(bandwidth=bw, bin_seeding=True)
+    ms.fit(M.reshape(-1,1))
+
+    labels = np.reshape(ms.labels_, (m,n))
+    return labels
+
+# threshholding and classification functions
+def sturge(M):
     """
     Transform intensity to labelled image
     input:   M              array (m x n)     array with intensity values
@@ -224,9 +263,7 @@ def sturge(M):  # pre-processing
     labels, num_polygons = ndimage.label(imSeparation)
     return labels, val
 
-# segmentation.clear_border
-
-def findValley(values, base, neighbors=2):  # pre-processing
+def findValley(values, base, neighbors=2):
     """
     A valley is a point which has "n" consequative higher values on both sides
     input:   values         array (m x 1)     vector with number of occurances
@@ -253,14 +290,44 @@ def findValley(values, base, neighbors=2):  # pre-processing
     # selec = values<walls
     return dips
 
-def shadow_image_to_list(M, geoTransform, sen2Path, inputArg):
-    Zn, Az = read_mean_sun_angles_s2(sen2Path)
+def shadow_image_to_list(M, geoTransform, sen2Path, inputArg, 
+                         method='otsu', Shw=0., Zn=0., Az=0.):
+    '''
+    Turns the image towards the sun, and looks along each solar ray
+    
+    
+    :param M:         NP.ARRAY (_,_)
+        shadow enhanced imagery
+    :param I2:        LIST (1,6)
+        GDAL georeference structure
+    :param sen2path:  STRING
+        path where sentine
+    :param sen2path:  DICTONARY
+        user inputs
+    :param iteration: INTEGER
+        number of iterations used
+    :param iteration: INTEGER
+        number of iterations used
+                     
+    :return u:        FLOAT
+        displacement estimate
+    :return v:        FLOAT     
+        displacement estimate                    
+    '''
+    if method=='otsu':
+        Zn, Az = read_mean_sun_angles_s2(sen2Path)
     
     # turn towards the sun
-    shade_thre = threshold_multiotsu(M, classes=3, nbins=1000)
+    # shade_thre = threshold_multiotsu(M, classes=3, nbins=1000)
     M_rot = ndimage.rotate(M, 180-Az, 
-                             axes=(1, 0), reshape=True, output=None, 
-                             order=3, mode='constant', cval=-9999)
+                           axes=(1, 0), reshape=True, output=None, 
+                           order=3, mode='constant', cval=-9999)
+    
+    if method=='svm':
+        S_rot = ndimage.rotate(Shw, 180-Az, 
+                               axes=(1, 0), reshape=True, output=None, 
+                               order=0, mode='constant', cval=-9999)    
+    
     # tform = transform.SimilarityTransform(translation=(0, -10)) #rotation=Az*(np.pi/180))
     # M_rot = transform.warp(M, tform)
     #
@@ -276,8 +343,21 @@ def shadow_image_to_list(M, geoTransform, sen2Path, inputArg):
     
     suntrace_list = np.empty((0, 4))
     for k in range(M_rot.shape[1]):
-        M_trace = M_rot[:,k]
+        M_trace = M_rot[:,k] # line of intensities along a sun trace
         IN = M_trace!=-9999
+        
+        if method=='otsu':
+            shade_thre = threshold_multiotsu(M_trace[IN], 
+                                             classes=3, 
+                                             nbins=np.sum(IN)//10)
+        else: # support vector machine
+            S_trace = S_rot[:,k] # line of intensities along a sun trace
+            clf = svm.SVC(kernel='linear')
+            clf.fit(np.vstack((M_trace[IN], 0*IN[IN])).T, 
+                    2*(S_trace[IN])-1)
+            w = clf.coef_[0]
+            shade_thre = -clf.intercept_[0]/w[0]
+
         shade_class = M_trace>shade_thre[1] # take the upper threshold
         shade_class = shade_class.astype(int)
         shade_exten = np.pad(shade_class, (1,1), 'constant', 
@@ -639,42 +719,42 @@ def listOccluderAndCasted(labels, sunZn, sunAz,
                 del castLine, castEnd
     return castList
 
-# shadow imagery at sub-pixel resolution
-def draw_shadow_polygons(path_shadow, path_label, alpha, beta, gamma):
-    (M, crs, geoTransform, targetprj) = read_geo_image(path_shadow)
-    (labels, crs, geoTransform, targetprj) = read_geo_image(path_label)
+# # shadow imagery at sub-pixel resolution
+# def draw_shadow_polygons(path_shadow, path_label, alpha, beta, gamma):
+#     (M, crs, geoTransform, targetprj) = read_geo_image(path_shadow)
+#     (labels, crs, geoTransform, targetprj) = read_geo_image(path_label)
 
-    surface = cairo.ImageSurface(cairo.FORMAT_RGB24, 
-                                 np.shape(M)[1], np.shape(M)[0])
-    ctx = cairo.Context(surface)   
-    # run through all polygons, one per one
-    for i in np.arange(1,np.max(labels)+1):           
-        # create closed polygon
-        subLabel = labels==i
-        subLabel = ndimage.morphology.binary_dilation(subLabel, 
-                                                      ndimage.generate_binary_structure(2, 2))
-        contours = measure.find_contours(subLabel, level=0.5, 
-                                        fully_connected='high', 
-                                        positive_orientation='low', mask=None)
-        for j in range(len(contours)):
-            contour = contours[j]
-            # make a snake
-            snake = active_contour(M,
-                           np.vstack((contour,contour[0,:])), 
-                           alpha=alpha, beta=beta, gamma=gamma, 
-                           w_edge=+5, coordinates='rc',
-                           max_iterations=5)
+#     surface = cairo.ImageSurface(cairo.FORMAT_RGB24, 
+#                                  np.shape(M)[1], np.shape(M)[0])
+#     ctx = cairo.Context(surface)   
+#     # run through all polygons, one per one
+#     for i in np.arange(1,np.max(labels)+1):           
+#         # create closed polygon
+#         subLabel = labels==i
+#         subLabel = ndimage.morphology.binary_dilation(subLabel, 
+#                                                       ndimage.generate_binary_structure(2, 2))
+#         contours = measure.find_contours(subLabel, level=0.5, 
+#                                         fully_connected='high', 
+#                                         positive_orientation='low', mask=None)
+#         for j in range(len(contours)):
+#             contour = contours[j]
+#             # make a snake
+#             snake = active_contour(M,
+#                            np.vstack((contour,contour[0,:])), 
+#                            alpha=alpha, beta=beta, gamma=gamma, 
+#                            w_edge=+5, coordinates='rc',
+#                            max_iterations=5)
 
-            ctx.move_to(snake[0,1], snake[0,0])
-            for k in np.arange(1,len(snake)):
-                ctx.line_to(snake[k,1], snake[k,0])
-            ctx.close_path()
-            ctx.set_source_rgb(1, 1, 1)
-            ctx.fill()
+#             ctx.move_to(snake[0,1], snake[0,0])
+#             for k in np.arange(1,len(snake)):
+#                 ctx.line_to(snake[k,1], snake[k,0])
+#             ctx.close_path()
+#             ctx.set_source_rgb(1, 1, 1)
+#             ctx.fill()
 
-    buf = surface.get_data()
-    Msnk = np.ndarray(shape=np.shape(M), dtype=np.uint32, buffer=buf)/2**32
-    return Msnk, geoTransform, crs 
+#     buf = surface.get_data()
+#     Msnk = np.ndarray(shape=np.shape(M), dtype=np.uint32, buffer=buf)/2**32
+#     return Msnk, geoTransform, crs 
 
     
     
