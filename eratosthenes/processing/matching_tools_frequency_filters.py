@@ -72,6 +72,17 @@ def perdecomp(img):
 def normalize_power_spectrum(Q):
     Qn = np.divide(Q, abs(Q), out=np.zeros_like(Q), where=Q!=0)
     return Qn
+
+def make_fourier_grid(Q):
+    (m,n) = Q.shape
+    fy = 2*np.pi*(np.arange(0,m)-(m/2)) /m
+    fx = 2*np.pi*(np.arange(0,n)-(n/2)) /n
+        
+    Fx = np.repeat(fx[np.newaxis,:],m,axis=0)
+    Fy = np.repeat(fy[:,np.newaxis],n,axis=1)
+    Fx = np.fft.fftshift(Fx)
+    Fy = np.fft.fftshift(Fy)
+    return Fx, Fy
     
 # frequency matching filters
 def raised_cosine(I, beta=0.35):
@@ -558,3 +569,31 @@ def local_coherence(Q, ds=1):
         C += Q*np.conj(Q_step)
     C = np.abs(C)/np.sum(IN)
     return C
+
+def gaussian_mask(S):
+    """ mask significant intensities in spectrum
+    
+    Parameters
+    ----------    
+    S : np.array, size=(m,n), dtype=complex
+        array with spectrum, i.e.: S = np.fft.fft2(I)
+        
+    Returns
+    -------
+    M : np.array, size=(m,n), dtype=bool
+        frequency mask
+    
+    See Also
+    --------
+    tpss   
+    
+    Notes
+    ----- 
+    [1] Eckstein et al. "Phase correlation processing for DPIV measurements",
+    Experiments in fluids, vol.45 pp.485-500, 2008.
+    """
+    (m,n) = S.shape
+    Fx,Fy = make_fourier_grid(S)
+    
+    M = np.exp(-.5*((Fy*np.pi)/m)**2) * np.exp(-.5*((Fx*np.pi)/n)**2)
+    return M

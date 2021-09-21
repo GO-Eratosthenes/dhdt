@@ -12,7 +12,8 @@ from eratosthenes.generic.test_tools import construct_phase_plane
 
 from eratosthenes.preprocessing.shadow_transforms import pca
 from eratosthenes.processing.matching_tools_frequency_filters import \
-    raised_cosine, local_coherence, thresh_masking, normalize_power_spectrum
+    raised_cosine, local_coherence, thresh_masking, normalize_power_spectrum, \
+    make_fourier_grid
 
 def phase_newton(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
     (m_Q, n_Q) = Q.shape
@@ -78,28 +79,7 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
     two point step size for phase correlation minimization
     
     Parameters
-    ---------- 
-    following Leprince et al. 2007
-        
-    
-    :param Q:         NP.ARRAY (_,_)
-        cross spectrum
-    :param m:         NP.ARRAY (1,2)
-        similarity surface
-    :param p:         FLOAT
-        closing error threshold
-    :param l:         INTEGER
-        number of refinements in iteration
-    :param j:         INTEGER
-        number of sub routines during an estimation
-    :param n:         INTEGER
-        mask convergence factor     
-
-    :return m:        NP.ARRAY (2,1)
-        displacement estimate
-    :return snr:      FLOAT     
-        signal-to-noise ratio
-   
+    ----------    
     Q : np.array, size=(_,_), dtype=complex
         cross spectrum
     m0 : np.array, size=(2,1)
@@ -131,17 +111,11 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
     Remote Sensing vol. 45.6 pp. 1529-1558, 2007.    
     """
     
-    (m_Q, n_Q) = Q.shape
+
     Q = normalize_power_spectrum(Q)
     W = W/np.sum(W) # normalize weights
     
-    fy = 2*np.pi*(np.arange(0,m_Q)-(m_Q/2)) /m_Q
-    fx = 2*np.pi*(np.arange(0,n_Q)-(n_Q/2)) /n_Q
-        
-    Fx = np.repeat(fx[np.newaxis,:],m_Q,axis=0)
-    Fy = np.repeat(fy[:,np.newaxis],n_Q,axis=1)
-    Fx = np.fft.fftshift(Fx)
-    Fy = np.fft.fftshift(Fy)
+    Fx,Fy = make_fourier_grid(Q)
 
     # initialize    
     m_min = m + np.array([-.1, -.1])

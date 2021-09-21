@@ -1,5 +1,4 @@
 import numpy as np
-from scipy import interpolate
 from scipy import ndimage
 
 def get_image_subset(img, bbox):  # generic
@@ -57,6 +56,31 @@ def bilinear_interpolation(im, x, y):
     return wa*Ia + wb*Ib + wc*Ic + wd*Id
 
 def rotated_sobel(az, size=3):
+    """ construct gradient filters
+
+    Parameters
+    ----------    
+    az : float
+        direction, in degrees with clockwise direction
+    size : integer
+        radius of the template 
+
+    Returns
+    -------    
+    H_x : np.array
+        gradient filter     
+
+    Notes
+    ----- 
+    [1] Sobel, "An isotropic 3×3 gradient operator" Machine vision for 
+    three-dimensional scenes, Academic press, pp.376–379, 1990.
+    """
+    #  coordinate frame:
+    #        |  
+    #   - <--|--> +
+    #        |
+    #        o_____
+    
     d = size //2
     az = np.radians(az)
     
@@ -74,31 +98,56 @@ def rotated_sobel(az, size=3):
     return H_x
     
 def get_grad_filters(ftype='sobel', size=3, order=1):
-    """
-    construct gradient filters
+    """ construct gradient filters
 
-    :param dat_path:    STRING
+    Parameters
+    ----------    
+    ftype : string
         the type of gradient filter to get
-          :options : sobel - 
-                     kroon - 
-                     scharr - Scharr, 2000 in "Optimal operators in digital 
-                     image processing"
-                     robinson- 
-                     kayyali -
-                     prewitt -
-                     simoncelli - from Farid and Simoncelli, 1997 in "Optimally 
-                     rotation-equivariant directional derivative kernels"
-    :param size:       INTEGER
+        options :   'sobel' see [1]
+                    'kroon' see [2]
+                    'scharr' see [3]
+                    'robinson' see [4],[5]
+                    'kayyali'
+                    'prewitt' see [6]
+                    'simoncelli' see [7]
+    size : integer
         dimenson/length of the template 
-    :param order:      INTEGER
-        1st or 2nd order derivative (not all have this)
-    
-    :return if order==1:
-            H_x        ARRAY (_,_)     
-            H_y        ARRAY (_,_) 
-    :return if order==2:
-            H_xx       ARRAY (_,_)     
-            H_xy       ARRAY (_,_)             
+    order : integer
+        first or second order derivative (not all have this)
+
+    Returns
+    -------    
+    if order=1:
+            H_x : np.array
+                horizontal first order derivative     
+            H_y : np.array
+                horizontal first order derivative  
+    elif order=2:
+            H_xx : np.array
+                horizontal second order derivative  
+            H_xy : np.array
+                cross-directional second order derivative  
+
+    Notes
+    ----- 
+    [1] Sobel, "An isotropic 3×3 gradient operator" Machine vision for 
+    three-dimensional scenes, Academic press, pp.376–379, 1990.
+    application to stereo vision", Proceedings of 7th international joint 
+    conference on artificial intelligence, 1981.
+    [2] Kroon, "Numerical optimization of kernel-based image derivatives", 2009
+    [3] Scharr, "Optimal operators in digital image processing" Dissertation 
+    University of Heidelberg, 2000.
+    [4] Kirsch, "Computer determination of the constituent structure of 
+    biological images" Computers and biomedical research. vol.4(3) pp.315–32, 
+    1970.
+    [5] Roberts, "Machine perception of 3-D solids, optical and electro-optical 
+    information processing" MIT press, 1965.
+    [6] Prewitt, "Object enhancement and extraction" Picture processing and 
+    psychopictorics, 1970. 
+    [7] Farid & Simoncelli "Optimally rotation-equivariant directional 
+    derivative kernels" Proceedings of the international conference on computer 
+    analysis of images and patterns, pp207–214, 1997
     """
     
     ftype = ftype.lower() # make string lowercase
@@ -180,7 +229,7 @@ def harst_conv(I, ftype='bezier'):
         array with intensities
     :param dat_path:   STRING
         the type of gradient filter to get
-          :options : beizer - 
+          :options : bezier - 
                      bspline - 
                      catmull -
                      cubic- 

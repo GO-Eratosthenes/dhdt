@@ -1,27 +1,13 @@
 # general libraries
-import warnings
 import numpy as np
 
-# image processing libraries
-from scipy import ndimage, interpolate, fft, signal
-from scipy.optimize import fsolve
-from skimage.feature import match_template
-from skimage.transform import radon
-from skimage.measure import ransac
-from sklearn.cluster import KMeans
-
-from eratosthenes.generic.filtering_statistical import make_2D_Gaussian, \
-    mad_filtering
-from eratosthenes.generic.handler_im import get_grad_filters
-from eratosthenes.preprocessing.shadow_transforms import pca
 from eratosthenes.processing.matching_tools import \
     get_integer_peak_location, reposition_templates_from_center, \
     make_templates_same_size
 from eratosthenes.processing.matching_tools_frequency_filters import \
-    raised_cosine, thresh_masking, normalize_power_spectrum
+    raised_cosine, thresh_masking, normalize_power_spectrum, gaussian_mask
 
-
-# frequency/spectrum matching functions
+# general frequency functions
 def create_complex_DCT(I, Cc, Cs):  #wip
     Ccc, Css = Cc*I*Cc.T, Cs*I*Cs.T
     Csc, Ccs = Cs*I*Cc.T, Cc*I*Cs.T
@@ -56,6 +42,47 @@ def get_sine_matrix(I,N=None): #wip
                 C[k,n] = np.sqrt(2/L)*np.sin((np.pi*k*(1/2+n))/L)
     return(C)
 
+def upsample_dft(Q, up_m=0, up_n=0, upsampling=1, \
+                 i_offset=0, j_offset=0):
+    (m,n) = Q.shape
+    if up_m==0:
+        up_m = m.copy()
+    if up_n==0:
+        up_n = n.copy()
+    
+    kernel_collumn = np.exp((1j*2*np.pi/(n*upsampling)) *\
+                            ( np.fft.fftshift(np.arange(n) - \
+                                              (n//2))[:,np.newaxis] )*\
+                            ( np.arange(up_n) - j_offset ))
+    kernel_row = np.exp((1j*2*np.pi/(m*upsampling)) *\
+                        ( np.arange(up_m)[:,np.newaxis] - i_offset )*\
+                        ( np.fft.fftshift(np.arange(m) - (m//2)) ))    
+    Q_up = np.matmul(kernel_row, np.matmul(Q,kernel_collumn))
+    return Q_up
+
+def pad_dft(Q, m_new, n_new):
+    (m,n) = Q.shape
+    
+    Q_ij = np.fft.fftshift(Q) # in normal configuration
+    center_old = np.array([m//2, n//2])
+    
+    Q_new = np.zeros((m_new, n_new), dtype=np.complex64)
+    center_new =  np.array([m_new//2, n_new//2])
+    center_offset = center_new - center_old
+    
+    # fill the old data in the new array
+    Q_new[np.maximum(center_offset[0], 0):np.minimum(center_offset[0]+m, m_new),\
+          np.maximum(center_offset[1], 0):np.minimum(center_offset[1]+n, n_new)]\
+        = \
+        Q_ij[np.maximum(-center_offset[0], 0):\
+             np.minimum(-center_offset[0]+m_new, m),\
+             np.maximum(-center_offset[1], 0):\
+             np.minimum(-center_offset[1]+n_new, n)]
+            
+    Q_new = (np.fft.fftshift(Q_new)*m_new*n_new)/(m*n) # scaling
+    return Q_new
+
+# frequency/spectrum matching functions
 def cosi_corr(I1, I2, beta1=.35, beta2=.50, m=1e-4):
     mt,nt = I1.shape[0], I1.shape[1] # dimensions of the template
     
@@ -333,6 +360,28 @@ def sign_only_corr(I1, I2): # to do
     return C    
 
 def symmetric_phase_corr(I1, I2):
+    """ match two imagery through symmetric phase only correlation (SPOF)
+    also known as Smoothed Coherence Transform (SCOT)
+    
+    Parameters
+    ----------    
+    I1 : np.array, size=(m,n)
+        array with intensities
+    I2 : np.array, size=(m,n)
+        array with intensities
+    
+    Returns
+    -------
+    Q : np.array, size=(m,n)
+        cross-spectrum
+    
+    Notes
+    -----    
+    [1] Nikias & Petropoulou. "Higher order spectral analysis: a nonlinear 
+    signal processing framework", Prentice hall. pp.313-322, 1993.
+    [2] Wernet. "Symmetric phase only filtering: a new paradigm for DPIV data 
+    processing", Measurement science and technology, vol.16 pp.601-618, 2005.
+    """
     if I1.ndim==3: # multi-spectral frequency stacking
         bands = I1.shape[2]
         I1sub,I2sub = make_templates_same_size(I1,I2)
@@ -599,45 +648,60 @@ def phase_corr(I1, I2):
         Q = np.divide(Q, abs(Q))
     return Q
 
-def upsample_dft(Q, up_m=0, up_n=0, upsampling=1, \
-                 i_offset=0, j_offset=0):
-    (m,n) = Q.shape
-    if up_m==0:
-        up_m = m.copy()
-    if up_n==0:
-        up_n = n.copy()
+def gaussian_transformed_phase_corr(I1, I2):
+    """ match two imagery through Gaussian transformed phase correlation
     
-    kernel_collumn = np.exp((1j*2*np.pi/(n*upsampling)) *\
-                            ( np.fft.fftshift(np.arange(n) - \
-                                              (n//2))[:,np.newaxis] )*\
-                            ( np.arange(up_n) - j_offset ))
-    kernel_row = np.exp((1j*2*np.pi/(m*upsampling)) *\
-                        ( np.arange(up_m)[:,np.newaxis] - i_offset )*\
-                        ( np.fft.fftshift(np.arange(m) - (m//2)) ))    
-    Q_up = np.matmul(kernel_row, np.matmul(Q,kernel_collumn))
-    return Q_up
-
-def pad_dft(Q, m_new, n_new):
-    (m,n) = Q.shape
+    Parameters
+    ----------    
+    I1 : np.array, size=(m,n)
+        array with intensities
+    I2 : np.array, size=(m,n)
+        array with intensities
+        
+    Returns
+    -------
+    Q : np.array, size=(m,n)
+        cross-spectrum
     
-    Q_ij = np.fft.fftshift(Q) # in normal configuration
-    center_old = np.array([m//2, n//2])
+    See Also
+    --------
+    phase_corr 
     
-    Q_new = np.zeros((m_new, n_new), dtype=np.complex64)
-    center_new =  np.array([m_new//2, n_new//2])
-    center_offset = center_new - center_old
-    
-    # fill the old data in the new array
-    Q_new[np.maximum(center_offset[0], 0):np.minimum(center_offset[0]+m, m_new),\
-          np.maximum(center_offset[1], 0):np.minimum(center_offset[1]+n, n_new)]\
-        = \
-        Q_ij[np.maximum(-center_offset[0], 0):\
-             np.minimum(-center_offset[0]+m_new, m),\
-             np.maximum(-center_offset[1], 0):\
-             np.minimum(-center_offset[1]+n_new, n)]
+    Notes
+    -----    
+    [1] Eckstein et al. "Phase correlation processing for DPIV measurements",
+    Experiments in fluids, vol.45 pp.485-500, 2008.
+    """
+    if I1.ndim==3: # multi-spectral frequency stacking
+        bands = I1.shape[2]
+        I1sub,I2sub = make_templates_same_size(I1,I2)
+        
+        for i in range(bands): # loop through all bands
+            I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
             
-    Q_new = (np.fft.fftshift(Q_new)*m_new*n_new)/(m*n) # scaling
-    return Q_new
+            S1, S2 = np.fft.fft2(I1bnd), np.fft.fft2(I2bnd) 
+            
+            if i == 0:
+                Q = (S1)*np.conj(S2)
+                Q = np.divide(Q, abs(Q))
+                M = gaussian_mask(S1)
+                Q = np.multiply(M, Q)
+            else:
+                Q_b = (S1)*np.conj(S2)
+                Q_b = np.divide(Q_b, abs(Q))
+                Q_b = np.multiply(M, Q_b)
+                Q = (1/(i+1))*Q_b + (i/(i+1))*Q
+        
+    else:    
+        I1sub,I2sub = make_templates_same_size(I1,I2)
+        
+        S1, S2 = np.fft.fft2(I1sub), np.fft.fft2(I2sub)
+        Q = (S1)*np.conj(S2)
+        Q = np.divide(Q, abs(Q))
+        
+        M = gaussian_mask(Q)
+        Q = np.multiply(M, Q)
+    return Q
         
 def upsampled_cross_corr(S1, S2, upsampling=2):
     """ apply cros correlation, and upsample the correlation peak
