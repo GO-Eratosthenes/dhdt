@@ -1,6 +1,5 @@
 import os
 import glob
-import math
 #import cairo # for drawing of subpixel polygons
 import numpy as np
 
@@ -198,7 +197,7 @@ def getShadowPolygon(M, sizPix, thres):  # pre-processing
     #    graphCut = graph.cut_threshold(SupPix, g, thres)
     #    meanIm = color.label2rgb(graphCut, M, kind='avg')
     meanIm = color.label2rgb(SupPix, M, kind='avg')
-    sturge = 1.6 * (math.log2(mn) + 1)
+    sturge = 1.6 * (np.log2(mn) + 1)
     values, base = np.histogram(np.reshape(meanIm, -1),
                                 bins=np.int(np.ceil(sturge)))
     dips = findValley(values, base, 2)
@@ -250,7 +249,7 @@ def sturge(M):
     output:  labels         array (m x n)     array with numbered labels
     """
     mn = M.size
-    sturge = 1.6 * (math.log2(mn) + 1)
+    sturge = 1.6 * (np.log2(mn) + 1)
     values, base = np.histogram(np.reshape(M, -1),
                                 bins=np.int(np.ceil(sturge)))
     dips = findValley(values, base, 2)
@@ -504,9 +503,9 @@ def labelOccluderAndCasted(labeling, sunAz, M=None):  # pre-processing
             sunDir = subAz[ridgeI[x]][ridgeJ[x]]  # degrees [-180 180]
 
             # Bresenham's line algorithm
-            dI = -math.cos(math.radians(subAz[ridgeI[x]][ridgeJ[
+            dI = -np.cos(np.radians(subAz[ridgeI[x]][ridgeJ[
                 x]]))  # -cos # flip axis to get from world into image coords
-            dJ = -math.sin(math.radians(subAz[ridgeI[x]][ridgeJ[x]]))  # -sin #
+            dJ = -np.sin(np.radians(subAz[ridgeI[x]][ridgeJ[x]]))  # -sin #
             brd = 3 # add aditional cast borders to the suntrace
             if abs(sunDir) > 90:  # northern hemisphere
                 if dI > dJ:
@@ -644,11 +643,11 @@ def listOccluderAndCasted(labels, sunZn, sunAz,
                 try:
                     castLine = LineString([[ridgeJ[x], ridgeI[x]],
                                            [ridgeJ[x]
-                                            - (math.sin(math.radians(
+                                            - (np.sin(np.radians(
                                                sunAz[ridgeI[x]][
                                                    ridgeJ[x]])) * 1e4),
                                             ridgeI[x]
-                                            + (math.cos(math.radians(
+                                            + (np.cos(np.radians(
                                                 sunAz[ridgeI[x]][
                                                     ridgeJ[x]])) * 1e4)]])
                 except IndexError:

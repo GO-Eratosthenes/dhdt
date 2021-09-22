@@ -11,7 +11,8 @@ from eratosthenes.processing.matching_tools import normalize_power_spectrum, \
 # assert np.isclose()
 
 def create_sample_image_pair(d=2**7, max_range=1):    
-    im1 = data.camera()
+    #im1 = data.camera()
+    im1 = data.lily()
     im1 = mat_to_gray(im1, im1==0)
     (mI,nI) = im1.shape
     
