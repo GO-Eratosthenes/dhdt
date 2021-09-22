@@ -6,9 +6,9 @@ import numpy as np
 from scipy import ndimage, interpolate
 from skimage.feature import match_template
 
-from eratosthenes.preprocessing.shadow_transforms import mat_to_gray
-from eratosthenes.generic.filtering_statistical import make_2D_Gaussian
-from eratosthenes.generic.handler_im import get_grad_filters
+from ..preprocessing.image_transforms import mat_to_gray
+from ..generic.filtering_statistical import make_2D_Gaussian
+from ..generic.handler_im import get_grad_filters
 
 # spatial sub-pixel allignment functions
 def simple_optical_flow(I1, I2, window_size, sampleI, sampleJ, \

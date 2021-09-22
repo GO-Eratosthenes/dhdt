@@ -9,13 +9,14 @@ import numpy as np
 from sklearn.neighbors import NearestNeighbors
 from skimage import measure
 
-from eratosthenes.generic.mapping_tools import map2pix, pix2map, rotMat, castOrientation, ref_trans
-from eratosthenes.generic.mapping_io import read_geo_image
-from eratosthenes.generic.handler_im import bilinear_interpolation
+from ..generic.mapping_tools import map2pix, pix2map, rotMat, \
+    castOrientation, ref_trans
+from ..generic.mapping_io import read_geo_image
+from ..generic.handler_im import bilinear_interpolation
 
-from eratosthenes.preprocessing.read_s2 import read_sun_angles_s2
+from ..preprocessing.read_s2 import read_sun_angles_s2
 
-from eratosthenes.processing.matching_tools import \
+from .matching_tools import \
     affine_optical_flow, simple_optical_flow, \
     normalized_cross_corr, sum_sq_diff, cumulative_cross_corr, \
     perdecomp, \
@@ -25,6 +26,41 @@ from eratosthenes.processing.matching_tools import \
     get_top_gaussian, get_top_parabolic, get_top_weighted, \
     binary_orientation_corr, masked_corr, \
     beam_angle_statistics, cast_angle_neighbours, neighbouring_cast_distances
+
+def make_time_pairing(acq_time, 
+                      t_min=np.timedelta64(300, 'ms').astype('timedelta64[ns]'),
+                      t_max=np.timedelta64(3, 's').astype('timedelta64[ns]')):        
+    """ construct pairing based upon time difference
+
+    Parameters
+    ----------
+    acq_time : np.array, size=(_,1), type=np.timedelta64[ns]
+        acquisition times of different recordings
+    t_min : integer, type=np.timedelta64[ns]
+        minimal time difference to pair
+    t_max : integer, type=np.timedelta64[ns]
+        maximum time difference to pair
+
+    Returns
+    -------
+    idx_1 : TYPE
+        index of first couple, based on the "acq_time" as reference
+    idx_2 : TYPE
+        index of second couple, based on the "acq_time" as reference
+    couple_dt : np.array, size=(_,1), type=np.timedelta64[ns]
+        time difference of the pair
+    """    
+    t_1,t_2 = np.meshgrid(acq_time, acq_time, 
+                          sparse=False, indexing='ij')
+    dt = t_1 - t_2 # time difference matrix
+    
+    # only select in one direction
+    idx_1,idx_2 = np.where((dt > t_min) & (dt < t_max)) 
+          
+    couple_dt = dt[idx_1,idx_2]
+    idx_sort = np.argsort(couple_dt) # sort by short to long duration
+    
+    return idx_1[idx_sort], idx_2[idx_sort], couple_dt[idx_sort]
 
 def couple_pair(file1, file2, bbox, co_name, co_reg, rgi_id=None, 
                 reg='binary', prepro='bandpass', \

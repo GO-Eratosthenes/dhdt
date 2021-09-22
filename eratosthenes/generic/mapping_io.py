@@ -48,7 +48,7 @@ def read_geo_image(fname):  # generic
     return data, spatialRef, geoTransform, targetprj
 
 # I/O functions
-def makeGeoIm(I, R, crs, fName, meta_descr='project Eratosthenes', \
+def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes', \
               no_dat=np.nan, sun_angles='az:360-zn:90', date_created='-0276-00-00'):
     """
     Create georeference GeoTIFF

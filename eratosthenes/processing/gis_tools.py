@@ -3,7 +3,7 @@ import numpy as np
 
 from osgeo import ogr, osr, gdal
 
-from eratosthenes.generic.mapping_io import read_geo_info
+from ..generic.mapping_io import read_geo_info
 
 def make_casting_couple_shapefile(fpath):
     '''

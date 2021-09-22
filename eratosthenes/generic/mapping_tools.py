@@ -9,6 +9,7 @@ from rasterio import Affine
 # raster/image libraries
 from scipy import ndimage
 
+from .handler_im import get_grad_filters
 
 def castOrientation(I, Az):  # generic
     """
@@ -17,8 +18,14 @@ def castOrientation(I, Az):  # generic
              Az             array (n x m)     band of azimuth values
     output:  Ican           array (m x m)     Shadow band
     """
-#    kernel = np.array([[-1, 0, +1], [-2, 0, +2], [-1, 0, +1]]) # Sobel
-    kernel = np.array([[17], [61], [17]])*np.array([-1, 0, 1])/95  # Kroon
+    #
+    #  coordinate frame:
+    #        |  
+    #   - <--|--> +
+    #        |
+    #        o_____
+    kernel = get_grad_filters(ftype='kroon', size=3, order=1)
+
     Idx = ndimage.convolve(I, np.flip(kernel, axis=1))  # steerable filters
     Idy = ndimage.convolve(I, np.flip(np.transpose(kernel), axis=0))
     Ican = (np.multiply(np.cos(np.radians(Az)), Idy)
@@ -98,11 +105,24 @@ def RefScale(Transform, scaling):  # generic
     return newTransform
 
 def rotMat(theta):  # generic
-    """
-    build rotation matrix, theta is in degrees
-    input:   theta        integer             angle
-    output:  R            array (2 x 2)     2D rotation matrix
-    """
+    """ build a 2x2 rotation matrix
+    
+    Parameters
+    ----------
+    theta : float
+        angle in degrees
+
+    Returns
+    -------
+    R : np.array, size=(2,2)
+        2D rotation matrix
+    """       
+    #
+    #  coordinate frame:
+    #        |  
+    #   - <--|--> +
+    #        |
+    #        o_____
     R = np.array([[np.cos(np.radians(theta)), -np.sin(np.radians(theta))],
                   [np.sin(np.radians(theta)), np.cos(np.radians(theta))]])
     return R

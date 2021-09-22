@@ -274,8 +274,8 @@ def phase_svd(Q, W, rad=0.1):
     y_ang = np.unwrap(np.angle(t_m[idx_sub]), axis=0)
     (dy,_,_,_) = np.linalg.lstsq(A, y_ang, rcond=None)
     
-    dj = dx[0]*n / (np.pi)
-    di = dy[0]*m / (np.pi)
+    dj = dx[0][0]*n / (np.pi)
+    di = dy[0][0]*m / (np.pi)
     return di, dj
 
 def phase_difference_1d(Q, W=np.array([]), axis=0):
@@ -359,7 +359,7 @@ def phase_difference(Q, W=np.array([])):
     
     return di,dj
 
-def phase_lsq(I, J, Q):
+def phase_lsq(data, W=np.array([])):
     """get phase plane of cross-spectrum through least squares plane fitting
     
     find slope of the phase plane through 
@@ -367,12 +367,12 @@ def phase_lsq(I, J, Q):
     
     Parameters
     ----------    
-    I : np.array, size=(mn,1), dtype=float
-        vertical coordinate list
-    J : np.array, size=(mn,1), dtype=float
-        horizontal coordinate list
-    Q : np.array, size=(mn,1), dtype=complex
-        list with cross-spectrum complex values
+    data : np.array, size=(m,n), dtype=complex
+        normalized cross spectrum
+    or     np.array, size=(m*n,3), dtype=complex
+        coordinate list with complex cross-sprectum at last
+    W : np.array, size=(m,n), dtype=boolean
+        index of data that is correct
     
     Returns
     -------
@@ -381,13 +381,29 @@ def phase_lsq(I, J, Q):
     
     See Also
     --------
-    phase_tpss, phase_radon, phase_svd, phase_difference, phase_pca    
+    phase_pca, phase_ransac, phase_hough 
        
     """
-    A = np.array([I, J, np.ones_like(I)]).T
+    if data.shape[0]==data.shape[1]:        
+        (m,n) = data.shape        
+        Fx,Fy = make_fourier_grid(np.zeros((m,n)))
+        Fx,Fy = np.fft.fftshift(Fx), np.fft.fftshift(Fy)
+        
+        Fx,Fy = -Fx/np.pi, -Fy/np.pi
+        
+        # transform from complex to -1...+1
+        Q = np.fft.fftshift(np.angle(data) / np.pi) #(2*np.pi))
+        
+        data = np.vstack((Fx.flatten(), 
+                          Fy.flatten(), 
+                          Q.flatten() )).T 
+        if W.size>0: # remove masked data
+            print('aasd')
+    
+    A,y = data[:,:-1], data[:,-1]
     
     M = A.transpose().dot(A)
-    V = A.transpose().dot(np.angle(Q) / (2*np.pi))
+    V = A.transpose().dot(y)
 
     # pseudoinverse:
     Mp = np.linalg.inv(M.transpose().dot(M)).dot(M.transpose())
@@ -395,8 +411,48 @@ def phase_lsq(I, J, Q):
     #Least-squares Solution
     plane_normal = Mp.dot(V) 
     
-    di = plane_normal[0]
-    dj = plane_normal[1]
+    di = plane_normal[1]
+    dj = plane_normal[0]
+    return di, dj
+
+def phase_pca(data): # wip
+    """get phase plane of cross-spectrum through principle component analysis
+    
+    find slope of the phase plane through 
+    principle component analysis
+    
+    Parameters
+    ----------    
+    data : np.array, size=(m,n), dtype=complex
+        normalized cross spectrum
+    or     np.array, size=(m*n,3), dtype=complex
+        coordinate list with complex cross-sprectum at last
+    
+    Returns
+    -------
+    di,dj : float     
+        sub-pixel displacement
+    
+    See Also
+    --------
+    phase_lsq   
+       
+    """
+    if data.shape[0]==data.shape[1]:        
+        (m,n) = data.shape        
+        Fx,Fy = make_fourier_grid(np.zeros((m,n)))
+        Fx,Fy = np.fft.fftshift(Fx), np.fft.fftshift(Fy)
+        Q = np.fft.fftshift(np.angle(data) / (2*np.pi))
+        
+        data = np.vstack((Fx.flatten(), 
+                          Fy.flatten(), 
+                          Q.flatten() )).T 
+    
+    eigen_vecs, eigen_vals = pca(data)
+    e3 = eigen_vecs[:,np.argmin(eigen_vals)] # normal vector
+    e3 = eigen_vecs[:,np.argmin(np.abs(eigen_vecs[-1,:]))]
+    dj = np.sign(e3[-1])*e3[1]
+    di = np.sign(e3[-1])*e3[0]
     return di, dj
 
 # from skimage.measure
@@ -830,7 +886,7 @@ def phase_ransac(data, max_displacement=0, precision_threshold=.05):
     
     See Also
     --------
-    phase_tpss, phase_svd, phase_difference   
+    phase_lsq, phase_svd, phase_hough, phase_pca
     
     Notes
     -----    
@@ -843,14 +899,9 @@ def phase_ransac(data, max_displacement=0, precision_threshold=.05):
     """
     # what type of data? either list of coordinates or a cross-spectral matrix
     if data.shape[0]==data.shape[1]:        
-        (m,n) = data.shape
-        fy = np.flip((np.arange(0,m)-(m/2)) /m)
-        fx = np.flip((np.arange(0,n)-(n/2)) /n)
-            
-        Fx = np.repeat(fx[np.newaxis,:],m,axis=0)
-        Fy = np.repeat(fy[:,np.newaxis],n,axis=1) 
-        
-        #Fx,Fy = np.fft.fftshift(Fx), np.fft.fftshift(Fy)
+        (m,n) = data.shape        
+        Fx,Fy = make_fourier_grid(np.zeros((m,n)))
+        Fx,Fy = np.fft.fftshift(Fx), np.fft.fftshift(Fy)
         Q = np.fft.fftshift(np.angle(data) / (2*np.pi))
         
         if max_displacement==0:
@@ -875,13 +926,8 @@ def phase_hough(data, max_displacement=64, param_spacing=1, sample_fraction=1.,
     
     # what type of data? either list of coordinates or a cross-spectral matrix
     if data.shape[0]==data.shape[1]:        
-        (m,n) = data.shape
-        fy = np.flip((np.arange(0,m)-(m/2)) /m)
-        fx = np.flip((np.arange(0,n)-(n/2)) /n)
-            
-        Fx = np.repeat(fx[np.newaxis,:],m,axis=0)
-        Fy = np.repeat(fy[:,np.newaxis],n,axis=1) 
-        
+        (m,n) = data.shape        
+        Fx,Fy = make_fourier_grid(np.zeros((m,n)))
         Fx,Fy = np.fft.fftshift(Fx), np.fft.fftshift(Fy)
         Q = np.fft.fftshift(np.angle(data) / (2*np.pi))
         
@@ -926,46 +972,6 @@ def phase_hough(data, max_displacement=64, param_spacing=1, sample_fraction=1.,
     di_hough,dj_hough = di[i_hough,j_hough], dj[i_hough,j_hough]
     
     return di_hough, dj_hough
-
-#def phase_binairy_stripe():
-#    Notes
-#    -----    
-#    [1] Zuo et al. "Registration method for infrared images under conditions 
-#    of fixed-pattern noise", Optics communications, vol.285 pp.2293-2302, 
-#    2012.
-#    """
-    
-def phase_pca(I, J, Q): # wip
-    """get phase plane of cross-spectrum through principle component analysis
-    
-    find slope of the phase plane through 
-    principle component analysis
-    
-    Parameters
-    ----------    
-    I : np.array, size=(mn,1), dtype=float
-        vertical coordinate list
-    J : np.array, size=(mn,1), dtype=float
-        horizontal coordinate list
-    Q : np.array, size=(mn,1), dtype=complex
-        list with cross-spectrum complex values
-    
-    Returns
-    -------
-    di,dj : float     
-        sub-pixel displacement
-    
-    See Also
-    --------
-    phase_tpss, phase_radon, phase_svd, phase_difference    
-       
-    """
-    eigen_vecs, eigen_vals = pca(np.array([I, J, np.angle(Q)/np.pi]).T)
-    e3 = eigen_vecs[:,np.argmin(eigen_vals)] # normal vector
-    e3 = eigen_vecs[:,np.argmin(np.abs(eigen_vecs[-1,:]))]
-    di = np.sign(e3[-1])*e3[1]
-    dj = np.sign(e3[-1])*e3[0]
-    return di, dj
 
 def phase_radon(Q, coord_system='ij'):
     """get direction and magnitude from phase plane through Radon transform
@@ -1025,3 +1031,14 @@ def phase_radon(Q, coord_system='ij'):
         return di, dj
     else: # do polar coordinates
         return theta, rho
+
+
+#def phase_binairy_stripe():
+#    Notes
+#    -----    
+#    [1] Zuo et al. "Registration method for infrared images under conditions 
+#    of fixed-pattern noise", Optics communications, vol.285 pp.2293-2302, 
+#    2012.
+#    """
+    
+

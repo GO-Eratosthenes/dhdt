@@ -28,3 +28,9 @@ examples/conn/conn-2019-04-03.txt
 examples/conn/conn-2019-04-03.png
 *.png
 *.txt
+*.jpg
+*.shp
+*.shx
+*.prj
+*.dbf
+*.tar

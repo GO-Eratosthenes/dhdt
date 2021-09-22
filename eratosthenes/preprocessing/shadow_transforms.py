@@ -3,10 +3,9 @@ import random
 
 from scipy import ndimage # for image filters
 
-from eratosthenes.preprocessing.color_transforms import \
+from .color_transforms import \
     rgb2ycbcr, rgb2hsi, rgb2xyz, xyz2lab, lab2lch, erdas2hsi, rgb2lms, lms2lab
-from eratosthenes.preprocessing.image_transforms import \
-    s_curve
+from .image_transforms import s_curve
 
 def enhance_shadow(method, Blue, Green, Red, RedEdge, Nir, Shw):
     """
@@ -92,26 +91,6 @@ def pca_rgb_preparation(Red, Green, Blue, min_samp=1e4):
     X = np.transpose(np.array(
         [Red[sampling], Green[sampling], Blue[sampling]]))
     return X    
-
-def mat_to_gray(I, notI=None):
-    """
-    Transform matix to float, omitting nodata values
-    input:   I              array (n x m)     matrix of integers with data
-             notI           array (n x m)     matrix of boolean with nodata
-    output:  Inew           array (m x m)     linear transformed floating point
-                                              [0...1]
-    """
-    if notI is None:
-        yesI = np.ones(I.shape, dtype=bool)
-        notI = ~yesI
-    else:
-        yesI = ~notI
-    Inew = np.float64(I)  # /2**16
-    Inew[yesI] = np.interp(Inew[yesI],
-                           (Inew[yesI].min(),
-                            Inew[yesI].max()), (0, +1))
-    Inew[notI] = 0
-    return Inew
 
 # generic metrics
 def shannon_entropy(X,band_width=100):

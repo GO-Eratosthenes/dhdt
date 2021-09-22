@@ -22,13 +22,11 @@ from shapely.geometry import shape
 from shapely.geometry import Point, LineString
 from shapely.geos import TopologicalError  # for troubleshooting
 
-from eratosthenes.generic.mapping_io import read_geo_image, read_geo_info
-from eratosthenes.generic.mapping_tools import castOrientation, make_same_size
-from eratosthenes.generic.mapping_tools import pix_centers, map2pix
+from ..generic.mapping_io import read_geo_image, read_geo_info
+from ..generic.mapping_tools import castOrientation, make_same_size
+from ..generic.mapping_tools import pix_centers, map2pix
 
-from eratosthenes.preprocessing.read_s2 import read_sun_angles_s2
-
-from eratosthenes.processing.handler_s2 import read_mean_sun_angles_s2
+from .read_sentinel2 import read_sun_angles_s2, read_mean_sun_angles_s2
 
 def make_shadowing(dem_path, dem_file, im_path, im_name, \
                    Zn=45., Az=-45., nodata=-9999, dtype=bool ):

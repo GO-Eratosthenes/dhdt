@@ -8,9 +8,8 @@ from skimage.transform import radon
 from skimage.measure import ransac
 from sklearn.cluster import KMeans
 
-from eratosthenes.generic.filtering_statistical import make_2D_Gaussian, \
-    mad_filtering
-from eratosthenes.generic.handler_im import get_grad_filters
+from ..generic.filtering_statistical import make_2D_Gaussian, mad_filtering
+from ..generic.handler_im import get_grad_filters
 
 # frequency preparation
 def perdecomp(img):
@@ -90,7 +89,7 @@ def raised_cosine(I, beta=0.35):
     
     Parameters
     ----------    
-    img : np.array, size=(m,n)
+    I : np.array, size=(m,n)
         array with intensities
     beta : float, default=0.35
         roll-off factor
@@ -449,13 +448,8 @@ def cross_shading_filter(Q): #, az_1, az_2): # wip
     grouping = kmeans.labels_ #.astype(np.float)
     OUT = grouping==grouping[min_idx]     
        
-    # construct filter
-    fy = (np.arange(0,m)-(m/2)) /m
-    fx = (np.arange(0,n)-(n/2)) /n
-        
-    Fx = np.flip(np.repeat(fx[np.newaxis,:],m,axis=0), axis=1)
-    Fy = np.repeat(fy[:,np.newaxis],n,axis=1)
-    
+
+    Fx,Fy = make_fourier_grid(Q)    
     Theta = np.round(np.degrees(np.arctan2(Fx,Fy) % np.pi)/360 *m) *360 /m 
     W = np.isin(Theta, theta[~OUT])
     return W

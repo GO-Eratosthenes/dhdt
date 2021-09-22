@@ -1,5 +1,25 @@
 import numpy as np
 
+def mat_to_gray(I, notI=None):
+    """
+    Transform matix to float, omitting nodata values
+    input:   I              array (n x m)     matrix of integers with data
+             notI           array (n x m)     matrix of boolean with nodata
+    output:  Inew           array (m x m)     linear transformed floating point
+                                              [0...1]
+    """
+    if notI is None:
+        yesI = np.ones(I.shape, dtype=bool)
+        notI = ~yesI
+    else:
+        yesI = ~notI
+    Inew = np.float64(I)  # /2**16
+    Inew[yesI] = np.interp(Inew[yesI],
+                           (Inew[yesI].min(),
+                            Inew[yesI].max()), (0, +1))
+    Inew[notI] = 0
+    return Inew
+
 def gamma_adjustment(I, gamma=1.0):
     """ transform intensity in non-linear way
     

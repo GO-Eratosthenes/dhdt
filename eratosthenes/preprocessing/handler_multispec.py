@@ -3,11 +3,10 @@ import numpy as np
 from osgeo import gdal, osr
 
 from ..generic.handler_im import get_image_subset
-
-from eratosthenes.generic.mapping_tools import ref_trans, pix2map
-from eratosthenes.generic.mapping_io import read_geo_image
-from eratosthenes.preprocessing.read_s2 import read_band_s2, read_sun_angles_s2
-from eratosthenes.preprocessing.shadow_transforms import enhance_shadow
+from ..generic.mapping_tools import ref_trans, pix2map
+from ..generic.mapping_io import read_geo_image
+from .read_sentinel2 import read_band_s2, read_sun_angles_s2
+from .shadow_transforms import enhance_shadow
 
 def create_shadow_image(dat_path, im_name, shadow_transform='ruffenacht', \
                         bbox=(0, 0, 0, 0), Shw=None):

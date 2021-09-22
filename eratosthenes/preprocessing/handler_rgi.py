@@ -1,9 +1,10 @@
+# functions to work with the Randolph Glacier Inventory
 import os
 import numpy as np
 
 from osgeo import ogr
 
-from eratosthenes.generic.handler_www import url_exist, get_zip_file
+from ..generic.handler_www import url_exist, get_zip_file
 
 def rgi_code2url(rgi_num):
     """

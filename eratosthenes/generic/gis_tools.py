@@ -3,6 +3,36 @@ import numpy as np
 
 from osgeo import ogr, osr, gdal
 
+def create_crs_from_utm_number(utm_code):
+    """ generate GDAL SpatialReference from UTM code
+    
+
+    Parameters
+    ----------
+    utm_code : string
+        Universal Transverse Mercator code of projection (e.g: '06N')
+
+    Returns
+    -------
+    crs : osr.SpatialReference
+        GDAL SpatialReference
+
+    """
+    utm_zone = int(utm_code[:-1])
+    utm_sphere = utm_code[-1].upper()
+    
+    crs = osr.SpatialReference()
+    crs.SetWellKnownGeogCS("WGS84")
+    if utm_sphere != 'N':
+        crs.SetProjCS("UTM " + str(utm_zone) + \
+                      " (WGS84) in northern hemisphere.")
+        crs.SetUTM(utm_zone,True)
+    else:
+        crs.SetProjCS("UTM " + str(utm_zone) + \
+              " (WGS84) in southern hemisphere.")
+        crs.SetUTM(utm_zone,False)
+    return crs
+
 def ll2utm(ll_fname,utm_fname,crs,aoi='RGIId'):
     """
     Transfrom shapefile in Lat-Long to UTM coordinates

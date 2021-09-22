@@ -4,16 +4,17 @@ import random
 from skimage import data
 from scipy.interpolate import griddata
 
-from eratosthenes.preprocessing.shadow_transforms import mat_to_gray
-from eratosthenes.processing.matching_tools import normalize_power_spectrum, \
-    get_integer_peak_location
+from ..preprocessing.image_transforms import mat_to_gray
+from ..processing.matching_tools_frequency_filters import \
+    normalize_power_spectrum
+from ..processing.matching_tools import get_integer_peak_location
 
 # assert np.isclose()
 
 def create_sample_image_pair(d=2**7, max_range=1):    
     #im1 = data.camera()
-    im1 = data.lily()
-    im1 = mat_to_gray(im1, im1==0)
+    im1 = data.astronaut()
+    im1 = mat_to_gray(im1[:,:,0], im1[:,:,0]==0)
     (mI,nI) = im1.shape
     
     scalar_mul = np.minimum(d // 2, max_range)
@@ -101,6 +102,22 @@ def construct_phase_plane(I, di, dj):
     return Q
 
 def signal_to_noise(Q,C,norm=2):
+    """ calculate the signal to noise from a theoretical and a cross-spectrum
+
+    Parameters
+    ----------
+    Q : np.array, size=(m,n), dtype=complex
+        cross-spectrum
+    C : np.array, size=(m,n), dtype=complex
+        phase plane
+    norm : integer
+        norm for the difference
+
+    Returns
+    -------
+    snr : float, range=0...1
+        signal to noise ratio
+    """
     Qn = normalize_power_spectrum(Q)
     Q_diff = np.abs(Qn-C)**norm
     snr = 1 - (np.sum(Q_diff) / (2*norm*np.prod(C.shape)))

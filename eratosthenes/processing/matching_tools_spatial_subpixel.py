@@ -10,12 +10,10 @@ from skimage.transform import radon
 from skimage.measure import ransac
 from sklearn.cluster import KMeans
 
-from eratosthenes.generic.filtering_statistical import make_2D_Gaussian, \
-    mad_filtering
-from eratosthenes.generic.handler_im import get_grad_filters
-from eratosthenes.preprocessing.shadow_transforms import pca
-from eratosthenes.processing.matching_tools import \
-    get_integer_peak_location
+from ..generic.filtering_statistical import make_2D_Gaussian, mad_filtering
+from ..generic.handler_im import get_grad_filters
+from ..preprocessing.shadow_transforms import pca
+from .matching_tools import get_integer_peak_location
 
 def is_estimate_away_from_border(C, i, j, ds=1):
     if np.abs(i)+ds >= (C.shape[0]+1) // 2 or \

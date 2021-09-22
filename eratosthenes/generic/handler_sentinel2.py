@@ -1,6 +1,18 @@
 import os
 import numpy as np
 
+import geopandas
+
+def get_bbox_from_tile_code(tile_code, \
+                            shp_dir='/Users/Alten005/surfdrive/Eratosthenes/SatelliteTiles', \
+                            shp_name='sentinel2_tiles_world.shp'):
+    tile_code = tile_code.upper()
+    shp_path = os.path.join(shp_dir,shp_name)
+    
+    mgrs = geopandas.read_file(shp_path)
+    
+    toi = mgrs[mgrs['Name']==tile_code]
+    return toi
 
 def get_array_from_xml(treeStruc):  # generic
     """

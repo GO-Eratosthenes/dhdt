@@ -10,7 +10,7 @@ from rioxarray.merge import merge_arrays # had some troubles since I got:
     # AttributeError: module 'rioxarray' has no attribute 'merge'
 from rasterio.enums import Resampling
 
-from eratosthenes.generic.handler_www import get_file_from_ftps
+from .handler_www import get_file_from_ftps
 
 def get_itersecting_DEM_tile_names(index, geometry):
     """ 

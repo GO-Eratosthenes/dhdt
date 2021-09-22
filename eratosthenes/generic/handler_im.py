@@ -55,6 +55,40 @@ def bilinear_interpolation(im, x, y):
 
     return wa*Ia + wb*Ib + wc*Ic + wd*Id
 
+def rescale_image(I, sc): 
+    """ generate a zoomed-in version of an image, through isotropic scaling
+
+    Parameters
+    ----------
+    I : np.array, size=(m,n)
+        image
+    sc : float
+        scaling factor, >1 is zoom-in, <1 is zoom-out.
+
+    Returns
+    -------
+    I_new : np.array, size=(m,n)
+        rescaled, but not resized image
+
+    """
+    T = np.array([[sc, 0], [0, sc]]) # scaling matrix
+    
+    # make local coordinate system
+    (mI,nI) = I.shape    
+    (grd_i1,grd_j1) = np.meshgrid(np.linspace(-1, 1, mI), np.linspace(-1, 1, nI))
+    
+    stk_1 = np.vstack( (grd_i1.flatten(), grd_j1.flatten()) ).T
+    
+    grd_2 = np.matmul(T, stk_1.T)
+    # calculate new interpolation grid
+    grd_i2 = np.reshape(grd_2[0,:], (mI, nI))
+    grd_j2 = np.reshape(grd_2[1,:], (mI, nI))
+    
+    # apply scaling
+    I_new = griddata(stk_1, I.flatten().T, (grd_i2,grd_j2), 
+                     method='cubic') # method='nearest')
+    return I_new
+
 def rotated_sobel(az, size=3):
     """ construct gradient filters
 

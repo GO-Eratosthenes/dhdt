@@ -1,10 +1,10 @@
 # general libraries
 import numpy as np
 
-from eratosthenes.processing.matching_tools import \
+from .matching_tools import \
     get_integer_peak_location, reposition_templates_from_center, \
     make_templates_same_size
-from eratosthenes.processing.matching_tools_frequency_filters import \
+from .matching_tools_frequency_filters import \
     raised_cosine, thresh_masking, normalize_power_spectrum, gaussian_mask
 
 # general frequency functions

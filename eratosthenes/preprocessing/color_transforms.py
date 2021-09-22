@@ -1,7 +1,6 @@
 import numpy as np
 
-from eratosthenes.preprocessing.shadow_transforms import \
-    mat_to_gray
+from .image_transforms import mat_to_gray
 
 def rgb2hcv(Blue, Green, Red):
     """transform red green blue arrays to a color space

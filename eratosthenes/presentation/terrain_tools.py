@@ -1,6 +1,6 @@
 import numpy as np
 
-from eratosthenes.preprocessing.shadow_transforms import mat_to_gray
+from ..preprocessing.image_transforms import mat_to_gray
 
 def luminance_perspective(g, z, g_flat, k=1):
     """enhance shadow transform, through classification knowledge
