@@ -8,12 +8,46 @@ from skimage.transform import radon
 # from skimage.measure import ransac
 from skimage.measure.fit import _dynamic_max_trials
 
-from eratosthenes.generic.test_tools import construct_phase_plane
-
-from eratosthenes.preprocessing.shadow_transforms import pca
-from eratosthenes.processing.matching_tools_frequency_filters import \
+from ..generic.test_tools import construct_phase_plane
+from ..generic.data_tools import gradient_descent
+from ..preprocessing.shadow_transforms import pca
+from .matching_tools_frequency_filters import \
     raised_cosine, local_coherence, thresh_masking, normalize_power_spectrum, \
     make_fourier_grid
+
+def phase_gradient_descend(data, W=np.array([]), x_0=np.zeros((2))): # wip
+    """get phase plane of cross-spectrum through principle component analysis
+    
+    find slope of the phase plane through 
+    principle component analysis
+    
+    Parameters
+    ----------    
+    data : np.array, size=(m,n), dtype=complex
+        normalized cross spectrum
+    or     np.array, size=(m*n,3), dtype=complex
+        coordinate list with complex cross-sprectum at last
+    W : np.array, size=(m,n), dtype=boolean
+        index of data that is correct
+    or     np.array, size=(m*n,1), dtype=boolean
+        list with classification of correct data       
+    Returns
+    -------
+    di,dj : float     
+        sub-pixel displacement
+    
+    See Also
+    --------
+    phase_lsq   
+       
+    """
+    data = cross_spectrum_to_coordinate_list(data, W)
+    
+    eigen_vecs, eigen_vals = pca(data)
+    x_hat,_ = gradient_descent(data[:,:-1], data[:,-1], x_0, \
+                               learning_rate=1, n_iters=50)
+    di,dj = x_hat[1], x_hat[0]
+    return di,dj
 
 def phase_newton(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
     (m_Q, n_Q) = Q.shape
@@ -274,8 +308,8 @@ def phase_svd(Q, W, rad=0.1):
     y_ang = np.unwrap(np.angle(t_m[idx_sub]), axis=0)
     (dy,_,_,_) = np.linalg.lstsq(A, y_ang, rcond=None)
     
-    dj = dx[0][0]*n / (np.pi)
-    di = dy[0][0]*m / (np.pi)
+    dj = dx[0][0]*n / (2*np.pi)
+    di = dy[0][0]*m / (2*np.pi)
     return di, dj
 
 def phase_difference_1d(Q, W=np.array([]), axis=0):
@@ -359,6 +393,41 @@ def phase_difference(Q, W=np.array([])):
     
     return di,dj
 
+def cross_spectrum_to_coordinate_list(data, W=np.array([])):
+    """ if data is given in array for, then transform it to a coordinate list
+    
+
+    Parameters
+    ----------
+    data : np.array, size=(m,n), dtype=complex
+        cross-spectrum
+    W : np.array, size=(m,n), dtype=boolean
+        weigthing matrix of the cross-spectrum
+
+    Returns
+    -------
+    data_list : np.array, size=(m*n,3), dtype=float
+        coordinate list with angles
+    """
+    if data.shape[0]==data.shape[1]:        
+        (m,n) = data.shape        
+        Fx,Fy = make_fourier_grid(np.zeros((m,n)))
+        Fx,Fy = np.fft.fftshift(Fx), np.fft.fftshift(Fy)
+        
+        Fx,Fy = -Fx/np.pi, -Fy/np.pi
+        
+        # transform from complex to -1...+1
+        Q = np.fft.fftshift(np.angle(data) / np.pi) #(2*np.pi))
+        
+        data_list = np.vstack((Fx.flatten(), 
+                               Fy.flatten(), 
+                               Q.flatten() )).T 
+        if W.size>0: # remove masked data
+            data_list = data_list[W.flatten()==1,:]
+    else:
+        data_list = data[W.flatten()==1,:]
+    return data_list
+
 def phase_lsq(data, W=np.array([])):
     """get phase plane of cross-spectrum through least squares plane fitting
     
@@ -373,7 +442,8 @@ def phase_lsq(data, W=np.array([])):
         coordinate list with complex cross-sprectum at last
     W : np.array, size=(m,n), dtype=boolean
         index of data that is correct
-    
+    or     np.array, size=(m*n,1), dtype=boolean
+        list with classification of correct data   
     Returns
     -------
     di,dj : float     
@@ -384,22 +454,7 @@ def phase_lsq(data, W=np.array([])):
     phase_pca, phase_ransac, phase_hough 
        
     """
-    if data.shape[0]==data.shape[1]:        
-        (m,n) = data.shape        
-        Fx,Fy = make_fourier_grid(np.zeros((m,n)))
-        Fx,Fy = np.fft.fftshift(Fx), np.fft.fftshift(Fy)
-        
-        Fx,Fy = -Fx/np.pi, -Fy/np.pi
-        
-        # transform from complex to -1...+1
-        Q = np.fft.fftshift(np.angle(data) / np.pi) #(2*np.pi))
-        
-        data = np.vstack((Fx.flatten(), 
-                          Fy.flatten(), 
-                          Q.flatten() )).T 
-        if W.size>0: # remove masked data
-            print('aasd')
-    
+    data = cross_spectrum_to_coordinate_list(data, W)    
     A,y = data[:,:-1], data[:,-1]
     
     M = A.transpose().dot(A)
@@ -415,7 +470,7 @@ def phase_lsq(data, W=np.array([])):
     dj = plane_normal[0]
     return di, dj
 
-def phase_pca(data): # wip
+def phase_pca(data, W=np.array([])): # wip
     """get phase plane of cross-spectrum through principle component analysis
     
     find slope of the phase plane through 
@@ -427,7 +482,10 @@ def phase_pca(data): # wip
         normalized cross spectrum
     or     np.array, size=(m*n,3), dtype=complex
         coordinate list with complex cross-sprectum at last
-    
+    W : np.array, size=(m,n), dtype=boolean
+        index of data that is correct
+    or     np.array, size=(m*n,1), dtype=boolean
+        list with classification of correct data       
     Returns
     -------
     di,dj : float     
@@ -438,21 +496,12 @@ def phase_pca(data): # wip
     phase_lsq   
        
     """
-    if data.shape[0]==data.shape[1]:        
-        (m,n) = data.shape        
-        Fx,Fy = make_fourier_grid(np.zeros((m,n)))
-        Fx,Fy = np.fft.fftshift(Fx), np.fft.fftshift(Fy)
-        Q = np.fft.fftshift(np.angle(data) / (2*np.pi))
-        
-        data = np.vstack((Fx.flatten(), 
-                          Fy.flatten(), 
-                          Q.flatten() )).T 
+    data = cross_spectrum_to_coordinate_list(data, W)
     
     eigen_vecs, eigen_vals = pca(data)
     e3 = eigen_vecs[:,np.argmin(eigen_vals)] # normal vector
-    e3 = eigen_vecs[:,np.argmin(np.abs(eigen_vecs[-1,:]))]
-    dj = np.sign(e3[-1])*e3[1]
-    di = np.sign(e3[-1])*e3[0]
+    dj = -(e3[0]/e3[-1])
+    di = -(e3[1]/e3[-1])
     return di, dj
 
 # from skimage.measure
