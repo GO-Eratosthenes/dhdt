@@ -470,7 +470,7 @@ def phase_lsq(data, W=np.array([])):
     dj = plane_normal[0]
     return di, dj
 
-def phase_pca(data, W=np.array([])): # wip
+def phase_pca(data, W=np.array([])):
     """get phase plane of cross-spectrum through principle component analysis
     
     find slope of the phase plane through 
@@ -499,6 +499,45 @@ def phase_pca(data, W=np.array([])): # wip
     data = cross_spectrum_to_coordinate_list(data, W)
     
     eigen_vecs, eigen_vals = pca(data)
+    e3 = eigen_vecs[:,np.argmin(eigen_vals)] # normal vector
+    dj = -(e3[0]/e3[-1])
+    di = -(e3[1]/e3[-1])
+    return di, dj
+
+def phase_weighted_pca(Q, W): # wip
+    """get phase plane of cross-spectrum through principle component analysis
+    
+    find slope of the phase plane through 
+    principle component analysis
+    
+    Parameters
+    ----------    
+    data : np.array, size=(m,n), dtype=complex
+        normalized cross spectrum
+    or     np.array, size=(m*n,3), dtype=complex
+        coordinate list with complex cross-sprectum at last
+    W : np.array, size=(m,n), dtype=boolean
+        index of data that is correct
+    or     np.array, size=(m*n,1), dtype=boolean
+        list with classification of correct data       
+    Returns
+    -------
+    di,dj : float     
+        sub-pixel displacement
+    
+    See Also
+    --------
+    phase_lsq   
+       
+    """
+    data = cross_spectrum_to_coordinate_list(Q)
+    weights = W.flatten()
+    
+    covar = np.dot(data.T, data)
+    covar /= np.dot(weights.T, weights)
+
+    
+    eigen_vals, eigen_vecs = np.linalg.eigh(covar)
     e3 = eigen_vecs[:,np.argmin(eigen_vals)] # normal vector
     dj = -(e3[0]/e3[-1])
     di = -(e3[1]/e3[-1])
