@@ -24,25 +24,60 @@ def s2_dn2toa(I):
     sentinel.esa.int/web/sentinel/technical-guides/sentinel-2-msi/
     level-1c/algorithm
     """
-    no_data = 0
-    
-    I = I*10000
-    return I       
+    I_toa = I*10000
+    return I_toa       
 
-def read_band_s2(band, path):  # pre-processing
+def read_band_s2(path, band='00'):
     """
     This function takes as input the Sentinel-2 band name and the path of the
     folder that the images are stored, reads the image and returns the data as
     an array
-    input:   band           string            Sentinel-2 band name
-             path           string            path of the folder
-    output:  data           array (n x m)     array of the band image
-             spatialRef     string            projection
-             geoTransform   tuple             affine transformation
-                                              coefficients
-             targetprj                        spatial reference
+    
+    Parameters
+    ----------
+    path : string
+        path of the folder, or full path with filename as well
+    band : string, optional
+        Sentinel-2 band name, for example '04', '8A'.
+
+    Returns
+    -------
+    data : np.array, size=(_,_)
+        array of the band image
+    spatialRef : string
+        projection
+    geoTransform : tuple
+        affine transformation coefficients
+    targetprj : osr.SpatialReference object
+        spatial reference
+
+    Example
+    -------
+    >>> path = '/GRANULE/L1C_T15MXV_A027450_20200923T163313/IMG_DATA/'
+    >>> band = '02'
+    >>> _,spatialRef,geoTransform,targetprj = read_band_s2(path, band)
+    
+    >>> spatialRef
+    'PROJCS["WGS 84 / UTM zone 15S",GEOGCS["WGS 84",DATUM["WGS_1984",
+    SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],
+    AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],
+    UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],
+    AUTHORITY["EPSG","4326"]],PROJECTION["Transverse_Mercator"],
+    PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",-93],
+    PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],
+    PARAMETER["false_northing",10000000],UNIT["metre",1,
+    AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],
+    AUTHORITY["EPSG","32715"]]'
+    >>> geoTransform
+    (600000.0, 10.0, 0.0, 10000000.0, 0.0, -10.0)
+    >>> targetprj
+    <osgeo.osr.SpatialReference; proxy of <Swig Object of type 
+    'OSRSpatialReferenceShadow *' at 0x7f9a63ffe450> >
     """
-    fname = os.path.join(path, '*B'+band+'.jp2')
+    if band!='00':
+        fname = os.path.join(path, '*B'+band+'.jp2')
+    else:
+        fname = path
     img = gdal.Open(glob.glob(fname)[0])
     data = np.array(img.GetRasterBand(1).ReadAsArray())
     spatialRef = img.GetProjection()
@@ -50,16 +85,38 @@ def read_band_s2(band, path):  # pre-processing
     targetprj = osr.SpatialReference(wkt=img.GetProjection())
     return data, spatialRef, geoTransform, targetprj
 
-def read_sun_angles_s2(path):  # pre-processing
-    """
-    This function reads the xml-file of the Sentinel-2 scene and extracts an
-    array with sun angles, as these vary along the scene.
-    input:   path           string            path where xml-file of
-                                              Sentinel-2 is situated
-    output:  Zn             array (n x m)     array of the Zenith angles
-             Az             array (n x m)     array of the Azimtuh angles
+def read_sun_angles_s2(path):
+    """ This function reads the xml-file of the Sentinel-2 scene and extracts 
+    an array with sun angles, as these vary along the scene.
 
+    Parameters
+    ----------
+    path : string
+        path where xml-file of Sentinel-2 is situated
+
+    Returns
+    -------
+    Zn : np.array, size=(m,n), dtype=float
+        array of the solar zenith angles, in degrees.
+    Az : np.array, size=(m,n), dtype=float
+        array of the solar azimuth angles, in degrees.
     """
+    # surface normal              * sun
+    # ^                     ^    /
+    # |                     |   /
+    # |-- zenith angle      |  /
+    # | /                   | /|
+    # |/                    |/ | elevation angle
+    # +----                 +------
+    #
+    #     y & North
+    #       ^
+    #       |
+    #  - <--|--> + azimuth angle
+    #       |
+    #       |
+    #  -----+-----> x & East
+    
     fname = os.path.join(path, 'MTD_TL.xml')
     dom = ElementTree.parse(glob.glob(fname)[0])
     root = dom.getroot()
@@ -106,11 +163,37 @@ def read_sun_angles_s2(path):  # pre-processing
     del Igrd, Jgrd, Zij, Aij
     return Zn, Az
 
-def read_view_angles_s2(path):  # processing
+def read_view_angles_s2(path):
+    """ This function reads the xml-file of the Sentinel-2 scene and extracts 
+    an array with viewing angles of the MSI instrument.
+
+    Parameters
+    ----------
+    path : string
+        path where xml-file of Sentinel-2 is situated
+
+    Returns
+    -------
+    Zn : np.array, size=(m,n), dtype=float
+        array of the solar zenith angles, in degrees.
+    Az : np.array, size=(m,n), dtype=float
+        array of the solar azimuth angles, in degrees.
     """
-    This function reads the xml-file of the Sentinel-2 scene and extracts an
-    array with sun angles, as these vary along the scene.
-    """
+    #      #*#                   #*# satellite
+    # ^    /                ^    /|
+    # |   /                 |   / | nadir
+    # |-- zenith angle      |  /  v
+    # | /                   | /|
+    # |/                    |/ | elevation angle
+    # +----  surfa          +------
+    #
+    #     y & North
+    #       ^
+    #       |
+    #  - <--|--> + azimuth angle
+    #       |
+    #       |
+    #  -----+-----> x & East
     fname = os.path.join(path, 'MTD_TL.xml')
     dom = ElementTree.parse(glob.glob(fname)[0])
     root = dom.getroot()
@@ -161,11 +244,38 @@ def read_view_angles_s2(path):  # processing
     del Igrd, Jgrd, Zij, Aij
     return Zn, Az
 
-def read_mean_sun_angles_s2(path):  # processing
+def read_mean_sun_angles_s2(path):
+    """ Read the xml-file of the Sentinel-2 scene and extract the mean sun angles.
+
+    Parameters
+    ----------
+    path : string
+        path where xml-file of Sentinel-2 is situated
+
+    Returns
+    -------
+    Zn : float
+        Mean solar zentih angle of the scene, in degrees.
+    Az : float
+        Mean solar azimuth angle of the scene, in degrees
+
     """
-    This function reads the xml-file of the Sentinel-2 scene and extracts the
-    mean sun angles.
-    """
+    # surface normal              * sun
+    # ^                     ^    /
+    # |                     |   /
+    # |-- zenith angle      |  /
+    # | /                   | /|
+    # |/                    |/ | elevation angle
+    # +---- surface     ----+------  
+    #
+    #     y & North
+    #       ^
+    #       |
+    #  - <--|--> + azimuth angle
+    #       |
+    #       |
+    #  -----+-----> x & East
+    
     fname = os.path.join(path, 'MTD_TL.xml')
     dom = ElementTree.parse(glob.glob(fname)[0])
     root = dom.getroot()
@@ -174,11 +284,50 @@ def read_mean_sun_angles_s2(path):  # processing
     Az = float(root[1][1][1][1].text)
     return Zn, Az
 
-def read_detector_mask(path_meta, msk_dim, boi, geoTransform):   
+def read_detector_mask(path_meta, msk_dim, boi, geoTransform): 
+    """ create array of with detector identification
+    
+    Sentinel-2 records in a pushbroom fasion, collecting reflectance with a 
+    ground resolution of more than 270 kilometers. This data is stacked in the 
+    flight direction, and then cut into granules. However, the sensorstrip 
+    inside the Multi Spectral Imager (MSI) is composed of several CCD arrays.
+    
+    This function collects the geometry of these sensor arrays from the meta-
+    data. Since this is stored in a gml-file.
+
+    Parameters
+    ----------
+    path_meta : string
+        path where the meta-data is situated.
+    msk_dim : tuple
+        dimensions of the stack.
+    boi : list
+        list with bands of interest
+    geoTransform : tuple
+        affine transformation coefficients
+
+    Returns
+    -------
+    det_stack : np.array, size=(msk_dim[0],msk_dim[1],len(boi)), dtype=int8 
+        array where each pixel has the ID of the detector, of a specific band
+        
+    Example
+    -------
+    >>> path_meta = '/GRANULE/L1C_T15MXV_A027450_20200923T163313/QI_DATA'
+    >>> msk_dim = (10980, 10980, 4)
+    >>> boi = ['B02', 'B03', 'B04', 'B08']
+    >>> geoTransform = (600000.0, 10.0, 0.0, 10000000.0, 0.0, -10.0)
+    >>> 
+    >>> det_stack = read_detector_mask(path_meta, msk_dim, boi, geoTransform)
+    """
     det_stack = np.zeros(msk_dim, dtype='int8')    
     for i in range(len(boi)):
         im_id = boi[i]
-        f_meta = os.path.join(path_meta, 'MSK_DETFOO_B'+ f'{im_id:02.0f}' + '.gml')
+        if type(im_id) is int:
+            f_meta = os.path.join(path_meta, 'MSK_DETFOO_B'+ \
+                                  f'{im_id:02.0f}' + '.gml')
+        else:
+            f_meta = os.path.join(path_meta, 'MSK_DETFOO_'+ im_id +'.gml')
         dom = ElementTree.parse(glob.glob(f_meta)[0])
         root = dom.getroot()  
         

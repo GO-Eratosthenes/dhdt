@@ -31,6 +31,7 @@ def phase_gradient_descend(data, W=np.array([]), x_0=np.zeros((2))): # wip
         index of data that is correct
     or     np.array, size=(m*n,1), dtype=boolean
         list with classification of correct data       
+
     Returns
     -------
     di,dj : float     
@@ -39,6 +40,18 @@ def phase_gradient_descend(data, W=np.array([]), x_0=np.zeros((2))): # wip
     See Also
     --------
     phase_lsq   
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
+    >>> Q = phase_corr(im1, im2)
+    >>> di,dj,_,_ = phase_gradient_descend(Q)
+
+    >>> assert(np.isclose(ti, di, atol=.2))
+    >>> assert(np.isclose(tj, dj, atol=.2))   
        
     """
     data = cross_spectrum_to_coordinate_list(data, W)
@@ -272,12 +285,24 @@ def phase_svd(Q, W, rad=0.1):
     See Also
     --------
     phase_tpss, phase_radon, phase_difference    
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
+    >>> Q = phase_corr(im1, im2)
+    >>> di,dj,_,_ = phase_svd(Q)
+
+    >>> assert(np.isclose(ti, di, atol=.2))
+    >>> assert(np.isclose(tj, dj, atol=.2))    
     
     Notes
     -----    
-    [1] Hoge, W.S. "A subspace identification extension to the phase 
-    correlation method", IEEE transactions on medical imaging, vol. 22.2 
-    pp. 277-280, 2003.    
+    .. [1] Hoge, W.S. "A subspace identification extension to the phase 
+       correlation method", IEEE transactions on medical imaging, vol. 22(2) 
+       pp.277-280, 2003.    
     """
     # filtering through magnitude
     # W: M = thresh_masking(S1, m=th, s=ker) th=0.001, ker=10
@@ -336,8 +361,9 @@ def phase_difference_1d(Q, W=np.array([]), axis=0):
     
     Notes
     -----    
-    [1] Kay, S. "A fast and accurate frequency estimator", IEEE transactions on 
-    acoustics, speech and signal processing, vol.37(12) pp. 1987-1990, 1989.    
+    .. [1] Kay, S. "A fast and accurate frequency estimator", IEEE 
+       transactions on acoustics, speech and signal processing, vol.37(12) 
+       pp.1987-1990, 1989.    
     """
     
     if axis==0:
@@ -382,11 +408,24 @@ def phase_difference(Q, W=np.array([])):
     See Also
     --------
     phase_tpss, phase_svd, phase_difference   
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
+    >>> Q = phase_corr(im1, im2)
+    >>> di,dj,_,_ = phase_svd(Q)
+
+    >>> assert(np.isclose(ti, di, atol=.2))
+    >>> assert(np.isclose(tj, dj, atol=.2))    
     
     Notes
     -----    
-    [1] Kay, S. "A fast and accurate frequency estimator", IEEE transactions on 
-    acoustics, speech and signal processing, vol.37(12) pp. 1987-1990, 1989.    
+    .. [1] Kay, S. "A fast and accurate frequency estimator", IEEE 
+       transactions on acoustics, speech and signal processing, vol.37(12) 
+       pp.1987-1990, 1989.    
     """
     di = phase_difference_1d(Q, W, axis=0)
     dj = phase_difference_1d(Q, W, axis=1)
@@ -395,7 +434,6 @@ def phase_difference(Q, W=np.array([])):
 
 def cross_spectrum_to_coordinate_list(data, W=np.array([])):
     """ if data is given in array for, then transform it to a coordinate list
-    
 
     Parameters
     ----------
@@ -444,10 +482,23 @@ def phase_lsq(data, W=np.array([])):
         index of data that is correct
     or     np.array, size=(m*n,1), dtype=boolean
         list with classification of correct data   
+
     Returns
     -------
     di,dj : float     
         sub-pixel displacement
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
+    >>> Q = phase_corr(im1, im2)
+    >>> di,dj,_,_ = phase_lsq(Q)
+
+    >>> assert(np.isclose(ti, di, atol=.2))
+    >>> assert(np.isclose(tj, dj, atol=.2))   
     
     See Also
     --------
@@ -486,6 +537,7 @@ def phase_pca(data, W=np.array([])):
         index of data that is correct
     or     np.array, size=(m*n,1), dtype=boolean
         list with classification of correct data       
+
     Returns
     -------
     di,dj : float     
@@ -494,6 +546,18 @@ def phase_pca(data, W=np.array([])):
     See Also
     --------
     phase_lsq   
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
+    >>> Q = phase_corr(im1, im2)
+    >>> di,dj,_,_ = phase_pca(Q)
+
+    >>> assert(np.isclose(ti, di, atol=.2))
+    >>> assert(np.isclose(tj, dj, atol=.2))   
        
     """
     data = cross_spectrum_to_coordinate_list(data, W)
@@ -529,6 +593,18 @@ def phase_weighted_pca(Q, W): # wip
     --------
     phase_lsq   
        
+    Example
+    -------
+    >>> import numpy as np
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
+    >>> Q = phase_corr(im1, im2)
+    >>> W = gaussian_mask(Q)
+    >>> di,dj,_,_ = phase_weighted_pca(Q, W)
+
+    >>> assert(np.isclose(ti, di, atol=.2))
+    >>> assert(np.isclose(tj, dj, atol=.2))   
     """
     data = cross_spectrum_to_coordinate_list(Q)
     weights = W.flatten()
@@ -975,15 +1051,28 @@ def phase_ransac(data, max_displacement=0, precision_threshold=.05):
     See Also
     --------
     phase_lsq, phase_svd, phase_hough, phase_pca
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
+    >>> Q = phase_corr(im1, im2)
+    >>> di,dj,_,_ = phase_ransac(Q)
+
+    >>> assert(np.isclose(ti, di, atol=.2))
+    >>> assert(np.isclose(tj, dj, atol=.2))   
     
     Notes
     -----    
-    [1] Fischler & Bolles. "Random sample consensus: a paradigm for model 
-    fitting with applications to image analysis and automated cartography" 
-    Communications of the ACM vol.24(6) pp.381-395, 1981.   
-    [2] Tong et al. "A novel subpixel phase correlation method using singular 
-    value decomposition and unified random sample consensus" IEEE transactions 
-    on geoscience and remote sensing vol.53(8) pp.4143-4156, 2015.
+    .. [1] Fischler & Bolles. "Random sample consensus: a paradigm for model 
+       fitting with applications to image analysis and automated cartography" 
+       Communications of the ACM vol.24(6) pp.381-395, 1981.   
+    .. [2] Tong et al. "A novel subpixel phase correlation method using 
+       singular value decomposition and unified random sample consensus" IEEE 
+       transactions on geoscience and remote sensing vol.53(8) pp.4143-4156, 
+       2015.
     """
     # what type of data? either list of coordinates or a cross-spectral matrix
     if data.shape[0]==data.shape[1]:        
@@ -1080,11 +1169,24 @@ def phase_radon(Q, coord_system='ij'):
     See Also
     --------
     phase_tpss, phase_svd, phase_difference   
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
+    >>> Q = phase_corr(im1, im2)
+    >>> di,dj,_,_ = phase_radon(Q)
+
+    >>> assert(np.isclose(ti, di, atol=.2))
+    >>> assert(np.isclose(tj, dj, atol=.2))
     
     Notes
     -----    
-    [1] Balci & Foroosh. "Subpixel registration directly from the phase 
-    difference" EURASIP journal on advances in signal processing, pp.1-11, 2006.
+    .. [1] Balci & Foroosh. "Subpixel registration directly from the phase 
+       difference" EURASIP journal on advances in signal processing, pp.1-11, 
+       2006.
     """
     (m, n) = Q.shape  
     half = m // 2

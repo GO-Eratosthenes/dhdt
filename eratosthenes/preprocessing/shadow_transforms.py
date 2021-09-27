@@ -190,7 +190,7 @@ def shadow_enhancement_index(Blue,Green,Red,Near):
     -----
     Based on the bands of Sentinel-2:
     
-    .. math:: \text{SEI}=\frac{(B_{1}+B_{9})-(B_{3}+B_{8})}{(B_{1}+B_{9})+(B_{3}+B_{8})} 
+    .. math:: SEI = ((B_{1}+B_{9})-(B_{3}+B_{8}))/((B_{1}+B_{9})+(B_{3}+B_{8})) 
     
     [1] Sun et al. "Combinational shadow index for building shadow extraction 
     in urban areas from Sentinel-2A MSI imagery" International journal of 

@@ -1,4 +1,7 @@
+import glob
 import os
+from xml.etree import ElementTree
+
 import numpy as np
 
 import geopandas
@@ -37,16 +40,44 @@ def get_S2_image_locations(fname):
     The Sentinel-2 imagery are placed within a folder structure, where one 
     folder has an ever changing name, when this function finds the path from
     the meta data
+
+    Parameters
+    ----------
+    fname : string
+        path string to the Sentinel-2 folder
+
+    Returns
+    -------
+    im_paths : list, size=(13,)
+        lists with relative folder and file locations of the bands
+    datastrip_id : str
+        folder name of the metadata
+        
+    Example
+    -------
+    >>> import os
+    >>> fpath = '/Users/Data/'
+    >>> sname = 'S2A_MSIL1C_20200923T163311_N0209_R140_T15MXV_20200923T200821.SAFE'
+    >>> fname = 'MTD_MSIL1C.xml'
+    >>> full_path = os.path.join(fpath, sname, fname)
+    >>> im_paths,datastrip_id = get_S2_image_locations(full_path)
+    >>> im_paths
+    ['GRANULE/L1C_T15MXV_A027450_20200923T163313/IMG_DATA/T15MXV_20200923T163311_B01', 
+     'GRANULE/L1C_T15MXV_A027450_20200923T163313/IMG_DATA/T15MXV_20200923T163311_B02']   
+    >>> datastrip_id
+    'S2A_OPER_MSI_L1C_DS_VGS1_20200923T200821_S20200923T163313_N02.09'
     """
     dom = ElementTree.parse(glob.glob(fname)[0])
     root = dom.getroot()
     granule_list = root[0][0][11][0][0]
+    datastrip_id = granule_list.get('datastripIdentifier')
     
     im_paths = []
     for im_loc in root.iter('IMAGE_FILE'):
         im_paths.append(im_loc.text)
     #    print(im_loc.text)
-    return im_paths
+    
+    return im_paths, datastrip_id
 
 def meta_S2string(S2str):  # generic
     """

@@ -26,11 +26,21 @@ def perdecomp(img):
         periodic component
     cor : np.array, size=(m,n)
         smooth component   
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> im1,_,_,_,_ = create_sample_image_pair(d=2**7, max_range=1)
+    >>> per,cor = perdecomp(im1)
+    
+    >>> spec1 = np.fft.fft2(per)
     
     Notes
     -----    
-    [1] Moisan, L. "Periodic plus smooth image decomposition", Journal of 
-    mathematical imaging and vision vol. 39.2 pp. 161-179, 2011.    
+    .. [1] Moisan, L. "Periodic plus smooth image decomposition", Journal of 
+       mathematical imaging and vision vol. 39.2 pp. 161-179, 2011.    
     """
     img = img.astype(float)
     if img.ndim==2:
@@ -69,6 +79,29 @@ def perdecomp(img):
     return (per, cor)    
 
 def normalize_power_spectrum(Q):
+    """transform spectrum to complex vectors with unit length 
+       
+    Parameters
+    ----------    
+    Q : np.array, size=(m,n), dtype=complex
+        cross-spectrum
+    
+    Returns
+    -------
+    Qn : np.array, size=(m,n), dtype=complex
+        normalized cross-spectrum, that is elements with unit length 
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> im1,im2,_,_,_ = create_sample_image_pair(d=2**4, max_range=1)
+    >>> spec1,spec2 = np.fft.fft2(im1), np.fft.fft2(im2)
+    >>> Q = spec1 * np.conjugate(spec2) # fourier based image matching
+    >>> Qn = normalize_spectrum(Q)
+  
+    """    
     Qn = np.divide(Q, abs(Q), out=np.zeros_like(Q), where=Q!=0)
     return Qn
 
@@ -102,16 +135,30 @@ def raised_cosine(I, beta=0.35):
     See Also
     --------
     tpss   
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> im1,im2,_,_,_ = create_sample_image_pair(d=2**4, max_range=1)
+    >>> spec1,spec2 = np.fft.fft2(im1), np.fft.fft2(im2)
+    
+    >>> rc1 = raised_cosine(spec1, beta=0.35)
+    >>> rc2 = raised_cosine(spec2, beta=0.50)
+    
+    >>> Q = (rc1*spec1) * np.conjugate((rc2*spec2)) # Fourier based image matching
+    >>> Qn = normalize_spectrum(Q)
     
     Notes
     -----    
-    [1] Stone et al. "A fast direct Fourier-based algorithm for subpixel 
-    registration of images." IEEE Transactions on geoscience and remote sensing 
-    vol. 39(10) pp. 2235-2243, 2001.
-    [2] Leprince, et.al. "Automatic and precise orthorectification, 
-    coregistration, and subpixel correlation of satellite images, application 
-    to ground deformation measurements", IEEE Transactions on Geoscience and 
-    Remote Sensing vol. 45.6 pp. 1529-1558, 2007.    
+    .. [1] Stone et al. "A fast direct Fourier-based algorithm for subpixel 
+       registration of images." IEEE Transactions on geoscience and remote 
+       sensing. vol. 39(10) pp. 2235-2243, 2001.
+    .. [2] Leprince, et.al. "Automatic and precise orthorectification, 
+       coregistration, and subpixel correlation of satellite images, 
+       application to ground deformation measurements", IEEE Transactions on 
+       geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.    
     """
     
     (m, n) = I.shape
@@ -478,13 +525,13 @@ def thresh_masking(S, m=1e-4, s=10):
     
     Notes
     ----- 
-    [1] Stone et al. "A fast direct Fourier-based algorithm for subpixel 
-    registration of images." IEEE Transactions on geoscience and remote sensing 
-    vol. 39(10) pp. 2235-2243, 2001.
-    [2] Leprince, et.al. "Automatic and precise orthorectification, 
-    coregistration, and subpixel correlation of satellite images, application 
-    to ground deformation measurements", IEEE Transactions on Geoscience and 
-    Remote Sensing vol. 45.6 pp. 1529-1558, 2007.    
+    .. [1] Stone et al. "A fast direct Fourier-based algorithm for subpixel 
+        registration of images." IEEE Transactions on geoscience and remote 
+        sensing vol. 39(10) pp. 2235-2243, 2001.
+    .. [2] Leprince, et.al. "Automatic and precise orthorectification, 
+        coregistration, and subpixel correlation of satellite images, 
+        application to ground deformation measurements", IEEE Transactions on 
+        geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.    
     """    
     Sbar = np.abs(S)
     th = np.max(Sbar)*m
@@ -515,10 +562,10 @@ def adaptive_masking(S, m=.9):
     
     Notes
     ----- 
-    [1] Leprince, et.al. "Automatic and precise orthorectification, 
-    coregistration, and subpixel correlation of satellite images, application 
-    to ground deformation measurements", IEEE Transactions on Geoscience and 
-    Remote Sensing vol. 45.6 pp. 1529-1558, 2007.    
+    .. [1] Leprince, et.al. "Automatic and precise orthorectification, 
+        coregistration, and subpixel correlation of satellite images, 
+        application to ground deformation measurements", IEEE Transactions on 
+        geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.    
     """    
     LS = np.log10(np.abs(S))
     LS[np.isinf(LS)] = np.nan
@@ -534,8 +581,8 @@ def local_coherence(Q, ds=1):
     Parameters
     ----------    
     Q : np.array, size=(m,n), dtype=complex
-        array with cross-spectrum
-    ds : integer, default=10
+        array with cross-spectrum, with centered coordinate frame
+    ds : integer, default=1
         kernel radius to describe the neighborhood
         
     Returns
@@ -546,7 +593,24 @@ def local_coherence(Q, ds=1):
     See Also
     --------
     thresh_masking   
-      
+    
+    Example
+    -------
+    >>> import numpy as np
+    >>> import matplotlib.pyplot as plt
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> # create cross-spectrum with random displacement
+    >>> im1,im2,_,_,_ = create_sample_image_pair(d=2**4, max_range=1)
+    >>> spec1,spec2 = np.fft.fft2(im1), np.fft.fft2(im2)
+    >>> Q = spec1 * np.conjugate(spec2)
+    >>> Q = normalize_spectrum(Q)
+    >>> Q = np.fft.fftshift(Q) # transform to centered grid
+
+    >>> C = local_coherence(Q)
+    
+    >>> plt.imshow(C), cmap='OrRd'), plt.colorbar(), plt.show()
+    >>> plt.imshow(Q), cmap='twilight'), plt.colorbar(), plt.show()
     """
     diam = 2*ds+1
     C = np.zeros_like(Q)
@@ -580,11 +644,24 @@ def gaussian_mask(S):
     See Also
     --------
     tpss   
+
+    Example
+    --------
+    >>> import numpy as np
+    >>> from ..generic.test_tools import create_sample_image_pair
     
+    >>> im1,im2,_,_,_ = create_sample_image_pair(d=2**4, max_range=1)
+    >>> spec1,spec2 = np.fft.fft2(im1), np.fft.fft2(im2)      
+    >>> Q = spec1 * np.conjugate(spec2) # Fourier based image matching
+    >>> Qn = normalize_spectrum(Q)
+
+    >>> W = gaussian_mask(Q)
+    >>> C = np.fft.ifft2(W*Q)
+   
     Notes
     ----- 
-    [1] Eckstein et al. "Phase correlation processing for DPIV measurements",
-    Experiments in fluids, vol.45 pp.485-500, 2008.
+    .. [1] Eckstein et al. "Phase correlation processing for DPIV 
+       measurements", Experiments in fluids, vol.45 pp.485-500, 2008.
     """
     (m,n) = S.shape
     Fx,Fy = make_fourier_grid(S)

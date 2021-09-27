@@ -20,10 +20,11 @@ def castOrientation(I, Az):  # generic
     """
     #
     #  coordinate frame:
+    #        ^ y, North    
     #        |  
-    #   - <--|--> +
+    #   - <--|--> + Azimuth angle
     #        |
-    #        o_____
+    #        o------> x, East
     kernel = get_grad_filters(ftype='kroon', size=3, order=1)
 
     Idx = ndimage.convolve(I, np.flip(kernel, axis=1))  # steerable filters

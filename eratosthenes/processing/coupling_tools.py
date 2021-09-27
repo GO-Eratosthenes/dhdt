@@ -14,17 +14,22 @@ from ..generic.mapping_tools import map2pix, pix2map, rotMat, \
 from ..generic.mapping_io import read_geo_image
 from ..generic.handler_im import bilinear_interpolation
 
-from ..preprocessing.read_s2 import read_sun_angles_s2
+from ..preprocessing.read_sentinel2 import read_sun_angles_s2
 
-from .matching_tools import \
-    affine_optical_flow, simple_optical_flow, \
-    normalized_cross_corr, sum_sq_diff, cumulative_cross_corr, \
-    perdecomp, \
+from .matching_tools_frequency_filters import \
+    perdecomp
+from .matching_tools_frequency_correlators import \
     cosi_corr, phase_only_corr, symmetric_phase_corr, amplitude_comp_corr, \
     orientation_corr, phase_corr, cross_corr, masked_cosine_corr, \
-    tpss, hoge, \
-    get_top_gaussian, get_top_parabolic, get_top_weighted, \
-    binary_orientation_corr, masked_corr, \
+    binary_orientation_corr, masked_corr
+from .matching_tools_frequency_subpixel import \
+    phase_tpss, phase_svd
+from .matching_tools_spatial_correlators import \
+    affine_optical_flow, simple_optical_flow, \
+    normalized_cross_corr, sum_sq_diff, cumulative_cross_corr
+from .matching_tools_spatial_subpixel import \
+    get_top_gaussian, get_top_parabolic, get_top_moment
+from .matching_tools_binairy_boundaries import \
     beam_angle_statistics, cast_angle_neighbours, neighbouring_cast_distances
 
 def make_time_pairing(acq_time, 
@@ -649,18 +654,18 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
             if subpix in ['tpss']:
                 if 'W' not in locals():
                     breakpoint()
-                (m,snr) = tpss(Q, W, m0)
+                (m,snr) = phase_tpss(Q, W, m0)
                 ddi, ddj = m[0], m[1]
             elif subpix in ['svd']:
                 if 'W' not in locals():
                     breakpoint()
-                (ddi,ddj) = hoge(Q, W)
+                (ddi,ddj) = phase_svd(Q, W)
             elif subpix in ['gauss_1']:
                 (ddi, ddj) = get_top_gaussian(C, top=m0)
             elif subpix in ['parab_1']:
                 (ddi, ddj) = get_top_parabolic(C, top=m0)    
             elif subpix in ['weighted']:
-                (ddi, ddj) = get_top_weighted(C, ds=1, top=m0)   
+                (ddi, ddj) = get_top_moment(C, ds=1, top=m0)   
             elif subpix in ['optical_flow']:
                 max_score = np.amax(C)
                 snr = max_score/np.mean(C)
@@ -753,25 +758,55 @@ def get_stack_out_of_dir(im_dir,boi,bbox):
     return M, geoTransform
 
 def create_template(I,i,j,radius):
+    """ get sub template of data array, at a certain location
+
+    Parameters
+    ----------
+    I : np.array, size=(m,n) or (m,n,b)
+        data array
+    i : integer
+        vertical coordinate of the template center
+    j : integer
+        horizontal coordinate of the template center
+    radius : integer
+        radius of the template
+
+    Returns
+    -------
+    I_sub : np.array, size=(m,n) or (m,n,b)
+        template of data array
+
+    """          
     if I.ndim==3:
-        I_sub = I[i-radius : i+radius, j-radius:j+radius, :]
+        I_sub = I[i-radius:i+radius+1, j-radius:j+radius+1, :]
     else:                        
-        I_sub = I[i-radius : i+radius, j-radius:j+radius]
+        I_sub = I[i-radius:i+radius+1, j-radius:j+radius+1]
     return I_sub
 
 def pad_radius(I, radius):
-    '''
-    add extra boundary to array, so templates can be extraxted 
-    '''
+    """ add extra boundary to array, so templates can be easier extracted    
+
+    Parameters
+    ----------
+    I : np.array, size=(m,n) or (m,n,b)
+        data array
+    radius : positive integer
+        extra boundary to be added to the data array
+
+    Returns
+    -------
+    I_xtra : np.array, size=(m+2*radius,n+2*radius)
+        extended data array
+    """
     if I.ndim==3:
-        I = np.pad(I, \
-                   ((radius,radius), (radius,radius), (0,0)), \
-                   'constant', constant_values=0)
+        I_xtra = np.pad(I, \
+                        ((radius,radius), (radius,radius), (0,0)), \
+                        'constant', constant_values=0)
     else:
-        I = np.pad(I, \
-            ((radius,radius), (radius,radius)), \
-            'constant', constant_values=0)
-    return I
+        I_xtra = np.pad(I, \
+                        ((radius,radius), (radius,radius)), \
+                        'constant', constant_values=0)
+    return I_xtra
 
 # simple image matching
 def match_pair(I1, I2, M1, M2, geoTransform1, geoTransform2, \
@@ -946,18 +981,18 @@ def match_pair(I1, I2, M1, M2, geoTransform1, geoTransform2, \
             if subpix in ['tpss']:
                 if 'W' not in locals():
                     breakpoint()
-                (m,snr) = tpss(Q, W, m0)
+                (m,snr) = phase_tpss(Q, W, m0)
                 ddi, ddj = m[0], m[1]
             elif subpix in ['svd']:
                 if 'W' not in locals():
                     breakpoint()
-                (ddi,ddj) = hoge(Q, W)
+                (ddi,ddj) = phase_svd(Q, W)
             elif subpix in ['gauss_1']:
                 (ddi, ddj) = get_top_gaussian(C, top=m0)
             elif subpix in ['parab_1']:
                 (ddi, ddj) = get_top_parabolic(C, top=m0)    
             elif subpix in ['weighted']:
-                (ddi, ddj) = get_top_weighted(C, ds=1, top=m0)   
+                (ddi, ddj) = get_top_moment(C, ds=1, top=m0)   
             elif subpix in ['optical_flow']:
                 max_score = np.amax(C)
                 snr = max_score/np.mean(C)
@@ -1035,8 +1070,23 @@ def angles2unit(azimuth):
     return xy
     
 def get_intersection(xy_1, xy_2, xy_3, xy_4):
-    """
-    given two points per line, estimate the intersection
+    """ given two points per line, estimate the intersection   
+
+    Parameters
+    ----------
+    xy_1 : np.array, size=(m,2)
+        array with 2D coordinate of start from the first line.
+    xy_2 : np.array, size=(m,2)
+        array with 2D coordinate of end from the first line.
+    xy_3 : np.array, size=(m,2)
+        array with 2D coordinate of start from the second line.
+    xy_4 : np.array, size=(m,2)
+        array with 2D coordinate of end from the second line.
+
+    Returns
+    -------
+    xy : np.array, size=(m,2)
+        array with 2D coordinate of intesection
     """
     
     x_1 = xy_1[:,0]

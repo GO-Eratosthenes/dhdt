@@ -20,6 +20,17 @@ def get_integer_peak_location(C):
         signal to noise ratio
     max_corr : float
         value of highest point in the array
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from .matching_tools import get_integer_peak_location
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
+    >>> Q = phase_corr(im1, im2)
+    >>> C = np.fft.ifft2(Q)
+    >>> di,dj,_,_ = get_integer_peak_location(C)
     """
     max_corr = np.amax(C)
     snr = max_corr/np.mean(C)

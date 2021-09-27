@@ -1,5 +1,3 @@
-import math
-
 import numpy as np
 
 def make_2D_Gaussian(size, fwhm=3):

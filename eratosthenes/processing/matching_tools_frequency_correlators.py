@@ -144,7 +144,7 @@ def cosine_corr(I1, I2): # wip
         
     Returns
     -------
-    Q : np.array, size=(m,n)
+    Q : np.array, size=(m,n), dtype=complex
         cross-spectrum
     
     See Also
@@ -263,20 +263,34 @@ def phase_only_corr(I1, I2):
         
     Returns
     -------
-    Q : np.array, size=(m,n)
+    Q : np.array, size=(m,n), dtype=complex
         cross-spectrum
     
     See Also
     --------
     phase_corr, symmetric_phase_corr, amplitude_comp_corr   
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from .matching_tools import get_integer_peak_location
+    
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
+    >>> Q = phase_only_corr(im1, im2)
+    >>> C = np.fft.ifft2(Q)
+    >>> di,dj,_,_ = get_integer_peak_location(C)
+    
+    >>> assert(np.isclose(ti, di, atol=1))
+    >>> assert(np.isclose(ti, di, atol=1))
     
     Notes
     ----- 
-    [1] Horner & Gianino, "Phase-only matched filtering", Applied optics, 
-    vol. 23(6) pp.812--816, 1984.
-    [2] Kumar & Juday, "Design of phase-only, binary phase-only, and complex 
-    ternary matched filters with increased signal-to-noise ratios for 
-    colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
+    .. [1] Horner & Gianino, "Phase-only matched filtering", Applied optics, 
+       vol. 23(6) pp.812--816, 1984.
+    .. [2] Kumar & Juday, "Design of phase-only, binary phase-only, and complex 
+       ternary matched filters with increased signal-to-noise ratios for 
+       colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
     """  
     if I1.ndim==3: # multi-spectral frequency stacking
         bands = I1.shape[2]
@@ -372,15 +386,30 @@ def symmetric_phase_corr(I1, I2):
     
     Returns
     -------
-    Q : np.array, size=(m,n)
+    Q : np.array, size=(m,n), dtype=complex
         cross-spectrum
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from .matching_tools import get_integer_peak_location
+    
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
+    >>> Q = symmetric_phase_corr(im1, im2)
+    >>> C = np.fft.ifft2(Q)
+    >>> di,dj,_,_ = get_integer_peak_location(C)
+    
+    >>> assert(np.isclose(ti, di, atol=1))
+    >>> assert(np.isclose(ti, di, atol=1))
     
     Notes
     -----    
-    [1] Nikias & Petropoulou. "Higher order spectral analysis: a nonlinear 
-    signal processing framework", Prentice hall. pp.313-322, 1993.
-    [2] Wernet. "Symmetric phase only filtering: a new paradigm for DPIV data 
-    processing", Measurement science and technology, vol.16 pp.601-618, 2005.
+    .. [1] Nikias & Petropoulou. "Higher order spectral analysis: a nonlinear 
+       signal processing framework", Prentice hall. pp.313-322, 1993.
+    .. [2] Wernet. "Symmetric phase only filtering: a new paradigm for DPIV 
+       data processing", Measurement science and technology, vol.16 pp.601-618, 
+       2005.
     """
     if I1.ndim==3: # multi-spectral frequency stacking
         bands = I1.shape[2]
@@ -423,13 +452,27 @@ def amplitude_comp_corr(I1, I2, F_0=0.04):
     
     Returns
     -------
-    Q : np.array, size=(m,n)
+    Q : np.array, size=(m,n), dtype=complex
         cross-spectrum
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from .matching_tools import get_integer_peak_location
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
+    >>> Q = amplitude_comp_corr(im1, im2)
+    >>> C = np.fft.ifft2(Q)
+    >>> di,dj,_,_ = get_integer_peak_location(C)
+    
+    >>> assert(np.isclose(ti, di, atol=1))
+    >>> assert(np.isclose(ti, di, atol=1))
     
     Notes
     -----    
-    [1] Mu et al. "Amplitude-compensated matched filtering", Applied optics, 
-    vol. 27(16) pp. 3461-3463, 1988.
+    .. [1] Mu et al. "Amplitude-compensated matched filtering", Applied optics, 
+       vol. 27(16) pp. 3461-3463, 1988.
     """
     if I1.ndim==3: # multi-spectral frequency stacking
         bands = I1.shape[2]
@@ -475,15 +518,29 @@ def robust_corr(I1, I2):
     
     Returns
     -------
-    Q : np.array, size=(m,n)
+    Q : np.array, size=(m,n), dtype=complex
         cross-spectrum
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from .matching_tools import get_integer_peak_location
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
+    >>> Q = robust_corr(im1, im2)
+    >>> C = np.fft.ifft2(Q)
+    >>> di,dj,_,_ = get_integer_peak_location(C)
+    
+    >>> assert(np.isclose(ti, di, atol=1))
+    >>> assert(np.isclose(ti, di, atol=1))
     
     Notes
     -----    
-    [1] Fitch et al. "Fast robust correlation", IEEE transactions on image 
-    processing vol. 14(8) pp. 1063-1073, 2005.
-    [2] Essannouni et al. "Adjustable SAD matching algorithm using frequency 
-    domain" Journal of real-time image processing, vol.1 pp.257-265
+    .. [1] Fitch et al. "Fast robust correlation", IEEE transactions on image 
+       processing vol. 14(8) pp. 1063-1073, 2005.
+    .. [2] Essannouni et al. "Adjustable SAD matching algorithm using frequency 
+       domain" Journal of real-time image processing, vol.1 pp.257-265
     """
     I1sub,I2sub = make_templates_same_size(I1,I2)
     
@@ -511,20 +568,34 @@ def orientation_corr(I1, I2):
         
     Returns
     -------
-    Q : np.array, size=(m,n)
+    Q : np.array, size=(m,n), dtype=complex
         cross-spectrum
     
     See Also
     --------
     phase_corr, windrose_corr   
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from .matching_tools import get_integer_peak_location
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
+    >>> Q = orientation_corr(im1, im2)
+    >>> C = np.fft.ifft2(Q)
+    >>> di,dj,_,_ = get_integer_peak_location(C)
+    
+    >>> assert(np.isclose(ti, di, atol=1))
+    >>> assert(np.isclose(ti, di, atol=1))
     
     Notes
     ----- 
-    [1] Fitch et al. "Orientation correlation", Proceeding of the Britisch 
-    machine vison conference, pp. 1--10, 2002.
-    [2] Heid & Kääb. "Evaluation of existing image matching methods for 
-    deriving glacier surface displacements globally from optical satellite 
-    imagery", Remote sensing of environment, vol. 118 pp. 339-355, 2012.
+    .. [1] Fitch et al. "Orientation correlation", Proceeding of the Britisch 
+       machine vison conference, pp. 1--10, 2002.
+    .. [2] Heid & Kääb. "Evaluation of existing image matching methods for 
+       deriving glacier surface displacements globally from optical satellite 
+       imagery", Remote sensing of environment, vol. 118 pp. 339-355, 2012.
     """     
     if I1.ndim==3: # multi-spectral frequency stacking
         bands = I1.shape[2]
@@ -563,18 +634,32 @@ def windrose_corr(I1, I2):
         
     Returns
     -------
-    Q : np.array, size=(m,n)
+    Q : np.array, size=(m,n), dtype=complex
         cross-spectrum
     
     See Also
     --------
     orientation_corr, phase_only_corr   
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from .matching_tools import get_integer_peak_location
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
+    >>> Q = windrose_corr(im1, im2)
+    >>> C = np.fft.ifft2(Q)
+    >>> di,dj,_,_ = get_integer_peak_location(C)
+    
+    >>> assert(np.isclose(ti, di, atol=1))
+    >>> assert(np.isclose(ti, di, atol=1))
     
     Notes
     -----    
-    [1] Kumar & Juday, "Design of phase-only, binary phase-only, and complex 
-    ternary matched filters with increased signal-to-noise ratios for 
-    colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
+    .. [1] Kumar & Juday, "Design of phase-only, binary phase-only, and complex 
+       ternary matched filters with increased signal-to-noise ratios for 
+       colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
     """ 
     if I1.ndim==3: # multi-spectral frequency stacking
         bands = I1.shape[2]
@@ -610,18 +695,32 @@ def phase_corr(I1, I2):
         
     Returns
     -------
-    Q : np.array, size=(m,n)
+    Q : np.array, size=(m,n), dtype=complex
         cross-spectrum
     
     See Also
     --------
     orientation_corr, cross_corr   
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from .matching_tools import get_integer_peak_location
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
+    >>> Q = phase_corr(im1, im2)
+    >>> C = np.fft.ifft2(Q)
+    >>> di,dj,_,_ = get_integer_peak_location(C)
+    
+    >>> assert(np.isclose(ti, di, atol=1))
+    >>> assert(np.isclose(ti, di, atol=1))
     
     Notes
     -----    
-    [1] Kuglin & Hines. "The phase correlation image alignment method",
-    proceedings of the IEEE international conference on cybernetics and 
-    society, pp. 163-165, 1975.
+    .. [1] Kuglin & Hines. "The phase correlation image alignment method",
+       proceedings of the IEEE international conference on cybernetics and 
+       society, pp. 163-165, 1975.
     """
     if I1.ndim==3: # multi-spectral frequency stacking
         bands = I1.shape[2]
@@ -660,17 +759,31 @@ def gaussian_transformed_phase_corr(I1, I2):
         
     Returns
     -------
-    Q : np.array, size=(m,n)
+    Q : np.array, size=(m,n), dtype=complex
         cross-spectrum
     
     See Also
     --------
     phase_corr 
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from .matching_tools import get_integer_peak_location
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
+    >>> Q = gaussian_transformed_phase_corr(im1, im2)
+    >>> C = np.fft.ifft2(Q)
+    >>> di,dj,_,_ = get_integer_peak_location(C)
+    
+    >>> assert(np.isclose(ti, di, atol=1))
+    >>> assert(np.isclose(ti, di, atol=1))
     
     Notes
     -----    
-    [1] Eckstein et al. "Phase correlation processing for DPIV measurements",
-    Experiments in fluids, vol.45 pp.485-500, 2008.
+    .. [1] Eckstein et al. "Phase correlation processing for DPIV 
+       measurements", Experiments in fluids, vol.45 pp.485-500, 2008.
     """
     if I1.ndim==3: # multi-spectral frequency stacking
         bands = I1.shape[2]
@@ -721,11 +834,23 @@ def upsampled_cross_corr(S1, S2, upsampling=2):
     See Also
     --------
     pad_dft, upsample_dft 
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from .matching_tools import get_integer_peak_location
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
+    >>> di,dj = upsampled_cross_corr(im1, im2)
+    
+    >>> assert(np.isclose(ti, di, atol=1))
+    >>> assert(np.isclose(ti, di, atol=1))
     
     Notes
     ----- 
-    [1] Guizar-Sicairo, et al. "Efficient subpixel image registration 
-    algorithms", Applied optics, vol. 33 pp.156--158, 2008.
+    .. [1] Guizar-Sicairo, et al. "Efficient subpixel image registration 
+       algorithms", Applied optics, vol. 33 pp.156--158, 2008.
     """  
     (m,n) = S1.shape
     S1,S2 = pad_dft(S1, 2*m, 2*n), pad_dft(S2, 2*m, 2*n)
@@ -775,18 +900,32 @@ def cross_corr(I1, I2):
         
     Returns
     -------
-    Q : np.array, size=(m,n)
+    Q : np.array, size=(m,n), dtype=complex
         cross-spectrum
     
     See Also
     --------
     phase_corr  
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from .matching_tools import get_integer_peak_location
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
+    >>> Q = cross_corr(im1, im2)
+    >>> C = np.fft.ifft2(Q)
+    >>> di,dj,_,_ = get_integer_peak_location(C)
+    
+    >>> assert(np.isclose(ti, di, atol=1))
+    >>> assert(np.isclose(ti, di, atol=1))
     
     Notes
     ----- 
-    [1] Heid & Kääb. "Evaluation of existing image matching methods for 
-    deriving glacier surface displacements globally from optical satellite 
-    imagery", Remote sensing of environment, vol. 118 pp. 339-355, 2012.
+    .. [1] Heid & Kääb. "Evaluation of existing image matching methods for 
+       deriving glacier surface displacements globally from optical satellite 
+       imagery", Remote sensing of environment, vol. 118 pp. 339-355, 2012.
     """ 
     if I1.ndim==3: # multi-spectral frequency stacking
         bands = I1.shape[2]
@@ -822,18 +961,32 @@ def binary_orientation_corr(I1, I2):
         
     Returns
     -------
-    Q : np.array, size=(m,n)
+    Q : np.array, size=(m,n), dtype=complex
         cross-spectrum
     
     See Also
     --------
     orientation_corr, phase_only_corr   
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from .matching_tools import get_integer_peak_location
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
+    >>> Q = binary_orientation_corr(im1, im2)
+    >>> C = np.fft.ifft2(Q)
+    >>> di,dj,_,_ = get_integer_peak_location(C)
+    
+    >>> assert(np.isclose(ti, di, atol=1))
+    >>> assert(np.isclose(ti, di, atol=1))
     
     Notes
     -----    
-    [1] Kumar & Juday, "Design of phase-only, binary phase-only, and complex 
-    ternary matched filters with increased signal-to-noise ratios for 
-    colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
+    .. [1] Kumar & Juday, "Design of phase-only, binary phase-only, and complex 
+       ternary matched filters with increased signal-to-noise ratios for 
+       colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
     """ 
     if I1.ndim==3: # multi-spectral frequency stacking
         bands = I1.shape[2]
@@ -873,15 +1026,31 @@ def masked_corr(I1, I2, M1, M2):
         array with mask
     M2 : np.array, size=(m,n)
         array with mask        
+
     Returns
     -------
     NCC : np.array, size=(m,n)
         correlation surface
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from .matching_tools import get_integer_peak_location
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
+    >>> msk1,msk2 = np.ones_like(im1), np.ones_like(im2)
+    >>> Q = masked_corr(im1, im2, msk1, msk2)
+    >>> C = np.fft.ifft2(Q)
+    >>> di,dj,_,_ = get_integer_peak_location(C)
+    
+    >>> assert(np.isclose(ti, di, atol=1))
+    >>> assert(np.isclose(ti, di, atol=1))
     
     Notes
     -----    
-    [1] Padfield. "Masked object registration in the Fourier domain", 
-    IEEE transactions on image processing, vol. 21(5) pp. 2706-2718, 2011.
+    .. [1] Padfield. "Masked object registration in the Fourier domain", 
+       IEEE transactions on image processing, vol. 21(5) pp. 2706-2718, 2011.
     """
     I1sub,I2sub = make_templates_same_size(I1,I2)
     M1sub,M2sub = make_templates_same_size(M1,M2)
