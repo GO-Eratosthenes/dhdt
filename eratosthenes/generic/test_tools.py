@@ -69,7 +69,7 @@ def construct_correlation_peak(I, di, dj, fwhm=3.):
     C = np.exp(-4*np.log(2) * (I_grd**2 + J_grd**2) / fwhm**2)
     return C
 
-def construct_phase_plane(I, di, dj):
+def construct_phase_plane(I, di, dj, indexing='ij'):
     """given a displacement, create what its phase plane in Fourier space 
     
     Parameters
@@ -80,25 +80,69 @@ def construct_phase_plane(I, di, dj):
         displacment along the vertical axis
     dj : float
         displacment along the horizantal axis
-        
+    indexing : {‘xy’, ‘ij’}
+        using map (‘xy’) or image (‘ij’, default) indexing
+
     Returns
     -------
     Q : np.array, size=(m,n), complex
         array with phase angles
     """
+    # indexing   |           indexing    ^ y
+    # system 'ij'|           system 'xy' |
+    #            |                       |
+    #            |       i               |       x 
+    #    --------+-------->      --------+-------->
+    #            |                       |
+    #            |                       |
+    #            | j                     |
+    #            v                       |
+    
     (m,n) = I.shape
     
     (I_grd,J_grd) = np.meshgrid(np.arange(0,n)-(n//2), 
                                 np.arange(0,m)-(m//2), \
                                 indexing='ij')
-    I_grd,J_grd = I_grd/n, J_grd/m
+    I_grd,J_grd = I_grd/m, J_grd/n
         
-    Q_unwrap = ((I_grd*di) + (J_grd*dj) )*2*-np.pi   
-    
-    Q = 1j*np.sin(Q_unwrap)
-    Q += np.cos(Q_unwrap)
+    Q_unwrap = ((I_grd*di) + (J_grd*dj) ) * (2*np.pi)   # in radians
+    Q = np.cos(-Q_unwrap) + 1j*np.sin(-Q_unwrap)
     
     Q = np.fft.fftshift(Q)
+    return Q
+
+def construct_phase_values(IJ, di, dj, indexing='ij', system='radians'):
+    """given a displacement, create what its phase plane in Fourier space 
+    
+    Parameters
+    ----------    
+    IJ : np.array, size=(_,2), dtype=float
+        locations of phase values
+    di : float
+        displacment along the vertical axis
+    dj : float
+        displacment along the horizantal axis
+    indexing : {‘xy’, ‘ij’}
+        using map (‘xy’) or image (‘ij’, default) indexing
+    system : {‘radians’, ‘unit’, 'normalized'}
+        the extent of the cross-spectrum can span from -pi..+pi (‘radians’, 
+        default) or -1...+1 (‘unit’) or -0.5...+0.5 ('normalized')
+        
+    Returns
+    -------
+    Q : np.array, size=(_,1), complex
+        array with phase angles
+    """  
+    
+    if system=='radians': # -pi ... +pi
+        scaling = 1
+    elif system=='unit': # -1 ... +1
+        scaling = np.pi
+    else: # normalized -0.5 ... +0.5
+        scaling = 2*np.pi
+    
+    Q_unwrap = ((IJ[:,0]*di) + (IJ[:,1]*dj) )*scaling 
+    Q = np.cos(-Q_unwrap) + 1j*np.sin(-Q_unwrap)
     return Q
 
 def signal_to_noise(Q,C,norm=2):

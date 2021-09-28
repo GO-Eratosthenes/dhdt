@@ -21,3 +21,47 @@ def gradient_descent(A, y, params, learning_rate=0.01, n_iters=100):
     if history[0]<history[-1]:
         print('no convergence')
     return params, history
+
+def secant(A, y, J, params, n_iters=5):
+    """
+    also known as Boyden's method
+
+    Parameters
+    ----------
+    A : TYPE
+        DESCRIPTION.
+    y : TYPE
+        DESCRIPTION.
+    J : TYPE
+        DESCRIPTION.
+    params : TYPE
+        DESCRIPTION.
+    n_iters : TYPE, optional
+        DESCRIPTION. The default is 5.
+
+    Returns
+    -------
+    params : TYPE
+        DESCRIPTION.
+    history : TYPE
+        DESCRIPTION.
+
+    """
+    history = np.zeros((n_iters))
+    
+    x0 = params.copy()-.1
+    x1 = params.copy()
+    for i in range(n_iters):
+        fx0 = np.squeeze(A @ x0) - y
+        fx1 = np.squeeze(A @ x1) - y
+
+        x2 = x0 - ((x1-x0)*np.sum(fx0))/( np.sum(fx1 - fx0) )
+        
+        # update
+        x0 = x1.copy()
+        x1 = x2.copy()
+        history[i] = compute_cost(A, y, x1)
+    if history[0]<history[-1]:
+        print('no convergence')
+    return params, history    
+    

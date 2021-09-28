@@ -105,16 +105,72 @@ def normalize_power_spectrum(Q):
     Qn = np.divide(Q, abs(Q), out=np.zeros_like(Q), where=Q!=0)
     return Qn
 
-def make_fourier_grid(Q):
+def make_fourier_grid(Q, indexing='ij', system='radians'):
+    """
+    The four quadrants of the coordinate system of the discrete Fourier 
+    transform are flipped. This function gives its coordinate system as it 
+    would be in a map (xy) or pixel based (ij) system.
+
+    Parameters
+    ----------
+    Q : np.array, size=(m,n), dtype=complex
+        Fourier based (cross-)spectrum.
+    indexing : {‘xy’, ‘ij’}, optional
+        map (‘xy’) or image (‘ij’, default) indexing used
+    system : {‘radians’, ‘unit’, 'normalized'}
+        the extent of the cross-spectrum can span from -pi..+pi (‘radians’, 
+        default) or -1...+1 (‘unit’) or -0.5...+0.5 ('normalized')
+    
+    Returns
+    -------
+    F_1 : np,array, size=(m,n), dtype=integer
+        first coordinate index of the Fourier spectrum in a map system.
+    F_2 : np,array, size=(m,n), dtype=integer
+        second coordinate index  of the Fourier spectrum in a map system.
+    """
+    # metric system:         Fourier-based flip
+    #        y               +------><------+
+    #        ^               |              |
+    #        |               |              |
+    #        |               v              v
+    # <------+-------> x
+    #        |               ^              ^
+    #        |               |              |
+    #        v               +------><------+
+    #
+    # coordinate |           coordinate  ^ y
+    # system 'ij'|           system 'xy' |
+    #            |                       |
+    #            |       i               |       x 
+    #    --------+-------->      --------+-------->
+    #            |                       |
+    #            |                       |
+    #            | j                     |
+    #            v                       |
+    
     (m,n) = Q.shape
-    fy = 2*np.pi*(np.arange(0,m)-(m/2)) /m
-    fx = 2*np.pi*(np.arange(0,n)-(n/2)) /n
+    if indexing=='ij':
+        (I_grd,J_grd) = np.meshgrid(np.arange(0,n)-(n//2), 
+                                    np.arange(0,m)-(m//2), \
+                                    indexing='ij')
+        F_1,F_2 = I_grd/n, J_grd/m
+    else:
+        fy = np.flip((np.arange(0,m)-(m/2)) /m)
+        fx = (np.arange(0,n)-(n/2)) /n
+            
+        F_1 = np.repeat(fx[np.newaxis,:],m,axis=0)
+        F_2 = np.repeat(fy[:,np.newaxis],n,axis=1)
+
+    if system=='radians': # what is the range of the axis
+        F_1 *= 2*np.pi
+        F_2 *= 2*np.pi
+    elif system=='unit':
+        F_1 *= 2
+        F_2 *= 2
         
-    Fx = np.repeat(fx[np.newaxis,:],m,axis=0)
-    Fy = np.repeat(fy[:,np.newaxis],n,axis=1)
-    Fx = np.fft.fftshift(Fx)
-    Fy = np.fft.fftshift(Fy)
-    return Fx, Fy
+    F_1 = np.fft.fftshift(F_1)
+    F_2 = np.fft.fftshift(F_2)
+    return F_1, F_2
     
 # frequency matching filters
 def raised_cosine(I, beta=0.35):
@@ -159,14 +215,10 @@ def raised_cosine(I, beta=0.35):
        coregistration, and subpixel correlation of satellite images, 
        application to ground deformation measurements", IEEE Transactions on 
        geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.    
-    """
-    
+    """ 
     (m, n) = I.shape
-    fy = np.mod(.5 + np.arange(0,m)/m , 1) -.5 # fft shifted coordinate frame
-    fx = np.mod(.5 + np.arange(0,n)/n , 1) -.5
-    
-    Fx = np.repeat(fx[np.newaxis,:],m,axis=0)
-    Fy = np.repeat(fy[:,np.newaxis],n,axis=1)
+   
+    Fx,Fy = make_fourier_grid(I, indexing='xy', system='normalized')
     R = np.sqrt(Fx**2 + Fy**2) # radius
     # filter formulation 
     Hamm = np.cos( (np.pi/(2*beta)) * (R - (.5-beta)))**2
@@ -304,13 +356,9 @@ def low_pass_rectancle(I, r=0.50):
     phase-only correlation" IEICE transactions on fundamentals of electronics, 
     communications and computer sciences, vol.86(8) pp.1925-1934, 2003.
     """
-    
-    (m, n) = I.shape
-    fy = 2*np.mod(.5 + np.arange(0,m)/m , 1) -1 # fft shifted coordinate frame
-    fx = 2*np.mod(.5 + np.arange(0,n)/n , 1) -1
-    
-    Fx = np.repeat(fx[np.newaxis,:],m,axis=0)
-    Fy = np.repeat(fy[:,np.newaxis],n,axis=1)
+
+    Fx,Fy = make_fourier_grid(I, indexing='xy', system='normalized')
+
     # filter formulation 
     W = np.logical_and(np.abs(Fx)<=r, np.abs(Fy)<=r) 
     return W 
@@ -399,12 +447,7 @@ def low_pass_circle(I, r=0.50):
         
     """
     
-    (m, n) = I.shape
-    fy = np.mod(.5 + np.arange(0,m)/m , 1) -.5 # fft shifted coordinate frame
-    fx = np.mod(.5 + np.arange(0,n)/n , 1) -.5
-    
-    Fx = np.repeat(fx[np.newaxis,:],m,axis=0)
-    Fy = np.repeat(fy[:,np.newaxis],n,axis=1)
+    Fx,Fy = make_fourier_grid(I, indexing='xy', system='normalized')
     R = np.sqrt(Fx**2 + Fy**2) # radius
     # filter formulation 
     W = R<=r
@@ -431,12 +474,7 @@ def high_pass_circle(I, r=0.50):
         
     """
     
-    (m, n) = I.shape
-    fy = np.mod(.5 + np.arange(0,m)/m , 1) -.5 # fft shifted coordinate frame
-    fx = np.mod(.5 + np.arange(0,n)/n , 1) -.5
-    
-    Fx = np.repeat(fx[np.newaxis,:],m,axis=0)
-    Fy = np.repeat(fy[:,np.newaxis],n,axis=1)
+    Fx,Fy = make_fourier_grid(I, indexing='xy', system='normalized')
     R = np.sqrt(Fx**2 + Fy**2) # radius
     # filter formulation 
     W = R>=r
@@ -459,12 +497,7 @@ def cosine_bell(I):
     --------
     raised_cosine     
     """
-    (m, n) = I.shape
-    fy = np.mod(.5 + np.arange(0,m)/m , 1) -.5 # fft shifted coordinate frame
-    fx = np.mod(.5 + np.arange(0,n)/n , 1) -.5
-    
-    Fx = np.repeat(fx[np.newaxis,:],m,axis=0)
-    Fy = np.repeat(fy[:,np.newaxis],n,axis=1)
+    Fx,Fy = make_fourier_grid(I, indexing='xy', system='normalized')
     R = np.sqrt(Fx**2 + Fy**2) # radius
     
     # filter formulation 
@@ -664,7 +697,7 @@ def gaussian_mask(S):
        measurements", Experiments in fluids, vol.45 pp.485-500, 2008.
     """
     (m,n) = S.shape
-    Fx,Fy = make_fourier_grid(S)
+    Fx,Fy = make_fourier_grid(S, indexing='xy', system='normalized')
     
     M = np.exp(-.5*((Fy*np.pi)/m)**2) * np.exp(-.5*((Fx*np.pi)/n)**2)
     return M

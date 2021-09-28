@@ -8,12 +8,56 @@ from skimage.transform import radon
 # from skimage.measure import ransac
 from skimage.measure.fit import _dynamic_max_trials
 
-from ..generic.test_tools import construct_phase_plane
-from ..generic.data_tools import gradient_descent
+from ..generic.test_tools import construct_phase_plane, construct_phase_values
+from ..generic.data_tools import gradient_descent, secant
 from ..preprocessing.shadow_transforms import pca
 from .matching_tools_frequency_filters import \
     raised_cosine, local_coherence, thresh_masking, normalize_power_spectrum, \
     make_fourier_grid
+
+def phase_secant(data, W=np.array([]), x_0=np.zeros((2))): # wip
+    """get phase plane of cross-spectrum through secant
+    
+    find slope of the phase plane through secant method (or Newton's method)
+    
+    Parameters
+    ----------    
+    data : np.array, size=(m,n), dtype=complex
+        normalized cross spectrum
+    or     np.array, size=(m*n,3), dtype=complex
+        coordinate list with complex cross-sprectum at last collumn
+    W : np.array, size=(m,n), dtype=boolean
+        index of data that is correct
+    or     np.array, size=(m*n,1), dtype=boolean
+        list with classification of correct data       
+
+    Returns
+    -------
+    di,dj : float     
+        sub-pixel displacement
+    
+    See Also
+    --------
+    phase_lsq   
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from ..generic.test_tools import create_sample_image_pair
+    
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
+    >>> Q = phase_corr(im1, im2)
+    >>> di,dj,_,_ = phase_secant(Q)
+
+    >>> assert(np.isclose(ti, di, atol=.2))
+    >>> assert(np.isclose(tj, dj, atol=.2))   
+       
+    """
+    data = cross_spectrum_to_coordinate_list(data, W)
+    x_hat,_ = secant(data[:,:-1], data[:,-1], x_0, \
+                     n_iters=50)
+    di,dj = x_hat[1], x_hat[0]
+    return di,dj
 
 def phase_gradient_descend(data, W=np.array([]), x_0=np.zeros((2))): # wip
     """get phase plane of cross-spectrum through principle component analysis
@@ -25,11 +69,11 @@ def phase_gradient_descend(data, W=np.array([]), x_0=np.zeros((2))): # wip
     ----------    
     data : np.array, size=(m,n), dtype=complex
         normalized cross spectrum
-    or     np.array, size=(m*n,3), dtype=complex
-        coordinate list with complex cross-sprectum at last
+    data : np.array, size=(m*n,3), dtype=complex
+        coordinate list with complex cross-sprectum at last collumn
     W : np.array, size=(m,n), dtype=boolean
         index of data that is correct
-    or     np.array, size=(m*n,1), dtype=boolean
+    W : np.array, size=(m*n,1), dtype=boolean
         list with classification of correct data       
 
     Returns
@@ -55,69 +99,72 @@ def phase_gradient_descend(data, W=np.array([]), x_0=np.zeros((2))): # wip
        
     """
     data = cross_spectrum_to_coordinate_list(data, W)
-    
-    eigen_vecs, eigen_vals = pca(data)
     x_hat,_ = gradient_descent(data[:,:-1], data[:,-1], x_0, \
                                learning_rate=1, n_iters=50)
     di,dj = x_hat[1], x_hat[0]
     return di,dj
 
-def phase_newton(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
-    (m_Q, n_Q) = Q.shape
-    Q = normalize_power_spectrum(Q)
-#    W = W/np.sum(W) # normalize weights
+def phase_jac(Q, m, W=np.array([]), \
+              F1=np.array([]), F2=np.array([]), rank=2): # wip
+    """
+    Parameters
+    ----------
+    Q : np.array, size=(_,_), dtype=complex
+        cross spectrum
+    m : np.array, size=(2,1), dtype=float
+        displacement estimate,  in pixel coordinate system
+    W : np.array, size=(m,n), dtype=float | boolean
+        weigthing matrix, in a range of 0...1
+    F1 : np,array, size=(m,n), dtype=integer
+        coordinate of the first axis from the Fourier spectrum.
+    F2 : np,array, size=(m,n), dtype=integer
+        coordinate of the second axis from the Fourier spectrum
+    rank : TYPE, optional
+        DESCRIPTION. The default is 2.
+
+    Returns
+    -------
+    dQdm : np.array, size=(m,n)
+        Jacobian of phase estimate
+    """
+    # metric system:      Fourier-based flip
+    #        y            +------><------+
+    #        ^            |              |
+    #        |            |              |
+    #        |            v              v
+    # <------+-------> x
+    #        |            ^              ^
+    #        |            |              |
+    #        v            +------><------+
+    #
+    # indexing   |           indexing    ^ y
+    # system 'ij'|           system 'xy' |
+    #            |                       |
+    #            |       i               |       x 
+    #    --------+-------->      --------+-------->
+    #            |                       |
+    #            |                       |
+    #            | j                     |
+    #            v                       |
+
+    if W.size==0:
+        W = np.ones(Q.shape[0], Q.shape[1])
+    if F1.size==0:
+        F1,F2 = make_fourier_grid(Q, indexing='ij')   
     
-    fy = 2*np.pi*(np.arange(0,m_Q)-(m_Q/2)) /m_Q
-    fx = 2*np.pi*(np.arange(0,n_Q)-(n_Q/2)) /n_Q
+    C_hat = construct_phase_plane(Q, m[0], m[1], indexing='ij')
+    QC = Q-C_hat # convert complex vector difference to metric
+
+    if rank==2:
+        dXY = np.multiply(W, QC*np.conjugate(QC))
+        # or written out fully:
+        #dXY = np.multiply
+    else:
+        dXY = np.abs(np.multiply(W, QC)**rank)
         
-    Fx = np.repeat(fx[np.newaxis,:],m_Q,axis=0)
-    Fy = np.repeat(fy[:,np.newaxis],n_Q,axis=1)
-    Fx = np.fft.fftshift(Fx)
-    Fy = np.fft.fftshift(Fy)
-
-    #g_min = np.array([0, 0])
-    print(m)
-    for i in range(l):
-        k = 1
-        while True:            
-            C = 1j*-np.sin(Fx*m[1] + Fy*m[0])
-            C += np.cos(Fx*m[1] + Fy*m[0])
-            QC = np.abs(Q-C)
-            dXY = np.multiply(2*W, QC*np.conjugate(QC))
-
-            g = np.array([np.nansum(np.multiply(Fy,dXY)), \
-                          np.nansum(np.multiply(Fx,dXY))])        
-                
-            # difference
-            #dg = g - g_min
-            if (k>=j): # (np.all(np.max(np.abs(g))<=p)) or 
-                break            
-            # update
-            #g_min = np.copy(g)
-            
-            #if i ==0:
-            m += g
-            #else:
-            #    m -= alpha*dg
-            print(m)
-            k += 1
-            
-        # optimize weighting matrix
-        #phi = np.abs(QC*np.conjugate(QC))/2
-        C = 1j*-np.sin(Fx*m[1] + Fy*m[0])
-        C += np.cos(Fx*m[1] + Fy*m[0])
-        QC = (Q-C)**2 # np.abs(Q-C)#np.abs(Q-C)
-        dXY = np.abs(np.multiply(W, QC))
-        W = W*(1-(dXY/4))**n
-#        phi = np.multiply(2*W,\
-#                          (1 - np.multiply(np.real(Q), 
-#                                           +np.cos(Fx*m[1] + Fy*m[0])) - \
-#                           np.multiply(np.imag(Q), 
-#                                       -np.sin(Fx*m[1] + Fy*m[0]))))
-        #W = np.multiply(W, (1-(phi/4))**n)
-#    snr = 1 - (np.sum(phi)/(4*np.sum(W)))
-    snr = 0
-    return (m, snr)
+    dQdm = np.array([np.sum(np.multiply(F1,dXY)), \
+                     np.sum(np.multiply(F2,dXY))])
+    return dQdm
 
 def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
     """get phase plane of cross-spectrum through two point step size iteration
@@ -152,12 +199,14 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
     
     Notes
     -----    
-    [1] Leprince, et.al. "Automatic and precise orthorectification, 
-    coregistration, and subpixel correlation of satellite images, application 
-    to ground deformation measurements", IEEE Transactions on Geoscience and 
-    Remote Sensing vol. 45.6 pp. 1529-1558, 2007.    
+    .. [1] Barzilai & Borwein. "Two-point step size gradient methods", IMA 
+       journal of numerical analysis. vol.8 pp.141--148, 1988.
+    .. [2] Leprince, et al. "Automatic and precise orthorectification, 
+       coregistration, and subpixel correlation of satellite images, 
+       application to ground deformation measurements", IEEE Transactions on 
+       geoscience and remote sensing vol.45(6) pp.1529-1558, 2007.    
     """
-    
+    s = 1.#.5#2.
 
     Q = normalize_power_spectrum(Q)
     W = W/np.sum(W) # normalize weights
@@ -167,9 +216,12 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
     # initialize    
     m_min = m + np.array([-.1, -.1])
 
-    C_min = 1j*-np.sin(Fx*m_min[1] + Fy*m_min[0])
-    C_min += np.cos(Fx*m_min[1] + Fy*m_min[0])
+    C_min = construct_phase_plane(Q, m_min[0], m_min[1])
     QC_min = np.abs(Q-C_min)
+#    C_min = 1j*-np.sin(Fx*m_min[1] + Fy*m_min[0])
+#    C_min += np.cos(Fx*m_min[1] + Fy*m_min[0])    
+#    QC_min = np.abs(Q-C_min)
+
     dXY_min = np.multiply(2*W, \
                           QC_min*np.conjugate(QC_min))
 #    dX_min = 2*np.multiply(np.multiply(W,Fx), \
@@ -217,8 +269,10 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
 ##                (np.multiply(np.real(Q), +np.sin(Fx*m[1] + Fy*m[0])) - \
 ##                 np.multiply(np.imag(Q), +np.cos(Fx*m[1] + Fy*m[0])) ))
 
-            C = 1j*-np.sin(Fx*m[1] + Fy*m[0])
-            C += np.cos(Fx*m[1] + Fy*m[0])
+            #C = 1j*-np.sin(Fx*m[1] + Fy*m[0])
+            #C += np.cos(Fx*m[1] + Fy*m[0])
+            C = construct_phase_plane(Q, m[0], m[1])
+
             QC = np.abs(Q-C)
             dXY = np.multiply(2*W, QC*np.conjugate(QC))
 
@@ -231,7 +285,7 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
             dm,dg = m - m_min, g - g_min
             
             #alpha = np.dot(dm,dg)/np.dot(dg,dg)
-            alpha = np.dot(dm,dm)/np.dot(dm,dg)
+            alpha = np.dot(dm,dm)/(s*np.dot(dm,dg))
             
             if (np.all(np.abs(m - m_min)<=p)) or (k>=j):
                 break
@@ -264,6 +318,32 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
     m = -1*m
     return (m, snr)
 
+def phase_slope_1d(t, rad=.1):
+    """ estimate the slope and intercept for one-dimensional signal
+    
+    Parameters
+    ----------
+    t : np.array, size=(m,1), dtype=complex
+        angle values.
+    rad : float, range=(0.0,0.5)
+        radial inclusion, seen from the center
+
+    Returns
+    -------
+    x_hat : np.array, size=(2,1)
+        estimated slope and intercept.
+        
+    See also
+    --------
+    phase_svd
+    """
+    idx_sub = np.arange(np.ceil((0.5-rad)*len(t)), \
+                    np.ceil((0.5+rad)*len(t))+1).astype(int)
+    y_ang = np.unwrap(np.angle(t[idx_sub]),axis=0)
+    A = np.vstack([np.transpose(idx_sub-1), np.ones((len(idx_sub)))]).T
+    x_hat = np.linalg.lstsq(A, y_ang, rcond=None)[0]
+    return x_hat
+
 def phase_svd(Q, W, rad=0.1):
     """get phase plane of cross-spectrum through single value decomposition
     
@@ -276,6 +356,8 @@ def phase_svd(Q, W, rad=0.1):
         cross spectrum
     W : np.array, size=(m,n), dtype=float
         weigthing matrix
+    rad : float, range=(0.0,0.5)
+        radial inclusion, seen from the center
     
     Returns
     -------
@@ -304,9 +386,7 @@ def phase_svd(Q, W, rad=0.1):
        correlation method", IEEE transactions on medical imaging, vol. 22(2) 
        pp.277-280, 2003.    
     """
-    # filtering through magnitude
-    # W: M = thresh_masking(S1, m=th, s=ker) th=0.001, ker=10
-    
+    rad = np.minimum(rad, 0.5)
     (m,n) = Q.shape
     Q,W = np.fft.fftshift(Q), np.fft.fftshift(W)
     
@@ -322,19 +402,11 @@ def phase_svd(Q, W, rad=0.1):
     t_m = np.transpose(v).dot(sig)
     t_n = u.dot(sig)# transform
     
-    idx_sub = np.arange(np.ceil((0.5-rad)*len(t_n)), \
-                        np.ceil((0.5+rad)*len(t_n))+1).astype(int)
-    y_ang = np.unwrap(np.angle(t_n[idx_sub]),axis=0)
-    A = np.vstack([np.transpose(idx_sub-1), np.ones((len(idx_sub)))]).T
-    (dx,_,_,_) = np.linalg.lstsq(A, y_ang, rcond=None)
-    
-    idx_sub = np.arange(np.ceil((0.5-rad)*len(t_m)), \
-                        np.ceil((0.5+rad)*len(t_m))+1).astype(int)
-    y_ang = np.unwrap(np.angle(t_m[idx_sub]), axis=0)
-    (dy,_,_,_) = np.linalg.lstsq(A, y_ang, rcond=None)
-    
-    dj = dx[0][0]*n / (2*np.pi)
-    di = dy[0][0]*m / (2*np.pi)
+    d_n = phase_slope_1d(t_n, rad)
+    d_m = phase_slope_1d(t_m, rad)
+        
+    di = -d_n[0][0]*n / (2*np.pi)
+    dj = -d_m[0][0]*m / (2*np.pi)
     return di, dj
 
 def phase_difference_1d(Q, W=np.array([]), axis=0):
@@ -445,20 +517,18 @@ def cross_spectrum_to_coordinate_list(data, W=np.array([])):
     Returns
     -------
     data_list : np.array, size=(m*n,3), dtype=float
-        coordinate list with angles
+        coordinate list with angles, in normalized ranges
     """
     if data.shape[0]==data.shape[1]:        
         (m,n) = data.shape        
-        Fx,Fy = make_fourier_grid(np.zeros((m,n)))
-        Fx,Fy = np.fft.fftshift(Fx), np.fft.fftshift(Fy)
-        
-        Fx,Fy = -Fx/np.pi, -Fy/np.pi
+        F1,F2 = make_fourier_grid(np.zeros((m,n)), \
+                                  indexing='ij', system='unit')
         
         # transform from complex to -1...+1
         Q = np.fft.fftshift(np.angle(data) / np.pi) #(2*np.pi))
         
-        data_list = np.vstack((Fx.flatten(), 
-                               Fy.flatten(), 
+        data_list = np.vstack((F1.flatten(), 
+                               F2.flatten(), 
                                Q.flatten() )).T 
         if W.size>0: # remove masked data
             data_list = data_list[W.flatten()==1,:]
@@ -517,8 +587,8 @@ def phase_lsq(data, W=np.array([])):
     #Least-squares Solution
     plane_normal = Mp.dot(V) 
     
-    di = plane_normal[1]
-    dj = plane_normal[0]
+    di = 2*plane_normal[0]
+    dj = 2*plane_normal[1]
     return di, dj
 
 def phase_pca(data, W=np.array([])):
