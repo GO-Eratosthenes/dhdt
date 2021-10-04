@@ -599,9 +599,12 @@ def adaptive_masking(S, m=.9):
         coregistration, and subpixel correlation of satellite images, 
         application to ground deformation measurements", IEEE Transactions on 
         geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.    
-    """    
+    """ 
+    np.seterr(divide = 'ignore') 
     LS = np.log10(np.abs(S))
     LS[np.isinf(LS)] = np.nan
+    np.seterr(divide = 'warn') 
+    
     NLS = LS - np.nanmax(LS.flatten())
     mean_NLS = m*np.nanmean(NLS.flatten())
 
