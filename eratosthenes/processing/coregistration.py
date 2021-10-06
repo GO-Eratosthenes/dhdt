@@ -7,7 +7,7 @@ from scipy.linalg import block_diag
 from .matching_tools import \
     get_coordinates_of_template_centers, \
     get_grid_at_template_centers
-from .matching_tools_spatial_correlators import simnple_optical_flow
+from .matching_tools_spatial_correlators import simple_optical_flow
 from .network_tools import getNetworkIndices, getNetworkBySunangles, \
     getAdjacencyMatrixFromNetwork
 from .handler_s2 import read_view_angles_s2

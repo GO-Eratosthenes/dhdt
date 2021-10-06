@@ -17,18 +17,22 @@ from ..generic.handler_im import bilinear_interpolation
 from ..preprocessing.read_sentinel2 import read_sun_angles_s2
 
 from .matching_tools_frequency_filters import \
-    perdecomp
+    perdecomp, thresh_masking  
 from .matching_tools_frequency_correlators import \
     cosi_corr, phase_only_corr, symmetric_phase_corr, amplitude_comp_corr, \
     orientation_corr, phase_corr, cross_corr, masked_cosine_corr, \
-    binary_orientation_corr, masked_corr
+    binary_orientation_corr, masked_corr, robust_corr, windrose_corr, \
+    gaussian_transformed_phase_corr, upsampled_cross_corr
 from .matching_tools_frequency_subpixel import \
-    phase_tpss, phase_svd
+    phase_tpss, phase_svd, phase_radon, phase_hough, phase_ransac, \
+    phase_weighted_pca, phase_pca, phase_lsq, phase_difference
 from .matching_tools_spatial_correlators import \
     affine_optical_flow, simple_optical_flow, \
     normalized_cross_corr, sum_sq_diff, cumulative_cross_corr
 from .matching_tools_spatial_subpixel import \
-    get_top_gaussian, get_top_parabolic, get_top_moment
+    get_top_gaussian, get_top_parabolic, get_top_moment, \
+    get_top_mass, get_top_centroid, get_top_blais, get_top_ren, \
+    get_top_birchfield, get_top_equiangular, get_top_triangular, get_top_esinc
 from .matching_tools_binairy_boundaries import \
     beam_angle_statistics, cast_angle_neighbours, neighbouring_cast_distances
 
@@ -297,21 +301,24 @@ def pair_images(conn1, conn2, thres=20):
     """
     Find the closest correspnding points in two lists, 
     within a certain bound (given by thres)
+    
+    Example
+    -------
+    >>> import numpy as np
+    >>> import matplotlib.pyplot as plt
+    
+    >>> for p in range(1006,2020):
+    >>> plt.plot(np.array([conn1[idxConn[p,0],0], conn1[idxConn[p,0],2]]),
+                 np.array([conn1[idxConn[p,0],1], conn1[idxConn[p,0],3]]) )
+    >>> plt.plot(np.array([conn2[idxConn[p,1],0], conn1[idxConn[p,1],2]]),
+                 np.array([conn2[idxConn[p,1],1], conn1[idxConn[p,1],3]]) )
+    >>> plt.show()
+    
     """
     nbrs = NearestNeighbors(n_neighbors=1, algorithm='auto').fit(conn1[:,0:2])
     distances, indices = nbrs.kneighbors(conn2[:,0:2])
     IN = distances<thres
     idxConn = np.transpose(np.vstack((np.where(IN)[0], indices[IN])))
-    
-    # import matplotlib.pyplot as plt
-    # plt.plot(conn1[:,0],conn1[:,1]), plt.plot(conn2[:,0],conn2[:,1]), plt.show()
-    
-    # for p in range(1006,2020):
-    #     plt.plot(np.array([conn1[idxConn[p,0],0], conn1[idxConn[p,0],2]]), \
-    #              np.array([conn1[idxConn[p,0],1], conn1[idxConn[p,0],3]]) )
-    #     plt.plot(np.array([conn2[idxConn[p,1],0], conn1[idxConn[p,1],2]]), \
-    #              np.array([conn2[idxConn[p,1],1], conn1[idxConn[p,1],3]]) )
-    # plt.show()
     return idxConn
 
 def match_shadow_ridge(M1, M2, Az1, Az2, geoTransform1, geoTransform2, 
@@ -433,79 +440,129 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
                        scale_12, simple_sh,
                        temp_radius=7, search_radius=22, 
                        reg='binary', prepro='bandpass',
-                       match='cosicorr', processing='stacking',
+                       correlator='cosicorr', processing='stacking',
                        subpix='tpss'):
     """
     Redirecting arrays to 
 
-    :param M1:          NP.ARRAY [_,_,b]
-    :param M2:          NP.ARRAY [_,_,b]
-    :param L1:          NP.ARRAY [_,_]
-    :param L2:          NP.ARRAY [_,_] 
-    :param M1:          NP.ARRAY [_,_]
-    :param M1:          NP.ARRAY [_,_]  
-    :param geoTransform1: NP.ARRAY [1,6]
-        coordinate metadata of array no.1    
-    :param geoTransform2: NP.ARRAY [1,6]
-        coordinate metadata of array no.2  
-    :param xy1:         NP.ARRAY [_,2]
-        map coordinates of matching centers of array no.1
-    :param xy1:         NP.ARRAY [_,2]
-        map coordinates of matching centers of array no.2
-    :param scale_12:    FLOAT
-        estimate of scale change between array no.1&2
-    :param shear_12:    FLOAT
-        estimate of shear between array no.1&2        
-    :param temp_radius: INTEGER
+    Parameters
+    ----------
+    M1 : np.array, size=(m,n,b), dtype=float
+        first image array, can be complex.
+    M2 : np.array, size=(m,n,b), dtype=float
+        second image array, can be complex.
+    L1 : np.array, size=(m,n), dtype=bool
+        labelled image of the first image (M1).
+    L2 : np.array, size=(m,n), dtype=bool
+        labelled image of the second image (M2).
+    geoTransform1 : tuple
+        affine transformation coefficients of array M1    
+    geoTransform2 : tuple
+        affine transformation coefficients of array M2
+    xy1 : np.array, size=(_,2), type=float
+        map coordinates of matching centers of array M1
+    xy2 : np.array, size=(_,2), type=float
+        map coordinates of matching centers of array M2        
+    scale_12 : float
+        estimate of scale change between array M1 & M2
+    shear_12 : float
+        estimate of shear between array M1 & M2       
+    temp_radius: integer
         amount of pixels from the center
-    :param search_radius: INTEGER
-        amount of pixels from the center    
-    :param reg:         STRING
-        asdasdasd
-          :options : binary - asdsa
-               else: estimate scale and shear from geometry and metadata
-    :param prepro:
-          :options : bandpass - bandpass filter
-                     raiscos - raised cosine
-                     highpass - high pass filter
-    :param match:
-          :options : norm_corr - normalized cross correlation
-                     aff_of - affine optical flow
-                     cumu_corr - cumulative cross correlation
-                     sq_diff - sum of squared difference
-                     cosi_corr - cosicorr
-                     phas_only - phase only correlation
-                     symm_phas - symmetric phase correlation
-                     ampl_comp - 
-                     orie_corr - 
-                     mask_corr -
-                     bina_phas - 
-    :param subpix:     STRING
-        matching is done at pixel resolution, but subpixel localization is
-        possible to increase this resolution
-          :options : tpss - 
-                     svd - 
-                     gauss_1 - 1D Gaussian fitting
-                     parab_1 - 1D parabolic fitting
-                     weighted - weighted polynomial fitting
-                     optical_flow - optical flow refinement
-                     
-    :return xy2_corr:
-    :return snr_score:
+    search_radius: integer
+        amount of pixels from the center
+    reg : {"binary", other}    
+         * "binary" : 
+         * otherwise, estimate scale and shear from geometry and metadata
+    prepro : {'bandpass' (default), 'raiscos', 'highpass'}
+        Specifies which pre-procssing to apply to the imagery:
+            
+          * 'bandpass' : bandpass filter
+          * 'raiscos' : raised cosine
+          * 'highpass' : high pass filter
+    correlator : {'norm_corr' (default), 'aff_of', 'cumu_corr', 'sq_diff',\
+                  'cosi_corr', 'phas_only', 'symm_phas', 'ampl_comp',\
+                  'orie_corr', 'mask_corr', 'bina_phas', 'wind_corr',\
+                  'gaus_phas', 'upsp_corr', 'cros_corr', 'robu_corr'}      
+       Method to be used to do the correlation/similarity using either spatial
+       meassures:   
+
+        * 'norm_corr' : normalized cross correlation
+        * 'aff_of' : affine optical flow
+        * 'cumu_corr' : cumulative cross correlation
+        * 'sq_diff' : sum of squared difference
+       
+        or frequency methods:
+       
+        * 'cosi_corr' : coregistration of optically sensed images and correlation
+        * 'phas_only' : phase only correlation
+        * 'symm_phas' : symmetric phase only correlation
+        * 'ampl_comp' : amplitude compensated phase correlation
+        * 'orie_corr' : orientation correlation
+        * 'mask_corr' : fourier based masked normalized cross-correlation
+        * 'bina_phas' : binary phase only correlation
+        * 'wind_corr' : windrose correlation
+        * 'gaus_phas' : gaussian transformed phase correlation
+        * 'upsp_corr' : upsampled cross correlation 
+        * 'cros_corr' : cross correlation
+        * 'robu_corr' : robust correlation        
+    subpix : {'tpss' (default), 'svd', 'radon', 'hough', 'ransac', 'wpca',\
+              'pca', 'lsq', 'diff', 'gauss_1', 'parab_1', 'moment', 'mass',\
+              'centroid', 'blais', 'ren', 'birch', 'eqang', 'trian', 'esinc',\
+              'gauss_2', 'parab_2', 'optical_flow'} 
+        Method used to estimate the sub-pixel location, these are either based\
+        on the phase plane:  
+          
+        * 'tpss' : two point step size
+        * 'svd' : single value decomposition
+        * 'radon' : radon transform
+        * 'hough' : hough transform
+        * 'ransac' : random sampling and consensus
+        * 'wpca' : weighted principle component analysis
+        * 'pca' : principle component analysis
+        * 'lsq' : least squares estimation
+        * 'diff' : phase difference
+            
+        or peak fitting of the similarity function:
+      
+        * 'gauss_1' : 1D Gaussian fitting
+        * 'parab_1' : 1D parabolic fitting
+        * 'moment' : 
+        * 'mass' : center of mass fitting        
+        * 'centroid' : estimate the centroid
+        * 'blais' : 
+        * 'ren' : 
+        * 'birch' : 
+        * 'eqang' :
+        * 'trian' : triangular fitting
+        * 'esinc' : esinc
+        * 'gauss_2' : 2D Gaussian fitting
+        * 'parab_2' : 2D parabolic fitting
+        * 'optical_flow' : optical flow refinement              
+
+    Returns
+    -------
+    xy2_corr : np.array, size=(_,2), type=float
+        map coordinates of the refined matching centers of array M2 
+    xy2_corr : np.array, size=(_,2), type=float
+        associtaed scoring metric of xy2_corr                     
     """
-    match,subpix = match.lower(), subpix.lower()
+    correlator,subpix = correlator.lower(), subpix.lower()
     
+    frequency_based = ['cosi_corr', 'phas_only', 'symm_phas', 'ampl_comp', \
+                       'orie_corr', 'mask_corr', 'bina_phas', 'wind_corr', \
+                       'gaus_phas', 'upsp_corr', 'cros_corr', 'robu_corr']     
+    peak_calc = ['norm_corr', 'cumu_corr', 'sq_diff']
+
     # some sub-pixel methods use the peak of the correlation surface, 
-    # while others need the cross-spectrum
-    peak_calc = ['norm_corr', 'cumu_corr', 'sq_diff', 'mask_corr']
-    phase_based = ['tpss','svd'] 
-    peak_based = ['gauss_1', 'parab_1', 'weighted']
+    # while others need the phase of the cross-spectrum    
+    phase_based = ['tpss','svd','radon', 'hough', 'ransac', 'wpca',\
+              'pca', 'lsq', 'diff'] 
+    peak_based = ['gauss_1', 'parab_1', 'moment', 'mass', 'centroid', \
+                  'blais', 'ren', 'birch', 'eqang', 'trian', 'esinc', \
+                  'gauss_2', 'parab_2', 'optical_flow']
     
-    if (subpix in phase_based) & (match in peak_calc):
-         # some combinations are not possible, reset to default
-         warnings.warn('given combination of matching-subpix is not possible, using default')
-         match = 'cosicorr'
-    if match=='aff_of': # optical flow needs to be of the same size
+    if correlator=='aff_of': # optical flow needs to be of the same size
         search_radius = np.copy(temp_radius)
        
     i1, j1 = map2pix(geoTransform1, xy1[:,0], xy1[:,1])
@@ -535,7 +592,7 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
     xy2_corr = np.zeros((i1.shape[0],2)).astype(np.float64)
     snr_score = np.zeros((i1.shape[0],1)).astype(np.float16)
     
-    for counter in range(len(i1)): # [1234]: # loop through all posts
+    for counter in range(len(i1)): # loop through all posts
        
         # deformation compensation
         if reg in ['binary']:
@@ -602,97 +659,38 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
         M2_sub = bilinear_interpolation(M2, \
                                         j2[counter]+X_aff, \
                                         i2[counter]+Y_aff)
-        # reduce edge effects in frequency space
-        if match in ['cosi_corr', 'phas_only', 'symm_phas', 'orie_corr', \
-                     'mask_corr', 'bina_phas']:
-            (M1_sub,_) = perdecomp(M1_sub)
-            (M2_sub,_) = perdecomp(M2_sub)
-        
-        # translational matching/estimation
-        if match in ['norm_corr']:
-            C = normalized_cross_corr(M1_sub, M2_sub)    
-        elif match in ['cumu_corr']:
-            C = cumulative_cross_corr(M1_sub, M2_sub)
-        elif match in ['sq_diff']:
-            C = sum_sq_diff(M1_sub, M2_sub)
-        elif match in ['cosi_corr']:
-            (Q, W, m0) = cosi_corr(M1_sub, M2_sub)
-        elif match in ['phas_only']:
-            Q = phase_only_corr(M1_sub, M2_sub)
-            if subpix in peak_based:
-                C = np.fft.ifft2(Q)
-        elif match in ['symm_phas']:
-            Q = symmetric_phase_corr(M1_sub, M2_sub)
-            if subpix in peak_based:
-                C = np.fft.ifft2(Q)
-        elif match in ['ampl_comp']:
-            Q = amplitude_comp_corr(M1_sub, M2_sub)
-            if subpix in peak_based:
-                C = np.fft.ifft2(Q)
-        elif match in ['orie_corr']:
-            Q = orientation_corr(M1_sub, M2_sub)
-            if subpix in peak_based:
-                C = np.fft.ifft2(Q)
-        elif match in ['mask_corr']:
-            C = masked_corr(M1_sub, M2_sub, L1_sub, L2_sub)
-        elif match in ['bina_phas']:
-            Q = binary_orientation_corr(M1_sub, M2_sub)
-            if subpix in peak_based:
-                C = np.fft.ifft2(Q)
-        elif match in ['aff_of']:
+           
+        if correlator in ['aff_of']:
             (di,dj,Aff,snr) = affine_optical_flow(M1_sub, M2_sub)
-
-        if 'C' in locals():
-            max_score = np.amax(C)
-            snr = max_score/np.mean(C)
-            ij = np.unravel_index(np.argmax(C), C.shape)
+            
+        else:
+            QC = match_translation_of_two_subsets(M1_sub, M2_sub,\
+                                               correlator,subpix,\
+                                               L1_sub,L2_sub)
+        if subpix in peak_based:
+            C = QC
+            max_score = np.amax(QC)
+            snr = max_score/np.mean(QC)
+            ij = np.unravel_index(np.argmax(QC), QC.shape)
             di, dj = ij[::-1]
             m0 = np.array([di, dj])
-        
-        if match!='aff_of':
-            # sub-pixel estimation    
-            if subpix in ['tpss']:
-                if 'W' not in locals():
-                    breakpoint()
-                (m,snr) = phase_tpss(Q, W, m0)
-                ddi, ddj = m[0], m[1]
-            elif subpix in ['svd']:
-                if 'W' not in locals():
-                    breakpoint()
-                (ddi,ddj) = phase_svd(Q, W)
-            elif subpix in ['gauss_1']:
-                (ddi, ddj) = get_top_gaussian(C, top=m0)
-            elif subpix in ['parab_1']:
-                (ddi, ddj) = get_top_parabolic(C, top=m0)    
-            elif subpix in ['weighted']:
-                (ddi, ddj) = get_top_moment(C, ds=1, top=m0)   
-            elif subpix in ['optical_flow']:
-                max_score = np.amax(C)
-                snr = max_score/np.mean(C)
-                ij = np.unravel_index(np.argmax(C), C.shape)
-                di, dj = ij[::-1]
-                
-                # reposition second template
-                M2_new = create_template(M2,i2[counter]-di,
-                         j1[counter]-dj,temp_radius)
-                
-                # optical flow refinement
-                ddi,ddj = simple_optical_flow(M1_sub, M2_new)
-                
-                if (abs(ddi)>0.5) or (abs(ddj)>0.5): # divergence
-                    ddi = 0
-                    ddj = 0               
-            else: # simple highest score extaction
-                max_score = np.amax(C)
-                snr = max_score/np.mean(C)
-                ij = np.unravel_index(np.argmax(C), C.shape)
-                di, dj = ij[::-1]
-        
-        # remove padding if cross correlation is used> is already done, see below
-        # if 'C' in locals():    
-        #     di -= (search_radius - temp_radius)
-        #     dj -= (search_radius - temp_radius)
-        
+        else:
+            m0 = np.zeros((1,2))
+
+
+        if subpix in ['optical_flow']:            
+            # reposition second template
+            M2_new = create_template(M2,i2[counter]-di,
+                     j1[counter]-dj,temp_radius)            
+            # optical flow refinement
+            ddi,ddj = simple_optical_flow(M1_sub, M2_new)
+            
+            if (abs(ddi)>0.5) or (abs(ddj)>0.5): # divergence
+                ddi = 0
+                ddj = 0 
+        else:
+            ddi,ddj = estimate_subpixel(QC, subpix, m0=m0)
+     
         if abs(ddi)<2:
             di += ddi
         if abs(ddj)<2:
@@ -712,12 +710,130 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
         ij2_corr[counter,0] = i2[counter] - di_rig
         ij2_corr[counter,1] = j2[counter] - dj_rig
         
-        #ij2_corr[counter,0] -= search_radius # compensate for padding
-        #ij2_corr[counter,1] -= search_radius
-        
     xy2_corr[:,0], xy2_corr[:,1] = pix2map(geoTransform1, ij2_corr[:,0], ij2_corr[:,1])
     
     return xy2_corr, snr_score
+
+def match_translation_of_two_subsets(M1_sub,M2_sub,correlator,subpix,\
+                                  L1_sub=np.array([]),L2_sub=np.array([])):
+
+    frequency_based = ['cosi_corr', 'phas_only', 'symm_phas', 'ampl_comp', \
+                       'orie_corr', 'mask_corr', 'bina_phas', 'wind_corr', \
+                       'gaus_phas', 'upsp_corr', 'cros_corr', 'robu_corr']     
+    peak_calc = ['norm_corr', 'cumu_corr', 'sq_diff']
+
+    # some sub-pixel methods use the peak of the correlation surface, 
+    # while others need the phase of the cross-spectrum    
+    phase_based = ['tpss','svd','radon', 'hough', 'ransac', 'wpca',\
+              'pca', 'lsq', 'diff'] 
+    peak_based = ['gauss_1', 'parab_1', 'moment', 'mass', 'centroid', \
+                  'blais', 'ren', 'birch', 'eqang', 'trian', 'esinc', \
+                  'gauss_2', 'parab_2', 'optical_flow']
+        
+    # reduce edge effects in frequency space
+    if correlator in frequency_based:
+        (M1_sub,_) = perdecomp(M1_sub)
+        (M2_sub,_) = perdecomp(M2_sub)
+    
+    # translational matching/estimation
+    if correlator in frequency_based:
+        # frequency correlator   
+        if correlator in ['cosi_corr']:
+            (Q, W, m0) = cosi_corr(M1_sub, M2_sub)
+        elif correlator in ['phas_only']:
+            Q = phase_only_corr(M1_sub, M2_sub)
+        elif correlator in ['symm_phas']:
+            Q = symmetric_phase_corr(M1_sub, M2_sub)
+        elif correlator in ['ampl_comp']:
+            Q = amplitude_comp_corr(M1_sub, M2_sub)
+        elif correlator in ['orie_corr']:
+            Q = orientation_corr(M1_sub, M2_sub)
+        elif correlator in ['mask_corr']:
+            C = masked_corr(M1_sub, M2_sub, L1_sub, L2_sub)
+        elif correlator in ['bina_phas']:
+            Q = binary_orientation_corr(M1_sub, M2_sub) 
+    
+        if subpix in peak_based:
+            C = np.fft.ifft2(Q)
+    else: 
+        # spatial correlator   
+        if correlator in ['norm_corr']:
+            C = normalized_cross_corr(M1_sub, M2_sub)    
+        elif correlator in ['cumu_corr']:
+            C = cumulative_cross_corr(M1_sub, M2_sub)
+        elif correlator in ['sq_diff']:
+            C = sum_sq_diff(M1_sub, M2_sub)
+            
+        if subpix in phase_based:
+            Q = np.fft.fft2(C)
+
+    if subpix in peak_based:
+        return C
+    else:
+        return Q
+
+def estimate_subpixel(QC, subpix, m0=np.zeros((1,2))):
+    # some sub-pixel methods use the peak of the correlation surface, 
+    # while others need the phase of the cross-spectrum    
+    phase_based = ['tpss','svd','radon', 'hough', 'ransac', 'wpca',\
+              'pca', 'lsq', 'diff'] 
+    peak_based = ['gauss_1', 'parab_1', 'moment', 'mass', 'centroid', \
+                  'blais', 'ren', 'birch', 'eqang', 'trian', 'esinc', \
+                  'gauss_2', 'parab_2']
+    
+    if subpix in peak_based: # correlation surface
+        if subpix in ['gauss_1']:
+            ddi,ddj,_,_ = get_top_gaussian(QC, top=m0)
+        elif subpix in ['parab_1']:
+            ddi,ddj,_,_= get_top_parabolic(QC, top=m0)    
+        elif subpix in ['moment']:
+            ddi,ddj,_,_= get_top_moment(QC, ds=1, top=m0) 
+        elif subpix in ['mass']:
+            ddi,ddj,_,_= get_top_mass(QC, top=m0) 
+        elif subpix in ['centroid']:
+            ddi,ddj,_,_= get_top_centroid(QC, top=m0) 
+        elif subpix in ['blais']:
+            ddi,ddj,_,_= get_top_blais(QC, top=m0) 
+        elif subpix in ['ren']:
+            ddi,ddj,_,_= get_top_ren(QC, top=m0) 
+        elif subpix in ['birch']:
+            ddi,ddj,_,_= get_top_birchfield(QC, top=m0) 
+        elif subpix in ['eqang']:
+            ddi,ddj,_,_= get_top_equiangular(QC, top=m0) 
+        elif subpix in ['trian']:
+            ddi,ddj,_,_= get_top_triangular(QC, top=m0) 
+        elif subpix in ['esinc']:
+            ddi,ddj,_,_= get_top_esinc(QC, ds=1, top=m0)            
+        elif subpix in ['gauss_2']:
+            ddi,ddj,_,_= get_top_moment(QC, ds=1, top=m0) 
+        elif subpix in ['parab_2t']:
+            ddi,ddj,_,_= get_top_moment(QC, ds=1, top=m0) 
+
+    elif subpix in phase_based: #cross-spectrum
+        if subpix in ['tpss']:
+            W = thresh_masking(QC)
+            (m,snr) = phase_tpss(QC, W, m0)
+            ddi, ddj = m[0], m[1]
+        elif subpix in ['svd']:
+            W = thresh_masking(QC)
+            ddi,ddj = phase_svd(QC, W)
+        elif subpix in ['radon']:
+            ddi,ddj = phase_radon(QC)
+        elif subpix in ['hough']:
+            ddi,ddj = phase_hough(QC)
+        elif subpix in ['ransac']:
+            ddi,ddj = phase_ransac(QC)
+        elif subpix in ['wpca']:
+            ddi,ddj = phase_weighted_pca(QC, W)
+        elif subpix in ['pca']:
+            ddi,ddj = phase_pca(QC)
+        elif subpix in ['lsq']:
+            ddi,ddj = phase_lsq(QC)
+        elif subpix in ['diff']:
+            ddi,ddj = phase_difference(QC)
+            
+    return ddi, ddj
+    
 
 def get_stack_out_of_dir(im_dir,boi,bbox):
     """
