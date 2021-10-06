@@ -17,7 +17,7 @@ def create_sample_image_pair(d=2**7, max_range=1):
     im1 = mat_to_gray(im1[:,:,0], im1[:,:,0]==0)
     (mI,nI) = im1.shape
     
-    scalar_mul = np.minimum(d // 2, max_range)
+    scalar_mul = 2*np.minimum(d // 2, max_range)
     
     random_di = (np.random.random()-.5)*scalar_mul
     random_dj = (np.random.random()-.5)*scalar_mul # random tranlation

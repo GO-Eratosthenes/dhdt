@@ -139,3 +139,58 @@ def inverse_tangent_transformation(x):
     """   
     fx = np.arctan(x)
     return fx
+
+def get_histogram(img):
+    """ calculate the normalized histogram of an image
+
+    Parameters
+    ----------
+    img : np.array, size=(m,n)
+        gray scale image array
+
+    Returns
+    -------
+    hist : np.array, size=(2**8|2**16,2)
+        histogram array
+    """
+    m, n = img.shape
+    if img.dtype.type==np.uint8:
+        hist = [0.] * 2**8
+    else:
+        hist = [0.] * 2**16
+        
+    for i in range(m):
+      for j in range(n):
+        hist[img[i, j]]+=1
+    hist = np.array(hist)/(m*n)
+    return hist
+
+def normalize_histogram(img):
+    """ transform image to have a uniform distribution
+
+    Parameters
+    ----------
+    img : np.array, size=(m,n), dtype={uint8,unit16}
+        image array
+
+    Returns
+    -------
+    new_img : np.array, size=(m,n), dtype={uint8,unit16}
+        transfrormed image
+
+    """
+    hist = get_histogram(img)
+    cdf = np.cumsum(hist) 
+    
+    # determine the normalization values for each unit of the cdf    
+    if img.dtype.type==np.uint8:
+        scaling = np.uint8(cdf * 2**8)
+    else:
+        scaling = np.uint16(cdf * 2**16)    
+    
+    # normalize the normalization values
+    new_img = scaling[img]
+    return new_img
+
+
+

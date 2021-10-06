@@ -77,8 +77,8 @@ def phase_jac(Q, m, W=np.array([]), \
         QC = Q-C_hat # convert complex vector difference to metric
         dXY = np.abs(np.multiply(W, QC)**rank)
              
-    dQdm = np.array([np.multiply(2*F1.flatten(),dXY.flatten()), \
-                     np.multiply(2*F2.flatten(),dXY.flatten())]).T
+    dQdm = np.array([np.multiply(2*W.flatten()*F1.flatten(),dXY.flatten()), \
+                     np.multiply(2*W.flatten()*F2.flatten(),dXY.flatten())]).T
     return dQdm
 
 def phase_secant(data, W=np.array([]), x_0=np.zeros((2))): # wip
@@ -105,7 +105,7 @@ def phase_secant(data, W=np.array([]), x_0=np.zeros((2))): # wip
     
     See Also
     --------
-    phase_lsq   
+    phase_gradient_descend   
 
     Example
     -------
@@ -127,7 +127,7 @@ def phase_secant(data, W=np.array([]), x_0=np.zeros((2))): # wip
     data = cross_spectrum_to_coordinate_list(data, W)
     J = phase_jac(data, x_0)
     x_hat,_ = secant(data[:,:-1], data[:,-1], J, x_0, \
-                     n_iters=10, print_diagnostics=True)
+                     n_iters=10)
     di,dj = 2*x_hat[0], 2*x_hat[1]
     return di,dj
 
@@ -176,72 +176,6 @@ def phase_gradient_descend(data, W=np.array([]), x_0=np.zeros((2))): # wip
     di,dj = x_hat[1], x_hat[0]
     return di,dj
 
-# def phase_jac(Q, m, W=np.array([]), \
-#               F1=np.array([]), F2=np.array([]), rank=2): # wip
-#     """
-#     Parameters
-#     ----------
-#     Q : np.array, size=(_,_), dtype=complex
-#         cross spectrum
-#     m : np.array, size=(2,1), dtype=float
-#         displacement estimate,  in pixel coordinate system
-#     W : np.array, size=(m,n), dtype=float | boolean
-#         weigthing matrix, in a range of 0...1
-#     F1 : np,array, size=(m,n), dtype=integer
-#         coordinate of the first axis from the Fourier spectrum.
-#     F2 : np,array, size=(m,n), dtype=integer
-#         coordinate of the second axis from the Fourier spectrum
-#     rank : TYPE, optional
-#         DESCRIPTION. The default is 2.
-
-#     Returns
-#     -------
-#     dQdm : np.array, size=(m,n)
-#         Jacobian of phase estimate
-#     """
-#     # metric system:      Fourier-based flip
-#     #        y            +------><------+
-#     #        ^            |              |
-#     #        |            |              |
-#     #        |            v              v
-#     # <------+-------> x
-#     #        |            ^              ^
-#     #        |            |              |
-#     #        v            +------><------+
-#     #
-#     # indexing   |           indexing    ^ y
-#     # system 'ij'|           system 'xy' |
-#     #            |                       |
-#     #            |       i               |       x 
-#     #    --------+-------->      --------+-------->
-#     #            |                       |
-#     #            |                       |
-#     #            | j                     |
-#     #            v                       |
-
-#     if Q.shape[0]==Q.shape[1]: # if Q is a cross-spectral matrix
-#         if W.size==0: # if W is not given
-#             W = np.ones((Q.shape[0], Q.shape[1]), dtype=float)
-#         if F1.size==0:
-#             F1,F2 = make_fourier_grid(Q, indexing='ij')   
-#     else: # list format
-#         F1,F2 = Q[:,0], Q[:,1]
-#         Q = Q[:,-1]
-#         if W.size==0:
-#             W = np.ones_like(Q, dtype=float)
-
-#     if rank==2: # default
-#         dXY = 1 - np.multiply(np.real(Q), +np.cos(F1*m[0]+F2*m[1])) \
-#             - np.multiply(np.imag(Q), -np.sin(F1*m[0]+F2*m[1]))
-#     else:
-#         C_hat = construct_phase_plane(Q, m[0], m[1], indexing='ij')
-#         QC = Q-C_hat # convert complex vector difference to metric
-#         dXY = np.abs(np.multiply(W, QC)**rank)
-             
-#     dQdm = np.array([np.sum(np.multiply(F1,dXY)), \
-#                      np.sum(np.multiply(F2,dXY))])
-#     return dQdm
-
 def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
     """get phase plane of cross-spectrum through two point step size iteration
     
@@ -271,7 +205,7 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
     
     See Also
     --------
-    phase_svd, phase_radon, phase_difference   
+    phase_svd, phase_radon, phase_difference, phase_jac   
     
     Notes
     -----    
@@ -282,81 +216,27 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
        application to ground deformation measurements", IEEE Transactions on 
        geoscience and remote sensing vol.45(6) pp.1529-1558, 2007.    
     """
-    s = 1.#.5#2.
+    s = 1.#1.25#.5#1.#.5#2.
 
     Q = normalize_power_spectrum(Q)
-    W = W/np.sum(W) # normalize weights
+    #W = W/np.sum(W) # normalize weights
     
     Fx,Fy = make_fourier_grid(Q)
 
     # initialize    
     m_min = m + np.array([-.1, -.1])
 
-    C_min = construct_phase_plane(Q, m_min[0], m_min[1])
-    QC_min = np.abs(Q-C_min)
-#    C_min = 1j*-np.sin(Fx*m_min[1] + Fy*m_min[0])
-#    C_min += np.cos(Fx*m_min[1] + Fy*m_min[0])    
-#    QC_min = np.abs(Q-C_min)
-
-    dXY_min = np.multiply(2*W, \
-                          QC_min*np.conjugate(QC_min))
-#    dX_min = 2*np.multiply(np.multiply(W,Fx), \
-#        (np.multiply(np.real(Q), +np.cos(Fx*m_min[1] + Fy*m_min[0])) - \
-#         np.multiply(np.imag(Q), -np.sin(Fx*m_min[1] + Fy*m_min[0])) ))
-#    dY_min = 2*np.multiply(np.multiply(W,Fy), \
-#        (np.multiply(np.real(Q), +np.cos(Fx*m_min[1] + Fy*m_min[0])) - \
-#         np.multiply(np.imag(Q), -np.sin(Fx*m_min[1] + Fy*m_min[0])) ))
-#    dX_min = 2*np.multiply(np.multiply(W,Fx), \
-#        (np.multiply(np.real(Q), +np.sin(Fx*m_min[1] + Fy*m_min[0])) - \
-#         np.multiply(np.imag(Q), +np.cos(Fx*m_min[1] + Fy*m_min[0])) ))
-#    dY_min = 2*np.multiply(np.multiply(W,Fy), \
-#        (np.multiply(np.real(Q), +np.sin(Fx*m_min[1] + Fy*m_min[0])) - \
-#         np.multiply(np.imag(Q), +np.cos(Fx*m_min[1] + Fy*m_min[0])) ))
-
-#    g_min = np.array([np.nansum(dX_min), np.nansum(dY_min)])        
-##    QC_min = Q-C_min # np.abs(Q-C_min) #Q-C_min np.abs(Q-C_min)
-##    dXY_min = np.multiply(2*W, np.abs(QC_min)) # (QC_min * np.conjugate(QC_min)) )
-    g_min = np.real(np.array([np.nansum(np.abs(np.multiply(Fy,dXY_min))), \
-                              np.nansum(np.abs(np.multiply(Fx,dXY_min)))]))
-##    g_min = np.real(np.array([np.nansum(W), \
-##                              np.nansum(W)]))
-
+    J_min = phase_jac(Q, m_min, W=W)
+    g_min = np.sum(J_min, axis=0)
         
-    print(m)
+    print('di:{:+.4f}'.format(m[0])+' dj:{:+.4f}'.format(m[1]))
     for i in range(l):
         k = 1
         while True:            
-#            C = 1j*-np.sin(Fx*m[1] + Fy*m[0])
-#            C += np.cos(Fx*m[1] + Fy*m[0])
-#            QC = Q-C # np.abs(Q-C)#np.abs(Q-C)
-#            dXY = np.multiply(2*W, QC) #(QC*np.conjugate(QC))
-#            g = np.real(np.array([np.nansum(np.multiply(Fy,dXY)), \
-#                                 np.nansum(np.multiply(Fx,dXY))]))
-#            dX = 2*np.multiply(np.multiply(W,Fx), \
-#                (np.multiply(np.real(Q), +np.cos(Fx*m[1] + Fy*m[0])) - \
-#                  np.multiply(np.imag(Q), -np.sin(Fx*m[1] + Fy*m[0])) ))
-#            dY = 2*np.multiply(np.multiply(W,Fy), \
-#                (np.multiply(np.real(Q), +np.cos(Fx*m[1] + Fy*m[0])) - \
-#                  np.multiply(np.imag(Q), -np.sin(Fx*m[1] + Fy*m[0])) ))
-##            dX = np.multiply(np.multiply(2*W,Fx), \
-##                (np.multiply(np.real(Q), +np.sin(Fx*m[1] + Fy*m[0])) - \
-##                 np.multiply(np.imag(Q), +np.cos(Fx*m[1] + Fy*m[0])) ))
-##            dY = np.multiply(np.multiply(2*W,Fy), \
-##                (np.multiply(np.real(Q), +np.sin(Fx*m[1] + Fy*m[0])) - \
-##                 np.multiply(np.imag(Q), +np.cos(Fx*m[1] + Fy*m[0])) ))
-
-            #C = 1j*-np.sin(Fx*m[1] + Fy*m[0])
-            #C += np.cos(Fx*m[1] + Fy*m[0])
-            C = construct_phase_plane(Q, m[0], m[1])
-
-            QC = np.abs(Q-C)
-            dXY = np.multiply(2*W, QC*np.conjugate(QC))
-
-            g = np.array([np.nansum(np.abs(np.multiply(Fy,dXY))), \
-                          np.nansum(np.abs(np.multiply(Fx,dXY)))])        
-##            g = np.array([np.nansum(dX), np.nansum(dY)])        
-
-                
+            
+            J = phase_jac(Q, m, W=W)
+            g = np.sum(J, axis=0)
+                       
             # difference
             dm,dg = m - m_min, g - g_min
             
@@ -373,7 +253,7 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
             m -= alpha*dg
             #else:
             #    m -= alpha*dg
-            print(m)
+            print('di:{:+.4f}'.format(m[0])+' dj:{:+.4f}'.format(m[1]))
             k += 1
             
         # optimize weighting matrix

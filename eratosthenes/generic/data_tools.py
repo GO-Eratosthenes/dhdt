@@ -86,13 +86,13 @@ def secant(A, y, J, params, n_iters=5, print_diagnostics=False):
             x2 = x1 + dx
             
             if print_diagnostics:
-                print('di:{:.4f}'.format(x2[0])+' dj:{:.4f}'.format(x2[1]))
+                print('di:{:+.4f}'.format(x2[0])+' dj:{:+.4f}'.format(x2[1]))
             # update
             x0,x1,J = x1.copy(), x2.copy(), J_new.copy()
             history[i] = compute_cost(A, y, x1)
         params = x1
         
-    if history[0]<history[-1]:
+    if (history[0]<history[-1]) and print_diagnostics:
         print('no convergence')
     return params, history    
 
