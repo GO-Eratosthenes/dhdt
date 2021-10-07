@@ -268,31 +268,37 @@ def affine_optical_flow(I1, I2, model='Affine', iteration=15):
 
 # spatial pattern matching functions
 def normalized_cross_corr(I1, I2):
-    """
-    Simple normalized cross correlation
+    """ simple normalized cross correlation
 
-    :param I1:        NP.ARRAY (_,_)
-        image with intensities
-    :param I2:        NP.ARRAY (_,_)
-        image with intensities
-                     
-    :return result:   NP.ARRAY (_,_)
-        similarity surface           
+    Parameters
+    ----------
+    I1 : np.array, type=bool
+        binary array
+    I2 : np.array, type=bool
+        binary array
+
+    Returns
+    -------
+    ccs : np.array
+        similarity surface, ccs: cross correlation surface        
     """
-    result = match_template(I2, I1)
-    return result
+    ccs = match_template(I2, I1)
+    return ccs
 
 def cumulative_cross_corr(I1, I2):
-    """
-    doing normalized cross correlation on distance imagery
+    """ doing normalized cross correlation on distance imagery
 
-    :param I1:        NP.ARRAY (_,_)
+    Parameters
+    ----------
+    I1 : np.array, type=bool
         binary array
-    :param I2:        NP.ARRAY (_,_)
+    I2 : np.array, type=bool
         binary array
-                     
-    :return result:   NP.ARRAY (_,_)
-        similarity surface           
+
+    Returns
+    -------
+    ccs : np.array
+        similarity surface, ccs: cross correlation surface     
     """   
     if isinstance(I1, np.floating):        
         # get cut-off value
@@ -306,21 +312,24 @@ def cumulative_cross_corr(I1, I2):
     I1new = ndimage.distance_transform_edt(I1)
     I2new = ndimage.distance_transform_edt(I2)
     
-    result = match_template(I2new, I1new)
-    return result
+    ccs = match_template(I2new, I1new)
+    return ccs
 
 def sum_sq_diff(I1, I2):
-    """
-    Simple normalized cross correlation
+    """ sum of squared difference correlation
 
-    :param I1:        NP.ARRAY (_,_)
-        image with intensities
-    :param I2:        NP.ARRAY (_,_)
-        image with intensities
-                     
-    :return ssd:      NP.ARRAY (_,_)
-        dissimilarity surface           
-    """    
+    Parameters
+    ----------
+    I1 : np.array
+        image with intensities (template)
+    I2 : np.array
+        image with intensities (search space)
+
+    Returns
+    -------
+    ssd : np.array
+        dissimilarity surface, ssd: sum of squared differnce
+    """
     
     t_size = I1.shape
     y = np.lib.stride_tricks.as_strided(I2,
@@ -333,3 +342,6 @@ def sum_sq_diff(I1, I2):
     ssd += np.einsum('ijkl, ijkl->ij', y, y)
     ssd += np.einsum('ij, ij', I1, I1)
     return ssd
+
+#to do: sad - sum of absolute difference
+# least squares matching

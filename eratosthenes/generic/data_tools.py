@@ -2,6 +2,30 @@ import numpy as np
 
 #from ..processing.matching_tools_frequency_subpixel import phase_jac
 
+def squared_difference(A,B):
+    """ efficient computation of the squared difference
+
+    Parameters
+    ----------
+    A : np.array, size=(m,n)
+        data array
+    B : np.array, size=(m,n)
+        data array
+
+    Returns
+    -------
+    sq_diff : float
+        sum of squared difference.
+
+    Notes
+    -----
+    .. math :: \Sigma{[\mathbf{A}-\mathbf{B}]^2}
+
+    """
+    diff = A-B
+    sq_diff = np.einsum('ijk,ijk->',diff,diff)
+    return sq_diff
+
 def compute_cost(A, y, params):
     n_samples = len(y)
     hypothesis = np.squeeze(A @ params)

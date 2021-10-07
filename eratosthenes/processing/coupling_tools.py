@@ -32,7 +32,8 @@ from .matching_tools_spatial_correlators import \
 from .matching_tools_spatial_subpixel import \
     get_top_gaussian, get_top_parabolic, get_top_moment, \
     get_top_mass, get_top_centroid, get_top_blais, get_top_ren, \
-    get_top_birchfield, get_top_equiangular, get_top_triangular, get_top_esinc
+    get_top_birchfield, get_top_equiangular, get_top_triangular, \
+    get_top_esinc, get_top_paraboloid, get_top_2d_gaussian
 from .matching_tools_binairy_boundaries import \
     beam_angle_statistics, cast_angle_neighbours, neighbouring_cast_distances
 
@@ -716,7 +717,6 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
 
 def match_translation_of_two_subsets(M1_sub,M2_sub,correlator,subpix,\
                                   L1_sub=np.array([]),L2_sub=np.array([])):
-
     frequency_based = ['cosi_corr', 'phas_only', 'symm_phas', 'ampl_comp', \
                        'orie_corr', 'mask_corr', 'bina_phas', 'wind_corr', \
                        'gaus_phas', 'upsp_corr', 'cros_corr', 'robu_corr']     
@@ -752,7 +752,17 @@ def match_translation_of_two_subsets(M1_sub,M2_sub,correlator,subpix,\
             C = masked_corr(M1_sub, M2_sub, L1_sub, L2_sub)
         elif correlator in ['bina_phas']:
             Q = binary_orientation_corr(M1_sub, M2_sub) 
-    
+        elif correlator in ['wind_corr']:
+            Q = windrose_corr(M1_sub, M2_sub) 
+        elif correlator in ['gaus_phas']:
+            Q = gaussian_transformed_phase_corr(M1_sub, M2_sub) 
+        elif correlator in ['upsp_corr']:
+            Q = upsampled_cross_corr(M1_sub, M2_sub) 
+        elif correlator in ['cros_corr']:
+            Q = cross_corr(M1_sub, M2_sub) 
+        elif correlator in ['robu_corr']:
+            Q = robust_corr(M1_sub, M2_sub) 
+
         if subpix in peak_based:
             C = np.fft.ifft2(Q)
     else: 
@@ -805,9 +815,9 @@ def estimate_subpixel(QC, subpix, m0=np.zeros((1,2))):
         elif subpix in ['esinc']:
             ddi,ddj,_,_= get_top_esinc(QC, ds=1, top=m0)            
         elif subpix in ['gauss_2']:
-            ddi,ddj,_,_= get_top_moment(QC, ds=1, top=m0) 
+            ddi,ddj,_,_= get_top_2d_gaussian(QC, ds=1, top=m0) 
         elif subpix in ['parab_2t']:
-            ddi,ddj,_,_= get_top_moment(QC, ds=1, top=m0) 
+            ddi,ddj,_,_= get_top_paraboloid(QC, ds=1, top=m0) 
 
     elif subpix in phase_based: #cross-spectrum
         if subpix in ['tpss']:
