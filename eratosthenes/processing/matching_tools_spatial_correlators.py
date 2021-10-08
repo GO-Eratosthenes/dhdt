@@ -343,5 +343,29 @@ def sum_sq_diff(I1, I2):
     ssd += np.einsum('ij, ij', I1, I1)
     return ssd
 
-#to do: sad - sum of absolute difference
+def sum_sad_diff(I1, I2): #wip
+    """ sum of absolute difference correlation
+
+    Parameters
+    ----------
+    I1 : np.array
+        image with intensities (template)
+    I2 : np.array
+        image with intensities (search space)
+
+    Returns
+    -------
+    sad : np.array
+        dissimilarity surface, sad: sum of absolute differnce
+    """
+    
+    t_size = I1.shape
+    y = np.lib.stride_tricks.as_strided(I2,
+                    shape=(I2.shape[0] - t_size[0] + 1,
+                           I2.shape[1] - t_size[1] + 1,) +
+                          t_size,
+                    strides=I2.strides * 2)
+    sad = np.einsum('ijkl,kl->ij', y, I1)
+    return sad
+
 # least squares matching

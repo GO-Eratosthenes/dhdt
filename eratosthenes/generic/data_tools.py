@@ -20,7 +20,6 @@ def squared_difference(A,B):
     Notes
     -----
     .. math :: \Sigma{[\mathbf{A}-\mathbf{B}]^2}
-
     """
     diff = A-B
     sq_diff = np.einsum('ijk,ijk->',diff,diff)
