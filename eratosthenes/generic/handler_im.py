@@ -1,6 +1,34 @@
 import numpy as np
 from scipy import ndimage
 
+
+def select_boi_from_stack(I, boi):
+    """ give array with selection given by a pointing array 
+
+    Parameters
+    ----------
+    I : np.array, size=(m,n,b), ndim={2,3}
+        data array.
+    boi : np.array, size=(k,1), dtype=integer
+        array giving the bands of interest.
+
+    Returns
+    -------
+    I_new : np.array, size=(m,n,k), ndim={2,3}
+        selection of bands, in the order given by boi.
+
+    """
+    if boi.shape>0:
+        if I.ndim>2:
+            ndim = I.shape[2]        
+            assert(ndim>=np.max(boi)) # boi pointer should not exceed bands
+            I_new = I[:,:,boi]
+        else:
+            I_new = I
+    else:
+        I_new = I
+    return I_new
+
 def get_image_subset(img, bbox):  # generic
     """
     get subset of an image specified by the bounding box extents

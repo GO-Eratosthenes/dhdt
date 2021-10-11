@@ -10,11 +10,45 @@ from .matching_tools import \
 from .matching_tools_spatial_correlators import simple_optical_flow
 from .network_tools import getNetworkIndices, getNetworkBySunangles, \
     getAdjacencyMatrixFromNetwork
+from .coupling_tools import match_pair
 from .handler_s2 import read_view_angles_s2
 from ..generic.mapping_tools import castOrientation, rotMat
 from ..generic.filtering_statistical import mad_filtering
 from ..preprocessing.read_s2 import read_sun_angles_s2
 
+
+def coregister_to_shading(shadow,): # wip
+    
+    # does shading exist
+    
+    shade = make_shading(dem.data, azimuth_angle.mean(), zenith_angle.mean())
+    shade = xr.DataArray(shade, dims=('y', 'x'), coords={'x': dem.x, 'y': dem.y})
+    shade = ((shade - shade.min()) / (shade.max() - shade.min()))
+    shade = shade.rio.set_crs(dem.spatial_ref.crs_wkt)
+    shade = shade.rio.set_nodata(dem.rio.nodata)
+    #
+    
+    window_size = 15
+    sampleI, sampleJ = get_coordinates_of_template_centers(
+        shade_casted.data, window_size
+    )
+    X_grd,Y_grd = pix2map(geoTransform1)
+    
+    # do matching
+    X2_grd,Y2_grd = match_pair(shade, shadow, \
+                               np.zeros((0)), np.zeros((0)), \
+                               geoTransform1, geoTransform2, \
+                               temp_radius, search_radius, X_grd, Y_grd, \
+                               kernel='kroon', \
+                               prepro='bandpass', match='cosicorr', subpix='tpss', \
+                               processing='stacking', boi=np.array([]) )
+            
+    # provide constant or function
+    
+    # use generalized least squares
+    dx, dy = 0,0
+    
+    return dx,dy
 
 def coregister(sat_path, dat_path, connectivity=2, step_size=True,
                    temp_size=15, bbox=None, sig_y=10, lstsq_mode='ordinary',

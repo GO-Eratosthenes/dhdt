@@ -256,9 +256,9 @@ def phase_only_corr(I1, I2):
     
     Parameters
     ----------    
-    I1 : np.array, size=(m,n)
+    I1 : np.array, size=(m,n), ndim={2,3}
         array with intensities
-    I2 : np.array, size=(m,n)
+    I2 : np.array, size=(m,n), ndim={2,3}
         array with intensities
         
     Returns
@@ -300,9 +300,9 @@ def phase_only_corr(I1, I2):
        ternary matched filters with increased signal-to-noise ratios for 
        colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
     """  
-    if I1.ndim==3: # multi-spectral frequency stacking
-        bands = I1.shape[2]
+    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
         I1sub,I2sub = make_templates_same_size(I1,I2)
+        bands = I1.shape[2]
         
         for i in range(bands): # loop through all bands
             I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
@@ -332,9 +332,9 @@ def sign_only_corr(I1, I2): # to do
     
     Parameters
     ----------    
-    I1 : np.array, size=(m,n)
+    I1 : np.array, size=(m,n), ndim={2,3}
         array with intensities
-    I2 : np.array, size=(m,n)
+    I2 : np.array, size=(m,n), ndim={2,3}
         array with intensities
         
     Returns
@@ -353,9 +353,9 @@ def sign_only_corr(I1, I2): # to do
         IEEE international conference on acoustics, speech and signal 
         processing, vol. 1, 2007. 
     """ 
-    if I1.ndim==3: # multi-spectral frequency stacking
-        bands = I1.shape[2]
+    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
         I1sub,I2sub = make_templates_same_size(I1,I2)
+        bands = I1.shape[2]
         
         for i in range(bands): # loop through all bands
             I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
@@ -387,9 +387,9 @@ def symmetric_phase_corr(I1, I2):
     
     Parameters
     ----------    
-    I1 : np.array, size=(m,n)
+    I1 : np.array, size=(m,n), ndim={2,3}
         array with intensities
-    I2 : np.array, size=(m,n)
+    I2 : np.array, size=(m,n), ndim={2,3}
         array with intensities
     
     Returns
@@ -427,17 +427,15 @@ def symmetric_phase_corr(I1, I2):
        data processing", Measurement science and technology, vol.16 pp.601-618, 
        2005.
     """
-    if I1.ndim==3: # multi-spectral frequency stacking
-        bands = I1.shape[2]
+    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
         I1sub,I2sub = make_templates_same_size(I1,I2)
+        bands = I1.shape[2]
         
         for i in range(bands): # loop through all bands
             I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
             
             S1, S2 = np.fft.fft2(I1bnd), np.fft.fft2(I2bnd) 
-            
-            S1, S2 = np.fft.fft2(I1sub), np.fft.fft2(I2sub)
-            W2 = np.divided(1, np.sqrt(abs(S1sub))*np.sqrt(abs(S2sub)) )
+            W2 = np.divided(1, np.sqrt(abs(S1))*np.sqrt(abs(S2)) )
             if i == 0:
                 Q = (S1)*np.conj((W2*S2))
             else:
@@ -448,7 +446,6 @@ def symmetric_phase_corr(I1, I2):
         I1sub,I2sub = make_templates_same_size(I1,I2)
         
         S1, S2 = np.fft.fft2(I1sub), np.fft.fft2(I2sub)
-        
         W2 = np.divide(1, np.sqrt(abs(I1sub))*np.sqrt(abs(I2sub)) )
         
         Q = (S1)*np.conj((W2*S2))
@@ -459,9 +456,9 @@ def amplitude_comp_corr(I1, I2, F_0=0.04):
     
     Parameters
     ----------    
-    I1 : np.array, size=(m,n)
+    I1 : np.array, size=(m,n), ndim={2,3}
         array with intensities
-    I2 : np.array, size=(m,n)
+    I2 : np.array, size=(m,n), ndim={2,3}
         array with intensities
     F_0 : float, default=4e-2
         cut-off intensity in respect to maximum
@@ -490,9 +487,9 @@ def amplitude_comp_corr(I1, I2, F_0=0.04):
     .. [1] Mu et al. "Amplitude-compensated matched filtering", Applied optics, 
        vol. 27(16) pp. 3461-3463, 1988.
     """
-    if I1.ndim==3: # multi-spectral frequency stacking
-        bands = I1.shape[2]
+    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
         I1sub,I2sub = make_templates_same_size(I1,I2)
+        bands = I1.shape[2]
         
         for i in range(bands): # loop through all bands
             I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
@@ -527,9 +524,9 @@ def robust_corr(I1, I2):
     
     Parameters
     ----------    
-    I1 : np.array, size=(m,n)
+    I1 : np.array, size=(m,n), ndim=2
         array with intensities
-    I2 : np.array, size=(m,n)
+    I2 : np.array, size=(m,n), ndim=2
         array with intensities
     
     Returns
@@ -577,9 +574,9 @@ def orientation_corr(I1, I2):
     
     Parameters
     ----------    
-    I1 : np.array, size=(m,n)
+    I1 : np.array, size=(m,n), ndim={2,3}
         array with intensities
-    I2 : np.array, size=(m,n)
+    I2 : np.array, size=(m,n), ndim={2,3}
         array with intensities
         
     Returns
@@ -613,9 +610,9 @@ def orientation_corr(I1, I2):
        deriving glacier surface displacements globally from optical satellite 
        imagery", Remote sensing of environment, vol. 118 pp. 339-355, 2012.
     """     
-    if I1.ndim==3: # multi-spectral frequency stacking
-        bands = I1.shape[2]
+    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
         I1sub,I2sub = make_templates_same_size(I1,I2)
+        bands = I1.shape[2]
         
         for i in range(bands): # loop through all bands
             I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
@@ -643,9 +640,9 @@ def windrose_corr(I1, I2):
     
     Parameters
     ----------    
-    I1 : np.array, size=(m,n)
+    I1 : np.array, size=(m,n), ndim={2,3}
         array with intensities
-    I2 : np.array, size=(m,n)
+    I2 : np.array, size=(m,n), ndim={2,3}
         array with intensities
         
     Returns
@@ -677,9 +674,9 @@ def windrose_corr(I1, I2):
        ternary matched filters with increased signal-to-noise ratios for 
        colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
     """ 
-    if I1.ndim==3: # multi-spectral frequency stacking
-        bands = I1.shape[2]
+    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
         I1sub,I2sub = make_templates_same_size(I1,I2)
+        bands = I1.shape[2]
         
         for i in range(bands): # loop through all bands
             I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
@@ -704,9 +701,9 @@ def phase_corr(I1, I2):
     
     Parameters
     ----------    
-    I1 : np.array, size=(m,n)
+    I1 : np.array, size=(m,n), ndim={2,3}
         array with intensities
-    I2 : np.array, size=(m,n)
+    I2 : np.array, size=(m,n), ndim={2,3}
         array with intensities
         
     Returns
@@ -738,9 +735,9 @@ def phase_corr(I1, I2):
        proceedings of the IEEE international conference on cybernetics and 
        society, pp. 163-165, 1975.
     """
-    if I1.ndim==3: # multi-spectral frequency stacking
-        bands = I1.shape[2]
+    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
         I1sub,I2sub = make_templates_same_size(I1,I2)
+        bands = I1.shape[2]
         
         for i in range(bands): # loop through all bands
             I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
@@ -768,9 +765,9 @@ def gaussian_transformed_phase_corr(I1, I2):
     
     Parameters
     ----------    
-    I1 : np.array, size=(m,n)
+    I1 : np.array, size=(m,n), ndim={2,3}
         array with intensities
-    I2 : np.array, size=(m,n)
+    I2 : np.array, size=(m,n), ndim={2,3}
         array with intensities
         
     Returns
@@ -801,9 +798,9 @@ def gaussian_transformed_phase_corr(I1, I2):
     .. [1] Eckstein et al. "Phase correlation processing for DPIV 
        measurements", Experiments in fluids, vol.45 pp.485-500, 2008.
     """
-    if I1.ndim==3: # multi-spectral frequency stacking
-        bands = I1.shape[2]
+    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
         I1sub,I2sub = make_templates_same_size(I1,I2)
+        bands = I1.shape[2]
         
         for i in range(bands): # loop through all bands
             I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
@@ -837,9 +834,9 @@ def upsampled_cross_corr(S1, S2, upsampling=2):
     
     Parameters
     ----------    
-    S1 : np.array, size=(m,n)
+    S1 : np.array, size=(m,n), dtype=complex, ndim=2
         array with intensities
-    S2 : np.array, size=(m,n)
+    S2 : np.array, size=(m,n), dtype=complex, ndim=2
         array with intensities
         
     Returns
@@ -909,9 +906,9 @@ def cross_corr(I1, I2):
     
     Parameters
     ----------    
-    I1 : np.array, size=(m,n)
+    I1 : np.array, size=(m,n), ndim={2,3}
         array with intensities
-    I2 : np.array, size=(m,n)
+    I2 : np.array, size=(m,n), ndim={2,3}
         array with intensities
         
     Returns
@@ -943,9 +940,9 @@ def cross_corr(I1, I2):
        deriving glacier surface displacements globally from optical satellite 
        imagery", Remote sensing of environment, vol. 118 pp. 339-355, 2012.
     """ 
-    if I1.ndim==3: # multi-spectral frequency stacking
-        bands = I1.shape[2]
+    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
         I1sub,I2sub = make_templates_same_size(I1,I2)
+        bands = I1.shape[2]
         
         for i in range(bands): # loop through all bands
             I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
@@ -970,9 +967,9 @@ def binary_orientation_corr(I1, I2):
     
     Parameters
     ----------    
-    I1 : np.array, size=(m,n)
+    I1 : np.array, size=(m,n), ndim={2,3}
         array with intensities
-    I2 : np.array, size=(m,n)
+    I2 : np.array, size=(m,n), ndim={2,3}
         array with intensities
         
     Returns
@@ -1004,9 +1001,9 @@ def binary_orientation_corr(I1, I2):
        ternary matched filters with increased signal-to-noise ratios for 
        colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
     """ 
-    if I1.ndim==3: # multi-spectral frequency stacking
-        bands = I1.shape[2]
+    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
         I1sub,I2sub = make_templates_same_size(I1,I2)
+        bands = I1.shape[2]
         
         for i in range(bands): # loop through all bands
             I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
@@ -1034,9 +1031,9 @@ def masked_corr(I1, I2, M1, M2):
     
     Parameters
     ----------    
-    I1 : np.array, size=(m,n)
+    I1 : np.array, size=(m,n), ndim=2
         array with intensities
-    I2 : np.array, size=(m,n)
+    I2 : np.array, size=(m,n), ndim=2
         array with intensities
     M1 : np.array, size=(m,n)
         array with mask
