@@ -28,7 +28,7 @@ from .matching_tools_frequency_subpixel import \
     phase_weighted_pca, phase_pca, phase_lsq, phase_difference
 from .matching_tools_spatial_correlators import \
     affine_optical_flow, simple_optical_flow, \
-    normalized_cross_corr, sum_sq_diff, cumulative_cross_corr
+    normalized_cross_corr, sum_sq_diff, sum_sad_diff, cumulative_cross_corr
 from .matching_tools_spatial_subpixel import \
     get_top_gaussian, get_top_parabolic, get_top_moment, \
     get_top_mass, get_top_centroid, get_top_blais, get_top_ren, \
@@ -107,10 +107,10 @@ def couple_pair(file1, file2, bbox, co_name, co_reg, rgi_id=None,
                      cosi_corr - cosicorr
                      phas_only - phase only correlation
                      symm_phas - symmetric phase correlation
-                     ampl_comp - 
+                     ampl_comp - amplitude compensation phase correlation
                      orie_corr - orientation correlation
                      mask_corr - masked normalized cross correlation
-                     bina_phas - 
+                     bina_phas - binary phase correlation
     :param boi:        NP.ARRAY 
         list of bands of interest
     :param processing: STRING
@@ -481,7 +481,8 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
           * 'bandpass' : bandpass filter
           * 'raiscos' : raised cosine
           * 'highpass' : high pass filter
-    correlator : {'norm_corr' (default), 'aff_of', 'cumu_corr', 'sq_diff',\
+    correlator : {'norm_corr' (default), 'aff_of', 'cumu_corr',\
+                  'sq_diff', 'sad_diff',\
                   'cosi_corr', 'phas_only', 'symm_phas', 'ampl_comp',\
                   'orie_corr', 'mask_corr', 'bina_phas', 'wind_corr',\
                   'gaus_phas', 'upsp_corr', 'cros_corr', 'robu_corr'}      
@@ -492,7 +493,8 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
         * 'aff_of' : affine optical flow
         * 'cumu_corr' : cumulative cross correlation
         * 'sq_diff' : sum of squared difference
-       
+        * 'sad_diff' : sum of absolute difference
+        
         or frequency methods:
        
         * 'cosi_corr' : coregistration of optically sensed images and correlation
@@ -553,7 +555,7 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
     frequency_based = ['cosi_corr', 'phas_only', 'symm_phas', 'ampl_comp', \
                        'orie_corr', 'mask_corr', 'bina_phas', 'wind_corr', \
                        'gaus_phas', 'upsp_corr', 'cros_corr', 'robu_corr']     
-    peak_calc = ['norm_corr', 'cumu_corr', 'sq_diff']
+    peak_calc = ['norm_corr', 'cumu_corr', 'sq_diff', 'sad_diff']
 
     # some sub-pixel methods use the peak of the correlation surface, 
     # while others need the phase of the cross-spectrum    
@@ -720,7 +722,7 @@ def match_translation_of_two_subsets(M1_sub,M2_sub,correlator,subpix,\
     frequency_based = ['cosi_corr', 'phas_only', 'symm_phas', 'ampl_comp', \
                        'orie_corr', 'mask_corr', 'bina_phas', 'wind_corr', \
                        'gaus_phas', 'upsp_corr', 'cros_corr', 'robu_corr']     
-    peak_calc = ['norm_corr', 'cumu_corr', 'sq_diff']
+    peak_calc = ['norm_corr', 'cumu_corr', 'sq_diff', 'sad_diff']
 
     # some sub-pixel methods use the peak of the correlation surface, 
     # while others need the phase of the cross-spectrum    
@@ -773,6 +775,8 @@ def match_translation_of_two_subsets(M1_sub,M2_sub,correlator,subpix,\
             C = cumulative_cross_corr(M1_sub, M2_sub)
         elif correlator in ['sq_diff']:
             C = sum_sq_diff(M1_sub, M2_sub)
+        elif correlator in ['sad_diff']:
+            C = sum_sad_diff(M1_sub, M2_sub)
             
         if subpix in phase_based:
             Q = np.fft.fft2(C)

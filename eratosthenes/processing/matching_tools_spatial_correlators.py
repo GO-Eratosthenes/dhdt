@@ -343,7 +343,7 @@ def sum_sq_diff(I1, I2):
     ssd += np.einsum('ij, ij', I1, I1)
     return ssd
 
-def sum_sad_diff(I1, I2): #wip
+def sum_sad_diff(I1, I2):
     """ sum of absolute difference correlation
 
     Parameters
@@ -368,4 +368,5 @@ def sum_sad_diff(I1, I2): #wip
     sad = np.einsum('ijkl,kl->ij', y, I1)
     return sad
 
+# sum of robust differences, see Li_03
 # least squares matching

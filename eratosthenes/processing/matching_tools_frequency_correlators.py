@@ -286,6 +286,14 @@ def phase_only_corr(I1, I2):
     
     Notes
     ----- 
+    The matching equations are as follows:
+
+    .. math:: \mathbf{S}_1, \mathbf{S}_2 = \mathcal{F}[\mathbf{I}_1], \mathcal{F}[\mathbf{I}_2]
+    .. math:: \mathbf{W} = 1 / \mathbf{S}_2
+    .. math:: \mathbf{Q}_{12} = \mathbf{S}_1 [\mathbf{W}\mathbf{S}_2]^{\star}
+    
+    where :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star` a complex conjugate operation
+
     .. [1] Horner & Gianino, "Phase-only matched filtering", Applied optics, 
        vol. 23(6) pp.812--816, 1984.
     .. [2] Kumar & Juday, "Design of phase-only, binary phase-only, and complex 
@@ -405,6 +413,14 @@ def symmetric_phase_corr(I1, I2):
     
     Notes
     -----    
+    The matching equations are as follows:
+
+    .. math:: \mathbf{S}_1, \mathbf{S}_2 = \mathcal{F}[\mathbf{I}_1], \mathcal{F}[\mathbf{I}_2]
+    .. math:: \mathbf{W} = 1 / \sqrt{||\mathbf{S}_1||||\mathbf{S}_2||}
+    .. math:: \mathbf{Q}_{12} = \mathbf{S}_1 [\mathbf{W}\mathbf{S}_2]^{\star}
+    
+    where :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star` a complex conjugate operation
+
     .. [1] Nikias & Petropoulou. "Higher order spectral analysis: a nonlinear 
        signal processing framework", Prentice hall. pp.313-322, 1993.
     .. [2] Wernet. "Symmetric phase only filtering: a new paradigm for DPIV 
@@ -421,7 +437,7 @@ def symmetric_phase_corr(I1, I2):
             S1, S2 = np.fft.fft2(I1bnd), np.fft.fft2(I2bnd) 
             
             S1, S2 = np.fft.fft2(I1sub), np.fft.fft2(I2sub)
-            W2 = np.divided(1, np.sqrt(abs(I1sub))*np.sqrt(abs(I2sub)) )
+            W2 = np.divided(1, np.sqrt(abs(S1sub))*np.sqrt(abs(S2sub)) )
             if i == 0:
                 Q = (S1)*np.conj((W2*S2))
             else:

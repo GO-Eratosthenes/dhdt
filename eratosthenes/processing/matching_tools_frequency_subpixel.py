@@ -593,6 +593,9 @@ def phase_pca(data, W=np.array([])):
     di = (-2*e3[0]/e3[-1])
     dj = (-2*e3[1]/e3[-1])
     return di, dj
+# PCA is sensative to data contamination, see
+# Hubert, Rousseeuw, van Aelst. 2008
+# High-breakdown robust multivariate methods
 
 def phase_weighted_pca(Q, W): # wip
     """get phase plane of cross-spectrum through principle component analysis
