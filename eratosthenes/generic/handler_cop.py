@@ -13,16 +13,23 @@ from rasterio.enums import Resampling
 from .handler_www import get_file_from_ftps
 
 def get_itersecting_DEM_tile_names(index, geometry):
-    """ 
+    """
     Find the DEM tiles that intersect the geometry and extract the
     filenames from the index. NOTE: the geometries need to be in the 
     same CRS!
     
-    :param index: DEM tile index (GeoDataFrame)
-    :param geometry: shapely geometry object
-    :returl: filename array
-    """
-    
+    Parameters
+    ----------
+    index : dtype=GeoDataFrame
+        DEM tile index.
+    geometry : shapely geometry object
+        polygon of interest.
+
+    Returns
+    -------
+    fname
+        file name of tiles of interest.
+    """    
     # sometimes points are projected to infinity
     # this is troublesome for intestections
     # hence remove these instances

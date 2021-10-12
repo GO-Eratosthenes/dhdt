@@ -1,7 +1,6 @@
 import numpy as np
 from scipy import ndimage
 
-
 def select_boi_from_stack(I, boi):
     """ give array with selection given by a pointing array 
 
@@ -29,59 +28,73 @@ def select_boi_from_stack(I, boi):
         I_new = I
     return I_new
 
-def get_image_subset(img, bbox):  # generic
+def get_image_subset(I, bbox):
+    """ get subset of an image specified by the bounding box extents
+
+    Parameters
+    ----------
+    I : np.array, size=(m,n), ndim={2,3,4}
+        data array
+    bbox : np.array, size=(1,4)
+        [minimum row, maximum row, minimum collumn maximum collumn].
+
+    Returns
+    -------
+    sub_I : np.array, size=(k,l), ndim={2,3,4}
+        sub set of the data array.
+
     """
-    get subset of an image specified by the bounding box extents
-    input:   img            array (n x m)     band with boolean values
-             bbox           array (1 x 4)     array giving:
-                                              [
-                                                  minimum row,
-                                                  maximum row,
-                                                  minimum collumn,
-                                                  maximum collumn
-                                              ]
-    output:  sub_img        array (k x l)     band with values         
-    """
-    sub_img = img[bbox[0]:bbox[1],bbox[2]:bbox[3]]
-    return sub_img
-
-def bilinear_interpolation(im, x, y):
-    x = np.asarray(x)
-    y = np.asarray(y)
-
-    x0 = np.floor(x).astype(int)
-    x1 = x0 + 1
-    y0 = np.floor(y).astype(int)
-    y1 = y0 + 1
-
-    x0 = np.clip(x0, 0, im.shape[1]-1);
-    x1 = np.clip(x1, 0, im.shape[1]-1);
-    y0 = np.clip(y0, 0, im.shape[0]-1);
-    y1 = np.clip(y1, 0, im.shape[0]-1);
+    assert(bbox[0]<=bbox[1])
+    assert(bbox[2]<=bbox[3])
     
-    if im.ndim==3: # make resitent to multi-dimensional arrays
-        Ia = im[ y0, x0, :]
-        Ib = im[ y1, x0, :]
-        Ic = im[ y0, x1, :]
-        Id = im[ y1, x1, :]
+    if I.ndim==2:
+        sub_I = I[bbox[0]:bbox[1],bbox[2]:bbox[3]]
+    elif I.ndim==3:
+        sub_I = I[bbox[0]:bbox[1],bbox[2]:bbox[3],:]
+    elif I.ndim==4:
+        sub_I = I[bbox[0]:bbox[1],bbox[2]:bbox[3],:,:]
+    return sub_I
+
+def bilinear_interpolation(I, x, y):
+    """ do bilinear interpolation of an image at different locations
+
+    Parameters
+    ----------
+    I : np.array, size=(m,n), ndim={2,3}
+        data array.
+    x : np.array, size=(k,l), ndim=2
+        horizontal locations, within local image frame.
+    y : np.array, size=(k,l), ndim=2
+        vertical locations, within local image frame.
+
+    Returns
+    -------
+    I_new : np.array, size=(k,l), ndim=2, dtype={float,complex}
+        interpolated values.
+    """
+    x,y = np.asarray(x), np.asarray(y)
+
+    x0,y0 = np.floor(x).astype(int), np.floor(y).astype(int)
+    x1,y1 = x0+1, y0+1
+
+    x0,x1 = np.clip(x0, 0, I.shape[1]-1), np.clip(x1, 0, I.shape[1]-1)
+    y0,y1 = np.clip(y0, 0, I.shape[0]-1), np.clip(y1, 0, I.shape[0]-1)
+    
+    if I.ndim==3: # make resitent to multi-dimensional arrays
+        Ia,Ib,Ic,Id = I[y0,x0,:], I[y1,x0,:], I[y0,x1,:], I[y1,x1,:]
     else:
-        Ia = im[ y0, x0 ]
-        Ib = im[ y1, x0 ]
-        Ic = im[ y0, x1 ]
-        Id = im[ y1, x1 ]
+       Ia,Ib,Ic,Id = I[y0,x0], I[y1,x0], I[y0,x1], I[y1,x1]
 
-    wa = (x1-x) * (y1-y)
-    wb = (x1-x) * (y-y0)
-    wc = (x-x0) * (y1-y)
-    wd = (x-x0) * (y-y0)
+    wa,wb,wc,wd = (x1-x)*(y1-y), (x1-x)*(y-y0), (x-x0)*(y1-y), (x-x0)*(y-y0)
 
-    if im.ndim==3:
-        wa = np.repeat(wa[:, :, np.newaxis], im.shape[2], axis=2)
-        wb = np.repeat(wb[:, :, np.newaxis], im.shape[2], axis=2)
-        wc = np.repeat(wc[:, :, np.newaxis], im.shape[2], axis=2)
-        wd = np.repeat(wd[:, :, np.newaxis], im.shape[2], axis=2)
-
-    return wa*Ia + wb*Ib + wc*Ic + wd*Id
+    if I.ndim==3:
+        wa = np.repeat(wa[:, :, np.newaxis], I.shape[2], axis=2)
+        wb = np.repeat(wb[:, :, np.newaxis], I.shape[2], axis=2)
+        wc = np.repeat(wc[:, :, np.newaxis], I.shape[2], axis=2)
+        wd = np.repeat(wd[:, :, np.newaxis], I.shape[2], axis=2)
+        
+    I_new = wa*Ia + wb*Ib + wc*Ic + wd*Id 
+    return I_new
 
 def rescale_image(I, sc): 
     """ generate a zoomed-in version of an image, through isotropic scaling

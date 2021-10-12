@@ -166,8 +166,6 @@ def cosine_corr(I1, I2):
     -----    
     .. [1] Li, et al. "DCT-based phase correlation motion estimation", 
        IEEE international conference on image processing, vol. 1, 2004.
-    .. [2] Koc et al. "DCT-based motion estimation", IEEE transactions on
-       image processing, vol.7(7) pp.948-965, 1998.
     """    
     # construct cosine and sine basis matrices
     Cc, Cs = get_cosine_matrix(I1), get_sine_matrix(I1)
@@ -201,7 +199,7 @@ def cosine_corr(I1, I2):
         Q = (C1)*np.conj(C2)
         Q = Q/np.abs(Q)
         C = np.fft.fftshift(np.real(np.fft.ifft2(Q)))
-    return C       
+    return C        
 
 def masked_cosine_corr(I1, I2, M1, M2): # wip
     '''
@@ -446,10 +444,10 @@ def sign_only_corr(I1, I2): # to do
         Q = (C1)*np.conj(C2)
         C = fftpack.idctn(Q,type=1)
         
-        C_cc = fftpack.idct(fftpack.idct(Q, axis=1), axis=0)
-        C_sc = fftpack.idst(fftpack.idct(Q, axis=1), axis=0)
-        C_cs = fftpack.idct(fftpack.idst(Q, axis=1), axis=0)
-        C_ss = fftpack.idst(fftpack.idst(Q, axis=1), axis=0)
+        C_cc = fftpack.idct(fftpack.idct(Q, axis=1, type=1), axis=0, type=1)
+        C_sc = fftpack.idst(fftpack.idct(Q, axis=1, type=1), axis=0, type=1)
+        C_cs = fftpack.idct(fftpack.idst(Q, axis=1, type=1), axis=0, type=1)
+        C_ss = fftpack.idst(fftpack.idst(Q, axis=1, type=1), axis=0, type=1)
         
 #        iC1 = fft.idctn(C1,2)
 #        import matplotlib.pyplot as plt

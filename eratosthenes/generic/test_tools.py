@@ -11,7 +11,7 @@ from ..processing.matching_tools import get_integer_peak_location
 
 # assert np.isclose()
 
-def create_sample_image_pair(d=2**7, max_range=1):    
+def create_sample_image_pair(d=2**7, max_range=1, integer=False):    
     #im1 = data.camera()
     im1 = data.astronaut()
     im1 = mat_to_gray(im1[:,:,0], im1[:,:,0]==0)
@@ -21,6 +21,8 @@ def create_sample_image_pair(d=2**7, max_range=1):
     
     random_di = (np.random.random()-.5)*scalar_mul
     random_dj = (np.random.random()-.5)*scalar_mul # random tranlation
+    
+    if integer : random_di,random_dj = np.round(random_di),np.round(random_dj)
     
     (grd_j1,grd_i1) = np.meshgrid(np.linspace(1, mI, mI), np.linspace(1, nI, nI))
     stk_1 = np.vstack( (grd_i1.flatten(), grd_j1.flatten()) ).T
