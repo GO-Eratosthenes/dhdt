@@ -1,5 +1,6 @@
 # general libraries
 import numpy as np
+from scipy import fftpack
 
 from .matching_tools import \
     get_integer_peak_location, reposition_templates_from_center, \
@@ -8,12 +9,22 @@ from .matching_tools_frequency_filters import \
     raised_cosine, thresh_masking, normalize_power_spectrum, gaussian_mask
 
 # general frequency functions
-def create_complex_DCT(I, Cc, Cs):  #wip
-    Ccc, Css = Cc*I*Cc.T, Cs*I*Cs.T
-    Csc, Ccs = Cs*I*Cc.T, Cc*I*Cs.T
+def create_complex_DCT(I, C_c, C_s):  #wip
+    C_cc,C_ss = C_c*I*C_c.T, C_s*I*C_s.T
+    C_sc,C_cs = C_s*I*C_c.T, C_c*I*C_s.T
     
-    C_dct = Ccc-Css + 1j*(-(Ccs+Csc))
-    return C_dct
+    C = C_cc-C_ss + 1j*(-(C_cs+C_sc))
+    return C
+
+def create_complex_fftpack_DCT(I):        
+    # DCT-based complex transform: {(C_cc - C_ss) -j(C_cs + C_sc)}
+    C_cc = fftpack.dct(fftpack.dct(I, type=2, axis=0), type=2, axis=1)
+    C_ss = fftpack.dst(fftpack.dst(I, type=2, axis=0), type=2, axis=1)
+    C_cs = fftpack.dct(fftpack.dst(I, type=2, axis=0), type=2, axis=1)
+    C_sc = fftpack.dst(fftpack.dct(I, type=2, axis=0), type=2, axis=1)
+    
+    C = (C_cc - C_ss) - 1j*(C_cs + C_sc)
+    return C
 
 def get_cosine_matrix(I,N=None): #wip
     (L,_) = I.shape
@@ -132,14 +143,14 @@ def cosi_corr(I1, I2, beta1=.35, beta2=.50, m=1e-4):
 
     return Qn, WS, m0   
 
-def cosine_corr(I1, I2): # wip
+def cosine_corr(I1, I2):
     """ match two imagery through discrete cosine transformation
     
     Parameters
     ----------    
-    I1 : np.array, size=(m,n)
+    I1 : np.array, size=(m,n), dtype=float
         array with intensities
-    I2 : np.array, size=(m,n)
+    I2 : np.array, size=(m,n), dtype=float
         array with intensities
         
     Returns
@@ -153,8 +164,10 @@ def cosine_corr(I1, I2): # wip
     
     Notes
     -----    
-    [1] Lie, et.al. "DCT-based phase correlation motion estimation", 
-    IEEE international conference on image processing, vol. 1, 2004.
+    .. [1] Li, et al. "DCT-based phase correlation motion estimation", 
+       IEEE international conference on image processing, vol. 1, 2004.
+    .. [2] Koc et al. "DCT-based motion estimation", IEEE transactions on
+       image processing, vol.7(7) pp.948-965, 1998.
     """    
     # construct cosine and sine basis matrices
     Cc, Cs = get_cosine_matrix(I1), get_sine_matrix(I1)
@@ -166,8 +179,11 @@ def cosine_corr(I1, I2): # wip
         for i in range(bands): # loop through all bands
             I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
             
-            C1 = create_complex_DCT(I1bnd, Cc, Cs)
-            C2 = create_complex_DCT(I2bnd, Cc, Cs)
+            C1 = create_complex_fftpack_DCT(I1bnd)
+            C2 = create_complex_fftpack_DCT(I2bnd)
+            
+#            C1 = create_complex_DCT(I1bnd, Cc, Cs)
+#            C2 = create_complex_DCT(I2bnd, Cc, Cs)
             if i == 0:
                 Q = C1*np.conj(C2)
             else:
@@ -177,17 +193,9 @@ def cosine_corr(I1, I2): # wip
     else:    
         I1sub,I2sub = make_templates_same_size(I1,I2)
         
-        from scipy import fftpack
-        C1 = (fftpack.dct(fftpack.dct(I1sub, axis=0), axis=1) - \
-            fftpack.dst(fftpack.dst(I1sub, axis=0), axis=1)) - 1j*(\
-                  fftpack.dct(fftpack.dst(I1sub, axis=0), axis=1) +\
-                  fftpack.dst(fftpack.dct(I1sub, axis=0), axis=1))
-
-        C2 = (fftpack.dct(fftpack.dct(I2sub, axis=0), axis=1) - \
-            fftpack.dst(fftpack.dst(I2sub, axis=0), axis=1)) - 1j*(\
-                  fftpack.dct(fftpack.dst(I2sub, axis=0), axis=1) +\
-                  fftpack.dst(fftpack.dct(I2sub, axis=0), axis=1))
-        
+        C1 = create_complex_fftpack_DCT(I1sub)
+        C2 = create_complex_fftpack_DCT(I2sub)
+             
         # C1 = create_complex_DCT(I1sub, Cc, Cs)
         # C2 = create_complex_DCT(I2sub, Cc, Cs)
         Q = (C1)*np.conj(C2)
@@ -327,6 +335,67 @@ def phase_only_corr(I1, I2):
         Q = (S1)*np.conj((W2*S2))
     return Q
 
+def projected_phase_corr(I1, I2, M1=np.array(()), M2=np.array(())):
+    """ match two imagery through separated phase correlation
+    
+    Parameters
+    ----------    
+    I1 : np.array, size=(m,n), ndim=2
+        array with intensities
+    I2 : np.array, size=(m,n), ndim=2
+        array with intensities
+    M1 : np.array, size=(m,n), ndim=2, dtype={bool,float}
+        array with mask
+    M2 : np.array, size=(m,n), ndim=2, dtype={bool,float}
+        array with mask 
+
+    Returns
+    -------
+    C : np.array, size=(m,n), real
+        displacement surface
+    
+    Notes
+    -----    
+    .. [1] Zhang et al. "An efficient subpixel image registration based on the 
+       phase-only correlations of image projections", IEEE proceedings of the
+       10th international symposium on communications and information
+       technologies, 2010.
+    """
+    I1sub,I2sub = make_templates_same_size(I1,I2)
+    
+    if M1.size==0 : M1 = np.ones_like(I1sub)
+    if M2.size==0 : M2 = np.ones_like(I1sub)
+    
+    def project_spectrum(I, M, axis=0):
+        if axis==1 : I,M = I.T, M.T
+        # projection
+        I_p = np.sum(I*M, axis=1)
+        # windowing
+        I_w = I_p*np.hamming(I_p.size)        
+        # Fourier transform
+        S = np.fft.fft(I_w)
+        if axis==1:
+            S = S.T
+        return S
+    
+    def phase_corr_1d(S1, S2):
+        # normalize power spectrum
+        Q12 = S1*np.conj(S2)
+        return Q12
+    
+    S1_m = project_spectrum(I1sub, M1, axis=0) 
+    S2_m = project_spectrum(I2sub, M2, axis=0) 
+    Q12_m = phase_corr_1d(S1_m, S2_m)
+    C_m = np.fft.fftshift(np.real(np.fft.ifft(Q12_m)))
+    
+    S1_n = project_spectrum(I1sub, M1, axis=1) 
+    S2_n = project_spectrum(I2sub, M2, axis=1) 
+    Q12_n = phase_corr_1d(S1_n, S2_n)
+    C_n = np.fft.fftshift(np.real(np.fft.ifft(Q12_n)))
+    
+    C = np.sqrt(np.outer(C_m, C_n))
+    return C   
+
 def sign_only_corr(I1, I2): # to do
     """ match two imagery through phase only correlation
     
@@ -348,10 +417,10 @@ def sign_only_corr(I1, I2): # to do
     
     Notes
     -----    
-    [1] Ito & Kiya, "DCT sign-only correlation with application to image
-        matching and the relationship with phase-only correlation", 
-        IEEE international conference on acoustics, speech and signal 
-        processing, vol. 1, 2007. 
+    .. [1] Ito & Kiya, "DCT sign-only correlation with application to image
+           matching and the relationship with phase-only correlation", 
+           IEEE international conference on acoustics, speech and signal 
+           processing, vol. 1, 2007. 
     """ 
     if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
         I1sub,I2sub = make_templates_same_size(I1,I2)
@@ -360,7 +429,8 @@ def sign_only_corr(I1, I2): # to do
         for i in range(bands): # loop through all bands
             I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
             
-            C1, C2 = np.sign(fft.dctn(I1bnd, 2)), np.sign(fft.dctn(I2bnd, 2))
+            C1 = np.sign(fftpack.dctn(I1bnd, type=2)), 
+            C2 = np.sign(fftpack.dctn(I2bnd, type=2))
             if i == 0:
                 Q = C1*np.conj(C2)
             else:
@@ -370,11 +440,16 @@ def sign_only_corr(I1, I2): # to do
     else:    
         I1sub,I2sub = make_templates_same_size(I1,I2)
         
-        C1,C2 = fft.dctn(I1sub, 2), fft.dctn(I2sub, 2)
+        C1,C2 = fftpack.dctn(I1sub, type=2), fftpack.dctn(I2sub, type=2)
 #        C1,C2 = np.multiply(C1,1/C1), np.multiply(C2,1/C2) 
         C1,C2 = np.sign(C1), np.sign(C2)
         Q = (C1)*np.conj(C2)
-        C = np.real(fft.idctn(Q,2))
+        C = fftpack.idctn(Q,type=1)
+        
+        C_cc = fftpack.idct(fftpack.idct(Q, axis=1), axis=0)
+        C_sc = fftpack.idst(fftpack.idct(Q, axis=1), axis=0)
+        C_cs = fftpack.idct(fftpack.idst(Q, axis=1), axis=0)
+        C_ss = fftpack.idst(fftpack.idst(Q, axis=1), axis=0)
         
 #        iC1 = fft.idctn(C1,2)
 #        import matplotlib.pyplot as plt
@@ -1026,7 +1101,7 @@ def binary_orientation_corr(I1, I2):
         Q = (S1)*np.conj(W*S2)
     return Q
     
-def masked_corr(I1, I2, M1, M2):
+def masked_corr(I1, I2, M1=np.array(()), M2=np.array(())):
     """ match two imagery through masked normalized cross-correlation in FFT
     
     Parameters
@@ -1065,9 +1140,13 @@ def masked_corr(I1, I2, M1, M2):
     .. [1] Padfield. "Masked object registration in the Fourier domain", 
        IEEE transactions on image processing, vol. 21(5) pp. 2706-2718, 2011.
     """
+    # init
     I1sub,I2sub = make_templates_same_size(I1,I2)
+    if M1.size==0 : M1 = np.ones_like(I1sub)
+    if M2.size==0 : M2 = np.ones_like(M2sub)
     M1sub,M2sub = make_templates_same_size(M1,M2)
 
+    # preparation
     I1f, I2f = np.fft.fft2(I1sub), np.fft.fft2(I2sub)
     M1f, M2f = np.fft.fft2(M1sub), np.fft.fft2(M2sub)
     

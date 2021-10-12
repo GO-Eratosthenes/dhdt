@@ -39,7 +39,7 @@ def coregister_to_shading(shadow,): # wip
                                np.zeros((0)), np.zeros((0)), \
                                geoTransform1, geoTransform2, \
                                temp_radius, search_radius, X_grd, Y_grd, \
-                               kernel='kroon', \
+                               kernel='none', \
                                prepro='bandpass', match='cosicorr', subpix='tpss', \
                                processing='stacking', boi=np.array([]) )
             

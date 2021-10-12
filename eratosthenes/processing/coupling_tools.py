@@ -888,8 +888,7 @@ def create_template(I,i,j,radius):
 # simple image matching
 def match_pair(M1, M2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd, \
                temp_radius=7, search_radius=22,\
-               kernel='none', \
-               prepro='bandpass', correlator='cosicorr', subpix='tpss', \
+               correlator='cosicorr', subpix='tpss', \
                processing='refine', boi=np.array([]) ):
     """
     simple image matching routine
@@ -916,16 +915,6 @@ def match_pair(M1, M2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd, \
         amount of pixels from the center
     search_radius: integer
         amount of pixels from the center
-    kernel : {'none' (default), 'sobel', 'kroon', 'robinson', 'kayyali',\
-              'prewitt', 'simoncelli'}
-        Specifies which kernel to apply to the imagery, see XXX\
-        for more information    
-    prepro : {'bandpass' (default), 'raiscos', 'highpass'}
-        Specifies which pre-procssing to apply to the imagery:
-            
-          * 'bandpass' : bandpass filter
-          * 'raiscos' : raised cosine
-          * 'highpass' : high pass filter
     correlator : {'norm_corr' (default), 'aff_of', 'cumu_corr',\
                   'sq_diff', 'sad_diff',\
                   'cosi_corr', 'phas_only', 'symm_phas', 'ampl_comp',\
@@ -963,8 +952,7 @@ def match_pair(M1, M2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd, \
                   'gauss_2', 'parab_2', 'optical_flow']
 
     # prepare
-    M1,M2 = select_boi_from_stack(M1,boi), select_boi_from_stack(M2,boi)
-        
+    M1,M2 = select_boi_from_stack(M1,boi), select_boi_from_stack(M2,boi)    
     M1,M2,i1,j1,i2,j2 = pad_images_and_filter_coord_list(M1, geoTransform1, \
                                                          M2, geoTransform2,\
                                                          X_grd, Y_grd, \
@@ -1021,16 +1009,23 @@ def match_pair(M1, M2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd, \
 # 
 
 def angles2unit(azimuth):
-    """
-    Transforms arguments in degrees to unit vector, in planar coordinates
+    """ Transforms arguments in degrees to unit vector, in planar coordinates
     
-    :param azimuth:     FLOAT 
+    Parameters
+    ----------
+    azimuth : dtype=float, unit=degrees
         argument with clockwise angle direction
-    
-    :return xy:         FLOAT
-        x mapping coordinate, in Eastwards direction
-        y mapping coordinate, in Nordwards direction
+
+    Returns
+    -------
+    xy : np.array, size=(2,1), dtype=float
+        unit vector in map coordinates, that is East and Nordwards direction
     """
+    #  coordinate frame:
+    #        |  
+    #   - <--|--> +
+    #        |
+    #        o_____
     x = np.sin(np.radians(azimuth))
     y = np.cos(np.radians(azimuth))
     
@@ -1057,22 +1052,25 @@ def get_intersection(xy_1, xy_2, xy_3, xy_4):
     xy : np.array, size=(m,2)
         array with 2D coordinate of intesection
     """
+    #        + xy_1
+    #        |
+    #        |    + xy_4
+    #        |   /
+    #        |  /
+    #        | /
+    #        |/
+    #        + xy
+    #       /|
+    #      / |
+    #     /  +xy_2
+    #    /
+    #   + xy_3
+    x_1,x_2,x_3,x_4 = xy_1[:,0], xy_2[:,0], xy_3[:,0], xy_4[:,0]
+    y_1,y_2,y_3,y_4 = xy_1[:,1], xy_2[:,1], xy_3[:,1], xy_4[:,1]
     
-    x_1 = xy_1[:,0]
-    y_1 = xy_1[:,1]
-    x_2 = xy_2[:,0]
-    y_2 = xy_2[:,1]
-    x_3 = xy_3[:,0]
-    y_3 = xy_3[:,1]
-    x_4 = xy_4[:,0]
-    y_4 = xy_4[:,1]    
-    
-    numer_1 = x_1*y_2 - y_1*x_2
-    numer_2 = x_3*y_4 - y_3*x_4
-    dx_12 = x_1 - x_2
-    dx_34 = x_3 - x_4
-    dy_12 = y_1 - y_2
-    dy_34 = y_3 - y_4
+    numer_1, numer_2 = x_1*y_2 - y_1*x_2, x_3*y_4 - y_3*x_4
+    dx_12, dy_12 = x_1 - x_2, y_1 - y_2
+    dx_34, dy_34 = x_3 - x_4, y_3 - y_4
     denom = (dx_12*dy_34 - dy_12*dx_34)
     
     x = ( numer_1 * dx_34 - dx_12 * numer_2) / denom

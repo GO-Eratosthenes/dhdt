@@ -134,8 +134,8 @@ def rotated_sobel(az, size=3):
 
     Notes
     ----- 
-    [1] Sobel, "An isotropic 3×3 gradient operator" Machine vision for 
-    three-dimensional scenes, Academic press, pp.376–379, 1990.
+    .. [1] Sobel, "An isotropic 3×3 gradient operator" Machine vision for 
+       three-dimensional scenes, Academic press, pp.376–379, 1990.
     """
     #  coordinate frame:
     #        |  
@@ -159,63 +159,64 @@ def rotated_sobel(az, size=3):
     H_x[d,d] = 0
     return H_x
     
-def get_grad_filters(ftype='sobel', size=3, order=1):
+def get_grad_filters(ftype='sobel', tsize=3, order=1):
     """ construct gradient filters
 
     Parameters
     ----------    
-    ftype : string
-        the type of gradient filter to get
-        options :   'sobel' see [1]
-                    'kroon' see [2]
-                    'scharr' see [3]
-                    'robinson' see [4],[5]
-                    'kayyali'
-                    'prewitt' see [6]
-                    'simoncelli' see [7]
-    size : integer
+    ftype : {'sobel' (default), 'kroon', 'scharr', 'robinson', 'kayyali', \
+             'prewitt', 'simoncelli'}
+        Specifies which the type of gradient filter to get:
+            
+          * 'sobel' : see [1]
+          * 'kroon' : see [2]
+          * 'scharr' : see [3]
+          * 'robinson' : see [4],[5]
+          * 'kayyali' :
+          * 'prewitt' : see [6]
+          * 'simoncelli' : see [7]
+    tsize : {3,5}, dtype=integer
         dimenson/length of the template 
-    order : integer
+    order : {1,2}, dtype=integer
         first or second order derivative (not all have this)
 
     Returns
     -------    
-    if order=1:
-            H_x : np.array
+    * order=1:
+            H_x : np.array, size=(tsize,tsize)
                 horizontal first order derivative     
-            H_y : np.array
+            H_y : np.array, size=(tsize,tsize)
                 horizontal first order derivative  
-    elif order=2:
-            H_xx : np.array
+    * order=2:
+            H_xx : np.array, size=(tsize,tsize)
                 horizontal second order derivative  
-            H_xy : np.array
+            H_xy : np.array, size=(tsize,tsize)
                 cross-directional second order derivative  
 
     Notes
     ----- 
-    [1] Sobel, "An isotropic 3×3 gradient operator" Machine vision for 
-    three-dimensional scenes, Academic press, pp.376–379, 1990.
-    application to stereo vision", Proceedings of 7th international joint 
-    conference on artificial intelligence, 1981.
-    [2] Kroon, "Numerical optimization of kernel-based image derivatives", 2009
-    [3] Scharr, "Optimal operators in digital image processing" Dissertation 
-    University of Heidelberg, 2000.
-    [4] Kirsch, "Computer determination of the constituent structure of 
-    biological images" Computers and biomedical research. vol.4(3) pp.315–32, 
-    1970.
-    [5] Roberts, "Machine perception of 3-D solids, optical and electro-optical 
-    information processing" MIT press, 1965.
-    [6] Prewitt, "Object enhancement and extraction" Picture processing and 
-    psychopictorics, 1970. 
-    [7] Farid & Simoncelli "Optimally rotation-equivariant directional 
-    derivative kernels" Proceedings of the international conference on computer 
-    analysis of images and patterns, pp207–214, 1997
+    .. [1] Sobel, "An isotropic 3×3 gradient operator" Machine vision for 
+       three-dimensional scenes, Academic press, pp.376–379, 1990.
+    .. [2] Kroon, "Numerical optimization of kernel-based image derivatives", 
+       2009
+    .. [3] Scharr, "Optimal operators in digital image processing" Dissertation 
+       University of Heidelberg, 2000.
+    .. [4] Kirsch, "Computer determination of the constituent structure of 
+       biological images" Computers and biomedical research. vol.4(3) 
+       pp.315–32, 1970.
+    .. [5] Roberts, "Machine perception of 3-D solids, optical and 
+       electro-optical information processing" MIT press, 1965.
+    .. [6] Prewitt, "Object enhancement and extraction" Picture processing and 
+       psychopictorics, 1970. 
+    .. [7] Farid & Simoncelli "Optimally rotation-equivariant directional 
+       derivative kernels" Proceedings of the international conference on 
+       computer analysis of images and patterns, pp207–214, 1997
     """
     
     ftype = ftype.lower() # make string lowercase
 
     if ftype=='kroon':
-        if size==5:
+        if tsize==5:
             if order==2:
                 H_xx = np.array([[+.0033, +.0045, -0.0156, +.0045, +.0033],
                                 [ +.0435, +.0557, -0.2032, +.0557, +.0435],
@@ -245,14 +246,14 @@ def get_grad_filters(ftype='sobel', size=3, order=1):
                 H_x = np.outer(np.array([17, 61, 17]), \
                        np.array([-1, 0, +1])) / 95
     elif ftype=='scharr':
-        if size==5:
+        if tsize==5:
             H_x = np.outer(np.array([0.0233, 0.2415, 0.4704, 0.2415, 0.0233]), \
                        np.array([-0.0836, -0.3327, 0, +0.3327, +0.0836]))
         else:
             H_x = np.outer(np.array([3, 10, 3]), \
                            np.array([-1, 0, +1])) / 16
     elif ftype=='sobel':
-        if size==5:
+        if tsize==5:
             H_x = np.outer(np.array([0.0233, 0.2415, 0.4704, 0.2415, 0.0233]), \
                        np.array([-0.0836, -0.3327, 0, +0.3327, +0.0836]))
         else:
@@ -282,25 +283,28 @@ def get_grad_filters(ftype='sobel', size=3, order=1):
     return (out1, out2)
 
 def harst_conv(I, ftype='bezier'):
-    """
-    construct gradient filters, following Harst, 2014: 
-        "Simple filter design for first and second order derivatives by a 
-        double filtering approach""
+    """ construct derivatives through double filtering [1]
 
-    :param size:       ARRAY  (_,_)
+    Parameters
+    ----------
+    I : np.array, size=(m,n)
         array with intensities
-    :param dat_path:   STRING
-        the type of gradient filter to get
-          :options : bezier - 
-                     bspline - 
-                     catmull -
-                     cubic- 
-    :return I_y:       ARRAY  (_,_)
-        gradient in vertical direction
-    :return I_x:       ARRAY  (_,_)
-        gradient in horizontal direction        
-    """
+    ftype : {'bezier', 'bspline','catmull','cubic'}
+        the type of gradient filter to use. The default is 'bezier'.
 
+    Returns
+    -------
+    I_y : np.array, size=(m,n)
+        gradient in vertical direction
+    I_x : np.array, size=(m,n)
+        gradient in horizontal direction     
+
+    Notes
+    ----- 
+    .. [1] Harst, "Simple filter design for first and second order derivatives 
+       by a double filtering approach" Pattern recognition letters, vol.42
+       pp.65–71, 2014.        
+    """
     # define kernels
     un = np.array([0.125, 0.250, 0.500, 1.000])
     up= np.array([0.75, 1.0, 1.0, 0.0]) 
@@ -340,4 +344,4 @@ def harst_conv(I, ftype='bezier'):
                              np.convolve(k, k), axis=1)
     I_x = ndimage.convolve1d(ndimage.convolve1d(I, np.convolve(k, k), axis=0), \
                              np.convolve(d, k), axis=1)
-    return (I_y, I_x)   
+    return I_y, I_x

@@ -194,9 +194,9 @@ def make_templates_same_size(I1,I2):
     assert ms>=mt # search domain should be of equal size or bigger
     assert ns>=nt
  
-    if I1.dim>I2.dim:
+    if I1.ndim>I2.ndim:
         I2 = I2[:,:,np.newaxis]
-    elif I1.dim<I2.dim:
+    elif I1.ndim<I2.ndim:
         I2 = I2[:,:,np.newaxis]
  
     md, nd = (ms-mt)//2, (ns-nt)//2
