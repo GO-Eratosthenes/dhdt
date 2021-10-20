@@ -27,6 +27,12 @@ def perdecomp(img):
     cor : np.array, size=(m,n)
         smooth component   
 
+    References
+    ----------    
+    .. [1] Moisan, L. "Periodic plus smooth image decomposition", Journal of 
+       mathematical imaging and vision vol. 39.2 pp. 161-179, 2011.    
+
+
     Example
     -------
     >>> import numpy as np
@@ -36,12 +42,9 @@ def perdecomp(img):
     >>> per,cor = perdecomp(im1)
     
     >>> spec1 = np.fft.fft2(per)
-    
-    Notes
-    -----    
-    .. [1] Moisan, L. "Periodic plus smooth image decomposition", Journal of 
-       mathematical imaging and vision vol. 39.2 pp. 161-179, 2011.    
     """
+    assert type(img)==np.ndarray, ("please provide an array")
+    
     img = img.astype(float)
     if img.ndim==2:
         (m, n) = img.shape
@@ -102,6 +105,7 @@ def normalize_power_spectrum(Q):
     >>> Qn = normalize_spectrum(Q)
   
     """    
+    assert type(Q)==np.ndarray, ("please provide an array")
     Qn = np.divide(Q, abs(Q), out=np.zeros_like(Q), where=Q!=0)
     return Qn
 
@@ -115,11 +119,15 @@ def make_fourier_grid(Q, indexing='ij', system='radians'):
     ----------
     Q : np.array, size=(m,n), dtype=complex
         Fourier based (cross-)spectrum.
-    indexing : {‘xy’, ‘ij’}, optional
-        map (‘xy’) or image (‘ij’, default) indexing used
+    indexing : {‘xy’, ‘ij’}  
+         * "xy" : using map coordinates
+         * "ij" : using local image  coordinates
     system : {‘radians’, ‘unit’, 'normalized'}
-        the extent of the cross-spectrum can span from -pi..+pi (‘radians’, 
-        default) or -1...+1 (‘unit’) or -0.5...+0.5 ('normalized')
+       the extent of the cross-spectrum can span from    
+         * "radians" : -pi..+pi (default)
+         * "unit" : -1...+1
+         * "normalized" : -0.5...+0.5
+         * "pixel" : -m/2...+m/2
     
     Returns
     -------
@@ -127,27 +135,36 @@ def make_fourier_grid(Q, indexing='ij', system='radians'):
         first coordinate index of the Fourier spectrum in a map system.
     F_2 : np,array, size=(m,n), dtype=integer
         second coordinate index  of the Fourier spectrum in a map system.
-    """
-    # metric system:         Fourier-based flip
-    #        y               +------><------+
-    #        ^               |              |
-    #        |               |              |
-    #        |               v              v
-    # <------+-------> x
-    #        |               ^              ^
-    #        |               |              |
-    #        v               +------><------+
-    #
-    # coordinate |           coordinate  ^ y
-    # system 'ij'|           system 'xy' |
-    #            |                       |
-    #            |       i               |       x 
-    #    --------+-------->      --------+-------->
-    #            |                       |
-    #            |                       |
-    #            | j                     |
-    #            v                       |
     
+    Notes
+    -----
+        .. code-block:: text
+
+          metric system:         Fourier-based flip
+                 y               +------><------+
+                 ^               |              |
+                 |               |              |
+                 |               v              v
+          <------+-------> x
+                 |               ^              ^
+                 |               |              |
+                 v               +------><------+
+
+    It is important to know what type of coordinate systems exist, hence:
+       
+        .. code-block:: text
+            
+          coordinate |           coordinate  ^ y
+          system 'ij'|           system 'xy' |
+                     |                       |
+                     |       j               |       x 
+             --------+-------->      --------+-------->
+                     |                       |
+                     |                       |
+                     | i                     |
+                     v                       |
+   """     
+    assert type(Q)==np.ndarray, ("please provide an array")
     (m,n) = Q.shape
     if indexing=='ij':
         (I_grd,J_grd) = np.meshgrid(np.arange(0,n)-(n//2), 
@@ -164,6 +181,9 @@ def make_fourier_grid(Q, indexing='ij', system='radians'):
     if system=='radians': # what is the range of the axis
         F_1 *= 2*np.pi
         F_2 *= 2*np.pi
+    elif system=='pixel':
+        F_1 *= n
+        F_1 *= m
     elif system=='unit':
         F_1 *= 2
         F_2 *= 2
@@ -192,6 +212,16 @@ def raised_cosine(I, beta=0.35):
     --------
     tpss   
 
+    References
+    ----------    
+    .. [1] Stone et al. "A fast direct Fourier-based algorithm for subpixel 
+       registration of images." IEEE Transactions on geoscience and remote 
+       sensing. vol. 39(10) pp. 2235-2243, 2001.
+    .. [2] Leprince, et.al. "Automatic and precise orthorectification, 
+       coregistration, and subpixel correlation of satellite images, 
+       application to ground deformation measurements", IEEE Transactions on 
+       geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.
+
     Example
     -------
     >>> import numpy as np
@@ -204,18 +234,9 @@ def raised_cosine(I, beta=0.35):
     >>> rc2 = raised_cosine(spec2, beta=0.50)
     
     >>> Q = (rc1*spec1) * np.conjugate((rc2*spec2)) # Fourier based image matching
-    >>> Qn = normalize_spectrum(Q)
-    
-    Notes
-    -----    
-    .. [1] Stone et al. "A fast direct Fourier-based algorithm for subpixel 
-       registration of images." IEEE Transactions on geoscience and remote 
-       sensing. vol. 39(10) pp. 2235-2243, 2001.
-    .. [2] Leprince, et.al. "Automatic and precise orthorectification, 
-       coregistration, and subpixel correlation of satellite images, 
-       application to ground deformation measurements", IEEE Transactions on 
-       geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.    
+    >>> Qn = normalize_spectrum(Q)    
     """ 
+    assert type(I)==np.ndarray, ("please provide an array")
     (m, n) = I.shape
    
     Fx,Fy = make_fourier_grid(I, indexing='xy', system='normalized')
@@ -249,6 +270,7 @@ def hamming_window(I):
     hamming_window
         
     """
+    assert type(I)==np.ndarray, ("please provide an array")
     (m, n) = I.shape
     W = np.sqrt(np.outer(np.hamming(m), np.hamming(n)))
     W = np.fft.fftshift(W)
@@ -273,6 +295,7 @@ def hanning_window(I):
     hamming_window
         
     """
+    assert type(I)==np.ndarray, ("please provide an array")
     (m, n) = I.shape
     W = np.sqrt(np.outer(np.hanning(m), np.hanning(n)))
     W = np.fft.fftshift(W)
@@ -297,6 +320,7 @@ def blackman_window(I):
     hanning_window
         
     """
+    assert type(I)==np.ndarray, ("please provide an array")
     (m, n) = I.shape
     W = np.sqrt(np.outer(np.blackman(m), np.blackman(n)))
     W = np.fft.fftshift(W)
@@ -326,6 +350,7 @@ def kaiser_window(I, beta=14.):
     hanning_window
         
     """
+    assert type(I)==np.ndarray, ("please provide an array")
     (m, n) = I.shape
     W = np.sqrt(np.outer(np.kaiser(m, beta), np.kaiser(n, beta)))
     W = np.fft.fftshift(W)
@@ -350,13 +375,14 @@ def low_pass_rectancle(I, r=0.50):
     --------
     low_pass_circle, low_pass_pyramid, low_pass_bell
     
-    Notes
-    -----
-    [1] Takita et al. "High-accuracy subpixel image registration based on 
-    phase-only correlation" IEICE transactions on fundamentals of electronics, 
-    communications and computer sciences, vol.86(8) pp.1925-1934, 2003.
+    References
+    ----------
+    .. [1] Takita et al. "High-accuracy subpixel image registration based on 
+       phase-only correlation" IEICE transactions on fundamentals of 
+       electronics, communications and computer sciences, vol.86(8) 
+       pp.1925-1934, 2003.
     """
-
+    assert type(I)==np.ndarray, ("please provide an array")
     Fx,Fy = make_fourier_grid(I, indexing='xy', system='normalized')
 
     # filter formulation 
@@ -382,12 +408,14 @@ def low_pass_pyramid(I, r=0.50):
     --------
     low_pass_rectancle, low_pass_circle, low_pass_bell
     
-    Notes
-    -----
-    [1] Takita et al. "High-accuracy subpixel image registration based on 
-    phase-only correlation" IEICE transactions on fundamentals of electronics, 
-    communications and computer sciences, vol.86(8) pp.1925-1934, 2003.    
+    References
+    ----------
+    .. [1] Takita et al. "High-accuracy subpixel image registration based on 
+       phase-only correlation" IEICE transactions on fundamentals of 
+       electronics, communications and computer sciences, vol.86(8) 
+       pp.1925-1934, 2003.    
     """
+    assert type(I)==np.ndarray, ("please provide an array")
     R = low_pass_rectancle(I, r)
     W = signal.convolve2d(R.astype(float), R.astype(float), \
                           mode='same', boundary='wrap')
@@ -413,12 +441,14 @@ def low_pass_bell(I, r=0.50):
     --------
     low_pass_rectancle, low_pass_circle, low_pass_pyramid
     
-    Notes
-    -----
-    [1] Takita et al. "High-accuracy subpixel image registration based on 
-    phase-only correlation" IEICE transactions on fundamentals of electronics, 
-    communications and computer sciences, vol.86(8) pp.1925-1934, 2003.
+    References
+    ----------
+    .. [1] Takita et al. "High-accuracy subpixel image registration based on 
+       phase-only correlation" IEICE transactions on fundamentals of 
+       electronics, communications and computer sciences, vol.86(8) 
+       pp.1925-1934, 2003.
     """
+    assert type(I)==np.ndarray, ("please provide an array")
     R1 = low_pass_rectancle(I, r)
     R2 = low_pass_pyramid(I, r)
     W = signal.convolve2d(R1.astype(float), R2.astype(float), \
@@ -443,10 +473,9 @@ def low_pass_circle(I, r=0.50):
     
     See Also
     --------
-    raised_cosine, cosine_bell, high_pass_circle
-        
-    """
-    
+    raised_cosine, cosine_bell, high_pass_circle       
+    """   
+    assert type(I)==np.ndarray, ("please provide an array")
     Fx,Fy = make_fourier_grid(I, indexing='xy', system='normalized')
     R = np.sqrt(Fx**2 + Fy**2) # radius
     # filter formulation 
@@ -470,10 +499,9 @@ def high_pass_circle(I, r=0.50):
     
     See Also
     --------
-    raised_cosine, cosine_bell, low_pass_circle
-        
+    raised_cosine, cosine_bell, low_pass_circle      
     """
-    
+    assert type(I)==np.ndarray, ("please provide an array")
     Fx,Fy = make_fourier_grid(I, indexing='xy', system='normalized')
     R = np.sqrt(Fx**2 + Fy**2) # radius
     # filter formulation 
@@ -497,6 +525,7 @@ def cosine_bell(I):
     --------
     raised_cosine     
     """
+    assert type(I)==np.ndarray, ("please provide an array")
     Fx,Fy = make_fourier_grid(I, indexing='xy', system='normalized')
     R = np.sqrt(Fx**2 + Fy**2) # radius
     
@@ -506,6 +535,7 @@ def cosine_bell(I):
     return W
 
 def cross_shading_filter(Q): #, az_1, az_2): # wip
+    assert type(Q)==np.ndarray, ("please provide an array")
     (m,n) = Q.shape    
     Coh = local_coherence(np.fft.fftshift(Q))
     R = np.fft.fftshift(low_pass_circle(Q, r=0.50))
@@ -556,8 +586,8 @@ def thresh_masking(S, m=1e-4, s=10):
     --------
     tpss   
     
-    Notes
-    ----- 
+    References
+    ---------- 
     .. [1] Stone et al. "A fast direct Fourier-based algorithm for subpixel 
         registration of images." IEEE Transactions on geoscience and remote 
         sensing vol. 39(10) pp. 2235-2243, 2001.
@@ -566,11 +596,12 @@ def thresh_masking(S, m=1e-4, s=10):
         application to ground deformation measurements", IEEE Transactions on 
         geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.    
     """    
-    Sbar = np.abs(S)
-    th = np.max(Sbar)*m
+    assert type(S)==np.ndarray, ("please provide an array")
+    S_bar = np.abs(S)
+    th = np.max(S_bar)*m
     
     # compose filter
-    M = Sbar>th
+    M = S_bar>th
     M = ndimage.median_filter(M, size=(s,s))
     return M
 
@@ -593,13 +624,14 @@ def adaptive_masking(S, m=.9):
     --------
     tpss   
     
-    Notes
-    ----- 
+    References
+    ---------- 
     .. [1] Leprince, et.al. "Automatic and precise orthorectification, 
         coregistration, and subpixel correlation of satellite images, 
         application to ground deformation measurements", IEEE Transactions on 
         geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.    
     """ 
+    assert type(S)==np.ndarray, ("please provide an array")
     np.seterr(divide = 'ignore') 
     LS = np.log10(np.abs(S))
     LS[np.isinf(LS)] = np.nan
@@ -648,6 +680,8 @@ def local_coherence(Q, ds=1):
     >>> plt.imshow(C), cmap='OrRd'), plt.colorbar(), plt.show()
     >>> plt.imshow(Q), cmap='twilight'), plt.colorbar(), plt.show()
     """
+    assert type(Q)==np.ndarray, ("please provide an array")
+    
     diam = 2*ds+1
     C = np.zeros_like(Q)
     (isteps,jsteps) = np.meshgrid(np.linspace(-ds,+ds,2*ds+1, dtype=int), \
@@ -681,6 +715,11 @@ def gaussian_mask(S):
     --------
     tpss   
 
+    References
+    ---------- 
+    .. [1] Eckstein et al. "Phase correlation processing for DPIV 
+       measurements", Experiments in fluids, vol.45 pp.485-500, 2008.
+
     Example
     --------
     >>> import numpy as np
@@ -693,12 +732,8 @@ def gaussian_mask(S):
 
     >>> W = gaussian_mask(Q)
     >>> C = np.fft.ifft2(W*Q)
-   
-    Notes
-    ----- 
-    .. [1] Eckstein et al. "Phase correlation processing for DPIV 
-       measurements", Experiments in fluids, vol.45 pp.485-500, 2008.
     """
+    assert type(S)==np.ndarray, ("please provide an array")
     (m,n) = S.shape
     Fx,Fy = make_fourier_grid(S, indexing='xy', system='normalized')
     

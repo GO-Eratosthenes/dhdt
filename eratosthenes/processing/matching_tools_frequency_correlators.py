@@ -34,9 +34,10 @@ def get_cosine_matrix(I,N=None): #wip
     for k in range(L):
         for n in range(N):
             if k == 0:
-                C[k,n] = np.sqrt(1/L)
+                C[k,n] = np.sqrt(np.divide(1, L, out=np.zeros_like(L), where=L!=0))
             else:
-                C[k,n] = np.sqrt(2/L)*np.cos((np.pi*k*(1/2+n))/L)
+                C[k,n] = np.sqrt(np.divide(2, L, out=np.zeros_like(L), where=L!=0))*\
+                    np.cos(np.divide(np.pi*k*(1/2+n), L, out=np.zeros_like(L), where=L!=0))
     return(C)
 
 def get_sine_matrix(I,N=None): #wip
@@ -48,9 +49,10 @@ def get_sine_matrix(I,N=None): #wip
     for k in range(L):
         for n in range(N):
             if k == 0:
-                C[k,n] = np.sqrt(1/L)
+                C[k,n] = np.sqrt(np.divide(1, L, out=np.zeros_like(L), where=L!=0))
             else:
-                C[k,n] = np.sqrt(2/L)*np.sin((np.pi*k*(1/2+n))/L)
+                C[k,n] = np.sqrt(np.divide(2, L, out=np.zeros_like(L), where=L!=0))*\
+                    np.sin(np.divide(np.pi*k*(1/2+n), L, out=np.zeros_like(L), where=L!=0))
     return(C)
 
 def upsample_dft(Q, up_m=0, up_n=0, upsampling=1, \
@@ -72,6 +74,7 @@ def upsample_dft(Q, up_m=0, up_n=0, upsampling=1, \
     return Q_up
 
 def pad_dft(Q, m_new, n_new):
+    assert type(Q)==np.ndarray, ("please provide an array")
     (m,n) = Q.shape
     
     Q_ij = np.fft.fftshift(Q) # in normal configuration
@@ -95,6 +98,9 @@ def pad_dft(Q, m_new, n_new):
 
 # frequency/spectrum matching functions
 def cosi_corr(I1, I2, beta1=.35, beta2=.50, m=1e-4):
+    assert type(I1)==np.ndarray, ('please provide an array')
+    assert type(I2)==np.ndarray, ('please provide an array')
+    
     mt,nt = I1.shape[0], I1.shape[1] # dimensions of the template
     
     W1 = raised_cosine(np.zeros((mt,nt)), beta1) 
@@ -162,11 +168,14 @@ def cosine_corr(I1, I2):
     --------
     create_complex_DCT, sign_only_corr
     
-    Notes
-    -----    
+    References
+    ----------    
     .. [1] Li, et al. "DCT-based phase correlation motion estimation", 
        IEEE international conference on image processing, vol. 1, 2004.
-    """    
+    """  
+    assert type(I1)==np.ndarray, ('please provide an array')
+    assert type(I2)==np.ndarray, ('please provide an array')
+    
     # construct cosine and sine basis matrices
     Cc, Cs = get_cosine_matrix(I1), get_sine_matrix(I1)
 
@@ -197,14 +206,19 @@ def cosine_corr(I1, I2):
         # C1 = create_complex_DCT(I1sub, Cc, Cs)
         # C2 = create_complex_DCT(I2sub, Cc, Cs)
         Q = (C1)*np.conj(C2)
-        Q = Q/np.abs(Q)
+        Q = normalize_power_spectrum(Q)
         C = np.fft.fftshift(np.real(np.fft.ifft2(Q)))
     return C        
 
 def masked_cosine_corr(I1, I2, M1, M2): # wip
     '''
     work in progress
-    '''    
+    '''  
+    assert type(I1)==np.ndarray, ('please provide an array')
+    assert type(I2)==np.ndarray, ('please provide an array')
+    assert type(M1)==np.ndarray, ('please provide an array')
+    assert type(M2)==np.ndarray, ('please provide an array')
+    
     M1, M2 = M1.astype(dtype=bool), M2.astype(dtype=bool)
     
     # construct cosine and sine basis matrices
@@ -275,6 +289,24 @@ def phase_only_corr(I1, I2):
     See Also
     --------
     phase_corr, symmetric_phase_corr, amplitude_comp_corr   
+    
+    Notes
+    ----- 
+    The matching equations are as follows:
+
+    .. math:: \mathbf{S}_1, \mathbf{S}_2 = \mathcal{F}[\mathbf{I}_1], \mathcal{F}[\mathbf{I}_2]
+    .. math:: \mathbf{W} = 1 / \mathbf{S}_2
+    .. math:: \mathbf{Q}_{12} = \mathbf{S}_1 [\mathbf{W}\mathbf{S}_2]^{\star}
+    
+    where :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star` a complex conjugate operation
+
+    References
+    ----------
+    .. [1] Horner & Gianino, "Phase-only matched filtering", Applied optics, 
+       vol. 23(6) pp.812--816, 1984.
+    .. [2] Kumar & Juday, "Design of phase-only, binary phase-only, and complex 
+       ternary matched filters with increased signal-to-noise ratios for 
+       colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
 
     Example
     -------
@@ -289,23 +321,10 @@ def phase_only_corr(I1, I2):
     
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
-    
-    Notes
-    ----- 
-    The matching equations are as follows:
-
-    .. math:: \mathbf{S}_1, \mathbf{S}_2 = \mathcal{F}[\mathbf{I}_1], \mathcal{F}[\mathbf{I}_2]
-    .. math:: \mathbf{W} = 1 / \mathbf{S}_2
-    .. math:: \mathbf{Q}_{12} = \mathbf{S}_1 [\mathbf{W}\mathbf{S}_2]^{\star}
-    
-    where :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star` a complex conjugate operation
-
-    .. [1] Horner & Gianino, "Phase-only matched filtering", Applied optics, 
-       vol. 23(6) pp.812--816, 1984.
-    .. [2] Kumar & Juday, "Design of phase-only, binary phase-only, and complex 
-       ternary matched filters with increased signal-to-noise ratios for 
-       colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
     """  
+    assert type(I1)==np.ndarray, ('please provide an array')
+    assert type(I2)==np.ndarray, ('please provide an array')
+
     if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
         I1sub,I2sub = make_templates_same_size(I1,I2)
         bands = I1.shape[2]
@@ -315,7 +334,7 @@ def phase_only_corr(I1, I2):
             
             S1, S2 = np.fft.fft2(I1bnd), np.fft.fft2(I2bnd) 
             W2 = np.divide(1, np.abs(I2bnd), 
-                           out=np.zeros_like(I2bnd), where=np.abs(I2bnd)!=0)
+                           out=np.zeros_like(I2bnd), where=I2bnd!=0)
             if i == 0:
                 Q = (S1)*np.conj((W2*S2))
             else:
@@ -328,7 +347,7 @@ def phase_only_corr(I1, I2):
         S1, S2 = np.fft.fft2(I1sub), np.fft.fft2(I2sub)
         
         W2 = np.divide(1, np.abs(I2sub), 
-                       out=np.zeros_like(I2sub), where=np.abs(I2sub)!=0)
+                       out=np.zeros_like(I2sub), where=I2sub!=0)
         
         Q = (S1)*np.conj((W2*S2))
     return Q
@@ -352,13 +371,16 @@ def projected_phase_corr(I1, I2, M1=np.array(()), M2=np.array(())):
     C : np.array, size=(m,n), real
         displacement surface
     
-    Notes
-    -----    
+    References
+    ----------    
     .. [1] Zhang et al. "An efficient subpixel image registration based on the 
        phase-only correlations of image projections", IEEE proceedings of the
        10th international symposium on communications and information
        technologies, 2010.
     """
+    assert type(I1)==np.ndarray, ('please provide an array')
+    assert type(I2)==np.ndarray, ('please provide an array')
+
     I1sub,I2sub = make_templates_same_size(I1,I2)
     
     if M1.size==0 : M1 = np.ones_like(I1sub)
@@ -413,13 +435,16 @@ def sign_only_corr(I1, I2): # to do
     --------
     cosine_corr 
     
-    Notes
-    -----    
+    References
+    ----------   
     .. [1] Ito & Kiya, "DCT sign-only correlation with application to image
            matching and the relationship with phase-only correlation", 
            IEEE international conference on acoustics, speech and signal 
            processing, vol. 1, 2007. 
     """ 
+    assert type(I1)==np.ndarray, ('please provide an array')
+    assert type(I2)==np.ndarray, ('please provide an array')
+
     if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
         I1sub,I2sub = make_templates_same_size(I1,I2)
         bands = I1.shape[2]
@@ -469,6 +494,24 @@ def symmetric_phase_corr(I1, I2):
     -------
     Q : np.array, size=(m,n), dtype=complex
         cross-spectrum
+    
+    Notes
+    -----    
+    The matching equations are as follows:
+
+    .. math:: \mathbf{S}_1, \mathbf{S}_2 = \mathcal{F}[\mathbf{I}_1], \mathcal{F}[\mathbf{I}_2]
+    .. math:: \mathbf{W} = 1 / \sqrt{||\mathbf{S}_1||||\mathbf{S}_2||}
+    .. math:: \mathbf{Q}_{12} = \mathbf{S}_1 [\mathbf{W}\mathbf{S}_2]^{\star}
+    
+    where :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star` a complex conjugate operation
+
+    References
+    ----------
+    .. [1] Nikias & Petropoulou. "Higher order spectral analysis: a nonlinear 
+       signal processing framework", Prentice hall. pp.313-322, 1993.
+    .. [2] Wernet. "Symmetric phase only filtering: a new paradigm for DPIV 
+       data processing", Measurement science and technology, vol.16 pp.601-618, 
+       2005.
 
     Example
     -------
@@ -483,23 +526,10 @@ def symmetric_phase_corr(I1, I2):
     
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
-    
-    Notes
-    -----    
-    The matching equations are as follows:
-
-    .. math:: \mathbf{S}_1, \mathbf{S}_2 = \mathcal{F}[\mathbf{I}_1], \mathcal{F}[\mathbf{I}_2]
-    .. math:: \mathbf{W} = 1 / \sqrt{||\mathbf{S}_1||||\mathbf{S}_2||}
-    .. math:: \mathbf{Q}_{12} = \mathbf{S}_1 [\mathbf{W}\mathbf{S}_2]^{\star}
-    
-    where :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star` a complex conjugate operation
-
-    .. [1] Nikias & Petropoulou. "Higher order spectral analysis: a nonlinear 
-       signal processing framework", Prentice hall. pp.313-322, 1993.
-    .. [2] Wernet. "Symmetric phase only filtering: a new paradigm for DPIV 
-       data processing", Measurement science and technology, vol.16 pp.601-618, 
-       2005.
     """
+    assert type(I1)==np.ndarray, ('please provide an array')
+    assert type(I2)==np.ndarray, ('please provide an array')
+
     if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
         I1sub,I2sub = make_templates_same_size(I1,I2)
         bands = I1.shape[2]
@@ -540,6 +570,11 @@ def amplitude_comp_corr(I1, I2, F_0=0.04):
     -------
     Q : np.array, size=(m,n), dtype=complex
         cross-spectrum
+        
+    References
+    ----------    
+    .. [1] Mu et al. "Amplitude-compensated matched filtering", Applied optics, 
+       vol. 27(16) pp. 3461-3463, 1988.    
 
     Example
     -------
@@ -554,12 +589,10 @@ def amplitude_comp_corr(I1, I2, F_0=0.04):
     
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
-    
-    Notes
-    -----    
-    .. [1] Mu et al. "Amplitude-compensated matched filtering", Applied optics, 
-       vol. 27(16) pp. 3461-3463, 1988.
     """
+    assert type(I1)==np.ndarray, ('please provide an array')
+    assert type(I2)==np.ndarray, ('please provide an array')
+
     if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
         I1sub,I2sub = make_templates_same_size(I1,I2)
         bands = I1.shape[2]
@@ -570,8 +603,10 @@ def amplitude_comp_corr(I1, I2, F_0=0.04):
             S1, S2 = np.fft.fft2(I1bnd), np.fft.fft2(I2bnd) 
             s_0 = F_0 * np.amax(abs(S2))
             
-            W = np.divide(1, abs(I2sub) )
-            A = np.divide(s_0, abs(I2sub)**2)
+            W = np.divide(1, abs(I2sub), \
+                          out=np.zeros_like(I2sub), where=I2sub!=0 )
+            A = np.divide(s_0, abs(I2sub)**2, \
+                          out=np.zeros_like(I2sub), where=I2sub!=0)
             W[abs(S2)>s_0] = A
             if i == 0:
                 Q = (S1)*np.conj((W*S2))
@@ -585,8 +620,10 @@ def amplitude_comp_corr(I1, I2, F_0=0.04):
         S1, S2 = np.fft.fft2(I1sub), np.fft.fft2(I2sub)
         s_0 = F_0 * np.amax(abs(S2))
             
-        W = np.divide(1, abs(I2sub) )
-        A = np.divide(s_0, abs(I2sub)**2)
+        W = np.divide(1, abs(I2sub), \
+                      out=np.zeros_like(I2sub), where=I2sub!=0)
+        A = np.divide(s_0, abs(I2sub)**2, \
+                      out=np.zeros_like(I2sub), where=I2sub!=0)
         W[abs(S2)>s_0] = A[abs(S2)>s_0]
         
         Q = (S1)*np.conj((W*S2))
@@ -607,6 +644,13 @@ def robust_corr(I1, I2):
     Q : np.array, size=(m,n), dtype=complex
         cross-spectrum
 
+    References
+    ----------    
+    .. [1] Fitch et al. "Fast robust correlation", IEEE transactions on image 
+       processing vol. 14(8) pp. 1063-1073, 2005.
+    .. [2] Essannouni et al. "Adjustable SAD matching algorithm using frequency 
+       domain" Journal of real-time image processing, vol.1 pp.257-265
+
     Example
     -------
     >>> import numpy as np
@@ -620,14 +664,10 @@ def robust_corr(I1, I2):
     
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
-    
-    Notes
-    -----    
-    .. [1] Fitch et al. "Fast robust correlation", IEEE transactions on image 
-       processing vol. 14(8) pp. 1063-1073, 2005.
-    .. [2] Essannouni et al. "Adjustable SAD matching algorithm using frequency 
-       domain" Journal of real-time image processing, vol.1 pp.257-265
     """
+    assert type(I1)==np.ndarray, ('please provide an array')
+    assert type(I2)==np.ndarray, ('please provide an array')
+
     I1sub,I2sub = make_templates_same_size(I1,I2)
     
     p_steps = 10**np.arange(0,1,.5)
@@ -661,6 +701,14 @@ def orientation_corr(I1, I2):
     --------
     phase_corr, windrose_corr   
 
+    References
+    ---------- 
+    .. [1] Fitch et al. "Orientation correlation", Proceeding of the Britisch 
+       machine vison conference, pp. 1--10, 2002.
+    .. [2] Heid & Kääb. "Evaluation of existing image matching methods for 
+       deriving glacier surface displacements globally from optical satellite 
+       imagery", Remote sensing of environment, vol. 118 pp. 339-355, 2012.
+
     Example
     -------
     >>> import numpy as np
@@ -674,15 +722,10 @@ def orientation_corr(I1, I2):
     
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
-    
-    Notes
-    ----- 
-    .. [1] Fitch et al. "Orientation correlation", Proceeding of the Britisch 
-       machine vison conference, pp. 1--10, 2002.
-    .. [2] Heid & Kääb. "Evaluation of existing image matching methods for 
-       deriving glacier surface displacements globally from optical satellite 
-       imagery", Remote sensing of environment, vol. 118 pp. 339-355, 2012.
     """     
+    assert type(I1)==np.ndarray, ('please provide an array')
+    assert type(I2)==np.ndarray, ('please provide an array')
+
     if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
         I1sub,I2sub = make_templates_same_size(I1,I2)
         bands = I1.shape[2]
@@ -727,6 +770,12 @@ def windrose_corr(I1, I2):
     --------
     orientation_corr, phase_only_corr   
 
+    References
+    ----------    
+    .. [1] Kumar & Juday, "Design of phase-only, binary phase-only, and complex 
+       ternary matched filters with increased signal-to-noise ratios for 
+       colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
+
     Example
     -------
     >>> import numpy as np
@@ -740,13 +789,10 @@ def windrose_corr(I1, I2):
     
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
-    
-    Notes
-    -----    
-    .. [1] Kumar & Juday, "Design of phase-only, binary phase-only, and complex 
-       ternary matched filters with increased signal-to-noise ratios for 
-       colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
     """ 
+    assert type(I1)==np.ndarray, ('please provide an array')
+    assert type(I2)==np.ndarray, ('please provide an array')
+
     if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
         I1sub,I2sub = make_templates_same_size(I1,I2)
         bands = I1.shape[2]
@@ -788,6 +834,12 @@ def phase_corr(I1, I2):
     --------
     orientation_corr, cross_corr   
 
+    References
+    ----------    
+    .. [1] Kuglin & Hines. "The phase correlation image alignment method",
+       proceedings of the IEEE international conference on cybernetics and 
+       society, pp. 163-165, 1975.
+
     Example
     -------
     >>> import numpy as np
@@ -801,13 +853,10 @@ def phase_corr(I1, I2):
     
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
-    
-    Notes
-    -----    
-    .. [1] Kuglin & Hines. "The phase correlation image alignment method",
-       proceedings of the IEEE international conference on cybernetics and 
-       society, pp. 163-165, 1975.
     """
+    assert type(I1)==np.ndarray, ('please provide an array')
+    assert type(I2)==np.ndarray, ('please provide an array')
+
     if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
         I1sub,I2sub = make_templates_same_size(I1,I2)
         bands = I1.shape[2]
@@ -819,10 +868,11 @@ def phase_corr(I1, I2):
             
             if i == 0:
                 Q = (S1)*np.conj(S2)
-                Q = np.divide(Q, abs(Q))
+                Q = normalize_power_spectrum(Q)
             else:
                 Q_b = (S1)*np.conj(S2)
-                Q_b = np.divide(Q_b, abs(Q))
+                Q_b = np.divide(Q_b, np.abs(Q), \
+                                out=np.zeros_like(Q), where=Q!=0)
                 Q = (1/(i+1))*Q_b + (i/(i+1))*Q
         
     else:    
@@ -830,7 +880,7 @@ def phase_corr(I1, I2):
         
         S1, S2 = np.fft.fft2(I1sub), np.fft.fft2(I2sub)
         Q = (S1)*np.conj(S2)
-        Q = np.divide(Q, abs(Q))
+        Q = normalize_power_spectrum(Q)
     return Q
 
 def gaussian_transformed_phase_corr(I1, I2):
@@ -852,6 +902,11 @@ def gaussian_transformed_phase_corr(I1, I2):
     --------
     phase_corr 
 
+    References
+    ----------    
+    .. [1] Eckstein et al. "Phase correlation processing for DPIV 
+       measurements", Experiments in fluids, vol.45 pp.485-500, 2008.
+
     Example
     -------
     >>> import numpy as np
@@ -865,12 +920,10 @@ def gaussian_transformed_phase_corr(I1, I2):
     
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
-    
-    Notes
-    -----    
-    .. [1] Eckstein et al. "Phase correlation processing for DPIV 
-       measurements", Experiments in fluids, vol.45 pp.485-500, 2008.
     """
+    assert type(I1)==np.ndarray, ('please provide an array')
+    assert type(I2)==np.ndarray, ('please provide an array')
+
     if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
         I1sub,I2sub = make_templates_same_size(I1,I2)
         bands = I1.shape[2]
@@ -882,12 +935,13 @@ def gaussian_transformed_phase_corr(I1, I2):
             
             if i == 0:
                 Q = (S1)*np.conj(S2)
-                Q = np.divide(Q, abs(Q))
+                Q = normalize_power_spectrum(Q)
                 M = gaussian_mask(S1)
                 Q = np.multiply(M, Q)
             else:
                 Q_b = (S1)*np.conj(S2)
-                Q_b = np.divide(Q_b, abs(Q))
+                Q_b = np.divide(Q_b, np.abs(Q),\
+                                out=np.zeros_like(Q), where=Q!=0)
                 Q_b = np.multiply(M, Q_b)
                 Q = (1/(i+1))*Q_b + (i/(i+1))*Q
         
@@ -896,7 +950,7 @@ def gaussian_transformed_phase_corr(I1, I2):
         
         S1, S2 = np.fft.fft2(I1sub), np.fft.fft2(I2sub)
         Q = (S1)*np.conj(S2)
-        Q = np.divide(Q, abs(Q))
+        Q = normalize_power_spectrum(Q)
         
         M = gaussian_mask(Q)
         Q = np.multiply(M, Q)
@@ -921,6 +975,11 @@ def upsampled_cross_corr(S1, S2, upsampling=2):
     --------
     pad_dft, upsample_dft 
 
+    References
+    ---------- 
+    .. [1] Guizar-Sicairo, et al. "Efficient subpixel image registration 
+       algorithms", Applied optics, vol. 33 pp.156--158, 2008.
+
     Example
     -------
     >>> import numpy as np
@@ -932,12 +991,10 @@ def upsampled_cross_corr(S1, S2, upsampling=2):
     
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
-    
-    Notes
-    ----- 
-    .. [1] Guizar-Sicairo, et al. "Efficient subpixel image registration 
-       algorithms", Applied optics, vol. 33 pp.156--158, 2008.
     """  
+    assert type(S1)==np.ndarray, ('please provide an array')
+    assert type(S2)==np.ndarray, ('please provide an array')
+
     (m,n) = S1.shape
     S1,S2 = pad_dft(S1, 2*m, 2*n), pad_dft(S2, 2*m, 2*n)
 #    Q = S1*conj(S2)
@@ -993,6 +1050,12 @@ def cross_corr(I1, I2):
     --------
     phase_corr  
 
+    References
+    ---------- 
+    .. [1] Heid & Kääb. "Evaluation of existing image matching methods for 
+       deriving glacier surface displacements globally from optical satellite 
+       imagery", Remote sensing of environment, vol. 118 pp. 339-355, 2012.
+
     Example
     -------
     >>> import numpy as np
@@ -1006,13 +1069,10 @@ def cross_corr(I1, I2):
     
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
-    
-    Notes
-    ----- 
-    .. [1] Heid & Kääb. "Evaluation of existing image matching methods for 
-       deriving glacier surface displacements globally from optical satellite 
-       imagery", Remote sensing of environment, vol. 118 pp. 339-355, 2012.
     """ 
+    assert type(I1)==np.ndarray, ('please provide an array')
+    assert type(I2)==np.ndarray, ('please provide an array')
+
     if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
         I1sub,I2sub = make_templates_same_size(I1,I2)
         bands = I1.shape[2]
@@ -1054,6 +1114,12 @@ def binary_orientation_corr(I1, I2):
     --------
     orientation_corr, phase_only_corr   
 
+    References
+    ----------    
+    .. [1] Kumar & Juday, "Design of phase-only, binary phase-only, and complex 
+       ternary matched filters with increased signal-to-noise ratios for 
+       colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
+
     Example
     -------
     >>> import numpy as np
@@ -1067,13 +1133,10 @@ def binary_orientation_corr(I1, I2):
     
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
-    
-    Notes
-    -----    
-    .. [1] Kumar & Juday, "Design of phase-only, binary phase-only, and complex 
-       ternary matched filters with increased signal-to-noise ratios for 
-       colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
     """ 
+    assert type(I1)==np.ndarray, ('please provide an array')
+    assert type(I2)==np.ndarray, ('please provide an array')
+
     if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
         I1sub,I2sub = make_templates_same_size(I1,I2)
         bands = I1.shape[2]
@@ -1118,6 +1181,11 @@ def masked_corr(I1, I2, M1=np.array(()), M2=np.array(())):
     NCC : np.array, size=(m,n)
         correlation surface
 
+    References
+    ----------    
+    .. [1] Padfield. "Masked object registration in the Fourier domain", 
+       IEEE transactions on image processing, vol. 21(5) pp. 2706-2718, 2011.
+
     Example
     -------
     >>> import numpy as np
@@ -1132,16 +1200,16 @@ def masked_corr(I1, I2, M1=np.array(()), M2=np.array(())):
     
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
-    
-    Notes
-    -----    
-    .. [1] Padfield. "Masked object registration in the Fourier domain", 
-       IEEE transactions on image processing, vol. 21(5) pp. 2706-2718, 2011.
     """
+    assert type(I1)==np.ndarray, ('please provide an array')
+    assert type(I2)==np.ndarray, ('please provide an array')
+    assert type(M1)==np.ndarray, ('please provide an array')
+    assert type(M2)==np.ndarray, ('please provide an array')
+
     # init
     I1sub,I2sub = make_templates_same_size(I1,I2)
     if M1.size==0 : M1 = np.ones_like(I1sub)
-    if M2.size==0 : M2 = np.ones_like(M2sub)
+    if M2.size==0 : M2 = np.ones_like(I2sub)
     M1sub,M2sub = make_templates_same_size(M1,M2)
 
     # preparation

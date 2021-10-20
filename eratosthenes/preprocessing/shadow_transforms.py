@@ -8,14 +8,14 @@ from .color_transforms import \
 from .image_transforms import s_curve
 
 def enhance_shadow(method, Blue, Green, Red, RedEdge, Near, Shw):
-    """ Given a specific method, employ shadow transform     
+    """ Given a specific method, employ shadow transform
 
     Parameters
     ----------
     method : {‘siz’,’ isi’,’ sei’,’ fcsdi’, ‘nsvi’, ‘nsvdi’, ‘sil’, ‘sr’,\
               ‘sdi’, ‘sisdi’, ‘mixed’, ‘c3’, ‘entropy’, ‘shi’,’ sp’}
         method name to be implemented,can be one of the following:
-            
+
         * 'siz' : shadow index first version
         * 'isi' : improved shadow index
         * 'sei' : shadow enhancement index
@@ -30,7 +30,7 @@ def enhance_shadow(method, Blue, Green, Red, RedEdge, Near, Shw):
         * 'c3' : color invariant
         * 'entropy' : entropy shade removal
         * 'shi' : shade index
-        * 'sp' : shadow probabilities        
+        * 'sp' : shadow probabilities
     Blue : np.array, size=(m,n)
         blue band of satellite image
     Green : np.array, size=(m,n)
@@ -40,18 +40,24 @@ def enhance_shadow(method, Blue, Green, Red, RedEdge, Near, Shw):
     RedEdge : np.array, size=(m,n)
         red edge band of satellite image
     Near : np.array, size=(m,n)
-        near-infrared band of satellite image   
+        near-infrared band of satellite image
     Shw : np.array, size=(m,n)
         synthetic shading from for example a digital elevation model
 
     Returns
     -------
     M : np.array, size=(m,n)
-        shadow enhanced satellite image 
+        shadow enhanced satellite image
 
+    See Also
+    --------
+    .handler_multispec.get_shadow_bands :
+        provides Blue, Green, Red bandnumbers for a specific satellite
+    .handler_multispec.read_shadow_bands :
+        reads the specific bands given
     """
     method = method.lower()
- 
+
     if method=='siz':
         M = shadow_index_zhou(Blue, Green, Red)
     elif method=='isi':
@@ -82,13 +88,13 @@ def enhance_shadow(method, Blue, Green, Red, RedEdge, Near, Shw):
         M = shade_index(Blue, Green, Red, Near)
     elif method=='sp':
         M = shadow_probabilities(Blue, Green, Red, Near)
-        
+
     return M
 
 # generic transforms
 def pca(X):
     """ principle component analysis (PCA)
-    
+
     Parameters
     ----------
     X : np.array, size=(m,b)
@@ -102,6 +108,8 @@ def pca(X):
         vector with eigenvalues
 
     """
+    assert type(X)==np.ndarray, ('please provide an array')
+
     # Data matrix X, assumes 0-centered
     n, m = X.shape
     # Compute covariance matrix
@@ -110,7 +118,13 @@ def pca(X):
     eigen_vals, eigen_vecs = np.linalg.eig(C)
     return eigen_vecs, eigen_vals
 
-def pca_rgb_preparation(Red, Green, Blue, min_samp=1e4):
+def pca_rgb_preparation(Blue, Green, Red, min_samp=1e4):
+    assert type(Blue)==np.ndarray, ('please provide an array')
+    assert type(Green)==np.ndarray, ('please provide an array')
+    assert type(Red)==np.ndarray, ('please provide an array')
+    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
+    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+
     OK = Blue != 0  # boolean array with data
 
     r,g,b = np.mean(Red[OK]), np.mean(Green[OK]), np.mean(Blue[OK])
@@ -131,7 +145,7 @@ def pca_rgb_preparation(Red, Green, Blue, min_samp=1e4):
 
     X = np.transpose(np.array(
         [Red[sampling], Green[sampling], Blue[sampling]]))
-    return X    
+    return X
 
 # generic metrics
 def shannon_entropy(X,band_width=100):
@@ -149,27 +163,29 @@ def shannon_entropy(X,band_width=100):
     shannon : float
         entropy value of the total data sample
     """
+    assert type(X)==np.ndarray, ('please provide an array')
+
     num_bins = np.round(np.nanmax(X)-np.nanmin(X)/band_width)
     hist, bin_edges = np.histogram(X.flatten(), \
                                    bins=num_bins.astype(int), \
                                    density=True)
-    hist = hist[hist!=0]    
+    hist = hist[hist!=0]
     shannon = -np.sum(hist * np.log2(hist))
     return shannon
 
 # color-based shadow functions
 def shadow_index_zhou(Blue, Green, Red):
     """transform red, green, blue arrays to shadow index
-    
+
     Parameters
-    ----------    
+    ----------
     Blue : np.array, size=(m,n)
         blue band of satellite image
     Green : np.array, size=(m,n)
         green band of satellite image
     Red : np.array, size=(m,n)
         red band of satellite image
-        
+
     Returns
     -------
     SI : np.array, size=(m,n)
@@ -178,30 +194,35 @@ def shadow_index_zhou(Blue, Green, Red):
     See Also
     --------
     improved_shadow_index
-    
-    Notes
-    -----
-    .. [1] Zhou et al. "Shadow detection and compensation from remote sensing 
+
+    References
+    ----------
+    .. [1] Zhou et al. "Shadow detection and compensation from remote sensing
            images under complex urban conditions", 2021.
-    """  
-    
-    Y, Cb, Cr = rgb2ycbcr(Red, Green, Blue)    
+    """
+    assert type(Blue)==np.ndarray, ('please provide an array')
+    assert type(Green)==np.ndarray, ('please provide an array')
+    assert type(Red)==np.ndarray, ('please provide an array')
+    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
+    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+
+    Y, Cb, Cr = rgb2ycbcr(Red, Green, Blue)
     SI = np.divide(Cb-Y, Cb+Y)
-#    Y, Cb, Cr = rgb2ycbcr(Red, Green, Blue)    
-#    SI = np.divide(Cr+1, Y+1)    
-#    H, C, V = rgb2hcv(Red, Green, Blue)    
+#    Y, Cb, Cr = rgb2ycbcr(Red, Green, Blue)
+#    SI = np.divide(Cr+1, Y+1)
+#    H, C, V = rgb2hcv(Red, Green, Blue)
 #    SI = np.divide(H+1, V+1)
-#    Y, I, Q = rgb2yiq(Red, Green, Blue)    
+#    Y, I, Q = rgb2yiq(Red, Green, Blue)
 #    SI = np.divide(Q+1, Y+1)
-#    H, S, I = rgb2hsi(Red, Green, Blue)    
-#    SI = np.divide(H+1, I+1)  
+#    H, S, I = rgb2hsi(Red, Green, Blue)
+#    SI = np.divide(H+1, I+1)
     return SI
 
 def improved_shadow_index(Blue, Green, Red, Near):
     """transform red, green, blue arrays to improved shadow index
-    
+
     Parameters
-    ----------    
+    ----------
     Blue : np.array, size=(m,n)
         blue band of satellite image
     Green : np.array, size=(m,n)
@@ -210,33 +231,41 @@ def improved_shadow_index(Blue, Green, Red, Near):
         red band of satellite image
     Near : np.array, size=(m,n)
         near infrared band of satellite image
-        
+
     Returns
     -------
     ISI : np.array, size=(m,n)
         array with shadow transform
-    
+
     See Also
     --------
     shadow_index_zhou
-    
+
     Notes
     -----
     .. math:: ISI = (SI + (1-I_{near}))/(SI + (1+I_{near}))
-    
-    .. [1] Zhou et al. "Shadow detection and compensation from remote sensing 
+
+    References
+    ----------
+    .. [1] Zhou et al. "Shadow detection and compensation from remote sensing
        images under complex urban conditions", 2021.
-    """        
+    """
+    assert type(Blue)==np.ndarray, ('please provide an array')
+    assert type(Green)==np.ndarray, ('please provide an array')
+    assert type(Red)==np.ndarray, ('please provide an array')
+    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
+    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+
     SI = shadow_index_zhou(Blue, Green, Red)
     ISI = np.divide( SI + (1 - Near), SI + (1 + Near))
-    
+
     return ISI
 
 def shadow_enhancement_index(Blue,Green,Red,Near):
     """transform red, green, blue arrays to sei? index
-    
+
     Parameters
-    ----------    
+    ----------
     Blue : np.array, size=(m,n)
         blue band of satellite image
     Green : np.array, size=(m,n)
@@ -245,7 +274,7 @@ def shadow_enhancement_index(Blue,Green,Red,Near):
         red band of satellite image
     Near : np.array, size=(m,n)
         near infrared band of satellite image
-        
+
     Returns
     -------
     SEI : np.array, size=(m,n)
@@ -254,88 +283,111 @@ def shadow_enhancement_index(Blue,Green,Red,Near):
     See Also
     --------
     combinational_shadow_index
-    
+
     Notes
     -----
     Based on the bands of Sentinel-2:
-    
-    .. math:: SEI = [(B_{1}+B_{9})-(B_{3}+B_{8})]/[(B_{1}+B_{9})+(B_{3}+B_{8})] 
-    
-    .. [1] Sun et al. "Combinational shadow index for building shadow 
-       extraction in urban areas from Sentinel-2A MSI imagery" International 
-       journal of applied earth observation and geoinformation, vol.78 
+
+    .. math:: SEI = [(B_{1}+B_{9})-(B_{3}+B_{8})]/[(B_{1}+B_{9})+(B_{3}+B_{8})]
+
+    References
+    ----------
+    .. [1] Sun et al. "Combinational shadow index for building shadow
+       extraction in urban areas from Sentinel-2A MSI imagery" International
+       journal of applied earth observation and geoinformation, vol.78
        pp.53--65, 2019.
-    """   
+    """
+    assert type(Blue)==np.ndarray, ('please provide an array')
+    assert type(Green)==np.ndarray, ('please provide an array')
+    assert type(Red)==np.ndarray, ('please provide an array')
+    assert type(Near)==np.ndarray, ('please provide an array')
+    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
+    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+    assert Blue.shape[:2] == Near.shape[:2], ('arrays should be of equal size')
+
     SEI = np.divide( (Blue + Near)-(Green + Red), (Blue + Near)+(Green + Red))
     return SEI
 
 def false_color_shadow_difference_index(Green,Red,Near):
     """transform red and near infrared arrays to shadow index
-    
+
     Parameters
-    ----------    
+    ----------
     Green : np.array, size=(m,n)
         green band of satellite image
     Red : np.array, size=(m,n)
         red band of satellite image
     Near : np.array, size=(m,n)
         near infrared band of satellite image
-        
+
     Returns
     -------
     FCSI : np.array, size=(m,n)
         array with shadow enhancement
-        
+
     See also
     --------
-    normalized_sat_value_difference_index, rgb2hsi 
-    
+    normalized_sat_value_difference_index, rgb2hsi
+
     Notes
     -----
     .. math:: FCSI = (I_{sat} - I_{int}) / (I_{sat} + I_{int})
-    
+
+    References
+    ----------
     .. [1] Teke et al. "Multi-spectral false color shadow detection",
-       Proceedings of the ISPRS conference on photogrammetric image analysis, 
+       Proceedings of the ISPRS conference on photogrammetric image analysis,
        pp.109-119, 2011.
-    """ 
-    
+    """
+    assert type(Green)==np.ndarray, ('please provide an array')
+    assert type(Red)==np.ndarray, ('please provide an array')
+    assert type(Near)==np.ndarray, ('please provide an array')
+    assert Red.shape[:2] == Green.shape[:2],('arrays should be of equal size')
+    assert Red.shape[:2] == Near.shape[:2], ('arrays should be of equal size')
+
     (H, S, I) = rgb2hsi(Near, Red, Green)  # create HSI bands
     FCSI = (S - I) / (S + I)
     return FCSI
 
 def normalized_difference_water_index(Green, Near):
     """transform green and near infrared arrays NDW-index
-    
+
     Parameters
-    ----------    
+    ----------
     Green : np.array, size=(m,n)
         green band of satellite image
     Near : np.array, size=(m,n)
         near infrared band of satellite image
-        
+
     Returns
     -------
     NDWI : np.array, size=(m,n)
         array with NDWI transform
-    
+
     Notes
     -----
     Based on the bands of Sentinel-2:
-    
-    .. math:: NDWI = [B_{3}-B_{8}]/[B_{3}+B_{8}] 
-    
-    .. [1] Gao, "NDWI - a normalized difference water index for remote sensing 
-       of vegetation liquid water from space" Remote sensing of environonment, 
+
+    .. math:: NDWI = [B_{3}-B_{8}]/[B_{3}+B_{8}]
+
+    References
+    ----------
+    .. [1] Gao, "NDWI - a normalized difference water index for remote sensing
+       of vegetation liquid water from space" Remote sensing of environonment,
        vol. 58 pp. 257–266, 1996
-    """   
+    """
+    assert type(Near)==np.ndarray, ('please provide an array')
+    assert type(Green)==np.ndarray, ('please provide an array')
+    assert Green.shape[:2] == Near.shape[:2],('arrays should be of equal size')
+
     NDWI = np.divide( (Green - Near), (Green + Near))
     return NDWI
 
 def combinational_shadow_index(Blue,Green,Red,Near):
     """transform red, green, blue arrays to combined shadow index
-    
+
     Parameters
-    ----------    
+    ----------
     Blue : np.array, size=(m,n)
         blue band of satellite image
     Green : np.array, size=(m,n)
@@ -344,46 +396,54 @@ def combinational_shadow_index(Blue,Green,Red,Near):
         red band of satellite image
     Near : np.array, size=(m,n)
         near infrared band of satellite image
-        
+
     Returns
     -------
     CSI : np.array, size=(m,n)
         array with shadow transform
-    
+
     See Also
     --------
     shadow_enhancement_index
-    
-    Notes
-    -----
-    .. [1] Sun et al. "Combinational shadow index for building shadow 
-       extraction in urban areas from Sentinel-2A MSI imagery" International 
-       journal of applied earth observation and geoinformation, vol.78 
+
+    References
+    ----------
+    .. [1] Sun et al. "Combinational shadow index for building shadow
+       extraction in urban areas from Sentinel-2A MSI imagery" International
+       journal of applied earth observation and geoinformation, vol.78
        pp.53--65, 2019.
     """
-    SEI = shadow_enhancement_index(Blue,Green,Red,Near) 
+    assert type(Blue)==np.ndarray, ('please provide an array')
+    assert type(Green)==np.ndarray, ('please provide an array')
+    assert type(Red)==np.ndarray, ('please provide an array')
+    assert type(Near)==np.ndarray, ('please provide an array')
+    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
+    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+    assert Blue.shape[:2] == Near.shape[:2],('arrays should be of equal size')
+
+    SEI = shadow_enhancement_index(Blue,Green,Red,Near)
     NDWI = normalized_difference_water_index(Green, Near)
-    
+
     option_1 = SEI-Near
     option_2 = SEI-NDWI
     IN_1 = Near >= NDWI
-    
+
     CSI = option_2
-    CSI[IN_1] = option_1[IN_1]    
-    return CSI    
+    CSI[IN_1] = option_1[IN_1]
+    return CSI
 
 def normalized_sat_value_difference_index(Blue, Green, Red):
     """transform red, green, blue arrays to normalized sat-value difference
-    
+
     Parameters
-    ----------    
+    ----------
     Blue : np.array, size=(m,n)
         blue band of satellite image
     Green : np.array, size=(m,n)
         green band of satellite image
     Red : np.array, size=(m,n)
         red band of satellite image
-        
+
     Returns
     -------
     NSVDI : np.array, size=(m,n)
@@ -392,299 +452,365 @@ def normalized_sat_value_difference_index(Blue, Green, Red):
     See also
     --------
     false_color_shadow_difference_index, rgb2hsi
-    
+
     Notes
     -----
     .. math:: NSVDI = (I_{sat} - I_{int}) / (I_{sat} + I_{int})
-    
-    .. [1] Ma et al. "Shadow segmentation and compensation in high resolution 
-       satellite images", Proceedings of IEEE IGARSS, pp.II-1036--II-1039, 
+
+    References
+    ----------
+    .. [1] Ma et al. "Shadow segmentation and compensation in high resolution
+       satellite images", Proceedings of IEEE IGARSS, pp.II-1036--II-1039,
        2008.
-    """    
-    (H, S, I) = rgb2hsi(Red, Green, Blue)  # create HSI bands
+    """
+    assert type(Blue)==np.ndarray, ('please provide an array')
+    assert type(Green)==np.ndarray, ('please provide an array')
+    assert type(Red)==np.ndarray, ('please provide an array')
+    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
+    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+
+    (H,S,I) = rgb2hsi(Red, Green, Blue)  # create HSI bands
     NSVDI = (S - I) / (S + I)
     return NSVDI
 
 def shadow_index_liu(Blue, Green, Red):
     """transform red, green, blue arrays to shadow index
-    
+
     Parameters
-    ----------    
+    ----------
     Blue : np.array, size=(m,n)
         blue band of satellite image
     Green : np.array, size=(m,n)
         green band of satellite image
     Red : np.array, size=(m,n)
         red band of satellite image
-        
+
     Returns
     -------
     SI : np.array, size=(m,n)
         array with shadow enhancement
-    
-    Notes
-    -----     
-    .. [1] Liu & Xie. "Study on shadow detection in high resolution remote 
-           sensing image of PCA and HIS model", Remote sensing technology and 
-           application, vol.28(1) pp. 78--84, 2013.    
-    .. [2] Sun et al. "Combinational shadow index for building shadow 
-           extraction in urban areas from Sentinel-2A MSI imagery" 
-           International journal of applied earth observation and 
+
+    References
+    ----------
+    .. [1] Liu & Xie. "Study on shadow detection in high resolution remote
+           sensing image of PCA and HIS model", Remote sensing technology and
+           application, vol.28(1) pp. 78--84, 2013.
+    .. [2] Sun et al. "Combinational shadow index for building shadow
+           extraction in urban areas from Sentinel-2A MSI imagery"
+           International journal of applied earth observation and
            geoinformation, vol.78 pp.53--65, 2019.
-    """     
-    (_,S,I) = rgb2hsi(Red, Green, Blue)    
+    """
+    assert type(Blue)==np.ndarray, ('please provide an array')
+    assert type(Green)==np.ndarray, ('please provide an array')
+    assert type(Red)==np.ndarray, ('please provide an array')
+    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
+    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+
+    (_,S,I) = rgb2hsi(Red, Green, Blue)
 
     X = pca_rgb_preparation(Red, Green, Blue, min_samp=1e4)
     e, lamb = pca(X)
     del X
     PC1 = np.dot(e[0, :], np.array([Red, Green, Blue]))
-    
+
     SI = np.divide((PC1 - I) * (1 + S), (PC1 + I + S))
     return SI
 
 def specthem_ratio(Blue, Green, Red):
     """transform red, green, blue arrays to specthem ratio
-    
+
     Parameters
-    ----------    
+    ----------
     Blue : np.array, size=(m,n)
         blue band of satellite image
     Green : np.array, size=(m,n)
         green band of satellite image
     Red : np.array, size=(m,n)
         red band of satellite image
-        
+
     Returns
     -------
     Sr : np.array, size=(m,n)
         array with shadow enhancement
-    
+
     Notes
     -----
     In the paper the logarithmic is also used further enhance the shadows,
-    
-    .. math:: Sr = \log{[Sr+1]} 
-    
-    .. [1] Silva et al. "Near real-time shadow detection and removal in aerial 
+
+    .. math:: Sr = \log{[Sr+1]}
+
+    References
+    ----------
+    .. [1] Silva et al. "Near real-time shadow detection and removal in aerial
        motion imagery application" ISPRS journal of photogrammetry and remote
        sensing, vol.140 pp.104--121, 2018.
-    """    
+    """
+    assert type(Blue)==np.ndarray, ('please provide an array')
+    assert type(Green)==np.ndarray, ('please provide an array')
+    assert type(Red)==np.ndarray, ('please provide an array')
+    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
+    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+
     X,Y,Z = rgb2xyz(Red, Green, Blue, method='Ford')
     L,a,b = xyz2lab(X,Y,Z)
     _,h = lab2lch(L,a,b)
     Sr = np.divide(h+1 , L+1)
     return Sr
 
-def shadow_detector_index(Blue, Green, Red): 
+def shadow_detector_index(Blue, Green, Red):
     """transform red, green, blue arrays to shadow detector index
-    
+
     Parameters
-    ----------      
+    ----------
     Blue : np.array, size=(m,n)
         blue band of satellite image
     Green : np.array, size=(m,n)
         green band of satellite image
     Red : np.array, size=(m,n)
-        red band of satellite image      
+        red band of satellite image
 
     Returns
     -------
     SDI : np.array, size=(m,n)
         array with shadow enhancement
-    
-    Notes
-    -----
-    .. [1] Mustafa & Abedehafez. "Accurate shadow detection from 
-       high-resolution satellite images" IEEE geoscience and remote sensing 
+
+    References
+    ----------
+    .. [1] Mustafa & Abedehafez. "Accurate shadow detection from
+       high-resolution satellite images" IEEE geoscience and remote sensing
        letters, vol.14(4) pp.494--498, 2017.
-    """    
+    """
+    assert type(Blue)==np.ndarray, ('please provide an array')
+    assert type(Green)==np.ndarray, ('please provide an array')
+    assert type(Red)==np.ndarray, ('please provide an array')
+    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
+    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+
     X = pca_rgb_preparation(Red, Green, Blue, min_samp=1e4)
     e, lamb = pca(X)
     del X
     PC1 = np.dot(e[0, :], np.array([Red, Green, Blue]))
-        
+
     SDI = ((1 - PC1) + 1)/(((Green - Blue) * Red) + 1)
     return SDI
 
 def sat_int_shadow_detector_index(Blue, RedEdge, Near):
     """transform red, green, blue arrays to sat-int shadow detector index
-    
+
     Parameters
-    ----------      
+    ----------
     Blue : np.array, size=(m,n)
         blue band of satellite image
     RedEdge : np.array, size=(m,n)
-        rededge band of satellite image      
+        rededge band of satellite image
     Near : np.array, size=(m,n)
-        near infrared band of satellite image   
-        
+        near infrared band of satellite image
+
     Returns
     -------
     SISDI : np.array, size=(m,n)
         array with shadow enhancement
-    
-    Notes
-    -----
-    .. [1] Mustafa & Abedelwahab. "Corresponding regions for shadow restoration 
-       in satellite high-resolution images" International journal of remote 
+
+    References
+    ----------
+    .. [1] Mustafa & Abedelwahab. "Corresponding regions for shadow restoration
+       in satellite high-resolution images" International journal of remote
        sensing, vol.39(20) pp.7014--7028, 2018.
-    """                 
+    """
+    assert type(Blue)==np.ndarray, ('please provide an array')
+    assert type(RedEdge)==np.ndarray, ('please provide an array')
+    assert type(Near)==np.ndarray, ('please provide an array')
+    assert Blue.shape[:2] == RedEdge.shape[:2],('arrays should be of equal size')
+    assert Blue.shape[:2] == Near.shape[:2], ('arrays should be of equal size')
+
     (_,S,I) = erdas2hsi(Blue, RedEdge, Near)
     SISDI = S - (2*I)
     return SISDI
 
 def mixed_property_based_shadow_index(Blue, Green, Red):
     """transform Red Green Blue arrays to Mixed property-based shadow index
-    
+
     Parameters
-    ----------      
+    ----------
     Blue : np.array, size=(m,n)
         blue band of satellite image
     Green : np.array, size=(m,n)
-        green band of satellite image      
+        green band of satellite image
     Red : np.array, size=(m,n)
-        red band of satellite image   
-        
+        red band of satellite image
+
     Returns
     -------
     MPSI : np.array, size=(m,n)
         array with shadow enhancement
-    
-    Notes
-    -----
-    [1] Han et al. "A mixed property-based automatic shadow detection approach 
-    for VHR multispectral remote sensing images" Applied sciences vol.8(10) 
+
+    References
+    ----------
+    [1] Han et al. "A mixed property-based automatic shadow detection approach
+    for VHR multispectral remote sensing images" Applied sciences vol.8(10)
     pp.1883, 2018.
-    """    
+    """
+    assert type(Blue)==np.ndarray, ('please provide an array')
+    assert type(Green)==np.ndarray, ('please provide an array')
+    assert type(Red)==np.ndarray, ('please provide an array')
+    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
+    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+
     (H, S, I) = rgb2hsi(Red, Green, Blue)  # create HSI bands
     MPSI = (H - I) * (Green - Blue)
     return MPSI
 
 def color_invariant(Blue, Green, Red):
     """transform Red Green Blue arrays to color invariant (c3)
-    
+
     Parameters
-    ----------      
+    ----------
     Blue : np.array, size=(m,n)
         blue band of satellite image
     Green : np.array, size=(m,n)
-        green band of satellite image      
+        green band of satellite image
     Red : np.array, size=(m,n)
-        red band of satellite image   
-        
+        red band of satellite image
+
     Returns
     -------
     c3 : np.array, size=(m,n)
         array with shadow enhancement
-    
-    Notes
-    -----
-    .. [1] Gevers & Smeulders. "Color-based object recognition" Pattern 
-       recognition, vol.32 pp.453--464, 1999 
-    .. [2] Arévalo González & G. Ambrosio. "Shadow detection in colour 
-       high‐resolution satellite images" International journal of remote 
+
+    References
+    ----------
+    .. [1] Gevers & Smeulders. "Color-based object recognition" Pattern
+       recognition, vol.32 pp.453--464, 1999
+    .. [2] Arévalo González & G. Ambrosio. "Shadow detection in colour
+       high‐resolution satellite images" International journal of remote
        sensing, vol.29(7) pp.1945--1963, 2008
-    """ 
+    """
+    assert type(Blue)==np.ndarray, ('please provide an array')
+    assert type(Green)==np.ndarray, ('please provide an array')
+    assert type(Red)==np.ndarray, ('please provide an array')
+    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
+    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+
     c3 = np.arctan2( Blue, np.amax( np.dstack((Red, Green))))
     return c3
 
 def modified_color_invariant(Blue, Green, Red, Near): #wip
     """transform Red Green Blue arrays to color invariant (c3)
-    
+
     Parameters
-    ----------      
+    ----------
     Blue : np.array, size=(m,n)
         blue band of satellite image
     Green : np.array, size=(m,n)
-        green band of satellite image      
+        green band of satellite image
     Red : np.array, size=(m,n)
-        red band of satellite image   
+        red band of satellite image
     Near : np.array, size=(m,n)
-        near infrared band of satellite image 
-        
+        near infrared band of satellite image
+
     Returns
     -------
     c3 : np.array, size=(m,n)
         array with shadow enhancement
-    
-    Notes
-    -----
-    .. [1] Gevers & Smeulders. "Color-based object recognition" Pattern 
-       recognition, vol.32 pp.453--464, 1999 
-    .. [2] Besheer & G. Abdelhafiz. "Modified invariant colour model for shadow 
-       detection" International journal of remote sensing, vol.36(24) 
+
+    References
+    ----------
+    .. [1] Gevers & Smeulders. "Color-based object recognition" Pattern
+       recognition, vol.32 pp.453--464, 1999
+    .. [2] Besheer & G. Abdelhafiz. "Modified invariant colour model for shadow
+       detection" International journal of remote sensing, vol.36(24)
        pp.6214--6223, 2015.
-    """     
+    """
+    assert type(Blue)==np.ndarray, ('please provide an array')
+    assert type(Green)==np.ndarray, ('please provide an array')
+    assert type(Red)==np.ndarray, ('please provide an array')
+    assert type(Near)==np.ndarray, ('please provide an array')
+    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
+    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+    assert Blue.shape[:2] == Near.shape[:2],('arrays should be of equal size')
+
     C3 = color_invariant(Blue, Green, Red)
     NDWI = normalized_difference_water_index(Green, Near)
-    
-    # [2] Uses thresholding an boolean algebra, 
+
+    # [2] Uses thresholding an boolean algebra,
     # but here multiplication is used, so a float is constructed
     MCI = np.multiply(C3, NDWI)
     return MCI
 
 def reinhard(Blue, Green, Red):
     """transform Red Green Blue arrays to luminance
-    
+
     Parameters
-    ----------      
+    ----------
     Blue : np.array, size=(m,n)
         blue band of satellite image
     Green : np.array, size=(m,n)
-        green band of satellite image      
+        green band of satellite image
     Red : np.array, size=(m,n)
-        red band of satellite image  
-        
+        red band of satellite image
+
     Returns
     -------
     l : np.array, size=(m,n)
         shadow enhanced band
-       
-    Notes
-    -----
-    .. [1] Reinhard et al. "Color transfer between images" IEEE Computer 
+
+    References
+    ----------
+    .. [1] Reinhard et al. "Color transfer between images" IEEE Computer
        graphics and applications vol.21(5) pp.34-41, 2001.
     """
+    assert type(Blue)==np.ndarray, ('please provide an array')
+    assert type(Green)==np.ndarray, ('please provide an array')
+    assert type(Red)==np.ndarray, ('please provide an array')
+    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
+    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+
     (L,M,S) = rgb2lms(Red, Green, Blue)
     L = np.log10(L)
     M = np.log10(M)
     S = np.log10(S)
     (l,alfa,beta) = lms2lab(L, M, S)
-    
+
     return l
 
 def entropy_shade_removal(Ia, Ib, Ic, a=-1): #wip
     """
-    
+
     Parameters
-    ----------      
+    ----------
     Ia : np.array, size=(m,n)
         highest frequency band of satellite image
     Ib : np.array, size=(m,n)
-        lower frequency band of satellite image     
+        lower frequency band of satellite image
     Ic : np.array, size=(m,n)
         lowest frequency band of satellite image
     a : float, default=-1
         angle to use [in degrees]
-        
+
     Returns
     -------
     S : np.array, size=(m,n)
         shadow enhanced band
-       
-    Notes
-    -----
-    .. [1] Finlayson et al. "Entropy minimization for shadow removal" 
+
+    References
+    ----------
+    .. [1] Finlayson et al. "Entropy minimization for shadow removal"
        International journal of computer vision vol.85(1) pp.35-57 2009.
     """
-    Ia[Ia==0] = 1e-6    
-    Ib[Ib==0] = 1e-6    
+    assert type(Ia)==np.ndarray, ('please provide an array')
+    assert type(Ib)==np.ndarray, ('please provide an array')
+    assert type(Ic)==np.ndarray, ('please provide an array')
+    assert Ia.shape[:2] == Ib.shape[:2],('arrays should be of equal size')
+    assert Ia.shape[:2] == Ic.shape[:2], ('arrays should be of equal size')
+
+    Ia[Ia==0] = 1e-6
+    Ib[Ib==0] = 1e-6
     sqIc = np.power(Ic, 1./2)
-    sqIc[sqIc==0] = 1    
-        
+    sqIc[sqIc==0] = 1
+
     chi1 = np.log(np.divide( Ia, sqIc))
     chi2 = np.log(np.divide( Ib, sqIc))
-    
+
     if a==-1: # estimate angle from data if angle is not given
         (m,n) = chi1.shape
         mn = np.power((m*n),-1./3)
@@ -694,12 +820,12 @@ def entropy_shade_removal(Ia, Ib, Ic, a=-1): #wip
         for i in angl:
             chi_rot = np.cos(np.radians(i))*chi1 + \
                 np.sin(np.radians(i))*chi2
-            band_w = 3.5*np.std(chi_rot)*mn   
+            band_w = 3.5*np.std(chi_rot)*mn
             shan[i] = shannon_entropy(chi_rot, band_w)
-        
+
         a = angl[np.argmin(shan)]
         #a = angl[np.argmax(shan)]
-    # create imagery    
+    # create imagery
     S = - np.cos(np.radians(a))*chi1 - np.sin(np.radians(a))*chi2
     #a += 90
     #R = np.cos(np.radians(a))*chi1 + np.sin(np.radians(a))*chi2
@@ -707,64 +833,82 @@ def entropy_shade_removal(Ia, Ib, Ic, a=-1): #wip
 
 def shade_index(Blue, Green, Red, Near):
     """transform blue, green, red and near infrared arrays to shade index
-    
+
     Parameters
-    ----------      
+    ----------
     Blue : np.array, size=(m,n)
         blue band of satellite image
     Green : np.array, size=(m,n)
-        green band of satellite image      
+        green band of satellite image
     Red : np.array, size=(m,n)
-        red band of satellite image  
+        red band of satellite image
     Near : np.array, size=(m,n)
-        near infrared band of satellite image 
-        
+        near infrared band of satellite image
+
     Returns
     -------
     SI : np.array, size=(m,n)
         shadow enhanced band
-       
+
     Notes
     -----
     Amplify dark regions by simple multiplication:
-        
-    .. math:: SI = \Pi_{i}^{N}{[1 - B_{i}]}    
-        
-    .. [1] Altena, "Filling the white gap on the map: Photoclinometry for 
+
+    .. math:: SI = \Pi_{i}^{N}{[1 - B_{i}]}
+
+    References
+    ----------
+    .. [1] Altena, "Filling the white gap on the map: Photoclinometry for
        glacier elevation modelling" MSc thesis TU Delft, 2012.
     """
+    assert type(Blue)==np.ndarray, ('please provide an array')
+    assert type(Green)==np.ndarray, ('please provide an array')
+    assert type(Red)==np.ndarray, ('please provide an array')
+    assert type(Near)==np.ndarray, ('please provide an array')
+    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
+    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+    assert Blue.shape[:2] == Near.shape[:2],('arrays should be of equal size')
+
     SI = np.prod(np.dstack([(1 - Red), (1 - Green), (1 - Blue), (1 - Near)]),
                  axis=2)
     return SI
 
 def shadow_probabilities(Blue, Green, Red, Near, ae = 1e+1, be = 5e-1):
     """transform blue, green, red and near infrared to shade probabilities
-    
+
     Parameters
-    ----------      
+    ----------
     Blue : np.array, size=(m,n)
         blue band of satellite image
     Green : np.array, size=(m,n)
-        green band of satellite image      
+        green band of satellite image
     Red : np.array, size=(m,n)
-        red band of satellite image  
+        red band of satellite image
     Near : np.array, size=(m,n)
-        near infrared band of satellite image  
-        
+        near infrared band of satellite image
+
     Returns
     -------
     M : np.array, size=(m,n)
         shadow enhanced band
-       
-    Notes
-    -----   
-    .. [1] Fredembach & Süsstrunk. "Automatic and accurate shadow detection 
-       from (potentially) a single image using near-infrared information" EPFL 
+
+    References
+    ----------
+    .. [1] Fredembach & Süsstrunk. "Automatic and accurate shadow detection
+       from (potentially) a single image using near-infrared information" EPFL
        Tech Report 165527, 2010.
-    .. [2] Rüfenacht et al. "Automatic and accurate shadow detection using 
-       near-infrared information" IEEE transactions on pattern analysis and 
+    .. [2] Rüfenacht et al. "Automatic and accurate shadow detection using
+       near-infrared information" IEEE transactions on pattern analysis and
        machine intelligence, vol.36(8) pp.1672-1678, 2013.
     """
+    assert type(Blue)==np.ndarray, ('please provide an array')
+    assert type(Green)==np.ndarray, ('please provide an array')
+    assert type(Red)==np.ndarray, ('please provide an array')
+    assert type(Near)==np.ndarray, ('please provide an array')
+    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
+    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+    assert Blue.shape[:2] == Near.shape[:2],('arrays should be of equal size')
+
     Fk = np.amax(np.stack((Red, Green, Blue), axis=2), axis=2)
     F = np.divide(np.clip(Fk, 0, 2), 2)  # (10), see Fredembach 2010
     L = np.divide(Red + Green + Blue, 3)  # (4), see Fredembach 2010

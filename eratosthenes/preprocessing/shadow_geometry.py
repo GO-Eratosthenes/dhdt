@@ -23,7 +23,7 @@ from shapely.geometry import Point, LineString
 from shapely.geos import TopologicalError  # for troubleshooting
 
 from ..generic.mapping_io import read_geo_image, read_geo_info
-from ..generic.mapping_tools import castOrientation, make_same_size
+from ..generic.mapping_tools import cast_orientation, make_same_size
 from ..generic.mapping_tools import pix_centers, map2pix
 
 from .read_sentinel2 import read_sun_angles_s2, read_mean_sun_angles_s2

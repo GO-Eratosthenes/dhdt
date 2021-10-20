@@ -5,6 +5,7 @@ import os
 from xml.etree import ElementTree
 
 import numpy as np
+import pandas as pd
 
 # geospatial libaries
 from osgeo import gdal, osr
@@ -15,6 +16,77 @@ from scipy.interpolate import griddata
 
 from ..generic.handler_sentinel2 import get_array_from_xml
 from ..generic.mapping_tools import map2pix
+
+def list_central_wavelength_s2():
+    """ create dataframe with metadata about Sentinel-2
+
+    Returns
+    -------
+    df : datafram
+        metadata and general multispectral information about the MSI 
+        instrument that is onboard Sentinel-2, having the following collumns:
+            
+            * wavelength : central wavelength of the band
+            * bandwidth : extent of the spectral sensativity
+            * bandid : number for identification in the meta data
+            * resolution : spatial resolution of a pixel
+            * name : general name of the band, if applicable
+            
+    Example
+    -------
+    make a selection by name:
+    
+    >>> boi = ['red', 'green', 'blue', 'near infrared']
+    >>> s2_df = list_central_wavelength_s2()
+    >>> s2_df = s2_df[s2_df['name'].isin(boi)]
+    >>> s2_df
+             wavelength  bandwidth  resolution       name  bandid
+    B02         492         66          10           blue       1
+    B03         560         36          10          green       2
+    B04         665         31          10            red       3
+    B08         833        106          10  near infrared       7
+    
+    similarly you can also select by pixel resolution:
+    
+    >>> s2_df = list_central_wavelength_s2()
+    >>> tw_df = s2_df[s2_df['resolution']==20]
+    >>> tw_df.index
+    Index(['B05', 'B06', 'B07', 'B8A', 'B11', 'B12'], dtype='object')
+    
+    """
+    wavelength = {"B01": 443, "B02": 492, "B03": 560, "B04": 665, \
+                  "B05": 704, "B06": 741, "B07": 783, "B08": 833, "B8A": 865,\
+                  "B09": 945, "B10":1374, "B11":1614, "B12":2202, \
+                  }
+    bandwidth = {"B01": 21, "B02": 66, "B03": 36, "B04": 31, \
+                 "B05": 15, "B06": 15, "B07": 20, "B08":106, "B8A": 21,\
+                 "B09": 20, "B10": 31, "B11": 91, "B12":175, \
+                 }
+    bandid = {"B01": 0, "B02": 1, "B03": 2, "B04": 3, \
+              "B05": 4, "B06": 5, "B07": 6, "B08": 7, "B8A": 8,\
+              "B09": 9, "B10":10, "B11":11, "B12":12, \
+                  }
+    resolution = {"B01": 60, "B02": 10, "B03": 10, "B04": 10, \
+                  "B05": 20, "B06": 20, "B07": 20, "B08": 10, "B8A": 20,\
+                  "B09": 60, "B10": 60, "B11": 20, "B12": 20, \
+                  }
+    name = {"B01": 'aerosol',       "B02" : 'blue', \
+            "B03" : 'green',        "B04" : 'red', \
+            "B05": 'red edge',      "B06" : 'red edge', \
+            "B07" : 'red edge',     "B08" : 'near infrared', \
+            "B8A" : 'narrow near infrared',\
+            "B09": 'water vapour',  "B10": 'cirrus', \
+            "B11": 'shortwave infrared', "B12": 'shortwave infrared', \
+            }
+    d = {
+         "wavelength": pd.Series(wavelength),
+         "bandwidth": pd.Series(bandwidth),
+         "resolution": pd.Series(resolution),
+         "name": pd.Series(name),
+         "bandid": pd.Series(bandid)
+         }
+    df = pd.DataFrame(d)
+    return df
 
 def s2_dn2toa(I):
     """convert the digital numbers of Sentinel-2 to top of atmosphere (TOA)
@@ -51,6 +123,10 @@ def read_band_s2(path, band='00'):
     targetprj : osr.SpatialReference object
         spatial reference
 
+    See Also
+    --------
+    list_central_wavelength_s2
+
     Example
     -------
     >>> path = '/GRANULE/L1C_T15MXV_A027450_20200923T163313/IMG_DATA/'
@@ -85,7 +161,14 @@ def read_band_s2(path, band='00'):
     targetprj = osr.SpatialReference(wkt=img.GetProjection())
     return data, spatialRef, geoTransform, targetprj
 
-def read_sun_angles_s2(path):
+def get_root_of_table(path, fname):
+    full_name = os.path.join(path, fname)
+    assert os.path.exists(path), ('please provide correct path and file name')
+    dom = ElementTree.parse(glob.glob(full_name)[0])
+    root = dom.getroot()
+    return root
+
+def read_sun_angles_s2(path, fname='MTD_TL.xml'):
     """ This function reads the xml-file of the Sentinel-2 scene and extracts 
     an array with sun angles, as these vary along the scene.
 
@@ -100,26 +183,46 @@ def read_sun_angles_s2(path):
         array of the solar zenith angles, in degrees.
     Az : np.array, size=(m,n), dtype=float
         array of the solar azimuth angles, in degrees.
-    """
-    # surface normal              * sun
-    # ^                     ^    /
-    # |                     |   /
-    # |-- zenith angle      |  /
-    # | /                   | /|
-    # |/                    |/ | elevation angle
-    # +----                 +------
-    #
-    #     y & North
-    #       ^
-    #       |
-    #  - <--|--> + azimuth angle
-    #       |
-    #       |
-    #  -----+-----> x & East
-    
-    fname = os.path.join(path, 'MTD_TL.xml')
-    dom = ElementTree.parse(glob.glob(fname)[0])
-    root = dom.getroot()
+
+    Notes
+    ----- 
+    The angle(s) are declared in the following coordinate frame: 
+        
+        .. code-block:: text
+        
+                 ^ North & y
+                 |  
+            - <--|--> +
+                 |
+                 +----> East & x
+
+    The angles related to the sun are as follows:
+        
+        .. code-block:: text
+
+          surface normal              * sun
+          ^                     ^    /
+          |                     |   /
+          |-- zenith angle      |  /
+          | /                   | /|
+          |/                    |/ | elevation angle
+          +----                 +------
+
+    Two different coordinate system are used here: 
+        
+        .. code-block:: text
+
+          indexing   |           indexing    ^ y
+          system 'ij'|           system 'xy' |
+                     |                       |
+                     |       i               |       x 
+             --------+-------->      --------+-------->
+                     |                       |
+                     |                       |
+          image      | j         map         |
+          based      v           based       |
+    """    
+    root = get_root_of_table(path, fname)
 
     # image dimensions
     for meta in root.iter('Size'):
@@ -163,7 +266,8 @@ def read_sun_angles_s2(path):
     del Igrd, Jgrd, Zij, Aij
     return Zn, Az
 
-def read_view_angles_s2(path):
+def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]), 
+                        boi=list_central_wavelength_s2()):
     """ This function reads the xml-file of the Sentinel-2 scene and extracts 
     an array with viewing angles of the MSI instrument.
 
@@ -171,6 +275,10 @@ def read_view_angles_s2(path):
     ----------
     path : string
         path where xml-file of Sentinel-2 is situated
+    fname : string
+        the name of the metadata file, sometimes this is changed
+    band_id : integer, default=4
+        each band has a somewhat minute but different view angle
 
     Returns
     -------
@@ -178,73 +286,98 @@ def read_view_angles_s2(path):
         array of the solar zenith angles, in degrees.
     Az : np.array, size=(m,n), dtype=float
         array of the solar azimuth angles, in degrees.
-    """
-    #      #*#                   #*# satellite
-    # ^    /                ^    /|
-    # |   /                 |   / | nadir
-    # |-- zenith angle      |  /  v
-    # | /                   | /|
-    # |/                    |/ | elevation angle
-    # +----  surfa          +------
-    #
-    #     y & North
-    #       ^
-    #       |
-    #  - <--|--> + azimuth angle
-    #       |
-    #       |
-    #  -----+-----> x & East
-    fname = os.path.join(path, 'MTD_TL.xml')
-    dom = ElementTree.parse(glob.glob(fname)[0])
-    root = dom.getroot()
 
-    # image dimensions
-    for meta in root.iter('Size'):
-        res = float(meta.get('resolution'))
-        if res == 10:  # take 10 meter band
-            mI = float(meta[0].text)
-            nI = float(meta[1].text)
+    See Also
+    --------
+    list_central_wavelength_s2
+    
+    Notes
+    ----- 
+    The azimuth angle is declared in the following coordinate frame: 
+        
+        .. code-block:: text
+        
+                 ^ North & y
+                 |  
+            - <--|--> +
+                 |
+                 +----> East & x
+
+    The angles related to the satellite are as follows:
+        
+        .. code-block:: text
+        
+               #*#                   #*# satellite
+          ^    /                ^    /|
+          |   /                 |   / | nadir
+          |-- zenith angle      |  /  v
+          | /                   | /|
+          |/                    |/ | elevation angle
+          +----- surface        +------
+
+    """
+    assert boi['resolution'].var()==0, \
+        ('make sure all bands are the same resolution')
+    root = get_root_of_table(path, fname)
+
+    if det_stack.size==0:
+        roi = boi['resolution'].mode()[0] # resolution of interest
+        # image dimensions
+        for meta in root.iter('Size'):
+            res = float(meta.get('resolution'))
+            if res == roi:
+                mI = float(meta[0].text)
+                nI = float(meta[1].text)
+        Zn = np.zeros((mI,nI,len(boi)), dtype=np.float64), 
+        Az = np.zeros((mI,nI,len(boi)), dtype=np.float64)
+        det_stack = np.ones((mI,nI,len(boi)))
+    else:
+        Zn = np.zeros_like(det_stack, dtype=np.float64)
+        Az = np.zeros_like(det_stack, dtype=np.float64)
     # get coarse grids
     for grd in root.iter('Viewing_Incidence_Angles_Grids'):
         bid = float(grd.get('bandId'))
-        if bid == 4:  # take band 4
+        if boi['bandid'].isin([bid]).any():  
+            # link to band in detector stack, by finding the integer index
+            det_idx = np.flatnonzero(boi['bandid'].isin([bid]))[0]
+        
+            # link to detector id, within this band
+            did = float(grd.get('detectorId'))
+            
+            det_arr = det_stack[:,:,det_idx]==did
+            
+            col_sep = float(grd[0][0].text) # in meters
+            row_sep = float(grd[0][0].text) # in meters
+            col_res = float(boi.loc[boi.index[det_idx],'resolution'])
+            row_res = float(boi.loc[boi.index[det_idx],'resolution'])
+            
             Zarray = get_array_from_xml(grd[0][2])
             Aarray = get_array_from_xml(grd[1][2])
-            if 'Zn' in locals():
-                Zn = np.nanmean(np.stack((Zn, Zarray), axis=2), axis=2)
-                Az = np.nanmean(np.stack((Az, Aarray), axis=2), axis=2)
-            else:
-                Zn = Zarray
-                Az = Aarray
-            del Aarray, Zarray
-
-    # upscale to 10 meter resolution
-    zi = np.linspace(0 - 10, mI + 10, np.size(Zn, axis=0))
-    zj = np.linspace(0 - 10, nI + 10, np.size(Zn, axis=1))
-    Zi, Zj = np.meshgrid(zi, zj)
-    Zij = np.dstack([Zi, Zj]).reshape(-1, 2)
-    del zi, zj, Zi, Zj
-
-    iGrd = np.arange(0, mI)
-    jGrd = np.arange(0, nI)
-    Igrd, Jgrd = np.meshgrid(iGrd, jGrd)
-    Zok = ~np.isnan(Zn)
-    Zn = griddata(Zij[Zok.reshape(-1), :], Zn[Zok], (Igrd, Jgrd),
-                  method="linear")
-
-    ai = np.linspace(0 - 10, mI + 10, np.size(Az, axis=0))
-    aj = np.linspace(0 - 10, nI + 10, np.size(Az, axis=1))
-    Ai, Aj = np.meshgrid(ai, aj)
-    Aij = np.dstack([Ai, Aj]).reshape(-1, 2)
-    del ai, aj, Ai, Aj
-
-    Aok = ~np.isnan(Az)  # remove NaN values from interpolation
-    Az = griddata(Aij[Aok.reshape(-1), :], Az[Aok], (Igrd, Jgrd),
-                  method="linear")
-    del Igrd, Jgrd, Zij, Aij
+            
+            I_grd,J_grd = np.mgrid[0:Zarray.shape[0],0:Zarray.shape[1]]
+            IN = ~np.isnan(Zarray)
+            I_grd,J_grd = I_grd[IN].astype('float64'), J_grd[IN].astype('float64')
+            Z_grd,A_grd = Zarray[IN], Aarray[IN]
+            I_grd *= (col_sep/col_res)
+            J_grd *= (row_sep/row_res)
+            
+            det_i,det_j = np.where(det_arr)
+            
+            # do linear regression, so extrapolation is possible
+            A = np.vstack((I_grd,J_grd, np.ones(I_grd.size) )).T
+            x_z = np.linalg.lstsq(A, Z_grd, rcond=None)[0]
+            det_Z = x_z[0]*det_i.astype('float64') + \
+                x_z[1]*det_j.astype('float64') + x_z[2]
+            x_a = np.linalg.lstsq(A, A_grd, rcond=None)[0]
+            det_A = x_a[0]*det_i.astype('float64') + \
+                x_a[1]*det_j.astype('float64') + x_a[2]
+                
+            det_k = np.repeat(det_idx,len(det_j))
+            Zn[det_i,det_j,det_k] = det_Z   
+            Az[det_i,det_j,det_k] = det_A       
     return Zn, Az
 
-def read_mean_sun_angles_s2(path):
+def read_mean_sun_angles_s2(path, fname='MTD_TL.xml'):
     """ Read the xml-file of the Sentinel-2 scene and extract the mean sun angles.
 
     Parameters
@@ -259,26 +392,31 @@ def read_mean_sun_angles_s2(path):
     Az : float
         Mean solar azimuth angle of the scene, in degrees
 
-    """
-    # surface normal              * sun
-    # ^                     ^    /
-    # |                     |   /
-    # |-- zenith angle      |  /
-    # | /                   | /|
-    # |/                    |/ | elevation angle
-    # +---- surface     ----+------  
-    #
-    #     y & North
-    #       ^
-    #       |
-    #  - <--|--> + azimuth angle
-    #       |
-    #       |
-    #  -----+-----> x & East
-    
-    fname = os.path.join(path, 'MTD_TL.xml')
-    dom = ElementTree.parse(glob.glob(fname)[0])
-    root = dom.getroot()
+    Notes
+    ----- 
+    The azimuth angle declared in the following coordinate frame: 
+        
+        .. code-block:: text
+        
+                 ^ North & y
+                 |  
+            - <--|--> +
+                 |
+                 +----> East & x
+
+    The angles related to the sun are as follows:
+        
+        .. code-block:: text
+
+          surface normal              * sun
+          ^                     ^    /
+          |                     |   /
+          |-- zenith angle      |  /
+          | /                   | /|
+          |/                    |/ | elevation angle
+          +----                 +------
+    """    
+    root = get_root_of_table(path, fname)
 
     Zn = float(root[1][1][1][0].text)
     Az = float(root[1][1][1][1].text)
@@ -301,7 +439,7 @@ def read_detector_mask(path_meta, msk_dim, boi, geoTransform):
         path where the meta-data is situated.
     msk_dim : tuple
         dimensions of the stack.
-    boi : list
+    boi : DataFrame
         list with bands of interest
     geoTransform : tuple
         affine transformation coefficients
@@ -310,19 +448,27 @@ def read_detector_mask(path_meta, msk_dim, boi, geoTransform):
     -------
     det_stack : np.array, size=(msk_dim[0],msk_dim[1],len(boi)), dtype=int8 
         array where each pixel has the ID of the detector, of a specific band
-        
+    
+    See Also
+    --------
+    read_view_angles_s2    
+    
     Example
     -------
     >>> path_meta = '/GRANULE/L1C_T15MXV_A027450_20200923T163313/QI_DATA'
-    >>> msk_dim = (10980, 10980, 4)
-    >>> boi = ['B02', 'B03', 'B04', 'B08']
+    >>> boi = ['red', 'green', 'blue', 'near infrared']
+    >>> msk_dim = (10980, 10980, len(boi))
+    >>> s2_df = list_central_wavelength_s2()
+    >>> boi_df = s2_df[s2_df['name'].isin(boi)]
     >>> geoTransform = (600000.0, 10.0, 0.0, 10000000.0, 0.0, -10.0)
     >>> 
-    >>> det_stack = read_detector_mask(path_meta, msk_dim, boi, geoTransform)
+    >>> det_stack = read_detector_mask(path_meta, msk_dim, boi_df, geoTransform)
     """
+    
+    
     det_stack = np.zeros(msk_dim, dtype='int8')    
     for i in range(len(boi)):
-        im_id = boi[i]
+        im_id = boi.index[i] # 'B01' | 'B8A'
         if type(im_id) is int:
             f_meta = os.path.join(path_meta, 'MSK_DETFOO_B'+ \
                                   f'{im_id:02.0f}' + '.gml')
@@ -383,14 +529,12 @@ def read_cloud_mask(path_meta, msk_dim, geoTransform):
         msk_clouds = np.maximum(msk_clouds, msk)
     return msk_clouds
 
-def read_detector_time(path):
+def read_detector_time(path, fname='MTD_DS.xml'):
     det_time = np.zeros((13, 12), dtype='datetime64[ns]')
     det_name = [None] * 13
     det_meta = np.zeros((13, 4), dtype='float')
-    fname = os.path.join(path, 'MTD_DS.xml')
-    dom = ElementTree.parse(glob.glob(fname)[0])
-    root = dom.getroot()
-
+    
+    root = get_root_of_table(path, fname)
     # image dimensions
     for meta in root.iter('Band_Time_Stamp'):
         bnd = int(meta.get('bandId')) # 0..12

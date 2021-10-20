@@ -17,7 +17,7 @@ def get_bbox_from_path_row(path, row, \
 
 def meta_LSstring(LSstr):  # generic
     """
-    get meta data of the Sentinel-2 file name
+    get meta data of the Landsat file name
     input:   LSstr         string            filename of the L1TP data
     output:  LStime        string            date "+YYYY-MM-DD"
              LSpath        string            satellite path "PXXX"

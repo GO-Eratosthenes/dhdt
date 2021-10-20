@@ -79,14 +79,36 @@ def get_S2_image_locations(fname):
     
     return im_paths, datastrip_id
 
-def meta_S2string(S2str):  # generic
+def meta_S2string(S2str):
+    """ get meta information of the Sentinel-2 file name
+
+    Parameters
+    ----------
+    S2str : string
+        filename of the L1C data
+
+    Returns
+    -------
+    S2time : string
+        date "+YYYY-MM-DD"
+    S2orbit : string
+        relative orbit "RXXX"
+    S2tile : string
+        tile code "TXXXXX"
+
+    Example
+    -------
+    >>> S2str = 'S2A_MSIL1C_20200923T163311_N0209_R140_T15MXV_20200923T200821.SAFE'
+    >>> S2time, S2orbit, S2tile = meta_S2string(S2str)
+    >>> S2time
+    '+2020-09-23'
+    >>> S2orbit
+    'R140'
+    >>> S2tile
+    'T15MXV'
     """
-    get meta data of the Sentinel-2 file name
-    input:   S2str          string            filename of the L1C data
-    output:  S2time         string            date "+YYYY-MM-DD"
-             S2orbit        string            relative orbit "RXXX"
-             S2tile         string            tile code "TXXXXX"
-    """
+    assert type(S2str)==str, ("please provide a string")
+    assert S2str[0:2]=='S2', ("please provide a Sentinel-2 file string")
     S2split = S2str.split('_')
     S2time = S2split[2][0:8]
     # convert to +YYYY-MM-DD string 

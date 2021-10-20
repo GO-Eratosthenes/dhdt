@@ -1,12 +1,34 @@
 import numpy as np
 
 def mat_to_gray(I, notI=None):
-    """
-    Transform matix to float, omitting nodata values
-    input:   I              array (n x m)     matrix of integers with data
-             notI           array (n x m)     matrix of boolean with nodata
-    output:  Inew           array (m x m)     linear transformed floating point
-                                              [0...1]
+    """ transform matix array  to float, omitting nodata values
+
+    Parameters
+    ----------
+    I : np.array, size=(m,n), dtype={integer,float}
+        matrix of integers with data
+    notI : np.array, size=(m,n), dtype=bool
+        matrix assigning which is is no data. The default is None.
+
+    Returns
+    -------
+    Inew : np.array, size=(m,n), dtype=float, range=0...1
+        array with normalized intensity values
+        
+    See Also
+    --------
+    gamma_adjustment, log_adjustment, s_curve, inverse_tangent_transformation    
+        
+    Example
+    -------
+    >>> import numpy as np
+    >>> from skimage import data
+    >>> img = data.astronaut()
+    >>> np.max(img)
+    255
+    >>> gray = mat_to_gray(img[:,:,0], img[:,:,0]==0)        
+    >>> np.max(gray)
+    1.0
     """
     if notI is None:
         yesI = np.ones(I.shape, dtype=bool)
@@ -96,6 +118,12 @@ def s_curve(x, a=10, b=.5):
     fx : np.array, size=(_,_)
         array with transform
     
+    References
+    ----------
+    [1] Fredembach & Süsstrunk. "Automatic and accurate shadow detection from 
+    (potentially) a single image using near-infrared information" 
+    EPFL Tech Report 165527, 2010.
+    
     Examples
     --------
     >>> import numpy as np
@@ -104,12 +132,6 @@ def s_curve(x, a=10, b=.5):
     >>> y = s_curve(x)
     >>> plt.plot(x,fx), plt.show()   
     shows the mapping function   
-    
-    Notes
-    ----- 
-    [1] Fredembach & Süsstrunk. "Automatic and accurate shadow detection from 
-    (potentially) a single image using near-infrared information" 
-    EPFL Tech Report 165527, 2010.
     """
     fe = -a * (x - b)
     fx = np.divide(1, 1 + np.exp(fe))
@@ -191,6 +213,3 @@ def normalize_histogram(img):
     # normalize the normalization values
     new_img = scaling[img]
     return new_img
-
-
-

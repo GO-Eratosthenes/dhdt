@@ -57,6 +57,7 @@ def phase_jac(Q, m, W=np.array([]), \
     #            |                       |
     #            | j                     |
     #            v                       |
+    assert type(Q)==np.ndarray, ("please provide an array")
 
     if Q.shape[0]==Q.shape[1]: # if Q is a cross-spectral matrix
         if W.size==0: # if W is not given
@@ -107,6 +108,11 @@ def phase_secant(data, W=np.array([]), x_0=np.zeros((2))): # wip
     --------
     phase_gradient_descend   
 
+    References
+    ----------
+    .. [1] Broyden, C. "A class of methods for solving nonlinear simultaneous
+       equations" Mathematics and computation. vol.19(92) pp.577--593, 1965.
+
     Example
     -------
     >>> import numpy as np
@@ -117,13 +123,10 @@ def phase_secant(data, W=np.array([]), x_0=np.zeros((2))): # wip
     >>> di,dj,_,_ = phase_secant(Q)
 
     >>> assert(np.isclose(ti, di, atol=.2))
-    >>> assert(np.isclose(tj, dj, atol=.2))   
-    
-    Notes
-    -----
-    .. [1] Broyden, C. "A class of methods for solving nonlinear simultaneous
-       equations" Mathematics and computation. vol.19(92) pp.577--593, 1965.    
+    >>> assert(np.isclose(tj, dj, atol=.2))       
     """
+    assert type(data)==np.ndarray, ("please provide an array")
+
     data = cross_spectrum_to_coordinate_list(data, W)
     J = phase_jac(data, x_0)
     x_hat,_ = secant(data[:,:-1], data[:,-1], J, x_0, \
@@ -170,6 +173,9 @@ def phase_gradient_descend(data, W=np.array([]), x_0=np.zeros((2))): # wip
     >>> assert(np.isclose(tj, dj, atol=.2))   
        
     """
+    assert type(data)==np.ndarray, ("please provide an array")
+    assert type(W)==np.ndarray, ("please provide an array")
+
     data = cross_spectrum_to_coordinate_list(data, W)
     x_hat,_ = gradient_descent(data[:,:-1], data[:,-1], x_0, \
                                learning_rate=1, n_iters=50)
@@ -207,8 +213,8 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
     --------
     phase_svd, phase_radon, phase_difference, phase_jac   
     
-    Notes
-    -----    
+    References
+    ----------    
     .. [1] Barzilai & Borwein. "Two-point step size gradient methods", IMA 
        journal of numerical analysis. vol.8 pp.141--148, 1988.
     .. [2] Leprince, et al. "Automatic and precise orthorectification, 
@@ -293,6 +299,8 @@ def phase_slope_1d(t, rad=.1):
     --------
     phase_svd
     """
+    assert type(t)==np.ndarray, ("please provide an array")
+    
     idx_sub = np.arange(np.ceil((0.5-rad)*len(t)), \
                     np.ceil((0.5+rad)*len(t))+1).astype(int)
     y_ang = np.unwrap(np.angle(t[idx_sub]),axis=0)
@@ -324,6 +332,12 @@ def phase_svd(Q, W, rad=0.1):
     --------
     phase_tpss, phase_radon, phase_difference    
 
+    References
+    ----------    
+    .. [1] Hoge, W.S. "A subspace identification extension to the phase 
+       correlation method", IEEE transactions on medical imaging, vol. 22(2) 
+       pp.277-280, 2003.
+
     Example
     -------
     >>> import numpy as np
@@ -334,14 +348,11 @@ def phase_svd(Q, W, rad=0.1):
     >>> di,dj,_,_ = phase_svd(Q)
 
     >>> assert(np.isclose(ti, di, atol=.2))
-    >>> assert(np.isclose(tj, dj, atol=.2))    
-    
-    Notes
-    -----    
-    .. [1] Hoge, W.S. "A subspace identification extension to the phase 
-       correlation method", IEEE transactions on medical imaging, vol. 22(2) 
-       pp.277-280, 2003.    
+    >>> assert(np.isclose(tj, dj, atol=.2))        
     """
+    assert type(Q)==np.ndarray, ("please provide an array")
+    assert type(W)==np.ndarray, ("please provide an array")
+    
     rad = np.minimum(rad, 0.5)
     (m,n) = Q.shape
     Q,W = np.fft.fftshift(Q), np.fft.fftshift(W)
@@ -387,12 +398,14 @@ def phase_difference_1d(Q, W=np.array([]), axis=0):
     --------
     phase_tpss, phase_svd, phase_difference   
     
-    Notes
-    -----    
+    References
+    ----------    
     .. [1] Kay, S. "A fast and accurate frequency estimator", IEEE 
        transactions on acoustics, speech and signal processing, vol.37(12) 
        pp.1987-1990, 1989.    
     """
+    assert type(Q)==np.ndarray, ("please provide an array")
+    assert type(W)==np.ndarray, ("please provide an array")
     
     if axis==0:
         Q = np.transpose(Q)
@@ -436,6 +449,12 @@ def phase_difference(Q, W=np.array([])):
     See Also
     --------
     phase_tpss, phase_svd, phase_difference   
+    
+    References
+    ----------    
+    .. [1] Kay, S. "A fast and accurate frequency estimator", IEEE 
+       transactions on acoustics, speech and signal processing, vol.37(12) 
+       pp.1987-1990, 1989.    
 
     Example
     -------
@@ -448,13 +467,11 @@ def phase_difference(Q, W=np.array([])):
 
     >>> assert(np.isclose(ti, di, atol=.2))
     >>> assert(np.isclose(tj, dj, atol=.2))    
-    
-    Notes
-    -----    
-    .. [1] Kay, S. "A fast and accurate frequency estimator", IEEE 
-       transactions on acoustics, speech and signal processing, vol.37(12) 
-       pp.1987-1990, 1989.    
+
     """
+    assert type(Q)==np.ndarray, ("please provide an array")
+    assert type(W)==np.ndarray, ("please provide an array")
+    
     di = phase_difference_1d(Q, W, axis=0)
     dj = phase_difference_1d(Q, W, axis=1)
     
@@ -475,6 +492,9 @@ def cross_spectrum_to_coordinate_list(data, W=np.array([])):
     data_list : np.array, size=(m*n,3), dtype=float
         coordinate list with angles, in normalized ranges, i.e: -1 ... +1
     """
+    assert type(data)==np.ndarray, ("please provide an array")
+    assert type(W)==np.ndarray, ("please provide an array")
+    
     if data.shape[0]==data.shape[1]:        
         (m,n) = data.shape        
         F1,F2 = make_fourier_grid(np.zeros((m,n)), \
@@ -514,6 +534,10 @@ def phase_lsq(data, W=np.array([])):
     di,dj : float     
         sub-pixel displacement
 
+    See Also
+    --------
+    phase_pca, phase_ransac, phase_hough 
+
     Example
     -------
     >>> import numpy as np
@@ -524,13 +548,11 @@ def phase_lsq(data, W=np.array([])):
     >>> di,dj,_,_ = phase_lsq(Q)
 
     >>> assert(np.isclose(ti, di, atol=.2))
-    >>> assert(np.isclose(tj, dj, atol=.2))   
-    
-    See Also
-    --------
-    phase_pca, phase_ransac, phase_hough 
-       
+    >>> assert(np.isclose(tj, dj, atol=.2))          
     """
+    assert type(data)==np.ndarray, ("please provide an array")
+    assert type(W)==np.ndarray, ("please provide an array")
+    
     data = cross_spectrum_to_coordinate_list(data, W)    
     A,y = data[:,:-1], data[:,-1]
     
@@ -586,6 +608,9 @@ def phase_pca(data, W=np.array([])):
     >>> assert(np.isclose(tj, dj, atol=.2))   
        
     """
+    assert type(data)==np.ndarray, ("please provide an array")
+    assert type(W)==np.ndarray, ("please provide an array")
+    
     data = cross_spectrum_to_coordinate_list(data, W)
     
     eigen_vecs, eigen_vals = pca(data)
@@ -635,16 +660,24 @@ def phase_weighted_pca(Q, W): # wip
     >>> assert(np.isclose(ti, di, atol=.2))
     >>> assert(np.isclose(tj, dj, atol=.2))   
     """
+    assert type(Q)==np.ndarray, ('please provide an array')
+    assert type(W)==np.ndarray, ('please provide an array')
+    assert Q.shape[:2] == W.shape, \
+        ('weighting matrix and cross-spectrum must be 2D and of equal size')
+
     data = cross_spectrum_to_coordinate_list(Q)
     weights = W.flatten()
     
     covar = np.dot(data.T, data)
     covar /= np.dot(weights.T, weights)
 
-    eigen_vals, eigen_vecs = np.linalg.eigh(covar)
-    e3 = eigen_vecs[:,np.argmin(eigen_vals)] # normal vector
-    di = (-2*e3[0]/e3[-1])
-    dj = (-2*e3[1]/e3[-1])
+    try: # eigenvalues might not converge
+        eigen_vals, eigen_vecs = np.linalg.eigh(covar)
+        e3 = eigen_vecs[:,np.argmin(eigen_vals)] # normal vector
+        di = (-2*e3[0]/e3[-1])
+        dj = (-2*e3[1]/e3[-1])
+    except:
+        di, dj = 0, 0    
     return di, dj
 
 # from skimage.measure
@@ -1080,6 +1113,16 @@ def phase_ransac(data, max_displacement=0, precision_threshold=.05):
     --------
     phase_lsq, phase_svd, phase_hough, phase_pca
 
+    References
+    ----------    
+    .. [1] Fischler & Bolles. "Random sample consensus: a paradigm for model 
+       fitting with applications to image analysis and automated cartography" 
+       Communications of the ACM vol.24(6) pp.381-395, 1981.   
+    .. [2] Tong et al. "A novel subpixel phase correlation method using 
+       singular value decomposition and unified random sample consensus" IEEE 
+       transactions on geoscience and remote sensing vol.53(8) pp.4143-4156, 
+       2015.
+       
     Example
     -------
     >>> import numpy as np
@@ -1091,17 +1134,9 @@ def phase_ransac(data, max_displacement=0, precision_threshold=.05):
 
     >>> assert(np.isclose(ti, di, atol=.2))
     >>> assert(np.isclose(tj, dj, atol=.2))   
-    
-    Notes
-    -----    
-    .. [1] Fischler & Bolles. "Random sample consensus: a paradigm for model 
-       fitting with applications to image analysis and automated cartography" 
-       Communications of the ACM vol.24(6) pp.381-395, 1981.   
-    .. [2] Tong et al. "A novel subpixel phase correlation method using 
-       singular value decomposition and unified random sample consensus" IEEE 
-       transactions on geoscience and remote sensing vol.53(8) pp.4143-4156, 
-       2015.
     """
+    assert type(data)==np.ndarray, ('please provide an array')
+
     # what type of data? either list of coordinates or a cross-spectral matrix
     if data.shape[0]==data.shape[1]:        
         (m,n) = data.shape        
@@ -1128,6 +1163,7 @@ def phase_ransac(data, max_displacement=0, precision_threshold=.05):
 
 def phase_hough(data, max_displacement=64, param_spacing=1, sample_fraction=1.,
                 W=np.array([])):
+    assert type(data)==np.ndarray, ('please provide an array')
     
     # what type of data? either list of coordinates or a cross-spectral matrix
     if data.shape[0]==data.shape[1]:        
@@ -1198,6 +1234,12 @@ def phase_radon(Q, coord_system='ij'):
     --------
     phase_tpss, phase_svd, phase_difference   
 
+    References
+    ----------    
+    .. [1] Balci & Foroosh. "Subpixel registration directly from the phase 
+       difference" EURASIP journal on advances in signal processing, pp.1-11, 
+       2006.
+
     Example
     -------
     >>> import numpy as np
@@ -1209,13 +1251,9 @@ def phase_radon(Q, coord_system='ij'):
 
     >>> assert(np.isclose(ti, di, atol=.2))
     >>> assert(np.isclose(tj, dj, atol=.2))
-    
-    Notes
-    -----    
-    .. [1] Balci & Foroosh. "Subpixel registration directly from the phase 
-       difference" EURASIP journal on advances in signal processing, pp.1-11, 
-       2006.
     """
+    assert type(Q)==np.ndarray, ('please provide an array')
+
     (m, n) = Q.shape  
     half = m // 2
     Q = np.fft.fftshift(Q)

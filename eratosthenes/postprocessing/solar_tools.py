@@ -66,25 +66,333 @@ def annual_solar_graph(latitude=51.707524, longitude=6.244362, spac=.5, \
     
     return Sky, az, zn
 
+def az_to_sun_vector(az, indexing='ij'):
+    """ transform azimuth angle to 2D-unit vector
+
+    Parameters
+    ----------
+    az : float, unit=degrees
+        azimuth of sun.
+    indexing : {‘xy’, ‘ij’}  
+         * "xy" : using map coordinates
+         * "ij" : using local image  coordinates
+         
+    Returns
+    -------
+    sun : np.array, size=(2,1), range=0...1
+        unit vector in the direction of the sun.
+
+    See Also
+    --------
+    sun_angles_to_vector
+
+    Notes
+    ----- 
+    The azimuth angle declared in the following coordinate frame: 
+        
+        .. code-block:: text
+        
+                 ^ North & y
+                 |  
+            - <--|--> +
+                 |
+                 +----> East & x
+
+    Two different coordinate system are used here: 
+        
+        .. code-block:: text
+
+          indexing   |           indexing    ^ y
+          system 'ij'|           system 'xy' |
+                     |                       |
+                     |       i               |       x 
+             --------+-------->      --------+-------->
+                     |                       |
+                     |                       |
+          image      | j         map         |
+          based      v           based       |
+
+    """
+    if indexing=='ij':
+        sun = np.array([[ -np.cos(np.radians(az)) ], \
+                        [ +np.sin(np.radians(az)) ]])
+    else: # 'xy' that is a map coordinate system
+        sun = np.array([[ +np.sin(np.radians(az)) ], \
+                        [ +np.cos(np.radians(az)) ]])
+    return sun
+
+def sun_angles_to_vector(az, zn, indexing='ij'):
+    """ transform azimuth and zenith angle to 3D-unit vector
+
+    Parameters
+    ----------
+    az : float, unit=degrees
+        azimuth angle of sun.
+    zn : float, unit=degrees
+        zenith angle of sun.
+    indexing : {‘xy’, ‘ij’}  
+         * "xy" : using map coordinates
+         * "ij" : using local image  coordinates
+
+    Returns
+    -------
+    sun : np.array, size=(3,1), dtype=float, range=0...1
+        unit vector in the direction of the sun.
+
+    See Also
+    --------
+    az_to_sun_vector
+
+    Notes
+    ----- 
+    The azimuth angle declared in the following coordinate frame: 
+        
+        .. code-block:: text
+        
+                 ^ North & y
+                 |  
+            - <--|--> +
+                 |
+                 +----> East & x
+
+    The angles related to the sun are as follows:
+        
+        .. code-block:: text
+
+          surface normal              * sun
+          ^                     ^    /
+          |                     |   /
+          |-- zenith angle      |  /
+          | /                   | /|
+          |/                    |/ | elevation angle
+          +---- surface -----   +------
+
+    Two different coordinate system are used here: 
+        
+        .. code-block:: text
+
+          indexing   |           indexing    ^ y
+          system 'ij'|           system 'xy' |
+                     |                       |
+                     |       i               |       x 
+             --------+-------->      --------+-------->
+                     |                       |
+                     |                       |
+          image      | j         map         |
+          based      v           based       |
+
+    """
+    if indexing=='ij': # local image system
+        sun = np.dstack((-np.cos(np.radians(az)), \
+                         +np.sin(np.radians(az)), \
+                         +np.tan(np.radians(zn)))
+                        )
+    else: # 'xy' that is map coordinates
+        sun = np.dstack((+np.sin(np.radians(az)), \
+                         +np.cos(np.radians(az)), \
+                         +np.tan(np.radians(zn)))
+                        )
+
+    n = np.linalg.norm(sun, axis=2)
+    sun[:, :, 0] /= n
+    sun[:, :, 1] /= n
+    sun[:, :, 2] /= n
+    return sun
+
 # elevation model based functions
 def make_shadowing(Z, az, zn, spac=10):    
-    Zr = ndimage.rotate(Z, az, cval=-1, order=0)
-    Mr = ndimage.rotate(np.ones(Z.shape, dtype=bool), az, cval=False, order=0)
+    """ create synthetic shadow image from given sun angles
     
-    dZ = np.tan((90-zn))*spac
+    Parameters
+    ----------
+    Z : np.array, size=(m,n), dtype={integer,float}
+        grid with elevation data
+    az : float, unit=degrees
+        azimuth angle
+    zn : float, unit=degrees
+        zenith angle
+    spac : float, optional
+        resolution of the square grid. The default is 10.
+
+    Returns
+    -------
+    Sw : np.array, size=(m,n), dtype=bool
+        estimated shadow grid
+        
+    Notes
+    ----- 
+    The azimuth angle declared in the following coordinate frame: 
+        
+        .. code-block:: text
+        
+                 ^ North & y
+                 |  
+            - <--|--> +
+                 |
+                 +----> East & x
+
+    The angles related to the sun are as follows:
+        
+        .. code-block:: text
+
+          surface normal              * sun
+          ^                     ^    /
+          |                     |   /
+          |-- zenith angle      |  /
+          | /                   | /|
+          |/                    |/ | elevation angle
+          +----                 +------
+    """
+    Zr = ndimage.rotate(Z, az, axes=(1, 0), cval=-1, order=0)
+    # coordinate based
+    (I,J) = np.mgrid[1:Z.shape[0]+1,1:Z.shape[1]+1]
+    Ir = ndimage.rotate(I, az, axes=(1, 0), \
+                        cval=0, order=0, prefilter=True)
+    Jr = ndimage.rotate(J, az, axes=(1, 0), \
+                        cval=0, order=0, prefilter=True)
+
+    # mask based
+#    Mr = ndimage.rotate(np.ones(Z.shape, dtype=bool), az, axes=(1, 0), \
+#                        cval=False, order=0, prefilter=False)
     
-    for i in range(1,Zr.shape[1]):
+    dZ = np.tan((90-np.radians(zn)))*spac
+    
+    for i in range(1,Zr.shape[0]):
         Zr[i,:] = np.maximum(Zr[i,:], Zr[i-1,:]-dZ)
     
-    Zs = ndimage.rotate(Zr, -az, cval=-1, order=0)
-    Ms = ndimage.interpolation.rotate(Mr, -az, cval=0, order=0)
-    i_ok, j_ok = np.where(np.any(Ms, axis=1)), np.where(np.any(Ms, axis=0))
+    Zs = ndimage.rotate(Zr, -az, axes=(1, 0), cval=-1, order=0)
+#    Ms = ndimage.interpolation.rotate(Mr, -az, axes=(1, 0), cval=False, order=0, \
+#                                      mode='constant', prefilter=False)
+#    i_ok, j_ok = np.where(np.any(Ms, axis=1)), np.where(np.any(Ms, axis=0))
+#    i_ok = np.where(np.sum(Ms,axis=1) >= .1*Z.shape[1])    
+#    j_ok = np.where(np.sum(Ms,axis=0) >= .1*Z.shape[0])
+
+    Is = ndimage.interpolation.rotate(Ir, -az, axes=(1, 0), cval=0, order=0, \
+                                      mode='constant', prefilter=True)
+    Js = ndimage.interpolation.rotate(Jr, -az, axes=(1, 0), cval=0, order=0, \
+                                      mode='constant', prefilter=True)
+
+    Zn = Zs[np.argmax(np.sum(np.round(Is)==2, axis=1))+1:\
+            np.argmax(np.sum(np.round(Is)==Z.shape[0]-1, axis=1))+2,\
+            np.argmax(np.sum(np.round(Js)==2, axis=0))+1:\
+            np.argmax(np.sum(np.round(Js)==Z.shape[1]-1, axis=0))+2]
+
+    i_ok, j_ok = np.where(np.sum(Js==1, axis=1)), np.where(np.any(Ms, axis=0))
+
     Zs = Zs[i_ok[0][0]:i_ok[0][-1]+1, j_ok[0][0]:j_ok[0][-1]+1]
     
     Sw = Zs>Z
     return Sw
 
 def make_shading(Z, az, zn, spac=10):
+    """ create synthetic shading image from given sun angles
+    
+    A simple Lambertian reflection model is used here.
+    
+    Parameters
+    ----------
+    Z : np.array, size=(m,n), dtype={integer,float}
+        grid with elevation data
+    az : float, unit=degrees
+        azimuth angle
+    zn : float, unit=degrees
+        zenith angle
+    spac : float, optional
+        resolution of the square grid. The default is 10.
+
+    Returns
+    -------
+    Sh : np.array, size=(m,n), dtype=float, range=0...1
+        estimated shading grid
+    
+    Notes
+    ----- 
+    The azimuth angle declared in the following coordinate frame: 
+        
+        .. code-block:: text
+        
+                 ^ North & y
+                 |  
+            - <--|--> +
+                 |
+                 +----> East & x
+
+    The angles related to the sun are as follows:
+        
+        .. code-block:: text
+
+          surface normal              * sun
+          ^                     ^    /
+          |                     |   /
+          |-- zenith angle      |  /
+          | /                   | /|
+          |/                    |/ | elevation angle
+          +---- surface ----    +------ 
+    """
+    sun = sun_angles_to_vector(az, zn, indexing='xy')
+        
+    # estimate surface normals
+    
+    # the first array stands for the gradient in rows and 
+    # the second one in columns direction
+    dy, dx = np.gradient(Z*spac)  
+
+    normal = np.dstack((dx, dy, np.ones_like(Z)))
+    n = np.linalg.norm(normal, axis=2)
+    normal[:, :, 0] /= n
+    normal[:, :, 1] /= n
+    normal[:, :, 2] /= n
+
+    Sh = normal[:,:,0]*sun[:,:,0] + \
+        normal[:,:,1]*sun[:,:,1] + \
+        normal[:,:,2]*sun[:,:,2]  
+    return Sh
+
+def make_shading_minnaert(Z, az, zn, k=1, spac=10):
+    """ create synthetic shading image from given sun angles
+    
+    A simple Minnaert reflection model is used here.
+    
+    Parameters
+    ----------
+    Z : np.array, size=(m,n), dtype={integer,float}
+        grid with elevation data
+    az : float, unit=degrees
+        azimuth angle
+    zn : float, unit=degrees
+        zenith angle
+    spac : float, optional
+        resolution of the square grid. The default is 10.
+
+    Returns
+    -------
+    Sh : np.array, size=(m,n), dtype=float, range=0...1
+        estimated shading grid
+    
+    Notes
+    ----- 
+    The azimuth angle declared in the following coordinate frame: 
+        
+        .. code-block:: text
+        
+                 ^ North & y
+                 |  
+            - <--|--> +
+                 |
+                 +----> East & x
+
+    The angles related to the sun are as follows:
+        
+        .. code-block:: text
+
+          surface normal              * sun
+          ^                     ^    /
+          |                     |   /
+          |-- zenith angle      |  /
+          | /                   | /|
+          |/                    |/ | elevation angle
+          +----- surface -----  +------
+    """
     # convert to unit vectors
     sun = np.dstack((np.sin(az), np.cos(az), np.tan(zn)))
     n = np.linalg.norm(sun, axis=2)
@@ -101,9 +409,11 @@ def make_shading(Z, az, zn, spac=10):
     normal[:, :, 1] /= n
     normal[:, :, 2] /= n
 
-    Sh = normal[:,:,0]*sun[:,:,0] + \
+    L = normal[:,:,0]*sun[:,:,0] + \
         normal[:,:,1]*sun[:,:,1] + \
         normal[:,:,2]*sun[:,:,2]  
+    # assume overhead 
+    Sh = L**(k+1) * (1-normal[:,:,2])**(1-k)
     return Sh
 
 # topocalc has horizon calculations

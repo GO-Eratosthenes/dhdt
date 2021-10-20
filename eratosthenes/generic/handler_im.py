@@ -1,5 +1,8 @@
+# generic libraries
 import numpy as np
+
 from scipy import ndimage
+from scipy.interpolate import griddata
 
 def select_boi_from_stack(I, boi):
     """ give array with selection given by a pointing array 
@@ -15,9 +18,11 @@ def select_boi_from_stack(I, boi):
     -------
     I_new : np.array, size=(m,n,k), ndim={2,3}
         selection of bands, in the order given by boi.
-
     """
-    if boi.shape>0:
+    assert type(I)==np.ndarray, ("please provide an array")
+    assert type(boi)==np.ndarray, ("please provide an array")
+    
+    if boi.shape[0]>0:
         if I.ndim>2:
             ndim = I.shape[2]        
             assert(ndim>=np.max(boi)) # boi pointer should not exceed bands
@@ -44,6 +49,7 @@ def get_image_subset(I, bbox):
         sub set of the data array.
 
     """
+    assert type(I)==np.ndarray, ("please provide an array")
     assert(bbox[0]<=bbox[1])
     assert(bbox[2]<=bbox[3])
     
@@ -71,7 +77,12 @@ def bilinear_interpolation(I, x, y):
     -------
     I_new : np.array, size=(k,l), ndim=2, dtype={float,complex}
         interpolated values.
+
+    See Also
+    --------
+    .mapping_tools.bilinear_interp_excluding_nodat
     """
+    assert type(I)==np.ndarray, ("please provide an array")
     x,y = np.asarray(x), np.asarray(y)
 
     x0,y0 = np.floor(x).astype(int), np.floor(y).astype(int)
@@ -112,6 +123,7 @@ def rescale_image(I, sc):
         rescaled, but not resized image
 
     """
+    assert type(I)==np.ndarray, ("please provide an array")
     T = np.array([[sc, 0], [0, sc]]) # scaling matrix
     
     # make local coordinate system
@@ -130,32 +142,65 @@ def rescale_image(I, sc):
                      method='cubic') # method='nearest')
     return I_new
 
-def rotated_sobel(az, size=3):
+def rotated_sobel(az, size=3, indexing='ij'):
     """ construct gradient filters
 
     Parameters
     ----------    
-    az : float
+    az : float, unit=degrees
         direction, in degrees with clockwise direction
     size : integer
         radius of the template 
+    indexing : {‘xy’, ‘ij’}  
+         * "xy" : using map coordinates
+         * "ij" : using local image  coordinates
 
     Returns
     -------    
     H_x : np.array
         gradient filter     
+        
+         * "xy" : followning the azimuth argument
+         * "ij" : has the horizontal direction as origin
+
+    See Also
+    --------
+    .mapping_tools.cast_orientation : 
+        convolves oriented gradient over full image
 
     Notes
     ----- 
+    The angle(s) are declared in the following coordinate frame: 
+        
+        .. code-block:: text
+        
+                 ^ North & y
+                 |  
+            - <--|--> +
+                 |
+                 +----> East & x
+
+    Two different coordinate system are used here: 
+        
+        .. code-block:: text
+
+          indexing   |           indexing    ^ y
+          system 'ij'|           system 'xy' |
+                     |                       |
+                     |       i               |       x 
+             --------+-------->      --------+-------->
+                     |                       |
+                     |                       |
+          image      | j         map         |
+          based      v           based       |
+
+
+
+    References
+    ----------
     .. [1] Sobel, "An isotropic 3×3 gradient operator" Machine vision for 
        three-dimensional scenes, Academic press, pp.376–379, 1990.
     """
-    #  coordinate frame:
-    #        |  
-    #   - <--|--> +
-    #        |
-    #        o_____
-    
     d = size //2
     az = np.radians(az)
     
@@ -167,8 +212,12 @@ def rotated_sobel(az, size=3):
     if az==0:
         H_x = I / (np.multiply(I,I) + np.multiply(J,J)) 
     else:
-        H_x = (np.cos(az)*I) + (np.sin(az)*J) / \
-              (np.multiply(I,I) + np.multiply(J,J))
+        if indexing=='ij':
+            H_x = (+np.cos(az)*I) + (+np.sin(az)*J) / \
+                  (np.multiply(I,I) + np.multiply(J,J))
+        else:
+            H_x = (-np.sin(az)*I) + (-np.cos(az)*J) / \
+                  (np.multiply(I,I) + np.multiply(J,J))
     H_x[d,d] = 0
     return H_x
     
@@ -199,15 +248,15 @@ def get_grad_filters(ftype='sobel', tsize=3, order=1):
             H_x : np.array, size=(tsize,tsize)
                 horizontal first order derivative     
             H_y : np.array, size=(tsize,tsize)
-                horizontal first order derivative  
+                vertical first order derivative  
     * order=2:
             H_xx : np.array, size=(tsize,tsize)
                 horizontal second order derivative  
             H_xy : np.array, size=(tsize,tsize)
                 cross-directional second order derivative  
 
-    Notes
-    ----- 
+    References
+    ---------- 
     .. [1] Sobel, "An isotropic 3×3 gradient operator" Machine vision for 
        three-dimensional scenes, Academic press, pp.376–379, 1990.
     .. [2] Kroon, "Numerical optimization of kernel-based image derivatives", 
@@ -293,7 +342,7 @@ def get_grad_filters(ftype='sobel', tsize=3, order=1):
         out1, out2 = H_x, np.flip(H_x.T, axis=0)
     else:
         out1, out2 = H_xx, H_xy
-    return (out1, out2)
+    return out1, out2
 
 def harst_conv(I, ftype='bezier'):
     """ construct derivatives through double filtering [1]
@@ -312,8 +361,8 @@ def harst_conv(I, ftype='bezier'):
     I_x : np.array, size=(m,n)
         gradient in horizontal direction     
 
-    Notes
-    ----- 
+    References
+    ---------- 
     .. [1] Harst, "Simple filter design for first and second order derivatives 
        by a double filtering approach" Pattern recognition letters, vol.42
        pp.65–71, 2014.        

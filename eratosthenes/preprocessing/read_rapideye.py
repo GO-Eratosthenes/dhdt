@@ -7,18 +7,30 @@ from osgeo import gdal, osr
 
 from xml.etree import ElementTree
 
-def read_band_re(band, path):  # pre-processing
-    """
+def read_band_re(band, path):
+    """ read specific band of RapidEye image
+    
     This function takes as input the RapidEye band number and the path of the
     folder that the images are stored, reads the image and returns the data as
     an array
-    input:   band           string            RapidEye band name
-             path           string            path of the folder
-    output:  data           array (n x m)     array of the band image
-             spatialRef     string            projection
-             geoTransform   tuple             affine transformation
-                                              coefficients
-             targetprj                        spatial reference
+
+    Parameters
+    ----------
+    band : string
+        RapidEye band number.
+    path : string
+        path to folder with imagery.
+
+    Returns
+    -------
+    data : np.array, size=(m,n), dtype=integer
+        data of one RadidEye band.
+    spatialRef : string
+        osr.SpatialReference in well known text
+    geoTransform : tuple, size=(6,1)
+        affine transformation coefficients.
+    targetprj : osgeo.osr.SpatialReference() object
+        coordinate reference system (CRS)    
     """
     fname = os.path.join(path, '*_Analytic.tif')
     img = gdal.Open(glob.glob(fname)[0])
@@ -28,14 +40,45 @@ def read_band_re(band, path):  # pre-processing
     targetprj = osr.SpatialReference(wkt=img.GetProjection())
     return data, spatialRef, geoTransform, targetprj
 
-def read_sun_angles_re(path):  # pre-processing
-    """
-    This function reads the xml-file of the Sentinel-2 scene and extracts an
-    array with sun angles, as these vary along the scene.
-    input:   path           string            path where xml-file of
-                                              Sentinel-2 is situated
-    output:  Zn             array (n x m)     array of the Zenith angles
-             Az             array (n x m)     array of the Azimtuh angles
+def read_sun_angles_re(path):
+    """ read the sun angles, corresponding to the RapidEye acquisition
+
+    Parameters
+    ----------
+    path : string
+        path where xml-file of RapidEye is situated.
+
+    Returns
+    -------
+    Zn : np.array, size=(m,n), dtype=float
+        array of the Zenith angles
+    Az : np.array, size=(m,n), dtype=float
+        array of the Azimtuh angles
+
+    Notes
+    ----- 
+    The azimuth angle declared in the following coordinate frame: 
+        
+        .. code-block:: text
+        
+                 ^ North & y
+                 |  
+            - <--|--> +
+                 |
+                 +----> East & x
+
+    The angles related to the sun are as follows:
+        
+        .. code-block:: text
+
+          surface normal              * sun
+          ^                     ^    /
+          |                     |   /
+          |-- zenith angle      |  /
+          | /                   | /|
+          |/                    |/ | elevation angle
+          +---- surface         +------
+
 
     """
     fname = os.path.join(path, '_metadata.xml')
