@@ -2,6 +2,7 @@ import numpy as np
 import random
 
 from scipy import ndimage # for image filters
+from sklearn.decomposition import fastica
 
 from .color_transforms import \
     rgb2ycbcr, rgb2hsi, rgb2xyz, xyz2lab, lab2lch, erdas2hsi, rgb2lms, lms2lab
@@ -146,6 +147,28 @@ def pca_rgb_preparation(Blue, Green, Red, min_samp=1e4):
     X = np.transpose(np.array(
         [Red[sampling], Green[sampling], Blue[sampling]]))
     return X
+
+def ica(Blue, Green, Red, Near, min_samp=1e4):
+    OK = Blue != 0
+    # sampleset
+    Nsamp = int(
+        min(min_samp, np.sum(OK)))  # try to have a sampleset of 10'000 points
+    sampSet, other = np.where(OK)  # OK.nonzero()
+    sampling = random.choices(sampSet, k=Nsamp)
+    del sampSet, Nsamp
+    X = np.array([Blue.flatten()[sampling],
+                  Green.flatten()[sampling],
+                  Red.flatten()[sampling],
+                  Near.flatten()[sampling]]).T
+    K,W,S,X_mean = fastica(X, return_X_mean=True)
+
+    # reconstruct components
+    first = W[0,0]*(Blue-X_mean[0])+W[0,1]*(Green-X_mean[1])+W[0,2]*(Red-X_mean[2])+W[0,3]*(Near-X_mean[3])
+    secnd = W[1,0]*(Blue-X_mean[0])+W[1,1]*(Green-X_mean[1])+W[1,2]*(Red-X_mean[2])+W[1,3]*(Near-X_mean[3])
+    third = W[2,0]*(Blue-X_mean[0])+W[2,1]*(Green-X_mean[1])+W[2,2]*(Red-X_mean[2])+W[2,3]*(Near-X_mean[3])
+    forth = W[3,0]*(Blue-X_mean[0])+W[3,1]*(Green-X_mean[1])+W[3,2]*(Red-X_mean[2])+W[3,3]*(Near-X_mean[3])
+
+    return first, second, third, forth
 
 # generic metrics
 def shannon_entropy(X,band_width=100):
@@ -382,6 +405,40 @@ def normalized_difference_water_index(Green, Near):
 
     NDWI = np.divide( (Green - Near), (Green + Near))
     return NDWI
+
+def normalized_difference_blue_water_index(Blue, Near):
+    """transform green and near infrared arrays NDW-index
+
+    Parameters
+    ----------
+    Blue : np.array, size=(m,n)
+        blue band of satellite image
+    Near : np.array, size=(m,n)
+        near infrared band of satellite image
+
+    Returns
+    -------
+    NDWI : np.array, size=(m,n)
+        array with NDWI transform
+
+    Notes
+    -----
+    Based on the bands of Sentinel-2:
+
+    .. math:: NDWI = [B_{3}-B_{8}]/[B_{3}+B_{8}]
+
+    References
+    ----------
+    .. [1] Qu et al, "Research on automatic extraction of water bodies and
+       wetlands on HJU satellite CCD images" Remote sensing information,
+       vol.4 pp.28–33, 2011
+    """
+    assert type(Near)==np.ndarray, ('please provide an array')
+    assert type(Blue)==np.ndarray, ('please provide an array')
+    assert Blue.shape[:2] == Near.shape[:2],('arrays should be of equal size')
+
+    NDBWI = np.divide( (Blue - Near), (Blue + Near))
+    return NDBWI
 
 def combinational_shadow_index(Blue,Green,Red,Near):
     """transform red, green, blue arrays to combined shadow index
@@ -732,7 +789,7 @@ def modified_color_invariant(Blue, Green, Red, Near): #wip
     C3 = color_invariant(Blue, Green, Red)
     NDWI = normalized_difference_water_index(Green, Near)
 
-    # [2] Uses thresholding an boolean algebra,
+    # [2] Uses thresholding and boolean algebra,
     # but here multiplication is used, so a float is constructed
     MCI = np.multiply(C3, NDWI)
     return MCI
@@ -773,7 +830,7 @@ def reinhard(Blue, Green, Red):
 
     return l
 
-def entropy_shade_removal(Ia, Ib, Ic, a=-1): #wip
+def entropy_shade_removal(Ia, Ib, Ic, a=-1): #todo
     """
 
     Parameters
@@ -826,10 +883,11 @@ def entropy_shade_removal(Ia, Ib, Ic, a=-1): #wip
         a = angl[np.argmin(shan)]
         #a = angl[np.argmax(shan)]
     # create imagery
-    S = - np.cos(np.radians(a))*chi1 - np.sin(np.radians(a))*chi2
-    #a += 90
-    #R = np.cos(np.radians(a))*chi1 + np.sin(np.radians(a))*chi2
-    return S
+    S = np.cos(np.radians(a))*chi1 + np.sin(np.radians(a))*chi2
+    b = a - 90
+    #b = angl[np.argmax(shan)]
+    R = np.cos(np.radians(b))*chi1 + np.sin(np.radians(b))*chi2
+    return S,R
 
 def shade_index(Blue, Green, Red, Near):
     """transform blue, green, red and near infrared arrays to shade index
@@ -924,7 +982,6 @@ def shadow_probabilities(Blue, Green, Red, Near, ae = 1e+1, be = 5e-1):
 
 
 # recovery - normalized color composite
-# histogram matching....
 
 # TO DO:
 # Wu 2007, Natural Shadow Matting. DOI: 10.1145/1243980.1243982

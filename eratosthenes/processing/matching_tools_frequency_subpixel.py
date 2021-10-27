@@ -51,7 +51,7 @@ def phase_jac(Q, m, W=np.array([]), \
     # indexing   |           indexing    ^ y
     # system 'ij'|           system 'xy' |
     #            |                       |
-    #            |       i               |       x 
+    #            |       i               |       x
     #    --------+-------->      --------+-------->
     #            |                       |
     #            |                       |
@@ -63,7 +63,7 @@ def phase_jac(Q, m, W=np.array([]), \
         if W.size==0: # if W is not given
             W = np.ones((Q.shape[0], Q.shape[1]), dtype=float)
         if F1.size==0:
-            F1,F2 = make_fourier_grid(Q, indexing='ij')   
+            F1,F2 = make_fourier_grid(Q, indexing='ij')
     else: # list format
         F1,F2 = Q[:,0], Q[:,1]
         Q = Q[:,-1]
@@ -77,19 +77,19 @@ def phase_jac(Q, m, W=np.array([]), \
         C_hat = construct_phase_plane(Q, m[0], m[1], indexing='ij')
         QC = Q-C_hat # convert complex vector difference to metric
         dXY = np.abs(np.multiply(W, QC)**rank)
-             
+
     dQdm = np.array([np.multiply(2*W.flatten()*F1.flatten(),dXY.flatten()), \
                      np.multiply(2*W.flatten()*F2.flatten(),dXY.flatten())]).T
     return dQdm
 
 def phase_secant(data, W=np.array([]), x_0=np.zeros((2))): # wip
     """get phase plane of cross-spectrum through secant
-    
+
     find slope of the phase plane through secant method (or Newton's method)
     in multiple dimensions it is known as the Broyden's method.
-                                                         
+
     Parameters
-    ----------    
+    ----------
     data : np.array, size=(m,n), dtype=complex
         normalized cross spectrum
     or     np.array, size=(m*n,3), dtype=complex
@@ -97,16 +97,16 @@ def phase_secant(data, W=np.array([]), x_0=np.zeros((2))): # wip
     W : np.array, size=(m,n), dtype=boolean
         index of data that is correct
     or     np.array, size=(m*n,1), dtype=boolean
-        list with classification of correct data       
+        list with classification of correct data
 
     Returns
     -------
-    di,dj : float     
+    di,dj : float
         sub-pixel displacement
-    
+
     See Also
     --------
-    phase_gradient_descend   
+    phase_gradient_descend
 
     References
     ----------
@@ -117,13 +117,13 @@ def phase_secant(data, W=np.array([]), x_0=np.zeros((2))): # wip
     -------
     >>> import numpy as np
     >>> from ..generic.test_tools import create_sample_image_pair
-    
+
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
     >>> Q = phase_corr(im1, im2)
     >>> di,dj,_,_ = phase_secant(Q)
 
     >>> assert(np.isclose(ti, di, atol=.2))
-    >>> assert(np.isclose(tj, dj, atol=.2))       
+    >>> assert(np.isclose(tj, dj, atol=.2))
     """
     assert type(data)==np.ndarray, ("please provide an array")
 
@@ -136,12 +136,12 @@ def phase_secant(data, W=np.array([]), x_0=np.zeros((2))): # wip
 
 def phase_gradient_descend(data, W=np.array([]), x_0=np.zeros((2))): # wip
     """get phase plane of cross-spectrum through principle component analysis
-    
-    find slope of the phase plane through 
+
+    find slope of the phase plane through
     principle component analysis
-    
+
     Parameters
-    ----------    
+    ----------
     data : np.array, size=(m,n), dtype=complex
         normalized cross spectrum
     data : np.array, size=(m*n,3), dtype=complex
@@ -149,29 +149,29 @@ def phase_gradient_descend(data, W=np.array([]), x_0=np.zeros((2))): # wip
     W : np.array, size=(m,n), dtype=boolean
         index of data that is correct
     W : np.array, size=(m*n,1), dtype=boolean
-        list with classification of correct data       
+        list with classification of correct data
 
     Returns
     -------
-    di,dj : float     
+    di,dj : float
         sub-pixel displacement
-    
+
     See Also
     --------
-    phase_lsq   
+    phase_lsq
 
     Example
     -------
     >>> import numpy as np
     >>> from ..generic.test_tools import create_sample_image_pair
-    
+
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
     >>> Q = phase_corr(im1, im2)
     >>> di,dj,_,_ = phase_gradient_descend(Q)
 
     >>> assert(np.isclose(ti, di, atol=.2))
-    >>> assert(np.isclose(tj, dj, atol=.2))   
-       
+    >>> assert(np.isclose(tj, dj, atol=.2))
+
     """
     assert type(data)==np.ndarray, ("please provide an array")
     assert type(W)==np.ndarray, ("please provide an array")
@@ -184,12 +184,12 @@ def phase_gradient_descend(data, W=np.array([]), x_0=np.zeros((2))): # wip
 
 def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
     """get phase plane of cross-spectrum through two point step size iteration
-    
-    find slope of the phase plane through 
+
+    find slope of the phase plane through
     two point step size for phase correlation minimization
-    
+
     Parameters
-    ----------    
+    ----------
     Q : np.array, size=(_,_), dtype=complex
         cross spectrum
     m0 : np.array, size=(2,1)
@@ -201,67 +201,67 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
     j : integer, default=5
         number of sub routines during an estimation
     n : integer, default=3
-        mask convergence factor        
+        mask convergence factor
     Returns
     -------
-    m : np.array, size=(2,1)   
+    m : np.array, size=(2,1)
         sub-pixel displacement
-    snr: float 
-        signal-to-noise ratio    
-    
+    snr: float
+        signal-to-noise ratio
+
     See Also
     --------
-    phase_svd, phase_radon, phase_difference, phase_jac   
-    
+    phase_svd, phase_radon, phase_difference, phase_jac
+
     References
-    ----------    
-    .. [1] Barzilai & Borwein. "Two-point step size gradient methods", IMA 
+    ----------
+    .. [1] Barzilai & Borwein. "Two-point step size gradient methods", IMA
        journal of numerical analysis. vol.8 pp.141--148, 1988.
-    .. [2] Leprince, et al. "Automatic and precise orthorectification, 
-       coregistration, and subpixel correlation of satellite images, 
-       application to ground deformation measurements", IEEE Transactions on 
-       geoscience and remote sensing vol.45(6) pp.1529-1558, 2007.    
+    .. [2] Leprince, et al. "Automatic and precise orthorectification,
+       coregistration, and subpixel correlation of satellite images,
+       application to ground deformation measurements", IEEE Transactions on
+       geoscience and remote sensing vol.45(6) pp.1529-1558, 2007.
     """
     s = 1.#1.25#.5#1.#.5#2.
 
     Q = normalize_power_spectrum(Q)
     #W = W/np.sum(W) # normalize weights
-    
+
     Fx,Fy = make_fourier_grid(Q)
 
-    # initialize    
+    # initialize
     m_min = m + np.array([-.1, -.1])
 
     J_min = phase_jac(Q, m_min, W=W)
     g_min = np.sum(J_min, axis=0)
-        
+
     print('di:{:+.4f}'.format(m[0])+' dj:{:+.4f}'.format(m[1]))
     for i in range(l):
         k = 1
-        while True:            
-            
+        while True:
+
             J = phase_jac(Q, m, W=W)
             g = np.sum(J, axis=0)
-                       
+
             # difference
             dm,dg = m - m_min, g - g_min
-            
+
             #alpha = np.dot(dm,dg)/np.dot(dg,dg)
             alpha = np.dot(dm,dm)/(s*np.dot(dm,dg))
-            
+
             if (np.all(np.abs(m - m_min)<=p)) or (k>=j):
                 break
-            
+
             # update
             m_min, g_min = np.copy(m), np.copy(g)
-            
+
             #if i ==0:
             m -= alpha*dg
             #else:
             #    m -= alpha*dg
             print('di:{:+.4f}'.format(m[0])+' dj:{:+.4f}'.format(m[1]))
             k += 1
-            
+
         # optimize weighting matrix
         #phi = np.abs(QC*np.conjugate(QC))/2
         C = 1j*-np.sin(Fx*m[1] + Fy*m[0])
@@ -270,9 +270,9 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
         dXY = np.abs(np.multiply(W, QC))
         W = W*(1-(dXY/4))**n
 #        phi = np.multiply(2*W,\
-#                          (1 - np.multiply(np.real(Q), 
+#                          (1 - np.multiply(np.real(Q),
 #                                           +np.cos(Fx*m[1] + Fy*m[0])) - \
-#                           np.multiply(np.imag(Q), 
+#                           np.multiply(np.imag(Q),
 #                                       -np.sin(Fx*m[1] + Fy*m[0]))))
         #W = np.multiply(W, (1-(phi/4))**n)
 #    snr = 1 - (np.sum(phi)/(4*np.sum(W)))
@@ -282,7 +282,7 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
 
 def phase_slope_1d(t, rad=.1):
     """ estimate the slope and intercept for one-dimensional signal
-    
+
     Parameters
     ----------
     t : np.array, size=(m,1), dtype=complex
@@ -294,13 +294,13 @@ def phase_slope_1d(t, rad=.1):
     -------
     x_hat : np.array, size=(2,1)
         estimated slope and intercept.
-        
+
     See also
     --------
     phase_svd
     """
     assert type(t)==np.ndarray, ("please provide an array")
-    
+
     idx_sub = np.arange(np.ceil((0.5-rad)*len(t)), \
                     np.ceil((0.5+rad)*len(t))+1).astype(int)
     y_ang = np.unwrap(np.angle(t[idx_sub]),axis=0)
@@ -310,56 +310,59 @@ def phase_slope_1d(t, rad=.1):
 
 def phase_svd(Q, W, rad=0.1):
     """get phase plane of cross-spectrum through single value decomposition
-    
-    find slope of the phase plane through 
+
+    find slope of the phase plane through
     single value decomposition
-    
+
     Parameters
-    ----------    
+    ----------
     Q : np.array, size=(m,n), dtype=complex
         cross spectrum
     W : np.array, size=(m,n), dtype=float
         weigthing matrix
     rad : float, range=(0.0,0.5)
         radial inclusion, seen from the center
-    
+
     Returns
     -------
-    di,dj : float     
+    di,dj : float
         sub-pixel displacement
-    
+
     See Also
     --------
-    phase_tpss, phase_radon, phase_difference    
+    phase_tpss, phase_radon, phase_difference
 
     References
-    ----------    
-    .. [1] Hoge, W.S. "A subspace identification extension to the phase 
-       correlation method", IEEE transactions on medical imaging, vol. 22(2) 
+    ----------
+    .. [1] Hoge, W.S. "A subspace identification extension to the phase
+       correlation method", IEEE transactions on medical imaging, vol. 22(2)
        pp.277-280, 2003.
 
     Example
     -------
     >>> import numpy as np
     >>> from ..generic.test_tools import create_sample_image_pair
-    
+
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
     >>> Q = phase_corr(im1, im2)
     >>> di,dj,_,_ = phase_svd(Q)
 
     >>> assert(np.isclose(ti, di, atol=.2))
-    >>> assert(np.isclose(tj, dj, atol=.2))        
+    >>> assert(np.isclose(tj, dj, atol=.2))
     """
     assert type(Q)==np.ndarray, ("please provide an array")
     assert type(W)==np.ndarray, ("please provide an array")
-    
+
     rad = np.minimum(rad, 0.5)
     (m,n) = Q.shape
     Q,W = np.fft.fftshift(Q), np.fft.fftshift(W)
-    
+
     # decompose axis
     n_elements = 1
-    u,s,v = np.linalg.svd(W*Q) # singular-value decomposition
+    try:
+        u,s,v = np.linalg.svd(W*Q) # singular-value decomposition
+    except:
+        return 0, 0
     sig = np.zeros((m,n))
     sig[:m,:m] = np.diag(s)
     sig = sig[:,:n_elements] # select first element only
@@ -368,54 +371,54 @@ def phase_svd(Q, W, rad=0.1):
     # b = u.dot(sig.dot(v))
     t_m = np.transpose(v).dot(sig)
     t_n = u.dot(sig)# transform
-    
+
     d_n = phase_slope_1d(t_n, rad)
     d_m = phase_slope_1d(t_m, rad)
-        
+
     di = -d_n[0][0]*n / (2*np.pi)
     dj = -d_m[0][0]*m / (2*np.pi)
     return di, dj
 
 def phase_difference_1d(Q, W=np.array([]), axis=0):
     """get displacement from phase plane along one axis through differencing
-    
-    find slope of the phase plane through 
+
+    find slope of the phase plane through
     local difference of the pahse angles
-    
+
     Parameters
-    ----------    
+    ----------
     Q : np.array, size=(m,n), dtype=complex
         normalized cross spectrum
     W : np.array, size=(m,n), dtype=boolean
         weigthing matrix
-    
+
     Returns
     -------
-    dj : float     
+    dj : float
         sub-pixel displacement
-    
+
     See Also
     --------
-    phase_tpss, phase_svd, phase_difference   
-    
+    phase_tpss, phase_svd, phase_difference
+
     References
-    ----------    
-    .. [1] Kay, S. "A fast and accurate frequency estimator", IEEE 
-       transactions on acoustics, speech and signal processing, vol.37(12) 
-       pp.1987-1990, 1989.    
+    ----------
+    .. [1] Kay, S. "A fast and accurate frequency estimator", IEEE
+       transactions on acoustics, speech and signal processing, vol.37(12)
+       pp.1987-1990, 1989.
     """
     assert type(Q)==np.ndarray, ("please provide an array")
     assert type(W)==np.ndarray, ("please provide an array")
-    
+
     if axis==0:
         Q = np.transpose(Q)
     m,n = Q.shape
-        
+
     #estimate period
     Q_dj = np.roll(Q, (0,1))
-    
+
     Q_diff = np.multiply(np.conj(Q),Q_dj)
-    
+
     Delta_dj = np.angle(Q_diff)/np.pi
     if W.size==0:
         # find coherent data
@@ -430,51 +433,51 @@ def phase_difference_1d(Q, W=np.array([]), axis=0):
 
 def phase_difference(Q, W=np.array([])):
     """get displacement from phase plane through neighbouring vector difference
-    
-    find slope of the phase plane through 
+
+    find slope of the phase plane through
     local difference of the pahse angles
-    
+
     Parameters
-    ----------    
+    ----------
     Q : np.array, size=(m,n), dtype=complex
         normalized cross spectrum
     W : np.array, size=(m,n), dtype=boolean
         weigthing matrix
-        
+
     Returns
     -------
-    di,dj : float     
+    di,dj : float
         sub-pixel displacement
-    
+
     See Also
     --------
-    phase_tpss, phase_svd, phase_difference   
-    
+    phase_tpss, phase_svd, phase_difference
+
     References
-    ----------    
-    .. [1] Kay, S. "A fast and accurate frequency estimator", IEEE 
-       transactions on acoustics, speech and signal processing, vol.37(12) 
-       pp.1987-1990, 1989.    
+    ----------
+    .. [1] Kay, S. "A fast and accurate frequency estimator", IEEE
+       transactions on acoustics, speech and signal processing, vol.37(12)
+       pp.1987-1990, 1989.
 
     Example
     -------
     >>> import numpy as np
     >>> from ..generic.test_tools import create_sample_image_pair
-    
+
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> Q = phase_corr(im1, im2)
     >>> di,dj,_,_ = phase_svd(Q)
 
     >>> assert(np.isclose(ti, di, atol=.2))
-    >>> assert(np.isclose(tj, dj, atol=.2))    
+    >>> assert(np.isclose(tj, dj, atol=.2))
 
     """
     assert type(Q)==np.ndarray, ("please provide an array")
     assert type(W)==np.ndarray, ("please provide an array")
-    
+
     di = phase_difference_1d(Q, W, axis=0)
     dj = phase_difference_1d(Q, W, axis=1)
-    
+
     return di,dj
 
 def cross_spectrum_to_coordinate_list(data, W=np.array([])):
@@ -494,18 +497,18 @@ def cross_spectrum_to_coordinate_list(data, W=np.array([])):
     """
     assert type(data)==np.ndarray, ("please provide an array")
     assert type(W)==np.ndarray, ("please provide an array")
-    
-    if data.shape[0]==data.shape[1]:        
-        (m,n) = data.shape        
+
+    if data.shape[0]==data.shape[1]:
+        (m,n) = data.shape
         F1,F2 = make_fourier_grid(np.zeros((m,n)), \
                                   indexing='ij', system='unit')
-        
+
         # transform from complex to -1...+1
         Q = np.fft.fftshift(np.angle(data) / np.pi) #(2*np.pi))
-        
-        data_list = np.vstack((F1.flatten(), 
-                               F2.flatten(), 
-                               Q.flatten() )).T 
+
+        data_list = np.vstack((F1.flatten(),
+                               F2.flatten(),
+                               Q.flatten() )).T
         if W.size>0: # remove masked data
             data_list = data_list[W.flatten()==1,:]
     else:
@@ -514,12 +517,12 @@ def cross_spectrum_to_coordinate_list(data, W=np.array([])):
 
 def phase_lsq(data, W=np.array([])):
     """get phase plane of cross-spectrum through least squares plane fitting
-    
-    find slope of the phase plane through 
+
+    find slope of the phase plane through
     principle component analysis
-    
+
     Parameters
-    ----------    
+    ----------
     data : np.array, size=(m,n), dtype=complex
         normalized cross spectrum
     or     np.array, size=(m*n,3), dtype=complex
@@ -527,35 +530,35 @@ def phase_lsq(data, W=np.array([])):
     W : np.array, size=(m,n), dtype=boolean
         index of data that is correct
     or     np.array, size=(m*n,1), dtype=boolean
-        list with classification of correct data   
+        list with classification of correct data
 
     Returns
     -------
-    di,dj : float     
+    di,dj : float
         sub-pixel displacement
 
     See Also
     --------
-    phase_pca, phase_ransac, phase_hough 
+    phase_pca, phase_ransac, phase_hough
 
     Example
     -------
     >>> import numpy as np
     >>> from ..generic.test_tools import create_sample_image_pair
-    
+
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
     >>> Q = phase_corr(im1, im2)
     >>> di,dj,_,_ = phase_lsq(Q)
 
     >>> assert(np.isclose(ti, di, atol=.2))
-    >>> assert(np.isclose(tj, dj, atol=.2))          
+    >>> assert(np.isclose(tj, dj, atol=.2))
     """
     assert type(data)==np.ndarray, ("please provide an array")
     assert type(W)==np.ndarray, ("please provide an array")
-    
-    data = cross_spectrum_to_coordinate_list(data, W)    
+
+    data = cross_spectrum_to_coordinate_list(data, W)
     A,y = data[:,:-1], data[:,-1]
-    
+
     M = A.transpose().dot(A)
     V = A.transpose().dot(y)
 
@@ -563,20 +566,20 @@ def phase_lsq(data, W=np.array([])):
     Mp = np.linalg.inv(M.transpose().dot(M)).dot(M.transpose())
 
     #Least-squares Solution
-    plane_normal = Mp.dot(V) 
-    
+    plane_normal = Mp.dot(V)
+
     di = 2*plane_normal[0]
     dj = 2*plane_normal[1]
     return di, dj
 
 def phase_pca(data, W=np.array([])):
     """get phase plane of cross-spectrum through principle component analysis
-    
-    find slope of the phase plane through 
+
+    find slope of the phase plane through
     principle component analysis
-    
+
     Parameters
-    ----------    
+    ----------
     data : np.array, size=(m,n), dtype=complex
         normalized cross spectrum
     or     np.array, size=(m*n,3), dtype=complex
@@ -584,35 +587,35 @@ def phase_pca(data, W=np.array([])):
     W : np.array, size=(m,n), dtype=boolean
         index of data that is correct
     or     np.array, size=(m*n,1), dtype=boolean
-        list with classification of correct data       
+        list with classification of correct data
 
     Returns
     -------
-    di,dj : float     
+    di,dj : float
         sub-pixel displacement
-    
+
     See Also
     --------
-    phase_lsq   
+    phase_lsq
 
     Example
     -------
     >>> import numpy as np
     >>> from ..generic.test_tools import create_sample_image_pair
-    
+
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
     >>> Q = phase_corr(im1, im2)
     >>> di,dj,_,_ = phase_pca(Q)
 
     >>> assert(np.isclose(ti, di, atol=.2))
-    >>> assert(np.isclose(tj, dj, atol=.2))   
-       
+    >>> assert(np.isclose(tj, dj, atol=.2))
+
     """
     assert type(data)==np.ndarray, ("please provide an array")
     assert type(W)==np.ndarray, ("please provide an array")
-    
+
     data = cross_spectrum_to_coordinate_list(data, W)
-    
+
     eigen_vecs, eigen_vals = pca(data)
     e3 = eigen_vecs[:,np.argmin(eigen_vals)] # normal vector
     di = (-2*e3[0]/e3[-1])
@@ -624,12 +627,12 @@ def phase_pca(data, W=np.array([])):
 
 def phase_weighted_pca(Q, W): # wip
     """get phase plane of cross-spectrum through principle component analysis
-    
-    find slope of the phase plane through 
+
+    find slope of the phase plane through
     principle component analysis
-    
+
     Parameters
-    ----------    
+    ----------
     data : np.array, size=(m,n), dtype=complex
         normalized cross spectrum
     or     np.array, size=(m*n,3), dtype=complex
@@ -637,28 +640,28 @@ def phase_weighted_pca(Q, W): # wip
     W : np.array, size=(m,n), dtype=boolean
         index of data that is correct
     or     np.array, size=(m*n,1), dtype=boolean
-        list with classification of correct data       
+        list with classification of correct data
     Returns
     -------
-    di,dj : float     
+    di,dj : float
         sub-pixel displacement
-    
+
     See Also
     --------
-    phase_lsq   
-       
+    phase_lsq
+
     Example
     -------
     >>> import numpy as np
     >>> from ..generic.test_tools import create_sample_image_pair
-    
+
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
     >>> Q = phase_corr(im1, im2)
     >>> W = gaussian_mask(Q)
     >>> di,dj,_,_ = phase_weighted_pca(Q, W)
 
     >>> assert(np.isclose(ti, di, atol=.2))
-    >>> assert(np.isclose(tj, dj, atol=.2))   
+    >>> assert(np.isclose(tj, dj, atol=.2))
     """
     assert type(Q)==np.ndarray, ('please provide an array')
     assert type(W)==np.ndarray, ('please provide an array')
@@ -667,7 +670,7 @@ def phase_weighted_pca(Q, W): # wip
 
     data = cross_spectrum_to_coordinate_list(Q)
     weights = W.flatten()
-    
+
     covar = np.dot(data.T, data)
     covar /= np.dot(weights.T, weights)
 
@@ -677,7 +680,7 @@ def phase_weighted_pca(Q, W): # wip
         di = (-2*e3[0]/e3[-1])
         dj = (-2*e3[1]/e3[-1])
     except:
-        di, dj = 0, 0    
+        di, dj = 0, 0
     return di, dj
 
 # from skimage.measure
@@ -878,14 +881,14 @@ def ransac(data, model_class, min_samples, residual_threshold,
         sample_model = model_class()
 
         success = sample_model.estimate(*samples, params_bound=params_bounds)
-        
+
         # loop through potential solutions
         for potential_param in np.arange(success):
             potential_model = model_class()
             potential_model.params = sample_model.params[potential_param][0:min_samples]
 
             potential_model_residuals = np.abs(potential_model.residuals(*data))
-            
+
             # consensus set / inliers
             potential_model_inliers = potential_model_residuals < \
                 residual_threshold
@@ -927,7 +930,7 @@ class BaseModel(object):
 
 class PlaneModel(BaseModel):
     """Least squares estimator for phase plane.
-    
+
     Vectors/lines are parameterized using polar coordinates as functional model::
         z = x * dx + y * dy
     This estimator minimizes the squared distances from all points to the
@@ -957,21 +960,21 @@ class PlaneModel(BaseModel):
     def residuals(self, data):
         """Determine residuals of data to model
         For each point the shortest distance to the plane is returned.
-        
+
         Parameters
         ----------
         data : (N, 3) array
             N points with x, y coordinates and z values, respectively.
-        
+
         Returns
         -------
         residuals : (N, ) array
             Residual for each data point.
         """
         x_hat = self.params
-        
+
         Q_hat = data[:,0]*x_hat[0] + data[:,1]*x_hat[1]
-        
+
         residuals = np.abs(data[:,-1] - Q_hat)
         return residuals
 
@@ -1023,7 +1026,7 @@ class SawtoothModel(BaseModel):
                 cycle_0 = param_cycle[:,:,0].flatten() # 2*np.pi() if in radians
                 cycle_1 = param_cycle[:,:,1].flatten() # but -.5 ... +.5
                 x_stack = np.zeros((cycle_0.size, 2))
-                
+
                 for val,idx in enumerate(cycle_0):
                     y = np.array([data[0,-1] + cycle_0[idx], \
                                   data[1,-1] + cycle_1[idx]])
@@ -1046,19 +1049,19 @@ class SawtoothModel(BaseModel):
     def residuals(self, data):
         """Determine residuals of data to model
         For each point the shortest distance to the plane is returned.
-        
+
         Parameters
         ----------
         data : (N, 3) array
             N points with x, y coordinates and z values, respectively.
-        
+
         Returns
         -------
         residuals : (N, ) array
             Residual for each data point.
         """
         x_hat = self.params
-        
+
         Q_hat = data[:,0]*x_hat[0] + data[:,1]*x_hat[1]
         Q_hat = np.remainder(Q_hat+.5,1)-.5 # phase wrapping
         residuals = np.abs(data[:,-1] - Q_hat)
@@ -1091,160 +1094,160 @@ class SawtoothModel(BaseModel):
 
 def phase_ransac(data, max_displacement=0, precision_threshold=.05):
     """robustly fit plane using RANSAC algorithm
-    
-    find slope of the phase plane through 
+
+    find slope of the phase plane through
     random sampling and consensus
-    
+
     Parameters
-    ----------    
+    ----------
     data : np.array, size=(m,n), dtype=complex
         normalized cross spectrum
     or     np.array, size=(m*n,3), dtype=complex
         coordinate list with complex cross-sprectum at last
-    
+
     Returns
     -------
-    di : float     
+    di : float
         sub-pixel displacement along vertical axis
-    dj : float     
+    dj : float
         sub-pixel displacement along horizontal axis
-    
+
     See Also
     --------
     phase_lsq, phase_svd, phase_hough, phase_pca
 
     References
-    ----------    
-    .. [1] Fischler & Bolles. "Random sample consensus: a paradigm for model 
-       fitting with applications to image analysis and automated cartography" 
-       Communications of the ACM vol.24(6) pp.381-395, 1981.   
-    .. [2] Tong et al. "A novel subpixel phase correlation method using 
-       singular value decomposition and unified random sample consensus" IEEE 
-       transactions on geoscience and remote sensing vol.53(8) pp.4143-4156, 
+    ----------
+    .. [1] Fischler & Bolles. "Random sample consensus: a paradigm for model
+       fitting with applications to image analysis and automated cartography"
+       Communications of the ACM vol.24(6) pp.381-395, 1981.
+    .. [2] Tong et al. "A novel subpixel phase correlation method using
+       singular value decomposition and unified random sample consensus" IEEE
+       transactions on geoscience and remote sensing vol.53(8) pp.4143-4156,
        2015.
-       
+
     Example
     -------
     >>> import numpy as np
     >>> from ..generic.test_tools import create_sample_image_pair
-    
+
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
     >>> Q = phase_corr(im1, im2)
     >>> di,dj,_,_ = phase_ransac(Q)
 
     >>> assert(np.isclose(ti, di, atol=.2))
-    >>> assert(np.isclose(tj, dj, atol=.2))   
+    >>> assert(np.isclose(tj, dj, atol=.2))
     """
     assert type(data)==np.ndarray, ('please provide an array')
 
     # what type of data? either list of coordinates or a cross-spectral matrix
-    if data.shape[0]==data.shape[1]:        
-        (m,n) = data.shape        
+    if data.shape[0]==data.shape[1]:
+        (m,n) = data.shape
         Fx,Fy = make_fourier_grid(np.zeros((m,n)))
         Fx,Fy = np.fft.fftshift(Fx), np.fft.fftshift(Fy)
         Q = np.fft.fftshift(np.angle(data) / (2*np.pi))
-        
+
         if max_displacement==0:
             max_displacement = m//2
-        data = np.vstack((Fy.flatten(), 
-                          Fx.flatten(), 
-                          Q.flatten() )).T  
+        data = np.vstack((Fy.flatten(),
+                          Fx.flatten(),
+                          Q.flatten() )).T
 
-    ransac_model, inliers = ransac(data, SawtoothModel, #PlaneModel, 
-                                   min_samples=int(2), 
-                                   residual_threshold=precision_threshold, 
+    ransac_model, inliers = ransac(data, SawtoothModel, #PlaneModel,
+                                   min_samples=int(2),
+                                   residual_threshold=precision_threshold,
                                    max_trials=int(1e3),
                                    params_bounds=max_displacement)
 #    IN = np.reshape(inliers, (m,n)) # what data is within error bounds
-    
-    di = ransac_model.params[0] 
+
+    di = ransac_model.params[0]
     dj = ransac_model.params[1]
     return di, dj
 
 def phase_hough(data, max_displacement=64, param_spacing=1, sample_fraction=1.,
                 W=np.array([])):
     assert type(data)==np.ndarray, ('please provide an array')
-    
+
     # what type of data? either list of coordinates or a cross-spectral matrix
-    if data.shape[0]==data.shape[1]:        
-        (m,n) = data.shape        
+    if data.shape[0]==data.shape[1]:
+        (m,n) = data.shape
         Fx,Fy = make_fourier_grid(np.zeros((m,n)))
         Fx,Fy = np.fft.fftshift(Fx), np.fft.fftshift(Fy)
         Q = np.fft.fftshift(np.angle(data) / (2*np.pi))
-        
+
         if max_displacement==64:
             max_displacement = m//2
-        data = np.vstack((Fx.flatten(), 
-                          Fy.flatten(), 
-                          Q.flatten() )).T  
-    
+        data = np.vstack((Fx.flatten(),
+                          Fy.flatten(),
+                          Q.flatten() )).T
+
     # create voting space
     (dj,di) = np.meshgrid(np.arange(-max_displacement, \
                                     +max_displacement + param_spacing, \
-                                    param_spacing), 
+                                    param_spacing),
                           np.arange(-max_displacement, \
                                     +max_displacement + param_spacing, \
                                     param_spacing))
-    
+
     # create population that can vote
     sample_size = data.shape[0]
     if sample_fraction>=1:
         idx = np.arange(0, sample_size)
     elif W.size==0: # sample random from collection
-        idx = np.random.choice(sample_size, 
-                               np.round(sample_size*sample_fraction).astype(np.int32), 
-                               replace=False)  
+        idx = np.random.choice(sample_size,
+                               np.round(sample_size*sample_fraction).astype(np.int32),
+                               replace=False)
     else: # use weights to select sampling
         idx = np.flip(np.argsort(data[:,-1]))
-        idx = idx[0:np.round(sample_size*sample_fraction).astype(np.int32)]        
-    
+        idx = idx[0:np.round(sample_size*sample_fraction).astype(np.int32)]
+
     #vote = np.zeros_like(di, dtype=np.int32)
     vote = np.zeros_like(di, dtype=np.float32)
     for counter in idx:
         angle_diff = data[counter,-1] - \
             (np.remainder((data[counter,0]*dj + data[counter,1]*di)+.5,1)-.5)
-        
+
         vote += 1 / (1 + (angle_diff/(.1*np.std(angle_diff)))**2) # cauchy weighting
         # hard threshold
         # vote += (np.abs(angle_diff) <= .1).astype(np.int32)
-        
-    
+
+
     (i_hough,j_hough) = np.unravel_index(np.argmax(vote), di.shape)
     di_hough,dj_hough = di[i_hough,j_hough], dj[i_hough,j_hough]
-    
+
     return di_hough, dj_hough
 
 def phase_radon(Q, coord_system='ij'):
     """get direction and magnitude from phase plane through Radon transform
-    
-    find slope of the phase plane through 
+
+    find slope of the phase plane through
     single value decomposition
-    
+
     Parameters
-    ----------    
+    ----------
     Q : np.array, size=(m,n), dtype=complex
         cross spectrum
-    
+
     Returns
     -------
-    theta,rho : float     
+    theta,rho : float
         magnitude and direction of displacement
-    
+
     See Also
     --------
-    phase_tpss, phase_svd, phase_difference   
+    phase_tpss, phase_svd, phase_difference
 
     References
-    ----------    
-    .. [1] Balci & Foroosh. "Subpixel registration directly from the phase 
-       difference" EURASIP journal on advances in signal processing, pp.1-11, 
+    ----------
+    .. [1] Balci & Foroosh. "Subpixel registration directly from the phase
+       difference" EURASIP journal on advances in signal processing, pp.1-11,
        2006.
 
     Example
     -------
     >>> import numpy as np
     >>> from ..generic.test_tools import create_sample_image_pair
-    
+
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
     >>> Q = phase_corr(im1, im2)
     >>> di,dj,_,_ = phase_radon(Q)
@@ -1254,20 +1257,20 @@ def phase_radon(Q, coord_system='ij'):
     """
     assert type(Q)==np.ndarray, ('please provide an array')
 
-    (m, n) = Q.shape  
+    (m, n) = Q.shape
     half = m // 2
     Q = np.fft.fftshift(Q)
-    
+
     # estimate direction, through the radon transform
     W = np.fft.fftshift(raised_cosine(Q, beta=1e-5)).astype(bool)
     Q[~W] = 0 # make circular domain
-    
+
     theta = np.linspace(0., 180., max(m,n), endpoint=False)
     R = radon(np.angle(Q), theta) # sinogram
-        
+
     #plt.imshow(R[:half,:]), plt.show()
     #plt.imshow(np.flipud(R[half:,:])), plt.show()
-    
+
     R_fold = np.abs(np.multiply(R[:half,:], R[half:,:]))
     radon_score = np.sum(R_fold, axis=0)
     score_idx = np.argmax(radon_score)
@@ -1278,10 +1281,10 @@ def phase_radon(Q, coord_system='ij'):
     # plt.plot(R[:,score_idx]), plt.show()
 
     # estimate magnitude
-    Q_rot = ndimage.rotate(Q, -theta, 
-                             axes=(1, 0), reshape=False, output=None, 
+    Q_rot = ndimage.rotate(Q, -theta,
+                             axes=(1, 0), reshape=False, output=None,
                              order=3, mode='constant')
-    rho = np.abs(phase_difference_1d(Q_rot, axis=1))  
+    rho = np.abs(phase_difference_1d(Q_rot, axis=1))
     if coord_system=='ij':
         di,dj = np.sin(np.radians(theta))*rho, -np.cos(np.radians(theta))*rho
         return di, dj
@@ -1291,10 +1294,10 @@ def phase_radon(Q, coord_system='ij'):
 
 #def phase_binairy_stripe():
 #    Notes
-#    -----    
-#    [1] Zuo et al. "Registration method for infrared images under conditions 
-#    of fixed-pattern noise", Optics communications, vol.285 pp.2293-2302, 
+#    -----
+#    [1] Zuo et al. "Registration method for infrared images under conditions
+#    of fixed-pattern noise", Optics communications, vol.285 pp.2293-2302,
 #    2012.
 #    """
-    
+
 

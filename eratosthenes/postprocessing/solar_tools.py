@@ -16,13 +16,13 @@ def annual_solar_graph(latitude=51.707524, longitude=6.244362, spac=.5, \
 
     az = np.arange(0, 360, spac)
     zn = np.flip(np.arange(-spac, +90, spac))
-    
+
     Sol = np.zeros((zn.shape[0], az.shape[0]))
-    
+
     month = np.array([12, 6])     # 21/12 typical winter solstice - lower bound
     day = np.array([21, 21])      # 21/06 typical summer solstice - upper bound
 
-    # loop through all times to get sun paths    
+    # loop through all times to get sun paths
     for i in range(0,2):
         for hour in range(0, 24):
             for minu in range(0, 60):
@@ -35,22 +35,22 @@ def annual_solar_graph(latitude=51.707524, longitude=6.244362, spac=.5, \
                                           datetime(year, month[i], day[i], \
                                                    hour, minu, sec, \
                                                    tzinfo=timezone('UTC')))
-                
+
                 az_id = (np.abs(az - sun_azi)).argmin()
                 zn_id = (np.abs(zn - sun_zen)).argmin()
-                if i==0:    
+                if i==0:
                     Sol[zn_id,az_id] = -1
                 else:
                     Sol[zn_id,az_id] = +1
     # remove the line below the horizon
     Sol = Sol[:-1,:]
-    
+
     # mathematical morphology to do infilling, and extent the boundaries a bit
     Sol_plu, Sol_min = Sol==+1, Sol==-1
     Sol_plu = ndimage.binary_dilation(Sol_plu, np.ones((5,5))).cumsum(axis=0)==1
     Sol_min = np.flipud(ndimage.binary_dilation(Sol_min, np.ones((5,5))))
     Sol_min = np.flipud(Sol_min.cumsum(axis=0)==1)
-    
+
     # populated the solargraph between the upper and lower bound
     Sky = np.zeros(Sol.shape)
     for i in range(0,Sol.shape[1]):
@@ -59,11 +59,11 @@ def annual_solar_graph(latitude=51.707524, longitude=6.244362, spac=.5, \
             start_idx = mat_idx[0][0]
             mat_idx = np.where(Sol_min[:,i]==1)
             if len(mat_idx[0]) > 0:
-                end_idx = mat_idx[0][-1]    
+                end_idx = mat_idx[0][-1]
             else:
                 end_idx = Sol.shape[1]
-            Sky[start_idx:end_idx,i] = 1 
-    
+            Sky[start_idx:end_idx,i] = 1
+
     return Sky, az, zn
 
 def az_to_sun_vector(az, indexing='ij'):
@@ -73,10 +73,10 @@ def az_to_sun_vector(az, indexing='ij'):
     ----------
     az : float, unit=degrees
         azimuth of sun.
-    indexing : {‘xy’, ‘ij’}  
+    indexing : {‘xy’, ‘ij’}
          * "xy" : using map coordinates
          * "ij" : using local image  coordinates
-         
+
     Returns
     -------
     sun : np.array, size=(2,1), range=0...1
@@ -87,25 +87,25 @@ def az_to_sun_vector(az, indexing='ij'):
     sun_angles_to_vector
 
     Notes
-    ----- 
-    The azimuth angle declared in the following coordinate frame: 
-        
+    -----
+    The azimuth angle declared in the following coordinate frame:
+
         .. code-block:: text
-        
+
                  ^ North & y
-                 |  
+                 |
             - <--|--> +
                  |
                  +----> East & x
 
-    Two different coordinate system are used here: 
-        
+    Two different coordinate system are used here:
+
         .. code-block:: text
 
           indexing   |           indexing    ^ y
           system 'ij'|           system 'xy' |
                      |                       |
-                     |       i               |       x 
+                     |       i               |       x
              --------+-------->      --------+-------->
                      |                       |
                      |                       |
@@ -130,7 +130,7 @@ def sun_angles_to_vector(az, zn, indexing='ij'):
         azimuth angle of sun.
     zn : float, unit=degrees
         zenith angle of sun.
-    indexing : {‘xy’, ‘ij’}  
+    indexing : {‘xy’, ‘ij’}
          * "xy" : using map coordinates
          * "ij" : using local image  coordinates
 
@@ -144,19 +144,19 @@ def sun_angles_to_vector(az, zn, indexing='ij'):
     az_to_sun_vector
 
     Notes
-    ----- 
-    The azimuth angle declared in the following coordinate frame: 
-        
+    -----
+    The azimuth angle declared in the following coordinate frame:
+
         .. code-block:: text
-        
+
                  ^ North & y
-                 |  
+                 |
             - <--|--> +
                  |
                  +----> East & x
 
     The angles related to the sun are as follows:
-        
+
         .. code-block:: text
 
           surface normal              * sun
@@ -167,14 +167,14 @@ def sun_angles_to_vector(az, zn, indexing='ij'):
           |/                    |/ | elevation angle
           +---- surface -----   +------
 
-    Two different coordinate system are used here: 
-        
+    Two different coordinate system are used here:
+
         .. code-block:: text
 
           indexing   |           indexing    ^ y
           system 'ij'|           system 'xy' |
                      |                       |
-                     |       i               |       x 
+                     |       i               |       x
              --------+-------->      --------+-------->
                      |                       |
                      |                       |
@@ -200,9 +200,9 @@ def sun_angles_to_vector(az, zn, indexing='ij'):
     return sun
 
 # elevation model based functions
-def make_shadowing(Z, az, zn, spac=10):    
+def make_shadowing(Z, az, zn, spac=10):
     """ create synthetic shadow image from given sun angles
-    
+
     Parameters
     ----------
     Z : np.array, size=(m,n), dtype={integer,float}
@@ -218,21 +218,21 @@ def make_shadowing(Z, az, zn, spac=10):
     -------
     Sw : np.array, size=(m,n), dtype=bool
         estimated shadow grid
-        
+
     Notes
-    ----- 
-    The azimuth angle declared in the following coordinate frame: 
-        
+    -----
+    The azimuth angle declared in the following coordinate frame:
+
         .. code-block:: text
-        
+
                  ^ North & y
-                 |  
+                 |
             - <--|--> +
                  |
                  +----> East & x
 
     The angles related to the sun are as follows:
-        
+
         .. code-block:: text
 
           surface normal              * sun
@@ -243,52 +243,31 @@ def make_shadowing(Z, az, zn, spac=10):
           |/                    |/ | elevation angle
           +----                 +------
     """
-    Zr = ndimage.rotate(Z, az, axes=(1, 0), cval=-1, order=0)
-    # coordinate based
-    (I,J) = np.mgrid[1:Z.shape[0]+1,1:Z.shape[1]+1]
-    Ir = ndimage.rotate(I, az, axes=(1, 0), \
-                        cval=0, order=0, prefilter=True)
-    Jr = ndimage.rotate(J, az, axes=(1, 0), \
-                        cval=0, order=0, prefilter=True)
-
+    Zr = ndimage.rotate(Z, az, axes=(1, 0), cval=-1, order=3)
     # mask based
-#    Mr = ndimage.rotate(np.ones(Z.shape, dtype=bool), az, axes=(1, 0), \
-#                        cval=False, order=0, prefilter=False)
-    
-    dZ = np.tan((90-np.radians(zn)))*spac
-    
+    Mr = ndimage.rotate(np.zeros(Z.shape, dtype=bool), az, axes=(1, 0), \
+                        cval=False, order=0, prefilter=False)
+
+    dZ = np.tan(np.radians(90-zn))*spac
     for i in range(1,Zr.shape[0]):
+        Mr[i,:] = (Zr[i,:])<(Zr[i-1,:]-dZ)
         Zr[i,:] = np.maximum(Zr[i,:], Zr[i-1,:]-dZ)
-    
-    Zs = ndimage.rotate(Zr, -az, axes=(1, 0), cval=-1, order=0)
-#    Ms = ndimage.interpolation.rotate(Mr, -az, axes=(1, 0), cval=False, order=0, \
-#                                      mode='constant', prefilter=False)
-#    i_ok, j_ok = np.where(np.any(Ms, axis=1)), np.where(np.any(Ms, axis=0))
-#    i_ok = np.where(np.sum(Ms,axis=1) >= .1*Z.shape[1])    
-#    j_ok = np.where(np.sum(Ms,axis=0) >= .1*Z.shape[0])
 
-    Is = ndimage.interpolation.rotate(Ir, -az, axes=(1, 0), cval=0, order=0, \
-                                      mode='constant', prefilter=True)
-    Js = ndimage.interpolation.rotate(Jr, -az, axes=(1, 0), cval=0, order=0, \
-                                      mode='constant', prefilter=True)
+    Ms = ndimage.interpolation.rotate(Mr, -az, axes=(1, 0), cval=False, order=0, \
+                                      mode='constant', prefilter=False)
+    i_min = int(np.floor((Ms.shape[0] - Z.shape[0]) / 2))
+    i_max = int(np.floor((Ms.shape[0] + Z.shape[0]) / 2))
+    j_min = int(np.floor((Ms.shape[1] - Z.shape[1]) / 2))
+    j_max = int(np.floor((Ms.shape[1] + Z.shape[1]) / 2))
 
-    Zn = Zs[np.argmax(np.sum(np.round(Is)==2, axis=1))+1:\
-            np.argmax(np.sum(np.round(Is)==Z.shape[0]-1, axis=1))+2,\
-            np.argmax(np.sum(np.round(Js)==2, axis=0))+1:\
-            np.argmax(np.sum(np.round(Js)==Z.shape[1]-1, axis=0))+2]
-
-    i_ok, j_ok = np.where(np.sum(Js==1, axis=1)), np.where(np.any(Ms, axis=0))
-
-    Zs = Zs[i_ok[0][0]:i_ok[0][-1]+1, j_ok[0][0]:j_ok[0][-1]+1]
-    
-    Sw = Zs>Z
+    Sw = Ms[i_min:i_max, j_min:j_max]
     return Sw
 
 def make_shading(Z, az, zn, spac=10):
     """ create synthetic shading image from given sun angles
-    
+
     A simple Lambertian reflection model is used here.
-    
+
     Parameters
     ----------
     Z : np.array, size=(m,n), dtype={integer,float}
@@ -304,21 +283,21 @@ def make_shading(Z, az, zn, spac=10):
     -------
     Sh : np.array, size=(m,n), dtype=float, range=0...1
         estimated shading grid
-    
+
     Notes
-    ----- 
-    The azimuth angle declared in the following coordinate frame: 
-        
+    -----
+    The azimuth angle declared in the following coordinate frame:
+
         .. code-block:: text
-        
+
                  ^ North & y
-                 |  
+                 |
             - <--|--> +
                  |
                  +----> East & x
 
     The angles related to the sun are as follows:
-        
+
         .. code-block:: text
 
           surface normal              * sun
@@ -327,15 +306,15 @@ def make_shading(Z, az, zn, spac=10):
           |-- zenith angle      |  /
           | /                   | /|
           |/                    |/ | elevation angle
-          +---- surface ----    +------ 
+          +---- surface ----    +------
     """
     sun = sun_angles_to_vector(az, zn, indexing='xy')
-        
+
     # estimate surface normals
-    
-    # the first array stands for the gradient in rows and 
+
+    # the first array stands for the gradient in rows and
     # the second one in columns direction
-    dy, dx = np.gradient(Z*spac)  
+    dy, dx = np.gradient(Z*spac)
 
     normal = np.dstack((dx, dy, np.ones_like(Z)))
     n = np.linalg.norm(normal, axis=2)
@@ -345,14 +324,14 @@ def make_shading(Z, az, zn, spac=10):
 
     Sh = normal[:,:,0]*sun[:,:,0] + \
         normal[:,:,1]*sun[:,:,1] + \
-        normal[:,:,2]*sun[:,:,2]  
+        normal[:,:,2]*sun[:,:,2]
     return Sh
 
 def make_shading_minnaert(Z, az, zn, k=1, spac=10):
     """ create synthetic shading image from given sun angles
-    
+
     A simple Minnaert reflection model is used here.
-    
+
     Parameters
     ----------
     Z : np.array, size=(m,n), dtype={integer,float}
@@ -368,21 +347,21 @@ def make_shading_minnaert(Z, az, zn, k=1, spac=10):
     -------
     Sh : np.array, size=(m,n), dtype=float, range=0...1
         estimated shading grid
-    
+
     Notes
-    ----- 
-    The azimuth angle declared in the following coordinate frame: 
-        
+    -----
+    The azimuth angle declared in the following coordinate frame:
+
         .. code-block:: text
-        
+
                  ^ North & y
-                 |  
+                 |
             - <--|--> +
                  |
                  +----> East & x
 
     The angles related to the sun are as follows:
-        
+
         .. code-block:: text
 
           surface normal              * sun
@@ -399,9 +378,9 @@ def make_shading_minnaert(Z, az, zn, k=1, spac=10):
     sun[:, :, 0] /= n
     sun[:, :, 1] /= n
     sun[:, :, 2] /= n
-    
+
     # estimate surface normals
-    dy, dx = np.gradient(Z*spac)  
+    dy, dx = np.gradient(Z*spac)
 
     normal = np.dstack((dx, dy, np.ones_like(Z)))
     n = np.linalg.norm(normal, axis=2)
@@ -411,8 +390,8 @@ def make_shading_minnaert(Z, az, zn, k=1, spac=10):
 
     L = normal[:,:,0]*sun[:,:,0] + \
         normal[:,:,1]*sun[:,:,1] + \
-        normal[:,:,2]*sun[:,:,2]  
-    # assume overhead 
+        normal[:,:,2]*sun[:,:,2]
+    # assume overhead
     Sh = L**(k+1) * (1-normal[:,:,2])**(1-k)
     return Sh
 

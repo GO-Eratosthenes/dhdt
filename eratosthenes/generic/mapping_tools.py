@@ -13,7 +13,7 @@ from .handler_im import get_grad_filters
 
 def cart2pol(x, y):
     if isinstance(x, np.ndarray):
-        assert x.shape==y.shape, ('arrays should be of the same size')    
+        assert x.shape==y.shape, ('arrays should be of the same size')
     rho = np.sqrt(x**2 + y**2)
     phi = np.arctan2(y, x)
     return rho, phi
@@ -44,28 +44,28 @@ def pix2map(geoTransform, i, j):
         horizontal map coordinate.
     y : np.array, size=(m), ndim={1,2,3}, dtype=float
         vertical map coordinate.
-        
+
     See Also
     --------
-    map2pix        
+    map2pix
 
     Notes
-    ----- 
-    Two different coordinate system are used here: 
-        
+    -----
+    Two different coordinate system are used here:
+
         .. code-block:: text
 
           indexing   |           indexing    ^ y
           system 'ij'|           system 'xy' |
                      |                       |
-                     |       i               |       x 
+                     |       i               |       x
              --------+-------->      --------+-------->
                      |                       |
                      |                       |
           image      | j         map         |
           based      v           based       |
 
-    """    
+    """
     if isinstance(i, np.ndarray):
         assert i.shape==j.shape, ('arrays should be of the same size')
     assert isinstance(geoTransform, tuple), ('geoTransform should be a tuple')
@@ -102,32 +102,32 @@ def map2pix(geoTransform, x, y):
         row coordinate(s) in local image space
     j : np.array, ndim={1,2,3}, dtype=float
         column coordinate(s) in local image space
-        
+
     See Also
     --------
-    pix2map        
-    
+    pix2map
+
     Notes
-    ----- 
-    Two different coordinate system are used here: 
-        
+    -----
+    Two different coordinate system are used here:
+
         .. code-block:: text
 
           indexing   |           indexing    ^ y
           system 'ij'|           system 'xy' |
                      |                       |
-                     |       i               |       x 
+                     |       i               |       x
              --------+-------->      --------+-------->
                      |                       |
                      |                       |
           image      | j         map         |
           based      v           based       |
-    
-    """  
+
+    """
     if isinstance(x, np.ndarray):
         assert x.shape==y.shape, ('arrays should be of the same size')
     assert isinstance(geoTransform, tuple), ('geoTransform should be a tuple')
-    
+
     # # offset the center of the pixel
     # x -= geoTransform[1] / 2.0
     # y -= geoTransform[5] / 2.0
@@ -151,7 +151,7 @@ def map2pix(geoTransform, x, y):
 
 def rot_mat(theta):
     """ build a 2x2 rotation matrix
-    
+
     Parameters
     ----------
     theta : float
@@ -161,27 +161,62 @@ def rot_mat(theta):
     -------
     R : np.array, size=(2,2)
         2D rotation matrix
-        
+
     Notes
     -----
     Matrix is composed through,
-    
+
         .. math:: \mathbf{R}[1,:] = [+\cos(\omega), -\sin(\omega)]
         .. math:: \mathbf{R}[2,:] = [+\sin(\omega), +\cos(\omega)]
 
-    The angle(s) are declared in the following coordinate frame: 
-        
+    The angle(s) are declared in the following coordinate frame:
+
         .. code-block:: text
-        
+
                  ^ North & y
-                 |  
+                 |
             - <--|--> +
                  |
                  +----> East & x
-                 
-    """       
+
+    """
     R = np.array([[np.cos(np.radians(theta)), -np.sin(np.radians(theta))],
                   [np.sin(np.radians(theta)), np.cos(np.radians(theta))]])
+    return R
+
+def lodrigues_est(XYZ_1, XYZ_2):
+    m = XYZ_1.shape[0]
+    dXYZ = XYZ_1 - XYZ_2
+
+    A = np.vstack((np.moveaxis(np.expand_dims(
+        np.hstack((np.zeros((m,1)),
+                   np.expand_dims(-XYZ_2[:,2]-XYZ_1[:,2],axis=1),
+                   np.expand_dims(+XYZ_2[:,1]+XYZ_1[:,1],axis=1))),
+                    axis=2), [0,1,2], [2,1,0]),
+                   np.moveaxis(np.expand_dims(
+        np.hstack((
+                   np.expand_dims(+XYZ_2[:,2]+XYZ_1[:,2], axis=1),
+                   np.zeros((m, 1)),
+                   np.expand_dims(-XYZ_2[:,0]-XYZ_1[:,0], axis=1))),
+                       axis=2), [0,1,2], [2,1,0]),
+                   np.moveaxis(np.expand_dims(
+        np.hstack((
+                np.expand_dims(-XYZ_2[:,1]-XYZ_1[:,1], axis=1),
+                np.expand_dims(-XYZ_2[:,0]-XYZ_1[:,0], axis=1),
+                np.zeros((m, 1)))),
+                       axis=2), [0,1,2], [2,1,0]),))
+
+    # squeeze back to collumns
+    x_hat = np.linalg.lstsq(np.transpose(A, axes=(2,0,1)).reshape((3*m,3,1)).squeeze(),
+                            dXYZ.reshape(-1)[:,np.newaxis], rcond=None)[0]
+    a,b,c = x_hat[0], x_hat[1], x_hat[2]
+    return a,b,c
+
+def lodrigues_mat(a,b,c):
+    S = np.array([[0, +c/2, -b/2],
+                  [-c/2, 0, +a/2,],
+                  [+b/2, -a/2, 0]]) # skew symmetric
+    R = (np.eye(3) - S)* np.linalg.inv(np.eye(3) + S)
     return R
 
 def cast_orientation(I, Az, indexing='ij'):
@@ -193,10 +228,10 @@ def cast_orientation(I, Az, indexing='ij'):
         array with intensity values
     Az : {float,np.array}, size{(m,n),1}, unit=degrees
         band of azimuth values or single azimuth angle.
-    indexing : {‘xy’, ‘ij’}  
+    indexing : {‘xy’, ‘ij’}
          * "xy" : using map coordinates
          * "ij" : using local image  coordinates
-         
+
     Returns
     -------
     Ican : np.array, size=(m,n)
@@ -208,25 +243,25 @@ def cast_orientation(I, Az, indexing='ij'):
     .handler_im.rotated_sobel : generate rotated gradient filter
 
     Notes
-    ----- 
-        The angle(s) are declared in the following coordinate frame: 
-        
+    -----
+        The angle(s) are declared in the following coordinate frame:
+
         .. code-block:: text
-        
+
                  ^ North & y
-                 |  
+                 |
             - <--|--> +
                  |
                  +----> East & x
 
-        Two different coordinate system are used here: 
-        
+        Two different coordinate system are used here:
+
         .. code-block:: text
 
           indexing   |           indexing    ^ y
           system 'ij'|           system 'xy' |
                      |                       |
-                     |       i               |       x 
+                     |       i               |       x
              --------+-------->      --------+-------->
                      |                       |
                      |                       |
@@ -234,19 +269,19 @@ def cast_orientation(I, Az, indexing='ij'):
           based      v           based       |
 
     References
-    ----------    
-    .. [1] Freeman et al. "The design and use of steerable filters." IEEE 
-       transactions on pattern analysis and machine intelligence vol.13(9) 
+    ----------
+    .. [1] Freeman et al. "The design and use of steerable filters." IEEE
+       transactions on pattern analysis and machine intelligence vol.13(9)
        pp.891-906, 1991.
     """
     assert type(I)==np.ndarray, ("please provide an array")
-    
+
     fx,fy = get_grad_filters(ftype='sobel', tsize=3, order=1)
 
     Idx = ndimage.convolve(I, fx)  # steerable filters
     Idy = ndimage.convolve(I, fy)
-    
-    if indexing=='ij':    
+
+    if indexing=='ij':
         Ican = (np.multiply(np.cos(np.radians(Az)), Idy)
                 - np.multiply(np.sin(np.radians(Az)), Idx))
     else:
@@ -285,18 +320,18 @@ def ref_trans(Transform, dI, dJ):
 
     See Also
     --------
-    ref_scale 
+    ref_scale
 
     Notes
-    ----- 
-        Two different coordinate system are used here: 
-        
+    -----
+        Two different coordinate system are used here:
+
         .. code-block:: text
 
           indexing   |           indexing    ^ y
           system 'ij'|           system 'xy' |
                      |                       |
-                     |       i               |       x 
+                     |       i               |       x
              --------+-------->      --------+-------->
                      |                       |
                      |                       |
@@ -311,7 +346,7 @@ def ref_trans(Transform, dI, dJ):
 
 def ref_scale(geoTransform, scaling):
     """ scale image reference transform
-    
+
     Parameters
     ----------
     Transform : tuple, size=(1,6)
@@ -326,19 +361,19 @@ def ref_scale(geoTransform, scaling):
 
     See Also
     --------
-    ref_trans 
+    ref_trans
     """
     # not using center of pixel
     R = np.asarray(geoTransform).reshape((2,3)).T
     R[0,:] += np.diag(R[1:,:]*scaling/2)
     R[1:,:] = R[1:,:]*scaling/2
     newTransform = tuple(map(tuple, np.transpose(R).reshape((1,6))))
-    
+
     return newTransform[0]
 
 def pix_centers(geoTransform, rows, cols, make_grid=True):
     """ provide the pixel coordinate from the axis, or the whole grid
-    
+
     Parameters
     ----------
     geoTransform : tuple, size=(6,1)
@@ -352,10 +387,10 @@ def pix_centers(geoTransform, rows, cols, make_grid=True):
 
     Returns
     -------
-    X : np.array, dtype=float    
+    X : np.array, dtype=float
          * "make_grid" : size=(m,n)
          * otherwise : size=(1,n)
-    Y : np.array, dtype=float    
+    Y : np.array, dtype=float
          * "make_grid" : size=(m,n)
          * otherwise : size=(m,1)
 
@@ -364,15 +399,15 @@ def pix_centers(geoTransform, rows, cols, make_grid=True):
     map2pix, pix2map
 
     Notes
-    ----- 
-    Two different coordinate system are used here: 
-        
+    -----
+    Two different coordinate system are used here:
+
         .. code-block:: text
 
           indexing   |           indexing    ^ y
           system 'ij'|           system 'xy' |
                      |                       |
-                     |       i               |       x 
+                     |       i               |       x
              --------+-------->      --------+-------->
                      |                       |
                      |                       |
@@ -415,34 +450,34 @@ def bilinear_interp_excluding_nodat(I, i_I, j_I, noData=-9999):
     .handler_im.bilinear_interpolation
 
     Notes
-    ----- 
-        Two different coordinate system are used here: 
-        
+    -----
+        Two different coordinate system are used here:
+
         .. code-block:: text
 
           indexing   |           indexing    ^ y
           system 'ij'|           system 'xy' |
                      |                       |
-                     |       i               |       x 
+                     |       i               |       x
              --------+-------->      --------+-------->
                      |                       |
                      |                       |
           image      | j         map         |
           based      v           based       |
 
-    """    
+    """
     assert type(I)==np.ndarray, ("please provide an array")
-    
+
     i_prio, i_post = np.floor(i_I).astype(int), np.ceil(i_I).astype(int)
     j_prio,j_post = np.floor(j_I).astype(int), np.ceil(j_I).astype(int)
-      
+
     wi,wj = np.remainder(i_I,1), np.remainder(j_I,1)
-    
-    I_1,I_2 = I[i_prio,j_prio], I[i_prio,j_post]  
-    I_3,I_4 = I[i_post,j_post], I[i_post,j_prio]  
-    
+
+    I_1,I_2 = I[i_prio,j_prio], I[i_prio,j_post]
+    I_3,I_4 = I[i_post,j_post], I[i_post,j_prio]
+
     no_dat = np.any(np.vstack((I_1,I_2,I_3,I_4))==noData, axis=0)
-    
+
     DEM_new = wj*(wi*I_1 + (1-wi)*I_4) + (1-wj)*(wi*I_2 + (1-wi)*I_3)
     DEM_new[no_dat] = noData
     return DEM_new
@@ -468,7 +503,7 @@ def bbox_boolean(img):
         maximum collumn with a true boolean.
     """
     assert type(img)==np.ndarray, ("please provide an array")
-    
+
     rows,cols = np.any(img, axis=1), np.any(img, axis=0)
     r_min, r_max = np.where(rows)[0][[0, -1]]
     c_min, c_max = np.where(cols)[0][[0, -1]]
@@ -490,21 +525,21 @@ def get_bbox(geoTransform, rows, cols):
     -------
     bbox : np.array, size=(1,4), dtype=float
         bounding box, in the following order: min max X, min max Y
-        
+
     See Also
     --------
     map2pix, pix2map, pix_centers, get_map_extent
 
     Notes
-    ----- 
-    Two different coordinate system are used here: 
-        
+    -----
+    Two different coordinate system are used here:
+
         .. code-block:: text
 
           indexing   |           indexing    ^ y
           system 'ij'|           system 'xy' |
                      |                       |
-                     |       i               |       x 
+                     |       i               |       x
              --------+-------->      --------+-------->
                      |                       |
                      |                       |
@@ -513,8 +548,8 @@ def get_bbox(geoTransform, rows, cols):
 
     """
     X = geoTransform[0] + \
-        np.array([0, cols])*geoTransform[1] + np.array([0, rows])*geoTransform[2] 
-        
+        np.array([0, cols])*geoTransform[1] + np.array([0, rows])*geoTransform[2]
+
     Y = geoTransform[3] + \
         np.array([0, cols])*geoTransform[4] + np.array([0, rows])*geoTransform[5]
 #    spacing_x = np.sqrt(geoTransform[1]**2 + geoTransform[2]**2)/2
@@ -523,12 +558,12 @@ def get_bbox(geoTransform, rows, cols):
 #    # get extent not pixel centers
 #    bbox += np.array([-spacing_x, +spacing_x, -spacing_y, +spacing_y])
     return bbox
-    
+
 def get_map_extent(bbox):
     """ generate coordinate list in counterclockwise direction from boundingbox
-    input:   bbox           array (1 x 4)     min max X, min max Y  
-    output:  xB             array (5 x 1)     coordinate list for x  
-             yB             array (5 x 1)     coordinate list for y   
+    input:   bbox           array (1 x 4)     min max X, min max Y
+    output:  xB             array (5 x 1)     coordinate list for x
+             yB             array (5 x 1)     coordinate list for y
 
     Parameters
     ----------
@@ -547,15 +582,15 @@ def get_map_extent(bbox):
     get_bbox, get_bbox_polygon
 
     Notes
-    ----- 
-    Two different coordinate system are used here: 
-        
+    -----
+    Two different coordinate system are used here:
+
         .. code-block:: text
 
           indexing   |           indexing    ^ y
           system 'ij'|           system 'xy' |
                      |                       |
-                     |       i               |       x 
+                     |       i               |       x
              --------+-------->      --------+-------->
                      |                       |
                      |                       |
@@ -564,11 +599,11 @@ def get_map_extent(bbox):
     """
     xB = np.array([[ bbox[0], bbox[0], bbox[1], bbox[1], bbox[0] ]]).T
     yB = np.array([[ bbox[3], bbox[2], bbox[2], bbox[3], bbox[3] ]]).T
-    return xB, yB    
-    
+    return xB, yB
+
 def get_bbox_polygon(geoTransform, rows, cols):
     """ given array meta data, create bounding polygon
-    
+
     Parameters
     ----------
     geoTransform : tuple, size=(6,1)
@@ -597,7 +632,7 @@ def get_bbox_polygon(geoTransform, rows, cols):
     poly.AddGeometry(ring)
     # poly_tile.ExportToWkt()
     return poly
-    
+
 def find_overlapping_DEM_tiles(dem_path,dem_file, poly_tile):
     '''
     loop through a shapefile of tiles, to find overlap with a given geometry
@@ -612,11 +647,11 @@ def find_overlapping_DEM_tiles(dem_path,dem_file, poly_tile):
         # Get the input Feature
         demFeature = demLayer.GetFeature(i)
         geom = demFeature.GetGeometryRef()
-        
+
         intersection = poly_tile.Intersection(geom)
         if(intersection is not None and intersection.Area()>0):
             url_list += (demFeature.GetField('fileurl'),)
-    
+
     return url_list
 
 def make_same_size(Old,geoTransform_old, geoTransform_new, rows_new, cols_new):
@@ -643,33 +678,33 @@ def make_same_size(Old,geoTransform_old, geoTransform_new, rows_new, cols_new):
     # look at upper left coordinate
     dj = np.round((geoTransform_new[0]-geoTransform_old[0])/geoTransform_new[1])
     di = np.round((geoTransform_new[3]-geoTransform_old[3])/geoTransform_new[1])
-    
+
     if np.sign(dj)==-1: # extend array by simple copy of border values
-        Old = np.concatenate((np.repeat(np.expand_dims(Old[:,0], axis = 1), 
+        Old = np.concatenate((np.repeat(np.expand_dims(Old[:,0], axis = 1),
                                         abs(dj), axis=1), Old), axis = 1)
     elif np.sign(dj)==1: # reduce array
         Old = Old[:,abs(dj):]
-    
+
     if np.sign(di)==-1: # reduce array
         Old = Old[abs(di):,:]
     elif np.sign(di)==1: # extend array by simple copy of border values
-        Old = np.concatenate((np.repeat(np.expand_dims(Old[0,:], axis = 1).T, 
-                                        abs(di), axis=0), Old), axis = 0)        
-    
+        Old = np.concatenate((np.repeat(np.expand_dims(Old[0,:], axis = 1).T,
+                                        abs(di), axis=0), Old), axis = 0)
+
     # as they are now alligned, look at the lower right corner
     di,dj = rows_new - Old.shape[0], cols_new - Old.shape[1]
-    
+
     if np.sign(dj)==-1: # reduce array
         Old = Old[:,:dj]
     elif np.sign(dj)==1: # extend array by simple copy of border values
-        Old = np.concatenate((np.repeat(Old, np.expand_dims(Old[:,-1], axis=1), 
+        Old = np.concatenate((np.repeat(Old, np.expand_dims(Old[:,-1], axis=1),
                                         abs(dj), axis=1)), axis = 1)
-    
+
     if np.sign(di)==-1: # reduce array
         Old = Old[di:,:]
     elif np.sign(di)==1: # extend array by simple copy of border values
-        Old = np.concatenate((np.repeat(Old, np.expand_dims(Old[-1,:], axis=1).T, 
-                                        abs(di), axis=0)), axis = 0) 
-    
+        Old = np.concatenate((np.repeat(Old, np.expand_dims(Old[-1,:], axis=1).T,
+                                        abs(di), axis=0)), axis = 0)
+
     New = Old
     return New

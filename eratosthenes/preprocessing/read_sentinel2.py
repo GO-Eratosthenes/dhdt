@@ -23,19 +23,19 @@ def list_central_wavelength_s2():
     Returns
     -------
     df : datafram
-        metadata and general multispectral information about the MSI 
+        metadata and general multispectral information about the MSI
         instrument that is onboard Sentinel-2, having the following collumns:
-            
+
             * wavelength : central wavelength of the band
             * bandwidth : extent of the spectral sensativity
             * bandid : number for identification in the meta data
             * resolution : spatial resolution of a pixel
             * name : general name of the band, if applicable
-            
+
     Example
     -------
     make a selection by name:
-    
+
     >>> boi = ['red', 'green', 'blue', 'near infrared']
     >>> s2_df = list_central_wavelength_s2()
     >>> s2_df = s2_df[s2_df['name'].isin(boi)]
@@ -45,14 +45,14 @@ def list_central_wavelength_s2():
     B03         560         36          10          green       2
     B04         665         31          10            red       3
     B08         833        106          10  near infrared       7
-    
+
     similarly you can also select by pixel resolution:
-    
+
     >>> s2_df = list_central_wavelength_s2()
     >>> tw_df = s2_df[s2_df['resolution']==20]
     >>> tw_df.index
     Index(['B05', 'B06', 'B07', 'B8A', 'B11', 'B12'], dtype='object')
-    
+
     """
     wavelength = {"B01": 443, "B02": 492, "B03": 560, "B04": 665, \
                   "B05": 704, "B06": 741, "B07": 783, "B08": 833, "B8A": 865,\
@@ -90,21 +90,21 @@ def list_central_wavelength_s2():
 
 def s2_dn2toa(I):
     """convert the digital numbers of Sentinel-2 to top of atmosphere (TOA)
-    
+
     Notes
     -----
     sentinel.esa.int/web/sentinel/technical-guides/sentinel-2-msi/
     level-1c/algorithm
     """
     I_toa = I*10000
-    return I_toa       
+    return I_toa
 
 def read_band_s2(path, band='00'):
     """
     This function takes as input the Sentinel-2 band name and the path of the
     folder that the images are stored, reads the image and returns the data as
     an array
-    
+
     Parameters
     ----------
     path : string
@@ -132,7 +132,7 @@ def read_band_s2(path, band='00'):
     >>> path = '/GRANULE/L1C_T15MXV_A027450_20200923T163313/IMG_DATA/'
     >>> band = '02'
     >>> _,spatialRef,geoTransform,targetprj = read_band_s2(path, band)
-    
+
     >>> spatialRef
     'PROJCS["WGS 84 / UTM zone 15S",GEOGCS["WGS 84",DATUM["WGS_1984",
     SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],
@@ -147,7 +147,7 @@ def read_band_s2(path, band='00'):
     >>> geoTransform
     (600000.0, 10.0, 0.0, 10000000.0, 0.0, -10.0)
     >>> targetprj
-    <osgeo.osr.SpatialReference; proxy of <Swig Object of type 
+    <osgeo.osr.SpatialReference; proxy of <Swig Object of type
     'OSRSpatialReferenceShadow *' at 0x7f9a63ffe450> >
     """
     if band!='00':
@@ -169,7 +169,7 @@ def get_root_of_table(path, fname):
     return root
 
 def read_sun_angles_s2(path, fname='MTD_TL.xml'):
-    """ This function reads the xml-file of the Sentinel-2 scene and extracts 
+    """ This function reads the xml-file of the Sentinel-2 scene and extracts
     an array with sun angles, as these vary along the scene.
 
     Parameters
@@ -185,19 +185,19 @@ def read_sun_angles_s2(path, fname='MTD_TL.xml'):
         array of the solar azimuth angles, in degrees.
 
     Notes
-    ----- 
-    The angle(s) are declared in the following coordinate frame: 
-        
+    -----
+    The angle(s) are declared in the following coordinate frame:
+
         .. code-block:: text
-        
+
                  ^ North & y
-                 |  
+                 |
             - <--|--> +
                  |
                  +----> East & x
 
     The angles related to the sun are as follows:
-        
+
         .. code-block:: text
 
           surface normal              * sun
@@ -208,20 +208,20 @@ def read_sun_angles_s2(path, fname='MTD_TL.xml'):
           |/                    |/ | elevation angle
           +----                 +------
 
-    Two different coordinate system are used here: 
-        
+    Two different coordinate system are used here:
+
         .. code-block:: text
 
           indexing   |           indexing    ^ y
           system 'ij'|           system 'xy' |
                      |                       |
-                     |       i               |       x 
+                     |       i               |       x
              --------+-------->      --------+-------->
                      |                       |
                      |                       |
           image      | j         map         |
           based      v           based       |
-    """    
+    """
     root = get_root_of_table(path, fname)
 
     # image dimensions
@@ -266,9 +266,9 @@ def read_sun_angles_s2(path, fname='MTD_TL.xml'):
     del Igrd, Jgrd, Zij, Aij
     return Zn, Az
 
-def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]), 
+def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
                         boi=list_central_wavelength_s2()):
-    """ This function reads the xml-file of the Sentinel-2 scene and extracts 
+    """ This function reads the xml-file of the Sentinel-2 scene and extracts
     an array with viewing angles of the MSI instrument.
 
     Parameters
@@ -290,23 +290,23 @@ def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
     See Also
     --------
     list_central_wavelength_s2
-    
+
     Notes
-    ----- 
-    The azimuth angle is declared in the following coordinate frame: 
-        
+    -----
+    The azimuth angle is declared in the following coordinate frame:
+
         .. code-block:: text
-        
+
                  ^ North & y
-                 |  
+                 |
             - <--|--> +
                  |
                  +----> East & x
 
     The angles related to the satellite are as follows:
-        
+
         .. code-block:: text
-        
+
                #*#                   #*# satellite
           ^    /                ^    /|
           |   /                 |   / | nadir
@@ -328,7 +328,7 @@ def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
             if res == roi:
                 mI = float(meta[0].text)
                 nI = float(meta[1].text)
-        Zn = np.zeros((mI,nI,len(boi)), dtype=np.float64), 
+        Zn = np.zeros((mI,nI,len(boi)), dtype=np.float64),
         Az = np.zeros((mI,nI,len(boi)), dtype=np.float64)
         det_stack = np.ones((mI,nI,len(boi)))
     else:
@@ -337,32 +337,32 @@ def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
     # get coarse grids
     for grd in root.iter('Viewing_Incidence_Angles_Grids'):
         bid = float(grd.get('bandId'))
-        if boi['bandid'].isin([bid]).any():  
+        if boi['bandid'].isin([bid]).any():
             # link to band in detector stack, by finding the integer index
             det_idx = np.flatnonzero(boi['bandid'].isin([bid]))[0]
-        
+
             # link to detector id, within this band
             did = float(grd.get('detectorId'))
-            
+
             det_arr = det_stack[:,:,det_idx]==did
-            
+
             col_sep = float(grd[0][0].text) # in meters
             row_sep = float(grd[0][0].text) # in meters
             col_res = float(boi.loc[boi.index[det_idx],'resolution'])
             row_res = float(boi.loc[boi.index[det_idx],'resolution'])
-            
+
             Zarray = get_array_from_xml(grd[0][2])
             Aarray = get_array_from_xml(grd[1][2])
-            
+
             I_grd,J_grd = np.mgrid[0:Zarray.shape[0],0:Zarray.shape[1]]
             IN = ~np.isnan(Zarray)
             I_grd,J_grd = I_grd[IN].astype('float64'), J_grd[IN].astype('float64')
             Z_grd,A_grd = Zarray[IN], Aarray[IN]
             I_grd *= (col_sep/col_res)
             J_grd *= (row_sep/row_res)
-            
+
             det_i,det_j = np.where(det_arr)
-            
+
             # do linear regression, so extrapolation is possible
             A = np.vstack((I_grd,J_grd, np.ones(I_grd.size) )).T
             x_z = np.linalg.lstsq(A, Z_grd, rcond=None)[0]
@@ -371,10 +371,10 @@ def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
             x_a = np.linalg.lstsq(A, A_grd, rcond=None)[0]
             det_A = x_a[0]*det_i.astype('float64') + \
                 x_a[1]*det_j.astype('float64') + x_a[2]
-                
+
             det_k = np.repeat(det_idx,len(det_j))
-            Zn[det_i,det_j,det_k] = det_Z   
-            Az[det_i,det_j,det_k] = det_A       
+            Zn[det_i,det_j,det_k] = det_Z
+            Az[det_i,det_j,det_k] = det_A
     return Zn, Az
 
 def read_mean_sun_angles_s2(path, fname='MTD_TL.xml'):
@@ -393,19 +393,19 @@ def read_mean_sun_angles_s2(path, fname='MTD_TL.xml'):
         Mean solar azimuth angle of the scene, in degrees
 
     Notes
-    ----- 
-    The azimuth angle declared in the following coordinate frame: 
-        
+    -----
+    The azimuth angle declared in the following coordinate frame:
+
         .. code-block:: text
-        
+
                  ^ North & y
-                 |  
+                 |
             - <--|--> +
                  |
                  +----> East & x
 
     The angles related to the sun are as follows:
-        
+
         .. code-block:: text
 
           surface normal              * sun
@@ -415,21 +415,21 @@ def read_mean_sun_angles_s2(path, fname='MTD_TL.xml'):
           | /                   | /|
           |/                    |/ | elevation angle
           +----                 +------
-    """    
+    """
     root = get_root_of_table(path, fname)
 
     Zn = float(root[1][1][1][0].text)
     Az = float(root[1][1][1][1].text)
     return Zn, Az
 
-def read_detector_mask(path_meta, msk_dim, boi, geoTransform): 
+def read_detector_mask(path_meta, msk_dim, boi, geoTransform):
     """ create array of with detector identification
-    
-    Sentinel-2 records in a pushbroom fasion, collecting reflectance with a 
-    ground resolution of more than 270 kilometers. This data is stacked in the 
-    flight direction, and then cut into granules. However, the sensorstrip 
+
+    Sentinel-2 records in a pushbroom fasion, collecting reflectance with a
+    ground resolution of more than 270 kilometers. This data is stacked in the
+    flight direction, and then cut into granules. However, the sensorstrip
     inside the Multi Spectral Imager (MSI) is composed of several CCD arrays.
-    
+
     This function collects the geometry of these sensor arrays from the meta-
     data. Since this is stored in a gml-file.
 
@@ -446,13 +446,13 @@ def read_detector_mask(path_meta, msk_dim, boi, geoTransform):
 
     Returns
     -------
-    det_stack : np.array, size=(msk_dim[0],msk_dim[1],len(boi)), dtype=int8 
+    det_stack : np.array, size=(msk_dim[0],msk_dim[1],len(boi)), dtype=int8
         array where each pixel has the ID of the detector, of a specific band
-    
+
     See Also
     --------
-    read_view_angles_s2    
-    
+    read_view_angles_s2
+
     Example
     -------
     >>> path_meta = '/GRANULE/L1C_T15MXV_A027450_20200923T163313/QI_DATA'
@@ -461,12 +461,11 @@ def read_detector_mask(path_meta, msk_dim, boi, geoTransform):
     >>> s2_df = list_central_wavelength_s2()
     >>> boi_df = s2_df[s2_df['name'].isin(boi)]
     >>> geoTransform = (600000.0, 10.0, 0.0, 10000000.0, 0.0, -10.0)
-    >>> 
+    >>>
     >>> det_stack = read_detector_mask(path_meta, msk_dim, boi_df, geoTransform)
     """
-    
-    
-    det_stack = np.zeros(msk_dim, dtype='int8')    
+
+    det_stack = np.zeros(msk_dim, dtype='int8')
     for i in range(len(boi)):
         im_id = boi.index[i] # 'B01' | 'B8A'
         if type(im_id) is int:
@@ -475,22 +474,22 @@ def read_detector_mask(path_meta, msk_dim, boi, geoTransform):
         else:
             f_meta = os.path.join(path_meta, 'MSK_DETFOO_'+ im_id +'.gml')
         dom = ElementTree.parse(glob.glob(f_meta)[0])
-        root = dom.getroot()  
-        
+        root = dom.getroot()
+
         mask_members = root[2]
         for k in range(len(mask_members)):
             # get detector number from meta-data
             det_id = mask_members[k].attrib
             det_id = list(det_id.items())[0][1].split('-')[2]
             det_num = int(det_id)
-        
+
             # get footprint
             pos_dim = mask_members[k][1][0][0][0][0].attrib
             pos_dim = int(list(pos_dim.items())[0][1])
             pos_list = mask_members[k][1][0][0][0][0].text
             pos_row = [float(s) for s in pos_list.split(' ')]
             pos_arr = np.array(pos_row).reshape((int(len(pos_row)/pos_dim), pos_dim))
-            
+
             # transform to image coordinates
             i_arr, j_arr = map2pix(geoTransform, pos_arr[:,0], pos_arr[:,1])
             ij_arr = np.hstack((j_arr[:,np.newaxis], i_arr[:,np.newaxis]))
@@ -498,26 +497,26 @@ def read_detector_mask(path_meta, msk_dim, boi, geoTransform):
             msk = Image.new("L", [np.size(det_stack,0), np.size(det_stack,1)], 0)
             ImageDraw.Draw(msk).polygon(tuple(map(tuple, ij_arr[:,0:2])), \
                                         outline=det_num, fill=det_num)
-            msk = np.array(msk)    
+            msk = np.array(msk)
             det_stack[:,:,i] = np.maximum(det_stack[:,:,i], msk)
     return det_stack
 
-def read_cloud_mask(path_meta, msk_dim, geoTransform):   
-    msk_clouds = np.zeros(msk_dim, dtype='int8')    
+def read_cloud_mask(path_meta, msk_dim, geoTransform): # todo gml:boundedBy gives image envelope
+    msk_clouds = np.zeros(msk_dim, dtype='int8')
 
     f_meta = os.path.join(path_meta, 'MSK_CLOUDS_B00.gml')
     dom = ElementTree.parse(glob.glob(f_meta)[0])
-    root = dom.getroot()  
-    
+    root = dom.getroot()
+
     mask_members = root[2]
-    for k in range(len(mask_members)):    
+    for k in range(len(mask_members)):
         # get footprint
         pos_dim = mask_members[k][1][0][0][0][0].attrib
         pos_dim = int(list(pos_dim.items())[0][1])
         pos_list = mask_members[k][1][0][0][0][0].text
         pos_row = [float(s) for s in pos_list.split(' ')]
         pos_arr = np.array(pos_row).reshape((int(len(pos_row)/pos_dim), pos_dim))
-        
+
         # transform to image coordinates
         i_arr, j_arr = map2pix(geoTransform, pos_arr[:,0], pos_arr[:,1])
         ij_arr = np.hstack((j_arr[:,np.newaxis], i_arr[:,np.newaxis]))
@@ -525,7 +524,7 @@ def read_cloud_mask(path_meta, msk_dim, geoTransform):
         msk = Image.new("L", [msk_dim[0], msk_dim[1]], 0)
         ImageDraw.Draw(msk).polygon(tuple(map(tuple, ij_arr[:,0:2])), \
                                     outline=1, fill=1)
-        msk = np.array(msk)    
+        msk = np.array(msk)
         msk_clouds = np.maximum(msk_clouds, msk)
     return msk_clouds
 
@@ -533,21 +532,21 @@ def read_detector_time(path, fname='MTD_DS.xml'):
     det_time = np.zeros((13, 12), dtype='datetime64[ns]')
     det_name = [None] * 13
     det_meta = np.zeros((13, 4), dtype='float')
-    
+
     root = get_root_of_table(path, fname)
     # image dimensions
     for meta in root.iter('Band_Time_Stamp'):
         bnd = int(meta.get('bandId')) # 0..12
         # <Spectral_Information bandId="8" physicalBand="B8A">
         for stamps in meta:
-            det = int(stamps.get('detectorId'))            
-            det_time[bnd,det-1] = np.datetime64(stamps[1].text, 'ns') 
-            
+            det = int(stamps.get('detectorId'))
+            det_time[bnd,det-1] = np.datetime64(stamps[1].text, 'ns')
+
     for meta in root.iter('Spectral_Information'):
         bnd = int(meta.get('bandId'))
         bnd_name = meta.get('physicalBand')
         # at a zero if needed, this seems the correct naming convention
-        if len(bnd_name)==2: 
+        if len(bnd_name)==2:
             bnd_name = bnd_name[0]+'0'+bnd_name[-1]
         det_name[bnd] = bnd_name
         det_meta[bnd,0] = float(meta[0].text) # resolution [m]

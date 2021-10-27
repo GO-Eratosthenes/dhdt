@@ -4,7 +4,6 @@ from sklearn.neighbors import NearestNeighbors
 
 from .handler_s2 import read_mean_sun_angles_s2
 
-
 def getNetworkIndices(n):  # processing
     """
     Generate a list with all matchable combinations
@@ -18,7 +17,6 @@ def getNetworkIndices(n):  # processing
     Grid2 = Grid2[Grid2 != 0] - 1
     GridIdxs = np.vstack((Grid1, Grid2))
     return GridIdxs
-
 
 def getNetworkBySunangles(datPath, sceneList, n):  # processing
     """
@@ -46,7 +44,6 @@ def getNetworkBySunangles(datPath, sceneList, n):  # processing
     Grid1, dummy = np.indices((len(sceneList), n))
     GridIdxs = np.vstack((Grid1.flatten(), Grid2.flatten()))
     return GridIdxs
-
 
 def getAdjacencyMatrixFromNetwork(GridIdxs, number_of_nodes):
     """
