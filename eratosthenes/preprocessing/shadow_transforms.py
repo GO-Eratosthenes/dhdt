@@ -5,7 +5,8 @@ from scipy import ndimage # for image filters
 from sklearn.decomposition import fastica
 
 from .color_transforms import \
-    rgb2ycbcr, rgb2hsi, rgb2xyz, xyz2lab, lab2lch, erdas2hsi, rgb2lms, lms2lab
+    rgb2ycbcr, rgb2hsi, rgb2xyz, xyz2lab, lab2lch, erdas2hsi, rgb2lms, lms2lab,\
+    hsi2rgb
 from .image_transforms import s_curve
 
 def enhance_shadow(method, Blue, Green, Red, RedEdge, Near, Shw):
@@ -826,8 +827,7 @@ def reinhard(Blue, Green, Red):
     L = np.log10(L)
     M = np.log10(M)
     S = np.log10(S)
-    (l,alfa,beta) = lms2lab(L, M, S)
-
+    l,_,_ = lms2lab(L, M, S)
     return l
 
 def entropy_shade_removal(Ia, Ib, Ic, a=-1): #todo
@@ -979,6 +979,18 @@ def shadow_probabilities(Blue, Green, Red, Near, ae = 1e+1, be = 5e-1):
 
     M = np.multiply(D, (1 - F))
     return M
+
+def shadow_free_rgb(Blue, Green, Red, Near):
+
+    S,R = entropy_shade_removal(Blue, Red, Near, a=138)
+    R[R<-3] = -3
+    R += np.ptp(R)
+    R /= np.ptp(R)
+    hue,sat,val = rgb2hsi(Red,Green,Blue)
+
+    R,G,B = hsi2rgb(hue,sat,val)
+    RGB_plain = np.dstack((R,G,B))
+    return RGB_plain
 
 
 # recovery - normalized color composite

@@ -3,6 +3,7 @@ import os
 from xml.etree import ElementTree
 
 import numpy as np
+import pandas as pd
 
 import geopandas
 
@@ -11,9 +12,9 @@ def get_bbox_from_tile_code(tile_code, \
                             shp_name='sentinel2_tiles_world.shp'):
     tile_code = tile_code.upper()
     shp_path = os.path.join(shp_dir,shp_name)
-    
+
     mgrs = geopandas.read_file(shp_path)
-    
+
     toi = mgrs[mgrs['Name']==tile_code]
     return toi
 
@@ -35,24 +36,25 @@ def get_array_from_xml(treeStruc):  # generic
             Tn = np.concatenate((Tn, [Trow]), 0)
     return Tn
 
-def get_S2_image_locations(fname):
+def get_S2_image_locations(fname,s2_df):
     """
-    The Sentinel-2 imagery are placed within a folder structure, where one 
-    folder has an ever changing name, when this function finds the path from
+    The Sentinel-2 imagery are placed within a folder structure, where one
+    folder has an ever changing name. Fortunately this function finds the path from
     the meta data
 
     Parameters
     ----------
     fname : string
         path string to the Sentinel-2 folder
-
+    s2_df : dataframe
+        index of the bands of interest
     Returns
     -------
-    im_paths : list, size=(13,)
-        lists with relative folder and file locations of the bands
+    im_paths : series, size=(k,)
+        dataframe series with relative folder and file locations of the bands
     datastrip_id : str
         folder name of the metadata
-        
+
     Example
     -------
     >>> import os
@@ -62,22 +64,27 @@ def get_S2_image_locations(fname):
     >>> full_path = os.path.join(fpath, sname, fname)
     >>> im_paths,datastrip_id = get_S2_image_locations(full_path)
     >>> im_paths
-    ['GRANULE/L1C_T15MXV_A027450_20200923T163313/IMG_DATA/T15MXV_20200923T163311_B01', 
-     'GRANULE/L1C_T15MXV_A027450_20200923T163313/IMG_DATA/T15MXV_20200923T163311_B02']   
+    ['GRANULE/L1C_T15MXV_A027450_20200923T163313/IMG_DATA/T15MXV_20200923T163311_B01',
+     'GRANULE/L1C_T15MXV_A027450_20200923T163313/IMG_DATA/T15MXV_20200923T163311_B02']
     >>> datastrip_id
     'S2A_OPER_MSI_L1C_DS_VGS1_20200923T200821_S20200923T163313_N02.09'
     """
+    assert len(glob.glob(fname)) != 0, ('metafile does not seem to be present')
+
     dom = ElementTree.parse(glob.glob(fname)[0])
     root = dom.getroot()
     granule_list = root[0][0][11][0][0]
     datastrip_id = granule_list.get('datastripIdentifier')
-    
-    im_paths = []
+
+    im_paths, band_id = [], []
     for im_loc in root.iter('IMAGE_FILE'):
-        im_paths.append(im_loc.text)
-    #    print(im_loc.text)
-    
-    return im_paths, datastrip_id
+        full_path = os.path.join(os.path.split(fname)[0],im_loc.text)
+        im_paths.append(full_path)
+        band_id.append(im_loc.text[-3:])
+
+    band_path = pd.Series(data=im_paths, index=band_id, name="filepath")
+    s2_df_new = pd.concat([s2_df, band_path], axis=1, join="inner")
+    return s2_df_new, datastrip_id
 
 def meta_S2string(S2str):
     """ get meta information of the Sentinel-2 file name
@@ -111,7 +118,7 @@ def meta_S2string(S2str):
     assert S2str[0:2]=='S2', ("please provide a Sentinel-2 file string")
     S2split = S2str.split('_')
     S2time = S2split[2][0:8]
-    # convert to +YYYY-MM-DD string 
+    # convert to +YYYY-MM-DD string
     # then it can be in the meta-data of following products
     S2time = '+' + S2time[0:4] +'-'+ S2time[4:6] +'-'+ S2time[6:8]
     S2orbit = S2split[4]
@@ -119,7 +126,7 @@ def meta_S2string(S2str):
     return S2time, S2orbit, S2tile
 
 def get_S2_folders(im_path):
-    s2_list = [x for x in os.listdir(im_path) 
+    s2_list = [x for x in os.listdir(im_path)
                if (os.path.isdir(os.path.join(im_path,x))) & (x[0:2]=='S2')]
     return s2_list
 

@@ -12,6 +12,7 @@ from osgeo import gdal, osr
 
 # raster/image libraries
 from PIL import Image, ImageDraw
+from skimage.transform import resize
 from scipy.interpolate import griddata
 
 from ..generic.handler_sentinel2 import get_array_from_xml
@@ -151,9 +152,14 @@ def read_band_s2(path, band='00'):
     'OSRSpatialReferenceShadow *' at 0x7f9a63ffe450> >
     """
     if band!='00':
-        fname = os.path.join(path, '*B'+band+'.jp2')
+        if len(band)==3: #when band : 'B0X'
+            fname = os.path.join(path, '*' + band + '.jp2')
+        else: # when band: '0X'
+            fname = os.path.join(path, '*' + band + '.jp2')
     else:
         fname = path
+    assert len(glob.glob(fname))!=0, ('file does not seem to be present')
+
     img = gdal.Open(glob.glob(fname)[0])
     data = np.array(img.GetRasterBand(1).ReadAsArray())
     spatialRef = img.GetProjection()
@@ -161,9 +167,32 @@ def read_band_s2(path, band='00'):
     targetprj = osr.SpatialReference(wkt=img.GetProjection())
     return data, spatialRef, geoTransform, targetprj
 
+def read_stack_s2(path, s2_df):
+
+    assert 'filepath' in s2_df, ('please first run "get_S2_image_locations"'+
+                                ' to find the proper file locations')
+
+    roi = np.min(s2_df['resolution'].array) # resolution of interest
+    im_scaling = s2_df['resolution'] / roi
+    # start with the highest resolution
+    for val, idx in enumerate(s2_df.sort_values('resolution').index):
+        full_path = s2_df['filepath'][idx] + '.jp2'
+        if val==0:
+            im_stack, spatialRef, geoTransform, targetprj = read_band_s2(full_path)
+        else: # stack others bands
+            if im_stack.ndim==2:
+                im_stack = im_stack[:,:,np.newaxis]
+            band,_,_,_ = read_band_s2(full_path)
+            if im_scaling[idx]!=1: # resize image to higher res.
+                band = resize(band, (im_stack.shape[0], im_stack.shape[1]), order=3)
+            band = band[:,:,np.newaxis]
+            im_stack = np.concatenate((im_stack, band), axis=2)
+
+    return im_stack, spatialRef, geoTransform, targetprj
+
 def get_root_of_table(path, fname):
     full_name = os.path.join(path, fname)
-    assert os.path.exists(path), ('please provide correct path and file name')
+    assert os.path.exists(full_name), ('please provide correct path and file name')
     dom = ElementTree.parse(glob.glob(full_name)[0])
     root = dom.getroot()
     return root
@@ -422,7 +451,7 @@ def read_mean_sun_angles_s2(path, fname='MTD_TL.xml'):
     Az = float(root[1][1][1][1].text)
     return Zn, Az
 
-def read_detector_mask(path_meta, msk_dim, boi, geoTransform):
+def read_detector_mask(path_meta, boi, geoTransform):
     """ create array of with detector identification
 
     Sentinel-2 records in a pushbroom fasion, collecting reflectance with a
@@ -437,8 +466,6 @@ def read_detector_mask(path_meta, msk_dim, boi, geoTransform):
     ----------
     path_meta : string
         path where the meta-data is situated.
-    msk_dim : tuple
-        dimensions of the stack.
     boi : DataFrame
         list with bands of interest
     geoTransform : tuple
@@ -457,15 +484,13 @@ def read_detector_mask(path_meta, msk_dim, boi, geoTransform):
     -------
     >>> path_meta = '/GRANULE/L1C_T15MXV_A027450_20200923T163313/QI_DATA'
     >>> boi = ['red', 'green', 'blue', 'near infrared']
-    >>> msk_dim = (10980, 10980, len(boi))
     >>> s2_df = list_central_wavelength_s2()
     >>> boi_df = s2_df[s2_df['name'].isin(boi)]
     >>> geoTransform = (600000.0, 10.0, 0.0, 10000000.0, 0.0, -10.0)
     >>>
-    >>> det_stack = read_detector_mask(path_meta, msk_dim, boi_df, geoTransform)
+    >>> det_stack = read_detector_mask(path_meta, boi_df, geoTransform)
     """
 
-    det_stack = np.zeros(msk_dim, dtype='int8')
     for i in range(len(boi)):
         im_id = boi.index[i] # 'B01' | 'B8A'
         if type(im_id) is int:
@@ -475,6 +500,18 @@ def read_detector_mask(path_meta, msk_dim, boi, geoTransform):
             f_meta = os.path.join(path_meta, 'MSK_DETFOO_'+ im_id +'.gml')
         dom = ElementTree.parse(glob.glob(f_meta)[0])
         root = dom.getroot()
+
+        if 'msk_dim' not in locals():
+            # find dimensions of array through its map extent in metadata
+            lower_corner = np.fromstring(root[1][0][0].text, sep=' ')
+            upper_corner = np.fromstring(root[1][0][1].text, sep=' ')
+            lower_x, lower_y = map2pix(geoTransform, lower_corner[0], lower_corner[1])
+            upper_x, upper_y = map2pix(geoTransform, upper_corner[0], upper_corner[1])
+
+            msk_dim = (np.maximum(lower_x,upper_x).astype(int),
+                       np.maximum(lower_y,upper_y).astype(int),
+                       len(boi))
+            det_stack = np.zeros(msk_dim, dtype='int8') # create stack
 
         mask_members = root[2]
         for k in range(len(mask_members)):
@@ -501,12 +538,22 @@ def read_detector_mask(path_meta, msk_dim, boi, geoTransform):
             det_stack[:,:,i] = np.maximum(det_stack[:,:,i], msk)
     return det_stack
 
-def read_cloud_mask(path_meta, msk_dim, geoTransform): # todo gml:boundedBy gives image envelope
-    msk_clouds = np.zeros(msk_dim, dtype='int8')
+def read_cloud_mask(path_meta, geoTransform):
 
     f_meta = os.path.join(path_meta, 'MSK_CLOUDS_B00.gml')
     dom = ElementTree.parse(glob.glob(f_meta)[0])
     root = dom.getroot()
+
+    # find dimensions of array through its map extent in metadata
+    lower_corner = np.fromstring(root[1][0][0].text, sep=' ')
+    upper_corner = np.fromstring(root[1][0][1].text, sep=' ')
+    lower_x, lower_y = map2pix(geoTransform, lower_corner[0], lower_corner[1])
+    upper_x, upper_y = map2pix(geoTransform, upper_corner[0], upper_corner[1])
+
+    msk_dim = (np.maximum(lower_x, upper_x).astype(int),
+               np.maximum(lower_y, upper_y).astype(int),
+               len(boi))
+    msk_clouds = np.zeros(msk_dim, dtype='int8')  # create stack
 
     mask_members = root[2]
     for k in range(len(mask_members)):
