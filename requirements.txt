@@ -1,4 +1,3 @@
-GDAL
 pytz
 pysolar
 numpy
