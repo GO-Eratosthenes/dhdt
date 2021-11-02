@@ -980,7 +980,7 @@ def shadow_probabilities(Blue, Green, Red, Near, ae = 1e+1, be = 5e-1):
     M = np.multiply(D, (1 - F))
     return M
 
-def shadow_free_rgb(Blue, Green, Red, Near):
+def shadow_free_rgb(Blue, Green, Red, Near): #todo: transformation does not seem to go both ways...?
 
     S,R = entropy_shade_removal(Blue, Red, Near, a=138)
     R[R<-3] = -3
