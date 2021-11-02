@@ -153,19 +153,24 @@ def simple_optical_flow(I1, I2, window_size, sampleI, sampleJ, \
         [[-1., 1.],
          [-1., 1.]]
     ) * .25
+    kernel_y = np.array(
+         [[1., 1.],
+          [-1., -1.]]
+     ) * .25
     kernel_t = np.array(
         [[1., 1.],
          [1., 1.]]
     ) * .25
 
     fx = ndimage.convolve(I1, kernel_x)
-    fy = ndimage.convolve(I1, np.flip(np.transpose(kernel_x), axis=0))
+    fy = ndimage.convolve(I1, kernel_y)
     ft = ndimage.convolve(I2, kernel_t) + ndimage.convolve(I1, -kernel_t)
 
     # grid or single estimation
     if sampleI.ndim>1:
-        Ugrd = np.zeros((len(sampleI), len(sampleJ)))
-        Vgrd = np.zeros_like(Ugrd),
+        assert sampleI.shape == sampleJ.shape
+        Ugrd = np.zeros_like(sampleI, dtype="float")
+        Vgrd = np.zeros_like(sampleI, dtype="float")
         Ueig,Veig = np.zeros_like(Ugrd), np.zeros_like(Ugrd)
     else:
         Ugrd,Vgrd,Ueig,Veig = 0,0,0,0
@@ -189,8 +194,8 @@ def simple_optical_flow(I1, I2, window_size, sampleI, sampleJ, \
 
         # look if variation is present
         if np.std(It) != 0:
-            b = np.reshape(It, (It.shape[0], 1))  # get b here
-            A = np.vstack((Ix, Iy)).T  # get A here
+            b = It  # get b here
+            A = np.stack((Ix, Iy), axis=1)  # get A here
 
             # caluclate eigenvalues to see directional contrast distribution
             epsilon = np.linalg.eigvals(np.matmul(A.T, A))

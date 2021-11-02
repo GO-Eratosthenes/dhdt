@@ -7,33 +7,33 @@ from scipy.linalg import block_diag
 from .matching_tools import \
     get_coordinates_of_template_centers, \
     get_grid_at_template_centers
-from .matching_tools_spatial_correlators import simple_optical_flow
+from .matching_tools_differential import simple_optical_flow
 from .network_tools import getNetworkIndices, getNetworkBySunangles, \
     getAdjacencyMatrixFromNetwork
 from .coupling_tools import match_pair
-from .handler_s2 import read_view_angles_s2
-from ..generic.mapping_tools import castOrientation, rotMat
+from ..preprocessing.read_sentinel2 import read_view_angles_s2
+from ..generic.mapping_tools import cast_orientation, rot_mat
 from ..generic.filtering_statistical import mad_filtering
-from ..preprocessing.read_s2 import read_sun_angles_s2
+from ..preprocessing.read_sentinel2 import read_sun_angles_s2
 
 
 def coregister_to_shading(shadow,): # wip
-    
+
     # does shading exist
-    
+
     shade = make_shading(dem.data, azimuth_angle.mean(), zenith_angle.mean())
     shade = xr.DataArray(shade, dims=('y', 'x'), coords={'x': dem.x, 'y': dem.y})
     shade = ((shade - shade.min()) / (shade.max() - shade.min()))
     shade = shade.rio.set_crs(dem.spatial_ref.crs_wkt)
     shade = shade.rio.set_nodata(dem.rio.nodata)
     #
-    
+
     window_size = 15
     sampleI, sampleJ = get_coordinates_of_template_centers(
         shade_casted.data, window_size
     )
     X_grd,Y_grd = pix2map(geoTransform1)
-    
+
     # do matching
     X2_grd,Y2_grd = match_pair(shade, shadow, \
                                np.zeros((0)), np.zeros((0)), \
@@ -42,12 +42,12 @@ def coregister_to_shading(shadow,): # wip
                                kernel='none', \
                                prepro='bandpass', match='cosicorr', subpix='tpss', \
                                processing='stacking', boi=np.array([]) )
-            
+
     # provide constant or function
-    
+
     # use generalized least squares
     dx, dy = 0,0
-    
+
     return dx,dy
 
 def coregister(sat_path, dat_path, connectivity=2, step_size=True,
@@ -102,7 +102,7 @@ def coregister(sat_path, dat_path, connectivity=2, step_size=True,
             img = gdal.Open(sen2Path + "shadows.tif")
             M = np.array(img.GetRasterBand(1).ReadAsArray())
 
-            if i==0 & j==0:
+            if i==0 and j==0:
                 if step_size:  # reduce to kernel resolution
                     (sampleI, sampleJ) = get_coordinates_of_template_centers(\
                                                 M, temp_size)
@@ -127,7 +127,7 @@ def coregister(sat_path, dat_path, connectivity=2, step_size=True,
 
         (y_N, y_E) = lucas_kanade(Mstack[:, :, 0], Mstack[:, :, 1],
                                  temp_size, sampleI, sampleJ)
-        
+
 
 
         # select correct displacements
@@ -143,7 +143,7 @@ def coregister(sat_path, dat_path, connectivity=2, step_size=True,
                             mad_filtering(y_E[Msk], cut_off))
 
         # keep selection and get their observation angles
-        (iIN,jIN) = np.nonzero(Msk) 
+        (iIN,jIN) = np.nonzero(Msk)
         iIN = iIN[IN]
         jIN = jIN[IN]
 
@@ -219,11 +219,11 @@ def get_coregistration(dat_path,im_list=None):
     #             IN[idx] = True
     #     (i) = np.nonzero(IN)
     #     co_name = co_name[i]
-        
+
     #     IN = [s for s in co_name if any(xs in s for xs in im_list)]
-        
+
     #     [item for item in co_name if item not in im_list]
-        
+
     #     raise NotImplementedError('Not implemented yet!')
 
     return co_name, co_reg
