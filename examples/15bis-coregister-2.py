@@ -39,7 +39,7 @@ boi = ['red', 'green', 'blue', 'near infrared']
 s2_df = list_central_wavelength_s2()
 s2_df = s2_df[s2_df['name'].isin(boi)]
 
-s2path = '/Users/Alten005/GO-eratosthenes/start-code/examples/S2-15-10-2019/'
+s2path = '/Users/Alten005/surfdrive/Eratosthenes/RedGlacier/Sentinel-2/S2-15-10-2019/'
 fpath = os.path.join(s2path, 'shadow.tif')
 
 M_dir, M_name = os.path.split(fpath)
@@ -56,15 +56,15 @@ if os.getcwd()!=dir_path:
 (M, spatialRefM, geoTransformM, targetprjM) = read_geo_image(fpath)
 M *= -1
 
-Z = read_geo_image(os.path.join(dir_path, Z_file))[0]
-R = read_geo_image(os.path.join(dir_path, R_file))[0]
+Z = read_geo_image(os.path.join(Z_dir, Z_file))[0]
+R = read_geo_image(os.path.join(Z_dir, R_file))[0]
 
 # create observation angles
-fpath = os.path.join('/Users/Alten005/GO-eratosthenes/start-code/examples/S2-15-10-2019-full', \
+fpath = os.path.join('/Users/Alten005/surfdrive/Eratosthenes/RedGlacier/Sentinel-2/S2-15-10-2019-full', \
                       'T05VMG_20191015T213531_B08.jp2')
 _,spatialRefI,geoTransformI,targetprjI = read_geo_image(fpath)
 
-path_meta = '/Users/Alten005/GO-eratosthenes/start-code/examples/'+\
+path_meta = '/Users/Alten005/surfdrive/Eratosthenes/RedGlacier/Sentinel-2/'+\
     'S2A_MSIL1C_20191015T213531_N0208_R086_T05VMG_20191015T230223.SAFE/'+\
     'GRANULE/L1C_T05VMG_A022534_20191015T213843/QI_DATA'
 
@@ -145,7 +145,7 @@ N = cast_orientation(Si, Az, indexing='xy')
 # make Mask
 Stable = (R==0) & (Shw!=1)
 
-window_size = 2**3
+window_size = 2**6
 sample_X,sample_Y = pix2map(geoTransformM, sample_I, sample_J)
 match_X,match_Y = match_pair(Shd, Si, Stable, Stable, geoTransformM, geoTransformM,
                              sample_X, sample_Y,
@@ -188,7 +188,7 @@ ax0.hist2d(Asp.flatten(), Si.flatten(),
 ax1.hist2d(Asp[Stable], Si[Stable],
            bins=90, range=[[-180, +180], [-.5, .5]],
            cmap=plt.cm.gist_heat_r)
-
+plt.show()
 
 fig, (ax0,ax1) = plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True)
 ax0.hist2d(Asp[Stable], Shd[Stable],
@@ -198,27 +198,31 @@ ax1.hist2d(Asp[Stable], Si[Stable],
            bins=90, range=[[-180, +180], [-.5, .5]],
            cmap=plt.cm.gist_heat_r)
 ax1.scatter(asp_val,asp_med,s=1,c='black',marker='.')
+plt.show()
 
 fig, (ax0,ax1) = plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True)
 ax0.imshow(-Si, cmap=plt.cm.bone)
 ax1.imshow(Shd, cmap=plt.cm.bone)
+plt.show()
 
 fig, (ax0,ax1) = plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True)
 ax0.imshow(F, cmap=plt.cm.bone)
 ax1.imshow(N, cmap=plt.cm.bone)
+plt.show()
 
 plt.hist2d(np.divide(Blue-Green,Blue+Green)[Stable],
            np.divide(Red-Near,Red+Near)[Stable],
            bins=100, range=[[-1, 1], [-1, 1]],
            cmap=plt.cm.gist_heat_r)
-
+plt.show()
 
 plt.hist2d(Asp[Stable], dI[Stable],
            bins=90, range=[[-180, +180], [-1, +1]],
            cmap=plt.cm.gist_heat_r)
+plt.show()
 
 plt.hist(Asp[Stable])
-
+plt.show()
 
 dY,dX = sample_Y-match_Y, sample_X-match_X
 #plt.imshow(dY, vmin=-20, vmax=+20), plt.show()
@@ -232,7 +236,8 @@ dD = np.multiply(Rho,np.tan(np.radians(Slp)))
 IN = dD!=0
 # IN = (dX!=0) & (dY!=0)
 plt.hist2d(Asp[IN], dD[IN], bins=90, range=[[-180, +180], [0, .4]], cmap=plt.cm.jet)
+plt.show()
 
 plt.scatter(Phi, np.divide(Rho,np.tan(np.radians(Slp))))
-
+plt.show()
 
