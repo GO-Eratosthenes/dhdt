@@ -6,7 +6,7 @@ import numpy as np
 import pystac
 import stac2dcache
 
-from eratosthenes.generic.mapping_io import read_geo_image, read_geo_info
+from eratosthenes.generic.mapping_io import read_geo_image
 
 rgi_index_url = (
     "https://webdav.grid.surfsara.nl:2880"
@@ -16,7 +16,7 @@ rgi_index_url = (
 
 tile_id = '5VMG'
 rgi_id = 'RGI60-01.19773' # Red Glacier
-buffer_bbox = 300 # [meter] extend the bbox a bit
+buffer_bbox = 1000 # [meter] extend the bbox a bit
 
 # configure connection to dCache
 username = getpass.getuser()

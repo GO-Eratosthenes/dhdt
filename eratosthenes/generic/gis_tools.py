@@ -3,14 +3,49 @@ import numpy as np
 
 from osgeo import ogr, osr, gdal
 
-def ll2utm(ll_fname,utm_fname,crs,aoi='RGIId'):
-    """
-    Transfrom shapefile in Lat-Long to UTM coordinates
+def create_crs_from_utm_number(utm_code):
+    """ generate GDAL SpatialReference from UTM code
     
-    input:   ll_fname       string            path and filename of input file
-             utm_fname      string            path and filename of output file           
-             crs            string            coordinate reference code
-             aoi            string            atribute to include         
+
+    Parameters
+    ----------
+    utm_code : string
+        Universal Transverse Mercator code of projection (e.g: '06N')
+
+    Returns
+    -------
+    crs : osr.SpatialReference
+        GDAL SpatialReference
+
+    """
+    utm_zone = int(utm_code[:-1])
+    utm_sphere = utm_code[-1].upper()
+    
+    crs = osr.SpatialReference()
+    crs.SetWellKnownGeogCS("WGS84")
+    if utm_sphere != 'N':
+        crs.SetProjCS("UTM " + str(utm_zone) + \
+                      " (WGS84) in northern hemisphere.")
+        crs.SetUTM(utm_zone,True)
+    else:
+        crs.SetProjCS("UTM " + str(utm_zone) + \
+              " (WGS84) in southern hemisphere.")
+        crs.SetUTM(utm_zone,False)
+    return crs
+
+def ll2utm(ll_fname,utm_fname,crs,aoi='RGIId'):
+    """ transfrom shapefile in Lat-Long to UTM coordinates
+    
+    Parameters
+    ----------
+    ll_fname : string
+        path and filename of input file
+    utm_fname : string
+        path and filename of output file 
+    crs : string
+        coordinate reference code
+    aoi : string
+        atribute to include. The default is 'RGIId'
     """
     #making the shapefile as an object.
     inputShp = ogr.Open(ll_fname)
@@ -65,15 +100,22 @@ def ll2utm(ll_fname,utm_fname,crs,aoi='RGIId'):
     outDataSet = None # this creates an error but is needed?????
 
 def shape2raster(shp_fname,im_fname,geoTransform,rows,cols,aoi='RGIId'):
-    """
-    Converts shapefile into raster
-    
-    input:   shp_fname      string            path and filename of shape file
-             im_fname       string            path and filename of output file           
-             geoTransform   array (1 x 6)     reference matrix
-             rows           integer           number of rows in the image             
-             cols           integer           number of collumns in the image             
-             aoi            string            attribute of interest 
+    """ converts shapefile into raster        
+
+    Parameters
+    ----------
+    shp_fname : string
+        path and filename of shape file
+    im_fname : string
+        path and filename of output file
+    geoTransform : tuple, size=(1,6)
+        affine transformation coefficients
+    rows : integer
+        number of rows in the image 
+    cols : integer
+        number of collumns in the image
+    aoi : string
+        attribute of interest. The default is 'RGIId'
     """
     #making the shapefile as an object.
     rgiShp = ogr.Open(shp_fname)
@@ -95,8 +137,22 @@ def shape2raster(shp_fname,im_fname,geoTransform,rows,cols,aoi='RGIId'):
     rgiRaster = None # missing link.....
 
 def reproject_shapefile(path, in_file, targetprj):
-    """
-    Transforms shapefile into other projection
+    """ transforms shapefile into other projection
+    
+    Parameters
+    ----------
+    path : string
+        path of input file
+    in_file : string
+        filename of input file
+    targetprj : osgeo-structure
+        spatial reference
+
+    Returns
+    -------
+    out_file : string
+        filename of output file
+
     """
     out_file = in_file[:-4]+'_utm.shp'
     
@@ -151,9 +207,20 @@ def reproject_shapefile(path, in_file, targetprj):
     return out_file
 
 def get_geom_for_utm_zone(utm_zone, d_buff=0):
-    '''
-    get the boundary of a UTM zone as a geometry
-    '''
+    """ get the boundary of a UTM zone as a geometry
+
+    Parameters
+    ----------
+    utm_zone : signed integer
+        universal transverse Mercator projection zone
+    d_buff : float, unit=degrees
+        buffer around the zone. The default is 0.
+
+    Returns
+    -------
+    utm_poly : ogr.geometry, dtype=polygon
+        polygon of the UTM zone.
+    """
     central_lon = np.arange(-177., 177., 6)
     # central_lon = np.arange(-177., 177., 6)
     
@@ -180,4 +247,3 @@ def get_geom_for_utm_zone(utm_zone, d_buff=0):
     # it seems it generates a 3D polygon, which is not needed
     utm_poly.FlattenTo2D()
     return utm_poly
-

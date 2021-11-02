@@ -3,11 +3,11 @@ import numpy as np
 from osgeo import gdal, osr
 
 from ..generic.handler_im import get_image_subset
-
-from eratosthenes.generic.mapping_tools import ref_trans, pix2map
-from eratosthenes.generic.mapping_io import read_geo_image
-from eratosthenes.preprocessing.read_s2 import read_band_s2, read_sun_angles_s2
-from eratosthenes.preprocessing.shadow_transforms import enhance_shadow
+from ..generic.mapping_tools import ref_trans, pix2map
+from ..generic.mapping_io import read_geo_image
+from .read_sentinel2 import read_band_s2, read_sun_angles_s2
+from .read_rapideye import read_band_re
+from .shadow_transforms import enhance_shadow
 
 def create_shadow_image(dat_path, im_name, shadow_transform='ruffenacht', \
                         bbox=(0, 0, 0, 0), Shw=None):
@@ -120,16 +120,31 @@ def create_caster_casted_list_from_polygons(dat_path, im_name, Rgi,
     f.close()
 
 def get_shadow_bands(satellite_name):
-    """
-    Given the name of the satellite, provide the number of the bands that are:
-        Blue, Green, Red and Near-infrared
+    """ give bandnumbers of visible bands of specific satellite
+
     If the instrument has a high resolution panchromatic band, 
     this is given as the fifth entry    
 
-    input:   satellite_name string            name of the satellite or instrument abreviation
-    output:  band_num       list (1 x 4)      list of the band numbers
-    """
-    
+    Parameters
+    ----------
+    satellite_name : {'Sentinel-2', 'Landsat8', 'Landsat7', 'Landsat5', 
+                      'RapidEye', 'PlanetScope', 'ASTER', 'Worldview3'}
+        name of the satellite or instrument abreviation.
+
+    Returns
+    -------
+    band_num : list, size=(1,4), integer
+            
+        * band_num[0] : Blue band number
+        * band_num[1] : Green band number
+        * band_num[2] : Red band number
+        * band_num[3] : Near-infrared band number
+        * band_num[4] : panchrometic band
+        
+    See Also
+    --------
+    read_shadow_bands
+    """    
     satellite_name = satellite_name.lower()
     
     # compare if certain segments are present in a string
@@ -154,13 +169,48 @@ def get_shadow_bands(satellite_name):
     return band_num
 
 def read_shadow_bands(sat_path, band_num):
-    """
-    Reads the specific band numbers of the multispectral satellite images
+    """ read the specific band numbers of the multispectral satellite images
+
     input:   sat_path       string            path to imagery and file name
              band_num       list (1 x 4)      list of the band numbers
     output:         
+
+
+    Parameters
+    ----------
+    sat_path : string
+        path to imagery and file name.
+    band_num : list, size=(1,4), integer
+            
+        * band_num[0] : Blue band number
+        * band_num[1] : Green band number
+        * band_num[2] : Red band number
+        * band_num[3] : Near-infrared band number
+        * band_num[4] : panchrometic band
+
+    Returns
+    -------
+    Blue : np.array, size=(m,n), dtype=integer
+        blue band of satellite image
+    Green : np.array, size=(m,n), dtype=integer
+        green band of satellite image
+    Red : np.array, size=(m,n), dtype=integer
+        red band of satellite image
+    Near : np.array, size=(m,n), dtype=integer
+        near-infrared band of satellite image   
+    crs : string
+        osr.SpatialReference in well known text
+    geoTransform : tuple, size=(6,1)
+        affine transformation coefficients.
+    targetprj : osgeo.osr.SpatialReference() object
+        coordinate reference system (CRS)
+    Pan : 
+        Panchromatic band
+        
+        * np.array, size=(m,n), integer, 
+        * None if band does not exist
+
     """
-    
     if len([n for n in ['S2','MSIL1C'] if n in sat_path])==2:
         # read imagery of the different bands
         (Blue, crs, geoTransform, targetprj) = read_band_s2( 
@@ -169,12 +219,19 @@ def read_shadow_bands(sat_path, band_num):
             format(band_num[1], '02d'), sat_path)
         (Red, crs, geoTransform, targetprj) = read_band_s2(
             format(band_num[2], '02d'), sat_path)
-        (Nir, crs, geoTransform, targetprj) = read_band_s2(
+        (Near, crs, geoTransform, targetprj) = read_band_s2(
             format(band_num[3], '02d'), sat_path)
-    
-    # if len(band_num)==5: # include panchromatic band
-    #     Pan = ()
-    # else:
-    #     Pan = ()
-    
-    return Blue, Green, Red, Nir, crs, geoTransform, targetprj #, Pan
+        Pan = None
+    elif len([n for n in ['RapidEye','RE'] if n in sat_path])==2:
+        # read single imagery and extract the different bands
+        (Blue, crs, geoTransform, targetprj) = read_band_re(
+            format(band_num[0], '02d'), sat_path)
+        (Green, crs, geoTransform, targetprj) = read_band_re(
+            format(band_num[1], '02d'), sat_path)
+        (Red, crs, geoTransform, targetprj) = read_band_re(
+            format(band_num[2], '02d'), sat_path)
+        (Near, crs, geoTransform, targetprj) = read_band_re(
+            format(band_num[3], '02d'), sat_path)
+        Pan = None
+        
+    return Blue, Green, Red, Near, crs, geoTransform, targetprj, Pan
