@@ -26,7 +26,7 @@ from eratosthenes.processing.coupling_tools import \
 from eratosthenes.postprocessing.solar_tools import \
     az_to_sun_vector, make_shading, make_shadowing
 
-s2path = '/Users/Alten005/GO-eratosthenes/start-code/examples/S2-15-10-2019/'
+s2path = '/Users/Alten005/surfdrive/Eratosthenes/RedGlacier/Sentinel-2/S2-15-10-2019/'
 fpath = os.path.join(s2path, 'shadow.tif')
 
 M_dir, M_name = os.path.split(fpath)
@@ -43,8 +43,8 @@ if os.getcwd()!=dir_path:
 (M, spatialRefM, geoTransformM, targetprjM) = read_geo_image(fpath)
 M *= -1
 
-Z = read_geo_image(os.path.join(dir_path, Z_file))[0]
-R = read_geo_image(os.path.join(dir_path, R_file))[0]
+Z = read_geo_image(os.path.join(Z_dir, Z_file))[0]
+R = read_geo_image(os.path.join(Z_dir, R_file))[0]
 
 d_hat = 2*np.random.random((2))-1
 Z2 = bilinear_interpolation(Z, d_hat[0], d_hat[1])
@@ -67,5 +67,6 @@ di, dj = pol2cart(dD_H, Asp_H)
 plt.hist2d(Asp.flatten(), dD.flatten(),
            bins=90, range=[[-180, +180], [-2, 2]],
            cmap=plt.cm.jet)
+plt.show()
 
 
