@@ -1,0 +1,12 @@
+GDAL
+pytz
+pysolar
+numpy
+rasterio
+scikit-image
+scikit-learn
+scipy
+Pillow
+pycairo
+shapely
+statsmodels
