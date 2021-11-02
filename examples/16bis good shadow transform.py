@@ -16,7 +16,7 @@ from eratosthenes.processing.matching_tools import \
 from eratosthenes.postprocessing.solar_tools import \
     make_shading, make_shadowing
 
-s2path = '/Users/Alten005/GO-eratosthenes/start-code/examples/S2-15-10-2019/'
+s2path = '/Users/Alten005/surfdrive/Eratosthenes/RedGlacier/Sentinel-2/S2-15-10-2019/'
 fpath = os.path.join(s2path, 'shadow.tif')
 
 M_dir, M_name = os.path.split(fpath)
@@ -34,11 +34,12 @@ Z = read_geo_image(os.path.join(Z_dir, Z_file))[0]
 Rgi = read_geo_image(os.path.join(Z_dir, R_file))[0]
 
 # create observation angles
-fpath = os.path.join('/Users/Alten005/GO-eratosthenes/start-code/examples/S2-15-10-2019-full', \
-                      'T05VMG_20191015T213531_B08.jp2')
+fpath = os.path.join('/Users/Alten005/surfdrive/Eratosthenes/RedGlacier/'+
+                     'Sentinel-2/S2-15-10-2019-full',
+                     'T05VMG_20191015T213531_B08.jp2')
 _,spatialRefI,geoTransformI,targetprjI = read_geo_image(fpath)
 
-path_meta = '/Users/Alten005/GO-eratosthenes/start-code/examples/'+\
+path_meta = '/Users/Alten005/surfdrive/Eratosthenes/RedGlacier/Sentinel-2/'+\
     'S2A_MSIL1C_20191015T213531_N0208_R086_T05VMG_20191015T230223.SAFE/'+\
     'GRANULE/L1C_T05VMG_A022534_20191015T213843/QI_DATA'
 
@@ -80,7 +81,7 @@ ax0.hist2d(Asp.flatten(), Si.flatten(),
 ax1.hist2d(Asp.flatten(), Shd.flatten(),
            bins=90, range=[[-180, +180], [-.75, .75]],
            cmap=plt.cm.gist_heat_r)
-
+plt.show()
 
 fig, (ax0,ax1) = plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True)
 ax0.hist2d(Asp[Stable], Shd[Stable],
@@ -89,7 +90,9 @@ ax0.hist2d(Asp[Stable], Shd[Stable],
 ax1.hist2d(Asp[Stable], Si[Stable],
            bins=90, range=[[-180, +180], [-.75, .75]],
            cmap=plt.cm.gist_heat_r)
+plt.show()
 
 bins = np.linspace(-.5, 1, 100)
 plt.hist([Si[Shw], Si[~Shw]], bins, label=['shadow', 'enlightened'])
 plt.legend(loc='upper right')
+plt.show()
