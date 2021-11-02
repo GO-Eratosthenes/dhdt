@@ -55,36 +55,41 @@ def list_central_wavelength_s2():
     Index(['B05', 'B06', 'B07', 'B8A', 'B11', 'B12'], dtype='object')
 
     """
-    wavelength = {"B01": 443, "B02": 492, "B03": 560, "B04": 665, \
-                  "B05": 704, "B06": 741, "B07": 783, "B08": 833, "B8A": 865,\
-                  "B09": 945, "B10":1374, "B11":1614, "B12":2202, \
+    wavelength = {"B01": 443, "B02": 492, "B03": 560, "B04": 665,
+                  "B05": 704, "B06": 741, "B07": 783, "B08": 833, "B8A": 865,
+                  "B09": 945, "B10":1374, "B11":1614, "B12":2202,
                   }
-    bandwidth = {"B01": 21, "B02": 66, "B03": 36, "B04": 31, \
-                 "B05": 15, "B06": 15, "B07": 20, "B08":106, "B8A": 21,\
-                 "B09": 20, "B10": 31, "B11": 91, "B12":175, \
+    bandwidth = {"B01": 21, "B02": 66, "B03": 36, "B04": 31,
+                 "B05": 15, "B06": 15, "B07": 20, "B08":106, "B8A": 21,
+                 "B09": 20, "B10": 31, "B11": 91, "B12":175,
                  }
-    bandid = {"B01": 0, "B02": 1, "B03": 2, "B04": 3, \
-              "B05": 4, "B06": 5, "B07": 6, "B08": 7, "B8A": 8,\
-              "B09": 9, "B10":10, "B11":11, "B12":12, \
+    bandid = {"B01": 0, "B02": 1, "B03": 2, "B04": 3,
+              "B05": 4, "B06": 5, "B07": 6, "B08": 7, "B8A": 8,
+              "B09": 9, "B10":10, "B11":11, "B12":12,
                   }
-    resolution = {"B01": 60, "B02": 10, "B03": 10, "B04": 10, \
-                  "B05": 20, "B06": 20, "B07": 20, "B08": 10, "B8A": 20,\
-                  "B09": 60, "B10": 60, "B11": 20, "B12": 20, \
+    resolution = {"B01": 60, "B02": 10, "B03": 10, "B04": 10,
+                  "B05": 20, "B06": 20, "B07": 20, "B08": 10, "B8A": 20,
+                  "B09": 60, "B10": 60, "B11": 20, "B12": 20,
                   }
-    name = {"B01": 'aerosol',       "B02" : 'blue', \
-            "B03" : 'green',        "B04" : 'red', \
-            "B05": 'red edge',      "B06" : 'red edge', \
-            "B07" : 'red edge',     "B08" : 'near infrared', \
-            "B8A" : 'narrow near infrared',\
-            "B09": 'water vapour',  "B10": 'cirrus', \
-            "B11": 'shortwave infrared', "B12": 'shortwave infrared', \
+    name = {"B01": 'aerosol',       "B02" : 'blue',
+            "B03" : 'green',        "B04" : 'red',
+            "B05": 'red edge',      "B06" : 'red edge',
+            "B07" : 'red edge',     "B08" : 'near infrared',
+            "B8A" : 'narrow near infrared',
+            "B09": 'water vapour',  "B10": 'cirrus',
+            "B11": 'shortwave infrared', "B12": 'shortwave infrared',
             }
+    irradiance = {"B01":1913, "B02":1942, "B03":1823, "B04":1513,
+                  "B05":1426, "B06":1288, "B07":1163, "B08":1036, "B8A":955,
+                  "B09": 813, "B10": 367, "B11": 246, "B12": 85,
+                  } # these numbers are also given in the meta-data
     d = {
          "wavelength": pd.Series(wavelength),
          "bandwidth": pd.Series(bandwidth),
          "resolution": pd.Series(resolution),
          "name": pd.Series(name),
-         "bandid": pd.Series(bandid)
+         "bandid": pd.Series(bandid),
+         "irradiance": pd.Series(irradiance)
          }
     df = pd.DataFrame(d)
     return df
@@ -164,7 +169,7 @@ def read_band_s2(path, band='00'):
     data = np.array(img.GetRasterBand(1).ReadAsArray())
     spatialRef = img.GetProjection()
     geoTransform = img.GetGeoTransform()
-    targetprj = osr.SpatialReference(wkt=img.GetProjection())
+    targetprj = osr.SpatialReference(wkt=spatialRef)
     return data, spatialRef, geoTransform, targetprj
 
 def read_stack_s2(path, s2_df):
@@ -188,6 +193,9 @@ def read_stack_s2(path, s2_df):
             band = band[:,:,np.newaxis]
             im_stack = np.concatenate((im_stack, band), axis=2)
 
+    # in the meta data files there is no mention of its size, hence include
+    # it to the geoTransform
+    geoTransform = geoTransform + (im_stack.shape[0], im_stack.shape[1])
     return im_stack, spatialRef, geoTransform, targetprj
 
 def get_root_of_table(path, fname):
@@ -491,6 +499,10 @@ def read_detector_mask(path_meta, boi, geoTransform):
     >>> det_stack = read_detector_mask(path_meta, boi_df, geoTransform)
     """
 
+    if len(geoTransform)>6: # also image size is given
+        msk_dim = (geoTransform[-2], geoTransform[-1], len(boi))
+        det_stack = np.zeros(msk_dim, dtype='int8')  # create stack
+
     for i in range(len(boi)):
         im_id = boi.index[i] # 'B01' | 'B8A'
         if type(im_id) is int:
@@ -544,16 +556,20 @@ def read_cloud_mask(path_meta, geoTransform):
     dom = ElementTree.parse(glob.glob(f_meta)[0])
     root = dom.getroot()
 
-    # find dimensions of array through its map extent in metadata
-    lower_corner = np.fromstring(root[1][0][0].text, sep=' ')
-    upper_corner = np.fromstring(root[1][0][1].text, sep=' ')
-    lower_x, lower_y = map2pix(geoTransform, lower_corner[0], lower_corner[1])
-    upper_x, upper_y = map2pix(geoTransform, upper_corner[0], upper_corner[1])
+#    # find dimensions of array through its map extent in metadata
+#    lower_corner = np.fromstring(root[1][0][0].text, sep=' ')
+#    upper_corner = np.fromstring(root[1][0][1].text, sep=' ')
+#    lower_x, lower_y = map2pix(geoTransform, lower_corner[0], lower_corner[1])
+#    upper_x, upper_y = map2pix(geoTransform, upper_corner[0], upper_corner[1])
+#    msk_dim = (np.maximum(lower_y, upper_y).astype(int),
+#               np.maximum(lower_x, upper_x).astype(int))
 
-    msk_dim = (np.maximum(lower_x, upper_x).astype(int),
-               np.maximum(lower_y, upper_y).astype(int),
-               len(boi))
-    msk_clouds = np.zeros(msk_dim, dtype='int8')  # create stack
+    if len(geoTransform)>6: # also image size is given
+        msk_dim = (geoTransform[-2], geoTransform[-1])
+        msk_clouds = np.zeros(msk_dim, dtype='int8')
+    else:
+        msk_dim = (10980,10980)
+        msk_clouds = np.zeros(msk_dim, dtype='int8')  # create stack
 
     mask_members = root[2]
     for k in range(len(mask_members)):
@@ -568,7 +584,7 @@ def read_cloud_mask(path_meta, geoTransform):
         i_arr, j_arr = map2pix(geoTransform, pos_arr[:,0], pos_arr[:,1])
         ij_arr = np.hstack((j_arr[:,np.newaxis], i_arr[:,np.newaxis]))
         # make mask
-        msk = Image.new("L", [msk_dim[0], msk_dim[1]], 0)
+        msk = Image.new("L", [msk_dim[1], msk_dim[0]], 0) # in [width, height] format
         ImageDraw.Draw(msk).polygon(tuple(map(tuple, ij_arr[:,0:2])), \
                                     outline=1, fill=1)
         msk = np.array(msk)
@@ -601,3 +617,19 @@ def read_detector_time(path, fname='MTD_DS.xml'):
         det_meta[bnd,2] = float(meta[1][1].text) # max
         det_meta[bnd,3] = float(meta[1][2].text) # mean
     return det_time, det_name, det_meta
+
+def get_flight_orientation_s2(path, fname='MTD_DS.xml'):
+    root = get_root_of_table(path, fname)
+
+    for att in root.iter('Corrected_Attitudes'):
+        sat_time  = np.zeros((len(att)), dtype=np.timedelta64)
+        sat_angles = np.zeros((len(att),4))
+        counter = 0
+        for idx, val in enumerate(att):
+            # 'QUATERNION_VALUES'
+            qang =  np.fromstring(val[0].text, dtype=float, sep=' ')
+            # 'GPS_TIME'
+            gps_tim = np.datetime64(val[2].text)
+            sat_time[idx] = gps_tim
+            sat_angles[idx,:] = qang
+    return sat_time, sat_angles

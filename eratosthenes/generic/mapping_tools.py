@@ -407,11 +407,11 @@ def pix_centers(geoTransform, rows, cols, make_grid=True):
           indexing   |           indexing    ^ y
           system 'ij'|           system 'xy' |
                      |                       |
-                     |       i               |       x
+                     |       j               |       x
              --------+-------->      --------+-------->
                      |                       |
                      |                       |
-          image      | j         map         |
+          image      | i         map         |
           based      v           based       |
 
     """

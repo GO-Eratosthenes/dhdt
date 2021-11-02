@@ -285,6 +285,23 @@ def get_grad_filters(ftype='sobel', tsize=3, order=1):
     .. [7] Farid & Simoncelli "Optimally rotation-equivariant directional
        derivative kernels" Proceedings of the international conference on
        computer analysis of images and patterns, pp207–214, 1997
+
+    Notes
+    -----
+    Two different coordinate system are used here:
+
+        .. code-block:: text
+
+          indexing   |           indexing    ^ y
+          system 'ij'|           system 'xy' |
+                     |                       |
+                     |       j               |       x
+             --------+-------->      --------+-------->
+                     |                       |
+                     |                       |
+          image      | i         map         |
+          based      v           based       |
+
     """
 
     ftype = ftype.lower() # make string lowercase

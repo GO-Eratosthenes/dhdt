@@ -213,10 +213,10 @@ def prepare_grids(im_stack, ds):
     assert type(ds)==int, ("please provide an integer")
 
     # padding is needed to let all imagery be of the correct template size
-    i_pad = np.int(np.ceil(im_stack.shape[0]/ds)*ds - im_stack.shape[0])
-    j_pad = np.int(np.ceil(im_stack.shape[1]/ds)*ds - im_stack.shape[1])
-    im_stack = np.pad(im_stack, \
-                      ((0, i_pad), (0, j_pad), (0, 0)), \
+    i_pad = int(np.ceil(im_stack.shape[0]/ds)*ds - im_stack.shape[0])
+    j_pad = int(np.ceil(im_stack.shape[1]/ds)*ds - im_stack.shape[1])
+    im_stack = np.pad(im_stack,
+                      ((0, i_pad), (0, j_pad), (0, 0)),
                       'constant', constant_values=(0, 0))
 
     # ul

@@ -14,11 +14,11 @@ def mat_to_gray(I, notI=None):
     -------
     Inew : np.array, size=(m,n), dtype=float, range=0...1
         array with normalized intensity values
-        
+
     See Also
     --------
-    gamma_adjustment, log_adjustment, s_curve, inverse_tangent_transformation    
-        
+    gamma_adjustment, log_adjustment, s_curve, inverse_tangent_transformation
+
     Example
     -------
     >>> import numpy as np
@@ -26,7 +26,7 @@ def mat_to_gray(I, notI=None):
     >>> img = data.astronaut()
     >>> np.max(img)
     255
-    >>> gray = mat_to_gray(img[:,:,0], img[:,:,0]==0)        
+    >>> gray = mat_to_gray(img[:,:,0], img[:,:,0]==0)
     >>> np.max(gray)
     1.0
     """
@@ -36,24 +36,25 @@ def mat_to_gray(I, notI=None):
     else:
         yesI = ~notI
     Inew = np.float64(I)  # /2**16
-    Inew[yesI] = np.interp(Inew[yesI],
-                           (Inew[yesI].min(),
-                            Inew[yesI].max()), (0, +1))
+    if np.ptp(I) != 0:
+        Inew[yesI] = np.interp(Inew[yesI],
+                               (Inew[yesI].min(),
+                                Inew[yesI].max()), (0, +1))
     Inew[notI] = 0
     return Inew
 
 def gamma_adjustment(I, gamma=1.0):
     """ transform intensity in non-linear way
-    
+
     enhances high intensities when gamma>1
-    
+
     Parameters
-    ----------    
+    ----------
     I : np.array, size=(m,n)
         array with intensity values
     gamma : float
         power law parameter
-        
+
     Returns
     -------
     I_new : np.array, size=(_,_)
@@ -73,14 +74,14 @@ def gamma_adjustment(I, gamma=1.0):
 
 def log_adjustment(I):
     """ transform intensity in non-linear way
-    
+
     enhances low intensities
-    
+
     Parameters
-    ----------    
+    ----------
     I : np.array, size=(m,n)
         array with intensity values
-        
+
     Returns
     -------
     I_new : np.array, size=(_,_)
@@ -90,7 +91,7 @@ def log_adjustment(I):
         radio_range = 2**8-1
     else:
         radio_range = 2**16-1
-    
+
     c = radio_range/(np.log(1 + np.amax(I)))
     I_new = c * np.log(1 + I)
     if I.dtype.type == np.uint8:
@@ -101,37 +102,37 @@ def log_adjustment(I):
 
 def s_curve(x, a=10, b=.5):
     """ transform intensity in non-linear way
-    
+
     enhances high and low intensities
-    
+
     Parameters
-    ----------    
+    ----------
     x : np.array, size=(m,n)
         array with intensity values
     a : float
         slope
     b : float
         intercept
-        
+
     Returns
     -------
     fx : np.array, size=(_,_)
         array with transform
-    
+
     References
     ----------
-    [1] Fredembach & Süsstrunk. "Automatic and accurate shadow detection from 
-    (potentially) a single image using near-infrared information" 
+    [1] Fredembach & Süsstrunk. "Automatic and accurate shadow detection from
+    (potentially) a single image using near-infrared information"
     EPFL Tech Report 165527, 2010.
-    
+
     Examples
     --------
     >>> import numpy as np
     >>> import matplotlib.pyplot as plt
     >>> x = np.arange(0,1,.001)
     >>> y = s_curve(x)
-    >>> plt.plot(x,fx), plt.show()   
-    shows the mapping function   
+    >>> plt.plot(x,fx), plt.show()
+    shows the mapping function
     """
     fe = -a * (x - b)
     fx = np.divide(1, 1 + np.exp(fe))
@@ -139,26 +140,26 @@ def s_curve(x, a=10, b=.5):
 
 def inverse_tangent_transformation(x):
     """ enhances high and low intensities
-    
+
     Parameters
-    ----------    
+    ----------
     x : np.array, size=(m,n)
         array with intensity values
-        
+
     Returns
     -------
     fx : np.array, size=(_,_)
         array with transform
-    
+
     Examples
     --------
     >>> import numpy as np
     >>> import matplotlib.pyplot as plt
     >>> x = np.arange(0,1,.001)
     >>> y = inverse_tangent_transformation(x)
-    >>> plt.plot(x,fx), plt.show()   
-    shows the mapping function   
-    """   
+    >>> plt.plot(x,fx), plt.show()
+    shows the mapping function
+    """
     fx = np.arctan(x)
     return fx
 
@@ -180,7 +181,7 @@ def get_histogram(img):
         hist = [0.] * 2**8
     else:
         hist = [0.] * 2**16
-        
+
     for i in range(m):
       for j in range(n):
         hist[img[i, j]]+=1
@@ -202,14 +203,14 @@ def normalize_histogram(img):
 
     """
     hist = get_histogram(img)
-    cdf = np.cumsum(hist) 
-    
-    # determine the normalization values for each unit of the cdf    
+    cdf = np.cumsum(hist)
+
+    # determine the normalization values for each unit of the cdf
     if img.dtype.type==np.uint8:
         scaling = np.uint8(cdf * 2**8)
     else:
-        scaling = np.uint16(cdf * 2**16)    
-    
+        scaling = np.uint16(cdf * 2**16)
+
     # normalize the normalization values
     new_img = scaling[img]
     return new_img

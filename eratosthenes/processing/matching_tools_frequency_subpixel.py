@@ -511,8 +511,10 @@ def cross_spectrum_to_coordinate_list(data, W=np.array([])):
                                Q.flatten() )).T
         if W.size>0: # remove masked data
             data_list = data_list[W.flatten()==1,:]
-    else:
+    elif W.size!= 0:
         data_list = data[W.flatten()==1,:]
+    else:
+        data_list = data
     return data_list
 
 def phase_lsq(data, W=np.array([])):
@@ -665,8 +667,6 @@ def phase_weighted_pca(Q, W): # wip
     """
     assert type(Q)==np.ndarray, ('please provide an array')
     assert type(W)==np.ndarray, ('please provide an array')
-    assert Q.shape[:2] == W.shape, \
-        ('weighting matrix and cross-spectrum must be 2D and of equal size')
 
     data = cross_spectrum_to_coordinate_list(Q)
     weights = W.flatten()

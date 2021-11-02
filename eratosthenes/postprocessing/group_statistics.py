@@ -1,6 +1,13 @@
 import numpy as np
 
-def get_stats_from_labelled_array(L,I,func):
+def get_hypsometry(Z,dZ,interval=100): # todo
+
+    L = np.round(Z/interval)
+    f =  lambda x: np.quantile(x, 0.5)
+    label,hyspometry = get_stats_from_labelled_array(L,dz,f)
+    return label, hypsometry
+
+def get_stats_from_labelled_array(L,I,func): #todo is tuple: multiple functions?
     """ get properties of a labelled array
 
     Parameters

@@ -11,6 +11,62 @@ from ..generic.filtering_statistical import make_2D_Gaussian
 from ..generic.handler_im import get_grad_filters
 
 # spatial sub-pixel allignment functions
+def create_differential_data(I1,I2):
+    """
+
+    Parameters
+    ----------
+    I1 : np.array, size=(m,n), type=float
+        array with image intensities
+    I2 : np.array, size=(m,n), type=float
+        array with image intensities
+
+    Returns
+    -------
+    I_di : np.array, size=(m,n), type=float
+        vertical gradient of first image
+    I_dj : np.array, size=(m,n), type=float
+        horizontal gradient of first image
+    I_dt : np.array, size=(m,n), type=float
+        temporal gradient between first and second image
+
+    Notes
+    -----
+    Two different coordinate system are used here:
+
+        .. code-block:: text
+
+          indexing   |           indexing    ^ y
+          system 'ij'|           system 'xy' |
+                     |                       |
+                     |       j               |       x
+             --------+-------->      --------+-------->
+                     |                       |
+                     |                       |
+          image      | i         map         |
+          based      v           based       |
+    """
+    kernel_x, kernel_y = get_grad_filters('kroon')
+
+    kernel_t = np.array(
+        [[1., 1., 1.],
+         [1., 2., 1.],
+         [1., 1., 1.]]
+    ) / 10
+
+    # smooth to not have very sharp derivatives
+    I1 = ndimage.convolve(I1, make_2D_Gaussian((3, 3), fwhm=3))
+    I2 = ndimage.convolve(I2, make_2D_Gaussian((3, 3), fwhm=3))
+
+    # since this function works in pixel space, change orientation of axis
+    di,dj = np.flipud(kernel_y), kernel_x
+
+    # calculate spatial and temporal derivatives
+    I_di = ndimage.convolve(I1, di)
+    I_dj = ndimage.convolve(I1, dj)
+    I_dt = ndimage.convolve(I2, kernel_t) + ndimage.convolve(I1, -kernel_t)
+    return I_di, I_dj, I_dt
+
 def simple_optical_flow(I1, I2, window_size, sampleI, sampleJ, \
                         tau=1e-2, sigma=0.):  # processing
     """ displacement estimation through optical flow
@@ -150,26 +206,37 @@ def simple_optical_flow(I1, I2, window_size, sampleI, sampleJ, \
     return Ugrd, Vgrd, Ueig, Veig
 
 def affine_optical_flow(I1, I2, model='Affine', iteration=15):
-    """
-    displacement estimation through optical flow
-    following Lucas & Kanade 1981 with an affine model
+    """ displacement estimation through optical flow with an affine model
 
-    reference:
+    Parameters
+    ----------
+    I1 : np.array, size=(m,n)
+        array with intensities
+    I2 : np.array, size=(m,n)
+        array with intensities
+    model : string
+        several models can be used:
 
-    :param I1:        NP.ARRAY (_,_)
-        image with intensities
-    :param I2:        NP.ARRAY (_,_)
-        image with intensities
-    :param model:     STRING
-           :options :  Affine - affine and translation
-                       Rotation - TODO
-    :param iteration: INTEGER
+            * 'Affine' : affine transformation and translation
+            * 'Rotation' : rotation and translation TODO
+            * 'Similarity' : scaling and translation TODO
+    iteration : integer
         number of iterations used
 
-    :return u:        FLOAT
+    Returns
+    -------
+    u,v : float
         displacement estimate
-    :return v:        FLOAT
-        displacement estimate
+    A : np.array, size=(2,2)
+        estimated mapping matrix
+    snr : float
+        signal to noise ratio
+
+    References
+    ----------
+    .. [1] Lucas & Kanade, "An iterative image registration technique with an
+       application to stereo vision", Proceedings of 7th international joint
+       conference on artificial intelligence, 1981.
     """
 
     (kernel_j,_) = get_grad_filters('kroon')
@@ -264,7 +331,7 @@ def affine_optical_flow(I1, I2, model='Affine', iteration=15):
         u, v = Aff[0,-1], Aff[1,-1]
         A = np.linalg.inv(Aff[:,0:2]).T
         snr = np.min(res)
-    return (u, v, A, snr)
+    return u, v, A, snr
 
 def hough_optical_flow(I1, I2, param_resol=100, sample_fraction=1):
     """ estimating optical flow through the Hough transform
@@ -290,26 +357,11 @@ def hough_optical_flow(I1, I2, param_resol=100, sample_fraction=1):
        Optics express vol.20(23) pp.26037-26049, 2012.
     """
 
-    kernel_x,kernel_y = get_grad_filters('kroon')
-
-    kernel_t = np.array(
-        [[1., 1., 1.],
-         [1., 2., 1.],
-         [1., 1., 1.]]
-    ) / 10
-
-    # smooth to not have very sharp derivatives
-    I1 = ndimage.convolve(I1, make_2D_Gaussian((3,3),fwhm=3))
-    I2 = ndimage.convolve(I2, make_2D_Gaussian((3,3),fwhm=3))
-
-    # calculate spatial and temporal derivatives
-    I_dx = ndimage.convolve(I1, kernel_x)
-    I_dy = ndimage.convolve(I1, kernel_y)
-    I_dt = ndimage.convolve(I2, kernel_t) + ndimage.convolve(I1, -kernel_t)
+    I_di, I_dj, I_dt = create_differential_data(I1, I2)
 
     # create data
-    abs_G = np.sqrt(I_dx**2 + I_dy**2)
-    theta_G = np.arctan2(I_dx,I_dy)
+    abs_G = np.sqrt(I_di**2 + I_dj**2)
+    theta_G = np.arctan2(I_dj,I_di)
 
     rho = np.divide(I_dt, abs_G, out=np.zeros_like(abs_G), where=abs_G!=0)
 
