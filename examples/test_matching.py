@@ -8,26 +8,174 @@ from eratosthenes.generic.filtering_statistical import mad_filtering
 from eratosthenes.generic.test_tools import create_sample_image_pair, \
     construct_phase_plane, signal_to_noise, test_phase_plane_localization, \
     test_normalize_power_spectrum, test_subpixel_localization, \
-    construct_correlation_peak
+    construct_correlation_peak, \
+    create_sheared_image_pair, create_scaled_image_pair
 from eratosthenes.processing.matching_tools import \
     get_integer_peak_location
+from eratosthenes.processing.matching_tools_frequency_affine import \
+    scaling_through_power_summation
 from eratosthenes.processing.matching_tools_frequency_correlators import \
     phase_corr, phase_only_corr, robust_corr, \
     orientation_corr, windrose_corr, binary_orientation_corr, \
     cosi_corr, sign_only_corr, cosine_corr, cross_corr, \
-    symmetric_phase_corr, amplitude_comp_corr, upsampled_cross_corr
+    symmetric_phase_corr, amplitude_comp_corr, upsampled_cross_corr, \
+    projected_phase_corr
 from eratosthenes.processing.matching_tools_frequency_subpixel import \
     phase_svd, phase_pca, phase_tpss, phase_difference, phase_ransac, \
-    phase_lsq, phase_radon, phase_hough, phase_newton
+    phase_lsq, phase_radon, phase_hough, phase_gradient_descend,\
+    phase_weighted_pca, phase_secant #, phase_jac # jac:mag er later wel uit
 from eratosthenes.processing.matching_tools_frequency_filters import \
     normalize_power_spectrum, perdecomp, low_pass_circle, raised_cosine, \
-    local_coherence, thresh_masking, adaptive_masking
+    local_coherence, thresh_masking, adaptive_masking, gaussian_mask
+
+from eratosthenes.processing.matching_tools_differential import \
+    simple_optical_flow, hough_optical_flow
+
 from eratosthenes.processing.matching_tools_spatial_correlators import \
     normalized_cross_corr, cumulative_cross_corr, sum_sq_diff, \
-    simple_optical_flow
+    sum_sad_diff
 from eratosthenes.processing.matching_tools_spatial_subpixel import \
     get_top_moment, get_top_gaussian, get_top_parabolic, \
     get_top_birchfield, get_top_2d_gaussian, get_top_paraboloid
+
+
+
+print('test phase plane localizators')
+#tries = 2
+#d_stack = np.zeros((tries,4))
+#for i in np.arange(tries):
+
+im1,im2,di,dj,im1_big = create_sample_image_pair(d=2**5, max_range=1, integer=False)    
+di_hof,dj_hof = hough_optical_flow(im1,im2,param_resol=100, sample_fraction=1)    
+  
+    # load data
+#im1,im2,di,dj,im1_big = create_sample_image_pair(d=2**7, max_range=100, integer=True)
+#Q_tilde = construct_phase_plane(im1, di, dj)
+#W_tilde = np.ones_like(Q_tilde, dtype=np.bool_)
+#print('di:{:+.4f}'.format(di)+' dj:{:+.4f}'.format(dj))
+
+
+#im1,im2,di,dj,_ = create_sheared_image_pair(d=2**7,sh_x=-0.1, sh_y=0.2, max_range=1)
+
+
+im1,im2,di,dj,_ = create_scaled_image_pair(d=2**7,sc_x=1.3, sc_y=1.0, max_range=0)
+
+im1,_ = perdecomp(im1)
+im2,_ = perdecomp(im2)
+S_1,S_2 = np.fft.fft2(im1), np.fft.fft2(im2)
+
+a,b = scaling_through_power_summation(S_1,S_2)
+
+
+di_soc, dj_soc = sign_only_corr(im1, im2)
+
+di_prj, dj_prj = projected_phase_corr(im1, im2)
+
+
+
+di_cos, dj_cos = cosine_corr(im1, im2)
+
+
+
+di_cos, dj_cos = cosine_corr(np.pad(im1,((4,16),(10,10))),\
+                             np.pad(im1,((0,20),(0,20))))
+
+
+beta_1,beta_2 = 0.35, 0.5
+W_1,W_2 = raised_cosine(im1,beta_1), raised_cosine(im2,beta_2)
+im1,_ = perdecomp(im1)
+im2,_ = perdecomp(im2)
+S_1,S_2 = np.fft.fft2(im1), np.fft.fft2(im2)
+Q_hat = (np.multiply(W_1,S_1))*np.conjugate(np.multiply(W_2,S_2))
+
+# test Jacobian
+#dQd1,dQd2 = phase_jac(Q_tilde, np.array([di+.3, dj-.4]))
+
+di_sec, dj_sec = phase_secant(Q_tilde)
+print('di:{:+.4f}'.format(di_sec)+' dj:{:+.4f}'.format(dj_sec))
+#di_gd, dj_gd = phase_gradient_descend(Q_tilde)    
+
+W_hat = adaptive_masking(Q_hat)
+di_sec, dj_sec = phase_secant(Q_hat, W=W_hat)
+(m, snr) = phase_tpss(Q_hat, W_hat, np.array([0.0, 0.0]), j=1e2)
+
+
+#OK di_svd, dj_svd = phase_svd(Q_tilde, W_tilde, rad=0.4)
+#OK di_lsq, dj_lsq = phase_lsq(Q_tilde, W_tilde)
+di_pca, dj_pca = phase_pca(Q_tilde, W_tilde)
+
+plt.imshow(np.fft.fftshift(np.angle(Q_tilde)), vmin=-np.pi, vmax=+np.pi), 
+plt.colorbar(), plt.show()
+plt.imshow(np.fft.fftshift(np.angle(Q_hat)), vmin=-np.pi, vmax=+np.pi), 
+plt.colorbar(), plt.show()
+
+
+
+
+
+
+W_gauss = gaussian_mask(Q_tilde)
+
+di_pcw, dj_pcw = phase_weighted_pca(Q_tilde, W_gauss)
+#    d_stack[i,:] = np.array([di, dj, di_pca, dj_pca])
+
+#import matplotlib.pyplot as plt
+#plt.scatter(d_stack[:,0],d_stack[:,2]), plt.show()
+
+#plt.scatter(d_stack[:,1],d_stack[:,3]), plt.show()
+
+
+W_hat = adaptive_masking(Q_hat)
+
+(m, snr) = phase_tpss(Q_hat, W_hat, np.array([0.0, 0.0]), j=5e2)
+(ddi,ddj) = test_subpixel_localization(m[0],m[1], di,dj, tolerance=.1)
+print('phase_tpss is OK, maximum difference is '+\
+      '{:.4f}'.format(np.maximum(abs(ddi), abs(ddj))) + ' pixels')    
+
+
+di_gd, dj_gd = phase_gradient_descend(Q_hat,W_hat) 
+di_pca, dj_pca = phase_pca(Q_hat, W_hat)
+
+
+
+#di_hat, dj_hat = phase_ransac(Q_tilde, precision_threshold=.05)
+#(ddi,ddj) = test_subpixel_localization(di_hat,dj_hat,di,dj, tolerance=.1)
+#print('phase_ransac is OK, maximum difference is '+\
+#      '{:.4f}'.format(np.maximum(abs(ddi), abs(ddj))) + ' pixels')
+
+
+print('di:{:.4f}'.format(di)+' dj:{:.4f}'.format(dj))
+m_close = np.array([np.round(1e1*di)/1e1, \
+                    np.round(1e1*dj)/1e1])
+#(m, snr) = phase_newton(Q_tilde, np.ones_like(Q_tilde,dtype=np.float32), \
+#                      m_close, j=5)
+
+
+
+
+# load data
+im1,im2,di,dj,im1_big = create_sample_image_pair(d=2**7, max_range=10)
+
+print('testing (spatial) correlators')
+C_hat = normalized_cross_corr(im2, im1_big)
+
+#C_hat = cumulative_cross_corr(im2, im1_big)    
+#di_hat,dj_hat,snr,corr = get_integer_peak_location(C_hat)
+#assert( np.isclose(np.round(di), di_hat) and \
+#       np.isclose(np.round(dj), dj_hat) )
+#ddi,ddj = di-di_hat, dj-dj_hat
+#print('sum_sq_diff correlator is OK, maximum difference is '+\
+#      '{:.4f}'.format(np.maximum(abs(ddi), abs(ddj))) + ' pixels')
+    
+C_hat = -1*sum_sq_diff(im2, im1_big)    
+di_hat,dj_hat,snr,corr = get_integer_peak_location(C_hat)
+assert( np.isclose(np.round(di), di_hat) and \
+       np.isclose(np.round(dj), dj_hat) )
+ddi,ddj = di-di_hat, dj-dj_hat
+print('sum_sq_diff correlator is OK, maximum difference is '+\
+      '{:.4f}'.format(np.maximum(abs(ddi), abs(ddj))) + ' pixels')
+
+
 
 temp_size = 2**6
 im1,im2,di,dj,im1_big = create_sample_image_pair(d=temp_size, max_range=1)
@@ -62,27 +210,7 @@ Q_hat = phase_only_corr(im1, im2)
 Q_hat = robust_corr(im1, im2)
 di_hat, dj_hat = phase_hough(Q_hat, sample_fraction=.01)
 
-# load data
-im1,im2,di,dj,im1_big = create_sample_image_pair(d=2**7, max_range=10)
 
-print('testing (spatial) correlators')
-C_hat = normalized_cross_corr(im2, im1_big)
-
-#C_hat = cumulative_cross_corr(im2, im1_big)    
-#di_hat,dj_hat,snr,corr = get_integer_peak_location(C_hat)
-#assert( np.isclose(np.round(di), di_hat) and \
-#       np.isclose(np.round(dj), dj_hat) )
-#ddi,ddj = di-di_hat, dj-dj_hat
-#print('sum_sq_diff correlator is OK, maximum difference is '+\
-#      '{:.4f}'.format(np.maximum(abs(ddi), abs(ddj))) + ' pixels')
-    
-C_hat = -1*sum_sq_diff(im2, im1_big)    
-di_hat,dj_hat,snr,corr = get_integer_peak_location(C_hat)
-assert( np.isclose(np.round(di), di_hat) and \
-       np.isclose(np.round(dj), dj_hat) )
-ddi,ddj = di-di_hat, dj-dj_hat
-print('sum_sq_diff correlator is OK, maximum difference is '+\
-      '{:.4f}'.format(np.maximum(abs(ddi), abs(ddj))) + ' pixels')
     
 di_hat,dj_hat,snr,corr = get_integer_peak_location(C_hat)
 assert( np.isclose(np.round(di), di_hat) and \
@@ -152,37 +280,6 @@ print('birchfield locator is OK, maximum difference is '+\
       '{:.4f}'.format(np.maximum(abs(dddi), abs(dddj))) + ' pixels')     
     
     
-print('test phase plane localizators')
-# load data
-im1,im2,di,dj,im1_big = create_sample_image_pair(d=2**7, max_range=1)
-Q_tilde = construct_phase_plane(im1, di, dj)
-W_tilde = np.ones_like(Q_tilde, dtype=np.bool_)
-
-#di_hat, dj_hat = phase_ransac(Q_tilde, precision_threshold=.05)
-#(ddi,ddj) = test_subpixel_localization(di_hat,dj_hat,di,dj, tolerance=.1)
-#print('phase_ransac is OK, maximum difference is '+\
-#      '{:.4f}'.format(np.maximum(abs(ddi), abs(ddj))) + ' pixels')
-
-beta_1,beta_2 = 0.35, 0.5
-W_1,W_2 = raised_cosine(im1,beta_1), raised_cosine(im2,beta_2)
-S_1,S_2 = np.fft.fft2(im1), np.fft.fft2(im2)
-Q_hat = (np.multiply(W_1,S_1))*np.conjugate(np.multiply(W_2,S_2))
-W_hat = adaptive_masking(Q_hat)
-print('di:{:.4f}'.format(di)+' dj:{:.4f}'.format(dj))
-m_close = np.array([np.round(1e1*di)/1e1, \
-                    np.round(1e1*dj)/1e1])
-#(m, snr) = phase_newton(Q_tilde, np.ones_like(Q_tilde,dtype=np.float32), \
-#                      m_close, j=5)
-
-(m, snr) = phase_newton(Q_hat, W_hat, np.array([0.0, 0.0]), j=5e2)
-(ddi,ddj) = test_subpixel_localization(m[0],m[1], di,dj, tolerance=.1)
-print('phase_tpss is OK, maximum difference is '+\
-      '{:.4f}'.format(np.maximum(abs(ddi), abs(ddj))) + ' pixels')    
-    
-di_hat, dj_hat = phase_svd(Q_tilde, W_tilde)
-(ddi,ddj) = test_subpixel_localization(di_hat,dj_hat,di,dj, tolerance=.1)
-print('phase_svd is OK, maximum difference is '+\
-      '{:.4f}'.format(np.maximum(abs(ddi), abs(ddj))) + ' pixels')    
     
     
     

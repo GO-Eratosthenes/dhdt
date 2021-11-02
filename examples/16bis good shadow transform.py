@@ -30,8 +30,8 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 if os.getcwd()!=dir_path:
     os.chdir(dir_path) # change to directory where script is situated
 
-Z = read_geo_image(os.path.join(dir_path, Z_file))[0]
-Rgi = read_geo_image(os.path.join(dir_path, R_file))[0]
+Z = read_geo_image(os.path.join(Z_dir, Z_file))[0]
+Rgi = read_geo_image(os.path.join(Z_dir, R_file))[0]
 
 # create observation angles
 fpath = os.path.join('/Users/Alten005/GO-eratosthenes/start-code/examples/S2-15-10-2019-full', \

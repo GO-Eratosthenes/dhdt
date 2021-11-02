@@ -3,14 +3,12 @@ import time
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from eratosthenes.generic.filtering_statistical import mad_filtering
 from eratosthenes.generic.test_tools import create_sample_image_pair, \
     construct_phase_plane, signal_to_noise, test_phase_plane_localization, \
     test_normalize_power_spectrum, test_subpixel_localization, \
     construct_correlation_peak
-from eratosthenes.preprocessing.shadow_transforms import mat_to_gray
-from eratosthenes.processing.matching_tools import \
-    get_integer_peak_location
+from eratosthenes.preprocessing.image_transforms import mat_to_gray
+from eratosthenes.processing.matching_tools import get_integer_peak_location
 from eratosthenes.processing.matching_tools_spatial_subpixel import \
     get_top_moment
 from eratosthenes.processing.matching_tools_frequency_correlators import \
@@ -20,7 +18,7 @@ from eratosthenes.processing.matching_tools_frequency_correlators import \
     symmetric_phase_corr, amplitude_comp_corr
 from eratosthenes.processing.matching_tools_frequency_subpixel import \
     phase_svd, phase_pca, phase_tpss, phase_difference, phase_ransac, \
-    phase_lsq, phase_radon, phase_hough
+    phase_lsq, phase_radon, phase_hough, phase_secant
 from eratosthenes.processing.matching_tools_frequency_filters import \
     normalize_power_spectrum, perdecomp, low_pass_circle, raised_cosine, \
     local_coherence, thresh_masking
@@ -49,6 +47,7 @@ houg_est, diff_est = np.zeros((n_samp,2)), np.zeros((n_samp,2))
 diff_var, rans_var = np.zeros_like(noise_var), np.zeros_like(noise_var)
 diff_tim, rans_tim = np.zeros_like(noise_var), np.zeros_like(noise_var)
 rado_var, rado_tim = np.zeros_like(noise_var), np.zeros_like(noise_var)
+seca_var, seca_tim = np.zeros_like(noise_var), np.zeros_like(noise_var)
 
 for idx, sigm in enumerate(noise_var):
     # increase noise and look at SNR
@@ -177,6 +176,13 @@ for idx, sigm in enumerate(noise_var):
     houg_var[idx] = np.sqrt((di-di_hat)**2 + (dj-dj_hat)**2)
     houg_tim[idx] = toc-tic
     houg_est[idx,:] = np.array([di_hat, dj_hat])
+
+    # phase-difference
+    tic = time.perf_counter()
+    di_hat,dj_hat = phase_secant(Q_hat, W)
+    toc = time.perf_counter()
+    seca_var[idx] = np.sqrt((di-di_hat)**2 + (dj-dj_hat)**2)
+    seca_tim[idx] = toc-tic
     
 if im_show:
     fig,ax = plt.subplots()
@@ -195,6 +201,7 @@ if im_show:
     ax.scatter(snr_var,spat_var,marker='2',label='correlation surface')
     ax.scatter(snr_var,houg_var,marker='1',label='Hough tranform')
     ax.scatter(snr_var,rado_var,marker='4',label='Radon tranform')
+    ax.scatter(snr_var,seca_var,marker='3',label='Broyden''s method' )
     ax.legend(loc='upper left')
     ax.invert_xaxis()
     plt.yscale('log')

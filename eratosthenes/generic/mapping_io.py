@@ -1,4 +1,6 @@
 import os
+import glob
+
 import numpy as np
 
 # geospatial libaries
@@ -75,7 +77,8 @@ def read_geo_image(fname):
     assert os.path.exists(fname), ('file must exist')
 
     """
-    
+    assert len(glob.glob(fname)) != 0, ('file does not seem to be present')
+
     img = gdal.Open(fname)
     data = np.array(img.GetRasterBand(1).ReadAsArray())
     spatialRef = img.GetProjection()

@@ -633,3 +633,7 @@ def get_flight_orientation_s2(path, fname='MTD_DS.xml'):
             sat_time[idx] = gps_tim
             sat_angles[idx,:] = qang
     return sat_time, sat_angles
+
+#def read_flight_path: #todo
+
+#def get_flight_orientation: #todo

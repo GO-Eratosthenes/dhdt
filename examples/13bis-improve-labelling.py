@@ -15,16 +15,22 @@ import morphsnakes as ms
 from osgeo import ogr, osr, gdal
 import rioxarray
 
-from eratosthenes.generic.mapping_io import read_geo_image, makeGeoIm
-from eratosthenes.generic.mapping_tools import get_bbox, GDAL_transform_to_affine
+from eratosthenes.generic.mapping_io import read_geo_image, make_geo_im
+from eratosthenes.generic.mapping_tools import \
+    get_bbox, GDAL_transform_to_affine, pix_centers, map2pix
 from eratosthenes.generic.handler_cop import mosaic_tiles
-from eratosthenes.generic.handler_im import rotated_sobel
-from eratosthenes.preprocessing.shadow_geometry import make_shadowing, shadow_image_to_list
-
-
-#fpath1 = os.path.join('/Users/Alten005/GO-eratosthenes/start-code/examples/S2-15-10-2019/', \
+from eratosthenes.generic.handler_im import \
+    rotated_sobel, bilinear_interpolation
+from eratosthenes.preprocessing.image_transforms import mat_to_gray
+from eratosthenes.preprocessing.shadow_geometry import \
+    make_shadowing, shadow_image_to_list
+from eratosthenes.preprocessing.shadow_matting import \
+    closed_form_matting_with_prior, compute_confidence_through_sun_angle
+from eratosthenes.postprocessing.solar_tools import \
+    az_to_sun_vector, make_shading_minnaert
+#fpath1 = os.path.join('/Users/Alten005/GO-eratosthenes/start-code/examples/S2-25-10-2019/', \
 #                      'shadow.tif')
-fpath = os.path.join('/Users/Alten005/GO-eratosthenes/start-code/examples/S2-25-10-2019/', \
+fpath = os.path.join('/Users/Alten005/GO-eratosthenes/start-code/examples/S2-15-10-2019/', \
                       'shadow.tif')
 M_dir, M_name = os.path.split(fpath)
 #dat_path = '/Users/Alten005/GO-eratosthenes/start-code/examples/'
@@ -48,17 +54,54 @@ if not os.path.exists(os.path.join(dir_path, Z_file)):
     Z.rio.to_raster(os.path.join(dir_path, Z_file))
 #Z = read_geo_image(os.path.join(dir_path, Z_file))[0]
 
-#Zn, Az = 90-21.3, 174.2 # 25 Oct 2019 
-Zn, Az = 90-17.7, 174.8 # 25 Oct 2019 
+#fpath = os.path.join('/Users/Alten005/GO-eratosthenes/start-code/examples/S2-15-10-2019-full', \
+#                      'T05VMG_20191015T213531_B08.jp2')
+#(I, spatialRefI, geoTransformI, targetprjI) = read_geo_image(fpath)
+#
+#X_grd,Y_grd = pix_centers(geoTransformM, M.shape[0], M.shape[1], make_grid=True)
+#I_grd,J_grd = map2pix(geoTransformI, X_grd, Y_grd)
+#
+#I_sub = bilinear_interpolation(I, J_grd, I_grd)
+#
+#fpath = os.path.join('/Users/Alten005/GO-eratosthenes/start-code/examples/S2-15-10-2019/', \
+#                      'B8.tif')
+#make_geo_im(I_sub, geoTransformM, spatialRefM, fpath)
+        
+# get 10 meter bands
+fpath = os.path.join('/Users/Alten005/GO-eratosthenes/start-code/examples/S2-15-10-2019/', \
+                      'B3.tif')
+(B3,_,_,_) = read_geo_image(fpath)
+fpath = os.path.join('/Users/Alten005/GO-eratosthenes/start-code/examples/S2-15-10-2019/', \
+                      'B4.tif')
+(B4,_,_,_) = read_geo_image(fpath)
+fpath = os.path.join('/Users/Alten005/GO-eratosthenes/start-code/examples/S2-15-10-2019/', \
+                      'B8.tif')
+(B8,_,_,_) = read_geo_image(fpath)    
+    
+Zn, Az = 90-21.3, 174.2 # 15 Oct 2019 
+#Zn, Az = 90-17.7, 174.8 # 25 Oct 2019 
 
 # generate shadow image
 Shw =  make_shadowing(dir_path, Z_file, M_dir, M_name, Zn=Zn, Az=Az)
+
+B348 = np.dstack((mat_to_gray(B3, notI=B3==0),\
+                  mat_to_gray(B4, notI=B4==0),\
+                  mat_to_gray(B8, notI=B8==0)))
+
+    
+    
+Conf = compute_confidence_through_sun_angle(Shw, Az)    
+alpha = closed_form_matting_with_prior(B348, \
+                                       Shw, \
+                                       100*mat_to_gray(Conf), \
+                                       consts_map=None)
+
 
 shadow_image_to_list(M, geoTransformM, dir_path, [], method='svm', 
                      Shw=Shw, Zn=Zn, Az=Az)
 
 
-
+Shd2 =  make_shading_minnaert(Z, Az, Zn, k=1.0)
 
 
 
