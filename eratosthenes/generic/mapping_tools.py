@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 # geospatial libaries
-from osgeo import ogr
+from osgeo import ogr, osr
 from rasterio import Affine
 
 # raster/image libraries
@@ -148,6 +148,105 @@ def map2pix(geoTransform, x, y):
              + i / geoTransform[5])
 
     return i, j
+
+def ecef2llh(xyz):
+    """ transform 3D cartesian Earth Centered Earth fixed coordinates, to
+    spherical angles and height above the ellipsoid
+
+    Parameters
+    ----------
+    xyz : np.array, size=(m,3), unit=meter
+        np.array with 3D coordinates, in WGS84. In the following form:
+        [[x, y, z], [x, y, z], ... ]
+
+    Returns
+    -------
+    llh : np.array, size=(m,2), unit=(deg,deg,meter)
+        np.array with angles and height. In the following form:
+        [[lat, lon, height], [lat, lon, height], ... ]
+    """
+
+    ecefSpatialRef = osr.SpatialReference()
+    ecefSpatialRef.ImportFromEPSG(4978)
+
+    llhSpatialRef = osr.SpatialReference()
+    llhSpatialRef.ImportFromEPSG(4979)
+
+    coordTrans = osr.CoordinateTransformation(ecefSpatialRef, llhSpatialRef)
+    llh = coordTrans.TransformPoints(list(xyz))
+    llh = np.stack(llh, axis=0)
+    return llh
+
+def ll2map(ll, spatialRef):
+    """ transforms angles to map coordinates (that is 2D) in a projection frame
+
+    Parameters
+    ----------
+    llh : np.array, size=(m,2), unit=(deg,deg)
+        np.array with spherical coordinates. In the following form:
+        [[lat, lon], [lat, lon], ... ]
+    spatialRef : osgeo.osr.SpatialReference
+        target projection system
+
+    Returns
+    -------
+    xyz : np.array, size=(m,2), unit=meter
+        np.array with 2D coordinates. In the following form:
+        [[x, y], [x, y], ... ]
+
+    Examples
+    --------
+    Get the Universal Transverse Mercator (UTM) cooridnates from spherical
+    coordinates:
+    >>> import numpy as np
+    >>> from osgeo import osr
+    >>> proj = osr.SpatialReference()
+    >>> proj.SetWellKnownGeogCS('WGS84')
+    >>> lat, lon = 52.09006426183974, 5.173794246145571# Utrecht University
+    >>> NH = True if lat>0 else False
+    >>> proj.SetUTM(32, True)
+
+    >>> xy = ll2map(np.array([[lat, lon]]), proj)
+    >>> xy
+    array([[ 237904.03625329, 5777964.65056734,       0.        ]])
+    """
+    if isinstance(spatialRef, str):
+        spatialStr = spatialRef
+        spatialRef = osr.SpatialReference()
+        spatialRef.ImportFromWkt(spatialStr)
+    llSpatialRef = osr.SpatialReference()
+    llSpatialRef.ImportFromEPSG(4326)
+
+    coordTrans = osr.CoordinateTransformation(llSpatialRef, spatialRef)
+    xy = coordTrans.TransformPoints(list(ll))
+    xy = np.stack(xy, axis=0)
+    return xy
+
+def ecef2map(xyz, spatialRef):
+    """ transform 3D cartesian Earth Centered Earth fixed coordinates, to
+    map coordinates (that is 2D) in a projection frame
+
+    Parameters
+    ----------
+    xyz : np.array, size=(m,3), float
+        np.array with 3D coordinates, in WGS84. In the following form:
+        [[x, y, z], [x, y, z], ... ]
+    spatialRef : osgeo.osr.SpatialReference
+        target projection
+
+    Returns
+    -------
+    xyz : np.array, size=(m,2), float
+        np.array with planar coordinates, within a given projection frame
+    """
+    if isinstance(spatialRef, str):
+        spatialStr = spatialRef
+        spatialRef = osr.SpatialReference()
+        spatialRef.ImportFromWkt(spatialStr)
+
+    llh = ecef2llh(xyz) # get spherical coordinates and height
+    xy = ll2map(llh[:, :-1], spatialRef)
+    return xy
 
 def rot_mat(theta):
     """ build a 2x2 rotation matrix
@@ -363,6 +462,13 @@ def ref_scale(geoTransform, scaling):
     --------
     ref_trans
     """
+
+    if len(geoTransform)==8: # sometimes the image dimensions are also included
+        geoTransform = geoTransform[:-2]
+        # these will not be included in the newTransform, since the pixel
+        # size has changed, so this will likely be due to the generation of
+        # a grid based on a group of pixels or some sort of kernel
+
     # not using center of pixel
     R = np.asarray(geoTransform).reshape((2,3)).T
     R[0,:] += np.diag(R[1:,:]*scaling/2)

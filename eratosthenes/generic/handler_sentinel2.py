@@ -126,9 +126,9 @@ def meta_S2string(S2str):
     return S2time, S2orbit, S2tile
 
 def get_S2_folders(im_path):
-    s2_list = [x for x in os.listdir(im_path)
+    S2_list = [x for x in os.listdir(im_path)
                if (os.path.isdir(os.path.join(im_path,x))) & (x[0:2]=='S2')]
-    return s2_list
+    return S2_list
 
 def get_tiles_from_S2_list(S2_list):
     tile_list = [x.split('_')[5] for x in S2_list]

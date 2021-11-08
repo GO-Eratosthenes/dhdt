@@ -16,7 +16,8 @@ from skimage.transform import resize
 from scipy.interpolate import griddata
 
 from ..generic.handler_sentinel2 import get_array_from_xml
-from ..generic.mapping_tools import map2pix
+from ..generic.mapping_tools import map2pix, ecef2map
+from ..generic.mapping_io import read_geo_image
 
 def list_central_wavelength_s2():
     """ create dataframe with metadata about Sentinel-2
@@ -165,11 +166,8 @@ def read_band_s2(path, band='00'):
         fname = path
     assert len(glob.glob(fname))!=0, ('file does not seem to be present')
 
-    img = gdal.Open(glob.glob(fname)[0])
-    data = np.array(img.GetRasterBand(1).ReadAsArray())
-    spatialRef = img.GetProjection()
-    geoTransform = img.GetGeoTransform()
-    targetprj = osr.SpatialReference(wkt=spatialRef)
+    data, spatialRef, geoTransform, targetprj = \
+        read_geo_image(glob.glob(fname)[0])
     return data, spatialRef, geoTransform, targetprj
 
 def read_stack_s2(path, s2_df):
@@ -459,6 +457,45 @@ def read_mean_sun_angles_s2(path, fname='MTD_TL.xml'):
     Az = float(root[1][1][1][1].text)
     return Zn, Az
 
+def read_sensing_time_s2(path, fname='MTD_TL.xml'):
+    """
+
+    Parameters
+    ----------
+    path : string
+        path where the meta-data is situated
+    fname : string
+        file name of the metadata.
+
+    Returns
+    -------
+    rec_time :
+        asd
+
+    Example
+    -------
+    demonstrate the code when in a Scihub data structure
+
+    >>> import os
+    >>> fpath = '/Users/Data/'
+    >>> sname = 'S2A_MSIL1C_20200923T163311_N0209_R140_T15MXV_20200923T200821.SAFE'
+    >>> fname = 'MTD_MSIL1C.xml'
+    >>> s2_path = os.path.join(fpath, sname, fname)
+    >>> s2_df,_ = get_S2_image_locations(fname, s2_df)
+    >>> s2_df['filepath']
+    B02 'GRANULE/L1C_T15MXV_A027450_20200923T163313/IMG_DATA/T115MXV...'
+    B03 'GRANULE/L1C_T15MXV_A027450_20200923T163313/IMG_DATA/T15MXV...'
+    >>> full_path = '/'.join(s2_df['filepath'][0].split('/')[:-2])
+    'GRANULE/L1C_T15MXV_A027450_20200923T163313'
+    >>> rec_time = read_sensing_time_s2(path, fname='MTD_TL.xml')
+    >>> rec_time
+
+    """
+    root = get_root_of_table(path, fname)
+    for att in root.iter('Sensing_Time'.upper()):
+        rec_time = np.datetime64(att.text, 'ns')
+    return rec_time
+
 def read_detector_mask(path_meta, boi, geoTransform):
     """ create array of with detector identification
 
@@ -571,39 +608,49 @@ def read_cloud_mask(path_meta, geoTransform):
         msk_dim = (10980,10980)
         msk_clouds = np.zeros(msk_dim, dtype='int8')  # create stack
 
-    mask_members = root[2]
-    for k in range(len(mask_members)):
-        # get footprint
-        pos_dim = mask_members[k][1][0][0][0][0].attrib
-        pos_dim = int(list(pos_dim.items())[0][1])
-        pos_list = mask_members[k][1][0][0][0][0].text
-        pos_row = [float(s) for s in pos_list.split(' ')]
-        pos_arr = np.array(pos_row).reshape((int(len(pos_row)/pos_dim), pos_dim))
+    if len(root)>2: # look into meta-data for cloud polygons
+        mask_members = root[2]
+        for k in range(len(mask_members)):
+            # get footprint
+            pos_dim = mask_members[k][1][0][0][0][0].attrib
+            pos_dim = int(list(pos_dim.items())[0][1])
+            pos_list = mask_members[k][1][0][0][0][0].text
+            pos_row = [float(s) for s in pos_list.split(' ')]
+            pos_arr = np.array(pos_row).reshape((int(len(pos_row)/pos_dim), pos_dim))
 
-        # transform to image coordinates
-        i_arr, j_arr = map2pix(geoTransform, pos_arr[:,0], pos_arr[:,1])
-        ij_arr = np.hstack((j_arr[:,np.newaxis], i_arr[:,np.newaxis]))
-        # make mask
-        msk = Image.new("L", [msk_dim[1], msk_dim[0]], 0) # in [width, height] format
-        ImageDraw.Draw(msk).polygon(tuple(map(tuple, ij_arr[:,0:2])), \
-                                    outline=1, fill=1)
-        msk = np.array(msk)
-        msk_clouds = np.maximum(msk_clouds, msk)
+            # transform to image coordinates
+            i_arr, j_arr = map2pix(geoTransform, pos_arr[:,0], pos_arr[:,1])
+            ij_arr = np.hstack((j_arr[:,np.newaxis], i_arr[:,np.newaxis]))
+            # make mask
+            msk = Image.new("L", [msk_dim[1], msk_dim[0]], 0) # in [width, height] format
+            ImageDraw.Draw(msk).polygon(tuple(map(tuple, ij_arr[:,0:2])),
+                                        outline=1, fill=1)
+            msk = np.array(msk)
+            msk_clouds = np.maximum(msk_clouds, msk)
     return msk_clouds
 
-def read_detector_time(path, fname='MTD_DS.xml'):
+def read_detector_time(path, fname='MTD_DS.xml'): #todo: make description of function with example
+
+# example : line_period / np.timedelta64(1, 's')
     det_time = np.zeros((13, 12), dtype='datetime64[ns]')
     det_name = [None] * 13
     det_meta = np.zeros((13, 4), dtype='float')
 
     root = get_root_of_table(path, fname)
+
     # image dimensions
     for meta in root.iter('Band_Time_Stamp'):
-        bnd = int(meta.get('bandId')) # 0..12
+        bnd = int(meta.get('bandId')) # 0...12
         # <Spectral_Information bandId="8" physicalBand="B8A">
         for stamps in meta:
-            det = int(stamps.get('detectorId'))
+            det = int(stamps.get('detectorId')) # 1...12
             det_time[bnd,det-1] = np.datetime64(stamps[1].text, 'ns')
+
+    # get line_period : not the ground sampling distance, but the temporal
+    # sampling distance
+    for elem in root.iter('LINE_PERIOD'):
+       if elem.get('unit')=='ms': # datetime can only do integers...
+           line_period = np.timedelta64(int(float(elem.text)*1e6), 'ns')
 
     for meta in root.iter('Spectral_Information'):
         bnd = int(meta.get('bandId'))
@@ -616,24 +663,100 @@ def read_detector_time(path, fname='MTD_DS.xml'):
         det_meta[bnd,1] = float(meta[1][0].text) # min
         det_meta[bnd,2] = float(meta[1][1].text) # max
         det_meta[bnd,3] = float(meta[1][2].text) # mean
-    return det_time, det_name, det_meta
+    return det_time, det_name, det_meta, line_period
 
 def get_flight_orientation_s2(path, fname='MTD_DS.xml'):
     root = get_root_of_table(path, fname)
 
     for att in root.iter('Corrected_Attitudes'):
-        sat_time  = np.zeros((len(att)), dtype=np.timedelta64)
+        sat_time = np.empty((len(att)), dtype='datetime64[ns]')
         sat_angles = np.zeros((len(att),4))
         counter = 0
         for idx, val in enumerate(att):
             # 'QUATERNION_VALUES'
             qang =  np.fromstring(val[0].text, dtype=float, sep=' ')
             # 'GPS_TIME'
-            gps_tim = np.datetime64(val[2].text)
+            gps_tim = np.datetime64(val[2].text, 'ns')
             sat_time[idx] = gps_tim
             sat_angles[idx,:] = qang
     return sat_time, sat_angles
 
-#def read_flight_path: #todo
+def get_flight_path_s2(path, fname='MTD_DS.xml'):
+    """
 
-#def get_flight_orientation: #todo
+    Parameters
+    ----------
+    path : string
+        location of the metadata file
+    fname : string
+        name of the xml-file that has the metadata
+
+    Returns
+    -------
+    sat_time : np.array, size=(m,1), dtype=np.datetime64, unit=
+        time stamp of the satellite positions
+    sat_xyz : np.array, size=(m,3), dtype=float, unit=meter
+        3D coordinates of the satellite within an Earth centered Earth fixed
+        (ECEF) frame.
+    sat_err : np.array, size=(m,3), dtype=float, unit=meter
+        error estimate of the 3D coordinates given by "sat_xyz"
+    sat_uvw : np.array, size=(m,3), dtype=float, unit=meter
+        3D velocity vectors of the satellite within an Earth centered Earth
+        fixed (ECEF) frame.
+
+    Examples
+    --------
+    Following the file and metadata structure of scihub:
+
+    >>> import os
+    >>> import numpy as np
+
+    >>> S2_dir = '/data-dump/examples/
+    >>> S2_name = 'S2A_MSIL1C_20200923T163311_N0209_R140_T15MXV_20200923T200821.SAFE'
+    >>> fname = os.path.join(S2_dir, S2_name, 'MTD_MSIL1C.xml')
+    >>> s2_df = list_central_wavelength_s2()
+
+    >>> s2_df, datastrip_id = get_S2_image_locations(fname, s2_df)
+    >>> path_det = os.path.join(S2_dir, S2_name, 'DATASTRIP', datastrip_id[17:-7])
+
+    >>> sat_tim, sat_xyz, sat_err, sat_uvw = get_flight_path_s2(path_det)
+
+    """
+    root = get_root_of_table(path, fname)
+
+    for att in root.iter('GPS_Points_List'):
+        sat_time = np.empty((len(att)), dtype='datetime64[ns]')
+        sat_xyz = np.zeros((len(att), 3), dtype=float)
+        sat_err = np.zeros((len(att), 3), dtype=float)
+        sat_uvw = np.zeros((len(att), 3), dtype=float)
+        counter = 0
+        for idx, point in enumerate(att):
+            # 'POSITION_VALUES' : tag
+            xyz = np.fromstring(point[0].text, dtype=float, sep=' ')
+            if point[0].attrib['unit'] == 'mm': xyz *= 1E-3 # convert to meters
+            # 'POSITION_ERRORS'
+            err = np.fromstring(point[1].text, dtype=float, sep=' ')
+            if point[1].attrib['unit'] == 'mm': err *= 1E-3 # convert to meters
+            # 'VELOCITY_VALUES'
+            uvw = np.fromstring(point[2].text, dtype=float, sep=' ')
+            if point[2].attrib['unit'] == 'mm': uvw *= 1E-3 # convert to meters
+
+            # 'GPS_TIME'
+            gps_tim = np.datetime64(point[4].text, 'ns')
+
+            # fill in the arrays
+            sat_time[idx] = gps_tim
+            sat_xyz[idx, :], sat_err[idx, :], sat_uvw[idx, :] = xyz, err, uvw
+    return sat_time, sat_xyz, sat_err, sat_uvw
+
+# use the detector start and finish to make a selection for the flight line
+def get_flight_heading_s2(path, spatialRef, rec_tim, fname='MTD_DS.xml'): #todo: make independent of rec_time, add documentation
+    sat_tim,sat_xyz,_,_ = get_flight_path_s2(path, fname=fname)
+    sat_xy = ecef2map(sat_xyz, spatialRef)
+
+    dif_tim = sat_tim - rec_tim
+    idx = np.argmin(np.abs(dif_tim))
+    dif_xy = sat_xy[idx + 1] - sat_xy[idx]
+
+    az = np.arctan2(dif_xy[0], dif_xy[1]) * 180 / np.pi
+    return az

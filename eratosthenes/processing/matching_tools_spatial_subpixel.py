@@ -69,7 +69,7 @@ def get_top_moment(C, ds=1, top=np.array([])):
     i_int,j_int = np.copy(di), np.copy(dj)
 
     if is_estimate_away_from_border(C,di,dj,ds): # estimate sub-pixel top
-        idx_mid = np.int(np.floor((2.*ds+1)**2/2))
+        idx_mid = int(np.floor((2.*ds+1)**2/2))
 
         i_sub = C.shape[0]//2 + np.arange(-ds,+ds+1) + di
         j_sub = C.shape[1]//2 + np.arange(-ds,+ds+1) + dj
