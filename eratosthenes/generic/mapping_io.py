@@ -111,29 +111,42 @@ def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes', \
     """
     drv = gdal.GetDriverByName("GTiff")  # export image
     
+    if I.ndim == 3:
+        bands=I.shape[2]
+    else:
+        bands = 1
+
     # make it type dependent
     if I.dtype == 'float64':
-        dtype = gdal.GDT_Float64
+        ds = drv.Create(fName,xsize=I.shape[1], ysize=I.shape[0],bands=bands,
+                        eType=gdal.GDT_Float64)
     elif I.dtype == 'bool':
-        dtype = gdal.GDT_Byte
+        ds = drv.Create(fName, xsize=I.shape[1], ysize=I.shape[0], bands=bands,
+                        eType=gdal.GDT_Byte)
     else:
-        dtype = gdal.GDT_Int32
-    ds = drv.Create(fName, \
-                        xsize=I.shape[1], ysize=I.shape[0], \
-                        bands=1, eType=dtype)    
-    
+        ds = drv.Create(fName, xsize=I.shape[1], ysize=I.shape[0], bands=bands,
+                        eType=gdal.GDT_Int32)
+
     # set metadata in datasource
-    ds.SetMetadata({'TIFFTAG_SOFTWARE':'dhdt v0', \
-                    'TIFFTAG_ARTIST':'bas altena and team Atlas', \
-                    'TIFFTAG_COPYRIGHT': 'contains modified Copernicus data', \
-                    'TIFFTAG_IMAGEDESCRIPTION': meta_descr, \
-                    'TIFFTAG_RESOLUTIONUNIT' : sun_angles,\
+    ds.SetMetadata({'TIFFTAG_SOFTWARE':'dhdt v0.1',
+                    'TIFFTAG_ARTIST':'bas altena and team Atlas',
+                    'TIFFTAG_COPYRIGHT': 'contains modified Copernicus data',
+                    'TIFFTAG_IMAGEDESCRIPTION': meta_descr,
+                    'TIFFTAG_RESOLUTIONUNIT' : sun_angles,
                     'TIFFTAG_DATETIME': date_created})
     
     # set georeferencing metadata
     ds.SetGeoTransform(R)
     ds.SetProjection(crs)
-    ds.GetRasterBand(1).WriteArray(I)
-    ds.GetRasterBand(1).SetNoDataValue(no_dat)
+    if I.ndim == 3:
+        for count in np.arange(1,I.shape[2]+1,1):
+            band = ds.GetRasterBand(int(count))
+            band.WriteArray(I[:,:,count-1],0,0)
+            if count==1:
+                band.SetNoDataValue(no_dat)
+            band = None
+    else:
+        ds.GetRasterBand(1).WriteArray(I)
+        ds.GetRasterBand(1).SetNoDataValue(no_dat)
     ds = None
     del ds

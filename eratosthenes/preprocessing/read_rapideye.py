@@ -4,9 +4,9 @@ import os
 import numpy as np
 import pandas as pd
 
-from osgeo import gdal, osr
-
 from xml.etree import ElementTree
+
+from ..generic.mapping_io import read_geo_image
 
 def list_central_wavelength_re():
     """ create dataframe with metadata about RapidEye
@@ -140,11 +140,9 @@ def read_band_re(band, path):
         coordinate reference system (CRS)
     """
     fname = os.path.join(path, '*_Analytic.tif')
-    img = gdal.Open(glob.glob(fname)[0])
-    data = np.array(img.GetRasterBand(band).ReadAsArray())
-    spatialRef = img.GetProjection()
-    geoTransform = img.GetGeoTransform()
-    targetprj = osr.SpatialReference(wkt=img.GetProjection())
+
+    data, spatialRef, geoTransform, targetprj = \
+        read_geo_image(glob.glob(fname)[0])
     return data, spatialRef, geoTransform, targetprj
 
 def read_sun_angles_re(path):
