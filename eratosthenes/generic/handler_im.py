@@ -61,19 +61,19 @@ def get_image_subset(I, bbox):
         sub_I = I[bbox[0]:bbox[1],bbox[2]:bbox[3],:,:]
     return sub_I
 
-def bilinear_interpolation(I, x, y):
+def bilinear_interpolation(I, di, dj):
     """ do bilinear interpolation of an image at different locations
 
     Parameters
     ----------
     I : np.array, size=(m,n), ndim={2,3}
         data array.
-    x :
+    dj :
         * np.array, size=(k,l), ndim=2
             horizontal locations, within local image frame.
         * float
             uniform horizontal displacement
-    y :
+    di :
         * np.array, size=(k,l), ndim=2
             vertical locations, within local image frame.
         * float
@@ -87,28 +87,45 @@ def bilinear_interpolation(I, x, y):
     See Also
     --------
     .mapping_tools.bilinear_interp_excluding_nodat
+
+    Notes
+    -----
+    Two different coordinate system are used here:
+
+        .. code-block:: text
+
+          indexing   |           indexing    ^ y
+          system 'ij'|           system 'xy' |
+                     |                       |
+                     |       j               |       x
+             --------+-------->      --------+-------->
+                     |                       |
+                     |                       |
+          image      | i         map         |
+          based      v           based       |
+
     """
     assert type(I)==np.ndarray, ("please provide an array")
 
-    if x.size==1: # integer values: constant displacement
+    if dj.size==1: # integer values: constant displacement
         mI, nI = I.shape[0], I.shape[1]
-        (x, y) = np.meshgrid(np.linspace(0, nI-1, nI)+x,
-                             np.linspace(0, mI-1, mI)+y)
+        (dj, di) = np.meshgrid(np.linspace(0, nI-1, nI)+dj,
+                               np.linspace(0, mI-1, mI)+di)
     else:
-        x,y = np.asarray(x), np.asarray(y)
+        di,dj = np.asarray(di), np.asarray(dj)
 
-    x0,y0 = np.floor(x).astype(int), np.floor(y).astype(int)
-    x1,y1 = x0+1, y0+1
+    i0,j0 = np.floor(di).astype(int), np.floor(dj).astype(int)
+    i1,j1 = i0+1, j0+1
 
-    x0,x1 = np.clip(x0, 0, I.shape[1]-1), np.clip(x1, 0, I.shape[1]-1)
-    y0,y1 = np.clip(y0, 0, I.shape[0]-1), np.clip(y1, 0, I.shape[0]-1)
+    j0,j1 = np.clip(j0, 0, I.shape[1]-1), np.clip(j1, 0, I.shape[1]-1)
+    i0,i1 = np.clip(i0, 0, I.shape[0]-1), np.clip(i1, 0, I.shape[0]-1)
 
     if I.ndim==3: # make resitent to multi-dimensional arrays
-        Ia,Ib,Ic,Id = I[y0,x0,:], I[y1,x0,:], I[y0,x1,:], I[y1,x1,:]
+        Ia,Ib,Ic,Id = I[i0,j0,:], I[i1,j0,:], I[i0,j1,:], I[i1,j1,:]
     else:
-       Ia,Ib,Ic,Id = I[y0,x0], I[y1,x0], I[y0,x1], I[y1,x1]
+       Ia,Ib,Ic,Id = I[i0,j0], I[i1,j0], I[i0,j1], I[i1,j1]
 
-    wa,wb,wc,wd = (x1-x)*(y1-y), (x1-x)*(y-y0), (x-x0)*(y1-y), (x-x0)*(y-y0)
+    wa,wb,wc,wd = (j1-dj)*(i1-di), (j1-dj)*(di-i0), (dj-j0)*(i1-di), (dj-j0)*(di-i0)
 
     if I.ndim==3:
         wa = np.repeat(wa[:, :, np.newaxis], I.shape[2], axis=2)
@@ -341,24 +358,36 @@ def get_grad_filters(ftype='sobel', tsize=3, order=1):
             H_x = np.outer(np.array([0.0233, 0.2415, 0.4704, 0.2415, 0.0233]), \
                        np.array([-0.0836, -0.3327, 0, +0.3327, +0.0836]))
         else:
-            H_x = np.outer(np.array([3, 10, 3]), \
-                           np.array([-1, 0, +1])) / 16
+            if order==2:
+                H_xx = np.outer(np.array([3, 10, 3]),
+                                np.array([+1, -2, +1])) / 16
+                H_xy = np.outer(np.array([+1, 0, -1]),
+                                np.array([-1, 0, +1])) / 4
+            else:
+                H_x = np.outer(np.array([3, 10, 3]),
+                               np.array([-1, 0, +1])) / 16
     elif ftype=='sobel':
         if tsize==5:
             H_x = np.outer(np.array([0.0233, 0.2415, 0.4704, 0.2415, 0.0233]), \
                        np.array([-0.0836, -0.3327, 0, +0.3327, +0.0836]))
         else:
-            H_x = np.outer(np.array([1, 2, 1]), \
-                           np.array([-1, 0, +1])) / 4
+            if order==2:
+                H_xx = np.outer(np.array([1, 2, 1]),
+                                np.array([+1, -2, +1])) / 4
+                H_xy = np.outer(np.array([+1, 0, -1]),
+                                np.array([-1, 0, +1])) / 4
+            else:
+                H_x = np.outer(np.array([1, 2, 1]),
+                               np.array([-1, 0, +1])) / 4
     elif ftype=='robinson':
         H_x = np.array([[-17., 0., 17.],
                [-61., 0., 61.],
                [-17., 0., 17.]]) / 95
     elif ftype=='kayyali':
-        H_x = np.outer(np.array([1, 0, 1]), \
+        H_x = np.outer(np.array([1, 0, 1]),
                        np.array([-1, 0, +1])) / 2
     elif ftype=='prewitt':
-        H_x = np.outer(np.array([1, 1, 1]), \
+        H_x = np.outer(np.array([1, 1, 1]),
                        np.array([-1, 0, +1])) / 3
     elif ftype=='simoncelli':
         k = np.array([0.125, 0.0, 0.250, 0.500, 1.000])

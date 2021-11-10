@@ -1228,9 +1228,11 @@ def masked_corr(I1, I2, M1=np.array(()), M2=np.array(())):
     NCC_num = fF1F2 - \
         (np.divide(np.multiply( fF1M2, fM1F2 ), fM1M2,
                    out=np.zeros_like(fM1M2), where=fM1M2!=0))
-    NCC_den_den = np.divide(fF1M2**2, fM1M2, out=np.zeros_like(fM1M2), where=fM1M2!=0)
-    NCC_den = np.multiply(
-                          np.sqrt(ff1M2 - NCC_den_den ),
+    NCC_den_den = np.divide(fF1M2**2, fM1M2,
+                            out=np.zeros_like(fM1M2), where=fM1M2!=0)
+    NCC_den = np.multiply(np.sqrt(ff1M2 - NCC_den_den ),
                           np.sqrt(fM1f2 - NCC_den_den ))
-    NCC = np.divide(NCC_num, NCC_den)
+    NCC = np.divide(NCC_num, NCC_den,
+                    out=np.zeros_like(NCC_den),
+                    where=np.abs(NCC_den)!=0 )
     return NCC

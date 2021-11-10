@@ -3,6 +3,7 @@ import random
 
 from scipy import ndimage # for image filters
 from sklearn.decomposition import fastica
+from skimage.color import rgb2hsv, hsv2rgb
 
 from .color_transforms import \
     rgb2ycbcr, rgb2hsi, rgb2xyz, xyz2lab, lab2lch, erdas2hsi, rgb2lms, lms2lab,\
@@ -986,11 +987,11 @@ def shadow_free_rgb(Blue, Green, Red, Near): #todo: transformation does not seem
     R[R<-3] = -3
     R += np.ptp(R)
     R /= np.ptp(R)
-    hue,sat,val = rgb2hsi(Red,Green,Blue)
 
-    R,G,B = hsi2rgb(hue,sat,val)
-    RGB_plain = np.dstack((R,G,B))
-    return RGB_plain
+    hsv = rgb2hsv(np.stack((Red,Green,Blue), axis=2))
+
+    RGB = hsv2rgb(np.stack((hsv[:,:,0],hsv[:,:,1],R), axis=2))
+    return RGB
 
 
 # recovery - normalized color composite

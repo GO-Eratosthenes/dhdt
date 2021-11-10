@@ -137,6 +137,8 @@ def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes', \
     
     # set georeferencing metadata
     ds.SetGeoTransform(R)
+    if not isinstance(crs, str):
+        crs = crs.ExportToWkt()
     ds.SetProjection(crs)
     if I.ndim == 3:
         for count in np.arange(1,I.shape[2]+1,1):

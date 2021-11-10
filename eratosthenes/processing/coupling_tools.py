@@ -1095,50 +1095,53 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd, \
             L2_sub = create_template_at_center(L2,i2[counter],j2[counter], \
                                                 search_radius)
 
-        QC = match_translation_of_two_subsets(I1_sub,I2_sub,\
-                                              correlator, subpix,\
-                                              L1_sub,L2_sub)
-        if (subpix in peak_based) or (subpix is None):
-            di,dj,_,_ = get_integer_peak_location(QC)
+        if np.all(L1_sub==0) or np.all(L2_sub==0):
+            di, dj = np.nan, np.nan
         else:
-            di, dj = 0, 0
-        m0 = np.array([di, dj])
-
-        if processing in ['refine']: # reposition second template
-            if correlator in frequency_based:
-                I2_new = create_template_off_center(I2, \
-                                                    i2[counter]-di, \
-                                                    j2[counter]-dj, \
-                                                    2*temp_radius)
-                L2_new = create_template_off_center(L2, \
-                                                    i2[counter]-di, \
-                                                    j2[counter]-dj, \
-                                                    2*temp_radius)
+            QC = match_translation_of_two_subsets(I1_sub,I2_sub,\
+                                                  correlator, subpix,\
+                                                  L1_sub,L2_sub)
+            if (subpix in peak_based) or (subpix is None):
+                di,dj,_,_ = get_integer_peak_location(QC)
             else:
-                I2_new = create_template_at_center(I2, \
-                                                   i2[counter]-di, \
-                                                   j2[counter]-dj, \
-                                                   temp_radius)
+                di, dj = 0, 0
+            m0 = np.array([di, dj])
 
-                L2_new = create_template_at_center(L2, \
-                                                   i2[counter]-di, \
-                                                   j2[counter]-dj, \
-                                                   temp_radius)
-            QC = match_translation_of_two_subsets(I1_sub, I2_new,\
-                                                  correlator,subpix,\
-                                                  L1_sub,L2_new)
-        if subpix is None:
-            ddi,ddj = 0, 0
-        else:
-            ddi,ddj = estimate_subpixel(QC, subpix, m0=m0)
+            if processing in ['refine']: # reposition second template
+                if correlator in frequency_based:
+                    I2_new = create_template_off_center(I2, \
+                                                        i2[counter]-di, \
+                                                        j2[counter]-dj, \
+                                                        2*temp_radius)
+                    L2_new = create_template_off_center(L2, \
+                                                        i2[counter]-di, \
+                                                        j2[counter]-dj, \
+                                                        2*temp_radius)
+                else:
+                    I2_new = create_template_at_center(I2, \
+                                                       i2[counter]-di, \
+                                                       j2[counter]-dj, \
+                                                       temp_radius)
 
-        if abs(ddi)<2:
-            di += ddi
-        if abs(ddj)<2:
-            dj += ddj
+                    L2_new = create_template_at_center(L2, \
+                                                       i2[counter]-di, \
+                                                       j2[counter]-dj, \
+                                                       temp_radius)
+                QC = match_translation_of_two_subsets(I1_sub, I2_new,\
+                                                      correlator,subpix,\
+                                                      L1_sub,L2_new)
+            if subpix is None:
+                ddi,ddj = 0, 0
+            else:
+                ddi,ddj = estimate_subpixel(QC, subpix, m0=m0)
+
+            if abs(ddi)<2:
+                di += ddi
+            if abs(ddj)<2:
+                dj += ddj
         # transform from local image to metric map system
-        x2_new,y2_new = pix2map(geoTransformPad2, \
-                                i2[counter] + di, \
+        x2_new,y2_new = pix2map(geoTransformPad2,
+                                i2[counter] + di,
                                 j2[counter] + dj)
 
         idx_grd = np.unravel_index(counter, X2_grd.shape, 'C') #C

@@ -36,6 +36,17 @@ def make_2D_Gaussian(size, fwhm=3):
     M = np.exp(-4*np.log(2) * (x**2 + y**2) / fwhm**2)
     return M
 
+def make_2D_Laplacian(alpha=.5):
+    alpha = max(0, min(alpha, 1))
+    cross_weight = np.divide(1.-alpha, 1.+alpha)
+    diag_weight = np.divide(alpha, (alpha + 1.))
+    center = np.divide(-4., 1.+alpha)
+    M = np.array([
+        [diag_weight, cross_weight, diag_weight],
+        [cross_weight, center, cross_weight],
+        [diag_weight, cross_weight, diag_weight]])
+    return M
+
 def sigma_filtering(y,thres=3):
     """ 3-sigma filtering
 

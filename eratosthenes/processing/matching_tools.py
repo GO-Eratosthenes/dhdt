@@ -57,7 +57,9 @@ def get_integer_peak_location(C):
     assert type(C)==np.ndarray, ("please provide an array")
 
     max_corr = np.amax(C)
-    snr = max_corr/np.mean(C)
+    C_avg = np.mean(C)
+    snr = np.divide(max_corr, C_avg,
+                    out=np.zeros_like(C_avg), where=np.abs(C_avg) != 0)
 
     ij = np.unravel_index(np.argmax(C), C.shape, order='F') # 'C'
     di, dj = ij[::-1]
