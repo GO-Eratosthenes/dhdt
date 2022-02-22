@@ -1,9 +1,10 @@
 import numpy as np
 
 from ..generic.filtering_statistical import make_2D_Gaussian
+from ..processing.matching_tools import pad_radius
 from .shadow_geometry import estimate_surface_normals
 
-def get_template_aspect_slope(Z,i_samp,j_samp,tsize,spac=10.):
+def get_template_aspect_slope(Z,i_samp,j_samp,t_size,spac=10.):
     """
 
     Parameters
@@ -14,7 +15,7 @@ def get_template_aspect_slope(Z,i_samp,j_samp,tsize,spac=10.):
         array with collumn coordinates of the template centers
     j_samp : np.array, size=(k,l), integer, unit=pixels
         array with row coordinates of the template centers
-    tsize : integer, unit=pixels
+    t_size : integer, unit=pixels
         size of the template
     spac : float, unit=meters
         spacing of the elevation grid
@@ -40,13 +41,19 @@ def get_template_aspect_slope(Z,i_samp,j_samp,tsize,spac=10.):
                      | i                     |
                      v                       |
     """
-    if (tsize % 2)==0:
+    # take care of border cases
+    t_rad = t_size // 2
+    Z = pad_radius(Z, t_rad)
+    i_samp += t_rad
+    j_samp += t_rad
+
+    if (t_size % 2)==0:
         offset = 0 # even template dimension
     else:
         offset = 1 # uneven template dimension
 
     # create template
-    kernel = make_2D_Gaussian((tsize, tsize), fwhm=tsize)
+    kernel = make_2D_Gaussian((t_size, t_size), fwhm=t_size)
     kernel /= np.sum(kernel)
 
     # get aspect and slope from elevation
@@ -56,10 +63,10 @@ def get_template_aspect_slope(Z,i_samp,j_samp,tsize,spac=10.):
     Aspect = np.zeros_like(i_samp, dtype=np.float64)
     for idx_ij, val_i in enumerate(i_samp.flatten()):
         idx_i, idx_j = np.unravel_index(idx_ij, i_samp.shape, order='C')
-        i_min = i_samp[idx_i, idx_j] - (tsize // 2) + 0
-        j_min = j_samp[idx_i, idx_j] - (tsize // 2) + 0
-        i_max = i_samp[idx_i, idx_j] + (tsize // 2) + offset
-        j_max = j_samp[idx_i, idx_j] + (tsize // 2) + offset
+        i_min = i_samp[idx_i, idx_j] - (t_size // 2) + 0
+        j_min = j_samp[idx_i, idx_j] - (t_size // 2) + 0
+        i_max = i_samp[idx_i, idx_j] + (t_size // 2) + offset
+        j_max = j_samp[idx_i, idx_j] + (t_size // 2) + offset
 
         n_sub = Normal[i_min:i_max, j_min:j_max]
 
@@ -71,7 +78,7 @@ def get_template_aspect_slope(Z,i_samp,j_samp,tsize,spac=10.):
         Aspect[idx_i, idx_j] = np.degrees(aspect_bar)
     return Slope, Aspect
 
-def get_template_acquisition_angles(Az,Zn,Det,i_samp,j_samp,tsize):
+def get_template_acquisition_angles(Az,Zn,Det,i_samp,j_samp,t_size):
     """
 
     Parameters
@@ -86,7 +93,7 @@ def get_template_acquisition_angles(Az,Zn,Det,i_samp,j_samp,tsize):
         array with collumn coordinates of the template centers
     j_samp : np.array, size=(k,l), integer
         array with row coordinates of the template centers
-    tsize : integer, unit=pixels
+    t_size : integer, unit=pixels
         size of the template
 
     Returns
@@ -106,22 +113,29 @@ def get_template_acquisition_angles(Az,Zn,Det,i_samp,j_samp,tsize):
                  |
                  +----> East & x
     """
-    if (tsize % 2)==0:
+    # take care of border cases
+    t_rad = t_size // 2
+    Az,Zn = pad_radius(Az,t_rad), pad_radius(Zn,t_rad)
+    Det = pad_radius(Det,t_rad)
+    i_samp += t_rad
+    j_samp += t_rad
+
+    if (t_size % 2)==0:
         offset = 0 # even template dimension
     else:
         offset = 1 # uneven template dimension
     # create template
-    kernel = make_2D_Gaussian((tsize,tsize), fwhm=tsize)
+    kernel = make_2D_Gaussian((t_size,t_size), fwhm=t_size)
     kernel /= np.sum(kernel)
 
     Azimuth = np.zeros_like(i_samp, dtype=np.float64)
     Zenith = np.zeros_like(i_samp, dtype=np.float64)
     for idx_ij,val_i in enumerate(i_samp.flatten()):
         idx_i, idx_j = np.unravel_index(idx_ij, i_samp.shape, order='C')
-        i_min = i_samp[idx_i, idx_j] - (tsize // 2) + 0
-        j_min = j_samp[idx_i, idx_j] - (tsize // 2) + 0
-        i_max = i_samp[idx_i, idx_j] + (tsize // 2) + offset
-        j_max = j_samp[idx_i, idx_j] + (tsize // 2) + offset
+        i_min = i_samp[idx_i, idx_j] - (t_size // 2) + 0
+        j_min = j_samp[idx_i, idx_j] - (t_size // 2) + 0
+        i_max = i_samp[idx_i, idx_j] + (t_size // 2) + offset
+        j_max = j_samp[idx_i, idx_j] + (t_size // 2) + offset
 
         d_sub = Det[i_min:i_max, j_min:j_max]
         z_sub = Zn[i_min:i_max, j_min:j_max]
@@ -136,3 +150,22 @@ def get_template_acquisition_angles(Az,Zn,Det,i_samp,j_samp,tsize):
         Azimuth[idx_i,idx_j] = azimuth_bar
         Zenith[idx_i,idx_j] = zenith_bar
     return Azimuth, Zenith
+
+def create_relative_time_grid(geoTransform, az, tsd):
+    assert len(geoTransform)>6, 'please provide a tuple with image dimensions'
+    x_grd,y_grd = np.meshgrid(np.arange(0, geoTransform[6], 1),
+                              np.arange(0, geoTransform[7], 1),
+                              indexing='xy')
+    y_grd = np.flipud(y_grd)
+
+    Dt = + np.sin(np.radians(az))*x_grd + np.cos(np.radians(az))*y_grd
+    Dt *= int(tsd)
+    Dt -= np.min(Dt)
+    Dt = np.round(Dt).astype(int).astype('timedelta64[ns]')
+    return Dt
+
+def make_timing_stack(samp_tim, det_stack, timing_det):
+
+    tim_stack = []
+
+    return tim_stack

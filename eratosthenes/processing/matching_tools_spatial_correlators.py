@@ -3,7 +3,10 @@ import numpy as np
 
 # image processing libraries
 from skimage.feature import match_template
+from skimage.util import view_as_windows
 from scipy import ndimage
+
+from ..preprocessing.image_transforms import mat_to_gray
 
 # spatial pattern matching functions
 def normalized_cross_corr(I1, I2):
@@ -95,7 +98,7 @@ def sum_sad_diff(I1, I2):
     Returns
     -------
     sad : np.array
-        dissimilarity surface, sad: sum of absolute differnce
+        dissimilarity surface, sad: sum of absolute difference
     """
     
     t_size = I1.shape
@@ -107,5 +110,109 @@ def sum_sad_diff(I1, I2):
     sad = np.einsum('ijkl,kl->ij', y, I1)
     return sad
 
+# maximum likelihood
+def maximum_likelihood_func(I2,I1):
+    # normalization need?
+    I1, I2 = I1.flatten(), I2.flatten()
+
+    I12 = I1+I2
+    num = np.log(I2, where= I2>0) + \
+          np.log(I1, where= I1>0) - \
+          2*np.log(I12, where= I12>0) - \
+          np.log(I1, where= I1>0)
+    ml = np.divide(num, I1.size,
+                   out=np.zeros_like(num), where= num>0)
+    return np.sum(ml)
+
+def maximum_likelihood(I1,I2):
+    """ maximum likelihood texture tracking
+
+    Parameters
+    ----------
+    I1 : np.array
+        image with intensities (template)
+    I2 : np.array
+        image with intensities (search space)
+
+    Returns
+    -------
+    C : float
+        texture correspondence surface
+
+    References
+    ----------
+    .. [1] Erten et al. "Glacier velocity monitoring by maximum likelihood
+       texture tracking" IEEE transactions on geosciences and remote sensing,
+       vol.47(2) pp.394--405, 2009.
+    """
+    I1, I2 = mat_to_gray(I1), mat_to_gray(I2)
+
+    C = ndimage.generic_filter(I2, maximum_likelihood_func,
+                               size=I1.shape, extra_keywords = {'I1':I1})
+    C[C>1.4] = 0
+    return C
+
+def weighted_normalized_cross_correlation(I1,I2,W1=None,W2=None):
+    """
+
+    Parameters
+    ----------
+    I1 : np.array, size=(m,n)
+        image with intensities (template)
+    I2 : np.array, size=(k,l)
+        image with intensities (search space)
+    W1 : np.array, size=(m,n), dtype={boolean,float}
+        weighting matrix for the template
+    W2 : np.array, size=(m,n), dtype={boolean,float}
+        weighting matrix for the search range
+
+    Returns
+    -------
+    wncc : np.array
+        weighted normalized cross-correlation
+    """
+    (m1,n1) = I1.shape
+    (m2,n2) = I2.shape
+    # create weighting matrix
+    if W1 is None: W1 = np.ones_like(I1)
+    if W2 is None: W2 = np.ones_like(I2)
+
+    if np.all(W1==1) and np.all(W1==1): return normalized_cross_corr(I1, I2)
+
+    # normalize weighting matrices
+    W1[np.isnan(W1)] = 0
+    W1 /= np.sum(W1)
+    W2[np.isnan(W2)] = 0
+    W2 /= np.sum(W2)
+
+    # calculate weighted means
+    view_I2 = view_as_windows(I2, (m1,n1), 1)
+    view_W2 = view_as_windows(W2, (m1,n1), 1)
+
+    wght_mu2 = np.sum(np.sum(np.multiply(view_W2, view_I2),axis=-2),axis=-1)
+    wght_mu2 = np.squeeze(wght_mu2)
+    wght_mu1 = np.sum(W1.flatten()*I1.flatten())
+
+    # calculate weighted co-variances
+    wght_var = I1 - wght_mu1
+    W1x = np.multiply(wght_var, W1)
+
+    W2_stack = np.repeat(np.repeat(W1x[np.newaxis,np.newaxis,:],
+                                    view_I2.shape[0], axis=0),
+                         view_I2.shape[1], axis=1)
+
+    wght_cov_12 = np.sum(np.sum(np.multiply(W2_stack, view_I2), \
+        axis=-2), axis=-1) - wght_mu2 * np.sum(W2.flatten())
+
+    wght_cov_22 = np.sum(np.sum(np.multiply(W2_stack, view_I2**2),
+                             axis=-2),axis=-1) - wght_mu2**2
+
+    wght_cov_11 = np.sum( np.multiply(wght_var**2, W1))
+
+    denom = np.maximum(0, wght_cov_11*wght_cov_22)
+    wncc = np.divide(wght_cov_12, denom, where=np.abs(denom)>1e-10)
+    return wncc
+
+# weighted sum of differences
 # sum of robust differences, see Li_03
 # least squares matching

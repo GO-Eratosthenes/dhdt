@@ -1,45 +1,57 @@
 import matplotlib.pyplot as plt
 
 import os
-import pathlib
 import numpy as np
+from scipy import ndimage
 
-from osgeo import ogr, osr, gdal
-from skimage.exposure import match_histograms
-import rioxarray
 
 from eratosthenes.generic.mapping_io import read_geo_image, make_geo_im
 from eratosthenes.generic.mapping_tools import \
-    get_bbox, GDAL_transform_to_affine, pix_centers, map2pix, pix2map, pol2cart
-from eratosthenes.generic.handler_cop import mosaic_tiles
+    pix2map
 from eratosthenes.generic.handler_im import \
-    rotated_sobel, bilinear_interpolation
+    bilinear_interpolation, rescale_image
+from eratosthenes.generic.terrain_tools import \
+    ridge_orientation, terrain_curvature
+from eratosthenes.generic.gis_tools import get_mask_boundary
 
-from eratosthenes.preprocessing.read_sentinel2 import \
-    read_view_angles_s2, read_detector_mask, list_central_wavelength_s2
-from eratosthenes.preprocessing.image_transforms import mat_to_gray
+from eratosthenes.input.read_sentinel2 import \
+    list_central_wavelength_msi
+from eratosthenes.preprocessing.image_transforms import \
+    mat_to_gray, normalize_histogram, gamma_adjustment, histogram_equalization
 from eratosthenes.preprocessing.shadow_geometry import \
-    shadow_image_to_list, cast_orientation
+    cast_orientation
+from eratosthenes.preprocessing.shadow_filters import \
+    fade_shadow_cast, anistropic_diffusion_scalar
 from eratosthenes.preprocessing.acquisition_geometry import \
     get_template_acquisition_angles, get_template_aspect_slope
-from eratosthenes.preprocessing.shadow_matting import \
-    closed_form_matting_with_prior, compute_confidence_through_sun_angle
-from eratosthenes.preprocessing.shadow_transforms import ica
+
+from eratosthenes.preprocessing.shadow_transforms import \
+    entropy_shade_removal, shadow_free_rgb, shade_index, \
+    normalized_range_shadow_index
+from eratosthenes.preprocessing.color_transforms import rgb2lms
 
 from eratosthenes.processing.matching_tools import \
-    get_coordinates_of_template_centers, pad_radius
+    get_coordinates_of_template_centers
 from eratosthenes.processing.coupling_tools import \
     match_pair
 from eratosthenes.processing.matching_tools_differential import hough_sinus
 
 from eratosthenes.postprocessing.solar_tools import \
-    az_to_sun_vector, make_shading, make_shadowing
+    make_shading, make_shadowing
+from eratosthenes.presentation.image_io import \
+    output_image, resize_image, output_mask
 
-boi = ['red', 'green', 'blue', 'near infrared']
-s2_df = list_central_wavelength_s2()
-s2_df = s2_df[s2_df['name'].isin(boi)]
+toi = 15
+window_size = 2**3 #2**3# #
+boi = ['red', 'green', 'blue', 'nir']
+s2_df = list_central_wavelength_msi()
+s2_df = s2_df[s2_df['common_name'].isin(boi)]
 
-s2path = '/Users/Alten005/surfdrive/Eratosthenes/RedGlacier/Sentinel-2/S2-15-10-2019/'
+if toi==15:
+    s2path = '/Users/Alten005/surfdrive/Eratosthenes/RedGlacier/Sentinel-2/S2-15-10-2019/'
+elif toi == 25:
+    s2path = '/Users/Alten005/surfdrive/Eratosthenes/RedGlacier/Sentinel-2/S2-25-10-2019/'
+
 fpath = os.path.join(s2path, 'shadow.tif')
 
 M_dir, M_name = os.path.split(fpath)
@@ -60,8 +72,13 @@ Z = read_geo_image(os.path.join(Z_dir, Z_file))[0]
 R = read_geo_image(os.path.join(Z_dir, R_file))[0]
 
 # create observation angles
-fpath = os.path.join('/Users/Alten005/surfdrive/Eratosthenes/RedGlacier/Sentinel-2/S2-15-10-2019-full', \
-                      'T05VMG_20191015T213531_B08.jp2')
+if toi==15:
+    fpath = os.path.join('/Users/Alten005/surfdrive/Eratosthenes/RedGlacier/Sentinel-2/S2-15-10-2019-full', \
+                          'T05VMG_20191015T213531_B08.jp2')
+elif toi==25:
+    fpath = os.path.join('/Users/Alten005/surfdrive/Eratosthenes/RedGlacier/Sentinel-2/S2-15-10-2019-full', \
+                         'T05VMG_20191015T213531_B08.jp2')
+
 _,spatialRefI,geoTransformI,targetprjI = read_geo_image(fpath)
 
 path_meta = '/Users/Alten005/surfdrive/Eratosthenes/RedGlacier/Sentinel-2/'+\
@@ -80,41 +97,69 @@ path_meta = '/Users/Alten005/surfdrive/Eratosthenes/RedGlacier/Sentinel-2/'+\
 #                      'viewZn.tif')
 #make_geo_im(I_sub, geoTransformM, spatialRefM, fpath)
 
-Det = read_geo_image(os.path.join(s2path, 'detIdBlue.tif'))[0]
-Zn = read_geo_image(os.path.join(s2path, 'viewZn.tif'))[0]
-Az = read_geo_image(os.path.join(s2path, 'viewAz.tif'))[0]
+if toi==15:
+    Det = read_geo_image(os.path.join(s2path, 'detIdBlue.tif'))[0]
+    Zn = read_geo_image(os.path.join(s2path, 'viewZn.tif'))[0]
+    Az = read_geo_image(os.path.join(s2path, 'viewAz.tif'))[0]
 
 Blue = read_geo_image(os.path.join(s2path, 'B2.tif'))[0]
 Green = read_geo_image(os.path.join(s2path, 'B3.tif'))[0]
 Red = read_geo_image(os.path.join(s2path, 'B4.tif'))[0]
 Near = read_geo_image(os.path.join(s2path, 'B8.tif'))[0]
 
-from eratosthenes.preprocessing.shadow_transforms import entropy_shade_removal, shadow_free_rgb
-from eratosthenes.preprocessing.color_transforms import rgb2lms, rgb2hsi
+
+Sn = normalized_range_shadow_index(mat_to_gray(Red),
+                                   mat_to_gray(Green),
+                                   mat_to_gray(Blue))
+Sn = normalize_histogram(-Sn)
+output_image(Sn, 'Red-normalized-range-shadow-index.jpg', cmap='gray')
 
 Li,Mi,Si = rgb2lms(mat_to_gray(Red), mat_to_gray(Green), mat_to_gray(Blue))
 RGB = shadow_free_rgb(mat_to_gray(Blue), mat_to_gray(Green),
                       mat_to_gray(Red), mat_to_gray(Near))
 
-Si,Ri = entropy_shade_removal(mat_to_gray(Blue), mat_to_gray(Red),mat_to_gray(Near))
+RGB = np.dstack((gamma_adjustment(Red, gamma=.25),
+                 gamma_adjustment(Green, gamma=.25),
+                 gamma_adjustment(Blue, gamma=.25)))
 
-Si += .5
-Si[Si<-.5] = -.5
+RGB = mat_to_gray(1.5*RGB)
+RGB[RGB<.3] = .3
+output_image(RGB, 'Red-rgb-gamma.jpg')
 
-window_size = 1 #2**3
+Si,Ri = entropy_shade_removal(mat_to_gray(Blue),
+                              mat_to_gray(Red),
+                              mat_to_gray(Near), a=138)
+#Si,Ri = normalize_histogram(Si), normalize_histogram(Ri)
+
+output_image(Si, 'Red-entropy-shade-removal.jpg', cmap='gray')
+output_image(Ri, 'Red-entropy-albedo.jpg', cmap='gray')
+
+
+ani = anistropic_diffusion_scalar(np.dstack((Sn,Si,Ri)), n=8)
+output_image(ani[:,:,0], 'Red-entropy-anistropy.jpg', cmap='gray')
+
+
+#Si = s_curve(Si, a=20, b=0)
+#Si += .5
+#Si[Si<-.5] = -.5
+
+Si_ani = anistropic_diffusion_scalar(Si)
+Sc = (mat_to_gray(-Sn)*mat_to_gray(Si))
+
 sample_I, sample_J = get_coordinates_of_template_centers(Zn, window_size)
 
-Slp,Asp = get_template_aspect_slope(pad_radius(Z,window_size),
-                                    sample_I+window_size,
-                                    sample_J+window_size,
+Slp,Asp = get_template_aspect_slope(Z,
+                                    sample_I,sample_J,
                                     window_size)
+output_image(resize_image(Asp, Z.shape, method='nearest'),
+             'Red-aspect-w'+str(2*window_size)+'.jpg', cmap='twilight')
+output_image(resize_image(Slp, Z.shape, method='nearest'),
+             'Red-slope-w'+str(2*window_size)+'.jpg', cmap='magma')
 
-Azi,Zen = get_template_acquisition_angles(pad_radius(Az,window_size), pad_radius(Zn,window_size),
-                                          pad_radius(Det,window_size).astype('int64'),
-                                          sample_I+window_size,
-                                          sample_J+window_size,
-                                          window_size)
-
+#if toi==15:
+#    Azi,Zen = get_template_acquisition_angles(Az, Zn, Det.astype('int64'),
+#                                              sample_I, sample_J,
+#                                              window_size)
 
 zn, az = 90-21.3, 174.2 # 15 Oct 2019
 #Zn, Az = 90-17.7, 174.8 # 25 Oct 2019
@@ -122,6 +167,32 @@ zn, az = 90-21.3, 174.2 # 15 Oct 2019
 # generate shadow image
 Shw =  make_shadowing(Z, az, zn)
 Shd =  make_shading(Z, az, zn)
+
+
+import morphsnakes as ms
+
+counts = 30
+#M_acwe_si = ms.morphological_chan_vese(Si, counts, init_level_set=Shw,
+#                                       smoothing=0, lambda1=1, lambda2=1,
+#                                       albedo=Ri)
+for i in np.linspace(0,counts,counts+1).astype(np.int8):
+    M_acwe_si = ms.morphological_chan_vese(Si, i, init_level_set=Shw,
+                                           smoothing=0, lambda1=1, lambda2=1,
+                                           albedo=Ri)
+    Bnd = get_mask_boundary(M_acwe_si)
+    output_mask(Bnd,'Red-shadow-polygon-raw'+str(i).zfill(3)+'.png')
+
+output_image(-1.*M_acwe, 'Red-snake-shadow-si.jpg', cmap='gray')
+
+
+# fading shadowing
+Shf = fade_shadow_cast(Shw, az)
+Shi = (Shd+.5) *(1-(0.75*Shf))
+
+output_image(Shw!=True, 'Red-shadow.jpg', cmap='gray')
+output_image(-1*Shf, 'Red-shadow-fade.jpg', cmap='gray')
+
+#output_image(Shi, 'Red-artificial-scene.jpg', cmap='gray')
 
 #plt.imshow(Shd, cmap='gray'), plt.show()
 #plt.imshow(M, cmap='gray'), plt.show()
@@ -145,14 +216,84 @@ N = cast_orientation(Si, Az, indexing='xy')
 # make Mask
 Stable = (R==0) & (Shw!=1)
 
-window_size = 2**6
+# window_size
+t_rad = 3
+t_size = (2*t_rad)+1
+s_size = 7
+num_disp = 1
 sample_X,sample_Y = pix2map(geoTransformM, sample_I, sample_J)
-match_X,match_Y = match_pair(Shd, Si, Stable, Stable, geoTransformM, geoTransformM,
-                             sample_X, sample_Y,
-                             temp_radius=window_size,
-                             search_radius=window_size,
-                             correlator='mask_corr', subpix='svd',
-                             processing='simple')
+match_X,match_Y,match_score = match_pair(Shi, Si,
+                                         Stable, Stable,
+                                         geoTransformM, geoTransformM,
+                                         sample_X, sample_Y,
+                                         temp_radius=window_size,
+                                         search_radius=window_size,
+                                         correlator='robu_corr', subpix='moment',
+                                         metric='peak_entr')
+#                                         correlator='hough_opt_flw',
+#                                         preprocessing='hist_equal',
+#                                         num_estimates=num_disp,
+#                                         max_amp=2)
+
+
+if num_disp>1:
+    dY,dX = np.repeat(sample_Y[:,:,np.newaxis], num_disp, axis=2)-match_Y, \
+            np.repeat(sample_X[:,:,np.newaxis], num_disp, axis=2)-match_X
+else:
+    dY,dX = sample_Y-match_Y, sample_X-match_X
+
+IN = ~np.isnan(dX)
+IN[IN] = np.remainder(dX[IN],1)!=0
+
+#plt.imshow(dY, vmin=-20, vmax=+20), plt.show()
+#plt.imshow(dX, vmin=-20, vmax=+20), plt.show()
+
+#plt.figure(), plt.hexbin(dX[IN], dY[IN], gridsize=40)
+# Slp<20
+dx_coreg, dy_coreg = np.median(dX[IN]), np.median(dY[IN])
+
+di_coreg = +1*dy_coreg/geoTransformM[5]
+dj_coreg = +1*dx_coreg/geoTransformM[1]
+
+Sc_coreg = bilinear_interpolation(Sc, dj_coreg, di_coreg)
+Si_coreg = bilinear_interpolation(Si, dj_coreg, di_coreg)
+Ri_coreg = bilinear_interpolation(Ri, dj_coreg, di_coreg)
+RGB_coreg = bilinear_interpolation(RGB, dj_coreg, di_coreg)
+
+#fout = os.path.join(s2path, 'shadows_coreg.tif')
+#make_geo_im(Sc_coreg, geoTransformM, targetprjI, fout)
+#fout = os.path.join(s2path, 'shadow_coreg.tif')
+#make_geo_im(Si_coreg, geoTransformM, targetprjI, fout)
+#fout = os.path.join(s2path, 'albedo_coreg.tif')
+#make_geo_im(Ri_coreg, geoTransformM, targetprjI, fout)
+#fout = os.path.join(s2path, 'rgb_clean.tif')
+#make_geo_im(RGB_coreg, geoTransformM, targetprjI, fout)
+#fout = os.path.join(s2path, 'shading.tif')
+#make_geo_im(Shd, geoTransformM, targetprjI, fout)
+#fout = os.path.join(s2path, 'shadowing.tif')
+#make_geo_im(Shw, geoTransformM, targetprjI, fout)
+
+
+Rho, Phi = np.sqrt(dY**2+dX**2), np.arctan2(dX,dY)
+
+match_score[match_score==0] = np.nan
+output_image(resize_image(match_score, Z.shape, method='nearest'),
+             'Red-disp-score-w'+str(2*window_size)+'.jpg', cmap='viridis')
+output_image(resize_image(Phi, Z.shape, method='nearest'),
+             'Red-disp-dir-w'+str(2*window_size)+'.jpg', cmap='twilight')
+output_image(resize_image(Rho, Z.shape, method='nearest'),
+             'Red-disp-mag-w'+str(2*window_size)+'.jpg', cmap='magma')
+
+dY_coreg, dX_coreg = dY-dy_coreg, dX-dx_coreg
+Rho_coreg, Phi_coreg = np.sqrt(dY_coreg**2+dX_coreg**2), \
+                       np.arctan2(dX_coreg,dY_coreg)
+output_image(resize_image(Phi_coreg, Z.shape, method='nearest'),
+             'Red-disp-dir-coreg-w'+str(2*window_size)+'.jpg', cmap='twilight')
+output_image(resize_image(Rho_coreg, Z.shape, method='nearest'),
+             'Red-disp-mag-coreg-w'+str(2*window_size)+'.jpg', cmap='magma')
+
+
+
 
 #
 #from sklearn import linear_model
@@ -169,24 +310,52 @@ match_X,match_Y = match_pair(Shd, Si, Stable, Stable, geoTransformM, geoTransfor
 
 #Sm = match_histograms(-Si[Stable],Shd[Stable])
 
+sample_I, sample_J = get_coordinates_of_template_centers(Zn, window_size)
+
+Slp,Asp = get_template_aspect_slope(Z,
+                                    sample_I,sample_J,
+                                    t_size)
+
+fig = plt.figure()
+ax = fig.add_subplot(projection='polar')
+c = ax.scatter(Phi[Slp<20], Rho[Slp<20],2,match_score[Slp<20])
+ax.set_rmax(40)
+
+
 dI = Shd-Si #Shd + 4*Si#-L
 tan_Slp = np.tan(np.radians(Slp))
 dD = np.divide(dI,tan_Slp,
                out=np.zeros_like(tan_Slp), where=tan_Slp!=0)
+
+Curv = terrain_curvature(Z)
+Z_az = ridge_orientation(Z)
+
+Ridge = Curv>1.
+
+
+
+
+
+#plt.imshow(dI, cmap=plt.cm.RbBu)
 
 Asp_Shd,dD_Shd = hough_sinus(np.radians(Asp[Stable]), Shd[Stable],
                              max_amp=1, sample_fraction=5000)
 Asp_Si,dD_Si = hough_sinus(np.radians(Asp[Stable]), Si[Stable],
                            max_amp=1, sample_fraction=5000)
 
+
+fig, (ax0,ax1) = plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True)
+
+plt.scatter(Curv[Ridge], Z_az[Ridge])
+
 #di, dj = pol2cart(dD_H, Asp_H)
 
 fig, (ax0,ax1) = plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True)
 ax0.hist2d(Asp.flatten(), Si.flatten(),
-           bins=90, range=[[-180, +180], [-.5, .5]],
+           bins=90, range=[[-180, +180], [0, 1]],
            cmap=plt.cm.gist_heat_r)
 ax1.hist2d(Asp[Stable], Si[Stable],
-           bins=90, range=[[-180, +180], [-.5, .5]],
+           bins=90, range=[[-180, +180], [0, 1]],
            cmap=plt.cm.gist_heat_r)
 plt.show()
 
@@ -197,7 +366,7 @@ ax0.hist2d(Asp[Stable], Shd[Stable],
 ax1.hist2d(Asp[Stable], Si[Stable],
            bins=90, range=[[-180, +180], [-.5, .5]],
            cmap=plt.cm.gist_heat_r)
-ax1.scatter(asp_val,asp_med,s=1,c='black',marker='.')
+#ax1.scatter(asp_val,asp_med,s=1,c='black',marker='.')
 plt.show()
 
 fig, (ax0,ax1) = plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True)

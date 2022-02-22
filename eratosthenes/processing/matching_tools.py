@@ -2,15 +2,29 @@
 import warnings
 import numpy as np
 
+from skimage.morphology import extrema
+
 from ..generic.mapping_tools import map2pix
 
-def get_integer_peak_location(C):
+def get_integer_peak_location(C, metric='peak_abs'):
     """ get the location in an array of the highest score
 
     Parameters
     ----------
     C : np.array, size=(m,n)
         similarity score surface
+    metric : {'peak_abs' (default), 'peak_ratio', 'peak_rms', 'peak_ener',
+              'peak_nois', 'peak_conf', 'peak_entr'}
+        Metric to be used to describe the matching score, the following can be
+        chosen from:
+
+        * 'peak_abs' : the absolute score
+        * 'peak_ratio' : the primary peak ratio i.r.t. the second peak
+        * 'peak_rms' : the peak ratio i.r.t. the root mean square error
+        * 'peak_ener' : the peaks' energy
+        * 'peak_noise' : the peak reation i.r.t. to the noise
+        * 'peak_conf' : the peak confidence
+        * 'peak_entr' : the peaks' entropy
 
     Returns
     -------
@@ -18,8 +32,8 @@ def get_integer_peak_location(C):
         horizontal location of highest score
     dj : integer
         vertical location of highest score
-    snr : float
-        signal to noise ratio
+    matching_metric : float
+        metric as specified by 'method'
     max_corr : float
         value of highest point in the array
 
@@ -46,7 +60,7 @@ def get_integer_peak_location(C):
     Example
     -------
     >>> import numpy as np
-    >>> from .matching_tools import get_integer_peak_location
+    >>> from .matching_tools_organization import get_integer_peak_location
     >>> from ..generic.test_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
@@ -54,18 +68,104 @@ def get_integer_peak_location(C):
     >>> C = np.fft.ifft2(Q)
     >>> di,dj,_,_ = get_integer_peak_location(C)
     """
+    from .matching_tools_correlation_metrics import \
+        get_correlation_metric, list_matching_metrics
+
     assert type(C)==np.ndarray, ("please provide an array")
+    metrics_list = list_matching_metrics()
+    assert (metric in metrics_list), \
+        ('please provide a valid metric method. '+
+         'it can be one of the following:'+
+         f' { {*metrics_list} }')
+    max_corr = np.argmax(C)
+    score = get_correlation_metric(C, metric=metric)
 
-    max_corr = np.amax(C)
-    snr = max_corr/np.mean(C)
-
-    ij = np.unravel_index(np.argmax(C), C.shape, order='F') # 'C'
+    ij = np.unravel_index(max_corr, C.shape, order='F') # 'C'
     di, dj = ij[::-1]
     di -= C.shape[0] // 2
     dj -= C.shape[1] // 2
-    return di, dj, snr, max_corr
+    return di, dj, score, max_corr
+
+def get_peak_indices(C, num_estimates=1):
+    """ get the locations in an array where peaks are present
+
+    Parameters
+    ----------
+    C : np.array, size=(m,n)
+        scoring or voting surface
+    num_estimates : integer
+        number of peaks to be estimated
+
+    Returns
+    -------
+    idx : np.array, size=(k,2), dtype=integer
+        vertical and horizontal location of highest peak(s), based upon an image
+        coordinate system, that is [row, collumn] indexing
+    val : np.array, size=(k,)
+        voting score at peak location
+
+    Notes
+    -----
+    Based upon a image centered coordinate frame:
+
+        .. code-block:: text
+
+                 j
+         +------->---------------+
+         |indexing               |
+         |system 'ij'            |
+         |                       |
+         v i                     |
+         |                       |
+         +-----------------------+
+    """
+    peak_C = extrema.local_maxima(C)
+    ids = np.array(np.where(peak_C)) # this seems to go in rows
+    scores = C[peak_C]
+
+    # rank scores from max to minimum
+    sort_idx = np.flip(np.argsort(scores))
+    scores, ids = scores[sort_idx], ids[:,sort_idx]
+
+    idx = np.zeros((num_estimates, C.ndim), dtype=int)
+    val = np.zeros(num_estimates)
+
+    maximal_num = np.minimum( len(scores), num_estimates)
+    idx[:maximal_num,:] = ids[:,:maximal_num].T # swap axis, because of np.where
+    val[:maximal_num] = scores[:maximal_num]
+    return idx, val
 
 # supporting functions
+def get_template(I, idx_1, idx_2, radius):
+    """ get a template, eventhough the index or template might be outside the
+    given domain
+
+    Parameters
+    ----------
+    I : np.array, size=(m,n), dtype={integer,float}
+        large numpy array with intensities/data
+    idx_1 : integer
+        row index of the central pixel of interest
+    idx_2 : integer
+        collumn index of the central pixel of interest
+    radius : integer
+        shortest radius of the template
+
+    Returns
+    -------
+    I_sub : np.array, size=(k,k)
+        array with Gaussian peak in the center
+    """
+    sub_idx = np.mgrid[idx_1 - radius : idx_1 + radius +1,
+                       idx_2 - radius : idx_2 + radius +1]
+
+    sub_ids = np.ravel_multi_index(np.vstack((sub_idx[0].flatten(),
+                                              sub_idx[1].flatten())),
+                                   I.shape, mode='clip')
+    I_sub = np.take(I, sub_ids, mode='clip')
+    I_sub = np.reshape(I_sub, (2*radius+1, 2*radius+1))
+    return I_sub
+
 def pad_images_and_filter_coord_list(M1, M2, geoTransform1, geoTransform2,\
                                      X_grd, Y_grd, ds1, ds2, same=True):
     """ pad imagery, depending on the template size, also transform and shift
@@ -107,6 +207,8 @@ def pad_images_and_filter_coord_list(M1, M2, geoTransform1, geoTransform2,\
         vertical image coordinates of the template centers of second image
     j2 : np.array, size=(_,1), dtype=integer
         horizontal image coordinates of the template centers of second image
+    IN : np.array, size=(k,l), dtype=boolean
+        classification of the grid, which are in and out
 
     See Also
     --------
@@ -158,7 +260,7 @@ def pad_images_and_filter_coord_list(M1, M2, geoTransform1, geoTransform2,\
     i2 += ds2
     j2 += ds2
 
-    return M1_new, M2_new, i1, j1, i2, j2
+    return M1_new, M2_new, i1, j1, i2, j2, IN
 
 def pad_radius(I, radius):
     """ add extra boundary to array, so templates can be easier extracted
@@ -167,7 +269,7 @@ def pad_radius(I, radius):
     ----------
     I : np.array, size=(m,n) or (m,n,b)
         data array
-    radius : positive integer
+    radius : {positive integer, tuple}
         extra boundary to be added to the data array
 
     Returns
@@ -175,13 +277,14 @@ def pad_radius(I, radius):
     I_xtra : np.array, size=(m+2*radius,n+2*radius)
         extended data array
     """
+    if not type(radius) is tuple: radius = (radius, radius)
     if I.ndim==3:
         I_xtra = np.pad(I,
-                        ((radius,radius), (radius,radius), (0,0)),
+                        ((radius[0],radius[1]), (radius[0],radius[1]), (0,0)),
                         'constant', constant_values=0)
     else:
         I_xtra = np.pad(I,
-                        ((radius,radius), (radius,radius)),
+                        ((radius[0],radius[1]), (radius[0],radius[1])),
                         'constant', constant_values=0)
     return I_xtra
 
@@ -343,13 +446,24 @@ def get_coordinates_of_template_centers(Grid, temp_size):
     return Iidx, Jidx
 
 def get_grid_at_template_centers(grid, temp_size):
-    """
-    When tiling an array into small templates, this function
-    gives the value of the pixel in its center.
-    input:   grid           array (n x m)     array with data values
-             temp_size       integer           size of the kernel in pixels
-    output:  gridnew        array (k x l)     data value of the pixel in the
-                                              kernels center
+    """ When tiling an array into small templates, this function gives the
+    value of the pixel in its center.
+
+    Parameters
+    ----------
+    grid : np.array, size=(m,n)
+        array with data values
+    temp_size : integer
+        size of the kernel in pixels
+
+    Returns
+    -------
+    gridnew : np.array, size=(k,l)
+        coordinates of the pixel in the kernels' center
+
+    See Also
+    --------
+    get_coordinates_of_template_centers
     """
     assert type(grid)==np.ndarray, ("please provide an array")
     assert type(temp_size)==int, ("please provide an integer")

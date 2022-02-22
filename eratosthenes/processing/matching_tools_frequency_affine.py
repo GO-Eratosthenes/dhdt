@@ -13,7 +13,7 @@ from ..generic.mapping_tools import pol2cart, cart2pol
 from .matching_tools_frequency_filters import \
     make_fourier_grid
 
-#wip - experimental
+#todo - experimental
 
 def compute_E(cirus, theta):
     # following Kadyrov '06
@@ -125,7 +125,7 @@ def moment(I,p,q):
     (i_grd,j_grd) = np.meshgrid(np.arange(I.shape[0]), 
                                 np.arange(I.shape[1]), 
                                 sparse=False, indexing='ij')
-    im_mom = np.sum(np.sum( \
+    im_mom = np.sum(np.sum(
                            (i_grd**p) * (j_grd**q) * I,
                            axis=1),axis=0)
     return im_mom
@@ -151,7 +151,7 @@ def polygon2list(I, d):
 
 def central_im_transform(I, Aff):
     (mI,nI) = I.shape
-    (grd_i,grd_j) = np.meshgrid(np.linspace(-1, 1, mI), \
+    (grd_i,grd_j) = np.meshgrid(np.linspace(-1, 1, mI),
                                 np.linspace(-1, 1, nI), indexing='ij')
 
     grd_idx = np.vstack( (grd_i.flatten(), grd_j.flatten()) ).T

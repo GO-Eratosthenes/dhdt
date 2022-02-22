@@ -6,20 +6,30 @@ import numpy as np
 # geospatial libaries
 from osgeo import gdal, osr
 
-def read_geo_info(fname):  # generic
-    """
-    This function takes as input the geotiff name and the path of the
+def read_geo_info(fname):
+    """ This function takes as input the geotiff name and the path of the
     folder that the images are stored, reads the geographic information of
     the image
-    input:   band           string            geotiff name
-             path           string            path of the folder
-    output:  spatialRef     string            projection
-             geoTransform   tuple             affine transformation
-                                              coefficients
-             targetprj                        spatial reference
-             rows           integer           number of rows in the image             
-             cols           integer           number of collumns in the image
-             bands          integer           number of bands in the image             
+
+    Parameters
+    ----------
+    fname : string
+        path and file name of a geotiff image
+
+    Returns
+    -------
+    spatialRef : string
+        osr.SpatialReference in well known text
+    geoTransform : tuple, size=(6,1)
+        affine transformation coefficients.
+    targetprj : osgeo.osr.SpatialReference() object
+        coordinate reference system (CRS)
+    rows : integer
+        number of rows in the image, that is its height
+    cols : integer
+        number of collumns in the image, that is its width
+    bands : integer
+        number of bands in the image, that is its depth
     """
     img = gdal.Open(fname)
     spatialRef = img.GetProjection()
@@ -31,19 +41,9 @@ def read_geo_info(fname):  # generic
     return spatialRef, geoTransform, targetprj, rows, cols, bands
 
 def read_geo_image(fname):
-    """
-        This function takes as input the geotiff name and the path of the
+    """ This function takes as input the geotiff name and the path of the
     folder that the images are stored, reads the image and returns the data as
     an array
-    input:   band           string            geotiff name
-             path           string            path of the folder
-    output:  data           array (n x m)     array of the band image
-             spatialRef     string            projection
-             geoTransform   tuple             affine transformation
-                                              coefficients
-             targetprj                        spatial reference
-
-
 
     Parameters
     ----------
@@ -80,23 +80,39 @@ def read_geo_image(fname):
     assert len(glob.glob(fname)) != 0, ('file does not seem to be present')
 
     img = gdal.Open(fname)
-    data = np.array(img.GetRasterBand(1).ReadAsArray())
+    # imagery can consist of multiple bands
+    for counter in range(img.RasterCount):
+        band = np.array(img.GetRasterBand(counter+1).ReadAsArray())
+        if counter == 0:
+            data = band
+        else:
+            data = np.dstack((data, band[:,:,np.newaxis]))
     spatialRef = img.GetProjection()
     geoTransform = img.GetGeoTransform()
     targetprj = osr.SpatialReference(wkt=img.GetProjection())
     return data, spatialRef, geoTransform, targetprj
 
 # I/O functions
-def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes', \
+def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes',
               no_dat=np.nan, sun_angles='az:360-zn:90', date_created='-0276-00-00'):
-    """
-    Create georeference GeoTIFF
-    input:   I              array (n x m)     band image
-             R              array (1 x 6)     GDAL georeference transform of
-                                              an image
-             crs            string            coordinate reference string
-             fname          string            filename for the image
-    output:  writes file into current folder
+    """ Create georeferenced tiff file (a GeoTIFF)
+
+    Parameters
+    ----------
+    I : array, size=(m,n)
+        band image
+    R : list, size=(1,6)
+        GDAL georeference transform of an image
+    crs : string
+        coordinate reference string
+    fname : string
+        filename for the image with extension
+    no_dat : datatype, integer
+        no data value
+    sun_angles : string
+        string giving meta data about the illumination angles
+    date_created : string
+        string given the acquistion date in YYYY-MM-DD
 
     Example
     -------
@@ -137,6 +153,8 @@ def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes', \
     
     # set georeferencing metadata
     ds.SetGeoTransform(R)
+    if not isinstance(crs, str):
+        crs = crs.ExportToWkt()
     ds.SetProjection(crs)
     if I.ndim == 3:
         for count in np.arange(1,I.shape[2]+1,1):

@@ -10,18 +10,25 @@ import ftps # for Copernicus FTP-download
 # geospatial libaries
 from osgeo import gdal
 
-def get_file_from_ftps(url, user, password, \
+def get_file_from_ftps(url, user, password,
                        file_path, file_name, dump_dir=os.getcwd()):
-    '''
-    Downloads a file from a ftps-server
-    input:   url            string            server address
-             user           string            username
-             password       string            password for access
-             file_path      string            location on the server
-             file_name      string            name of the file
-             dump_dir       string            path to place the content        
-    output:  none  
-    '''
+    """ Downloads a file from a ftps-server
+
+    Paramters
+    ---------
+    url : string
+        server address
+    user : string
+        username
+    password : string
+        password for access
+    file_path : string
+        location on the server
+    file_name : string
+        name of the file
+    dump_dir : string
+        path to place the content
+    """
     if dump_dir[-1]!='/':
         dump_dir += '/'
     client = ftps.FTPS('ftps://' +user+ ':' +password+ '@' +url)
@@ -30,12 +37,18 @@ def get_file_from_ftps(url, user, password, \
     return
 
 def url_exist(file_url):
-    '''
-    Check if url exist
-    
-    input:   file_url       string            url of www location       
-    output:                 boolean           verdict if present    
-    '''
+    """ Check if an url exist
+
+    Parameters
+    ----------
+    file_url : string
+        url of www location
+
+    Returns
+    -------
+    verdict : dtype=boolean
+        verdict if present
+    """
     
     try: 
         urllib.request.urlopen(file_url).code == 200
@@ -44,13 +57,20 @@ def url_exist(file_url):
         return False
 
 def get_tar_file(tar_url, dump_dir=os.getcwd()):
-    '''
-    Downloads and unpacks compressed folder
-    
-    input:   tar_url        string            url of www location
-             dump_dir       string            path to place the content        
-    output:  tar_names      list of strings   file names in compressed folder    
-    '''
+    """ Downloads and unpacks compressed folder
+
+    Parameters
+    ----------
+    tar_url : string
+        url of world wide web location
+    dump_dir : string
+        path to place the content
+
+    Returns
+    -------
+    tar_names : list
+        list of strings of file names within the compressed folder
+    """
     
     ftp_stream = urllib.request.urlopen(tar_url)
     tar_file = tarfile.open(fileobj=ftp_stream, mode="r|gz")
@@ -59,13 +79,20 @@ def get_tar_file(tar_url, dump_dir=os.getcwd()):
     return tar_names
 
 def get_zip_file(zip_url, dump_dir=os.getcwd()):
-    '''
-    Downloads and unpacks compressed folder
-    
-    input:   zip_url        string            url of www location
-             dump_dir       string            path to place the content        
-    output:  zip_names      list of strings   file names in compressed folder    
-    '''
+    """ Downloads and unpacks compressed folder
+
+    Parameters
+    ----------
+    zip_url : string
+        url of world wide web location
+    dump_dir : string
+        path to place the content
+
+    Returns
+    -------
+    zip_names : list
+        list of strings of file names within the compressed folder
+    """
     zip_resp = urllib.request.urlopen(zip_url)
     temp_zip = open(dump_dir + 'tempfile.zip', "wb") 
     temp_zip.write(zip_resp.read())
@@ -120,14 +147,21 @@ def bulk_download_and_mosaic(url_list, dem_path, sat_tile, bbox, crs, new_res=10
             os.remove(os.path.join(dem_path,fn))
 
 def change_url_resolution(url_string,new_res):
-    '''
-    the file name can have the spatail resolution within, 
-    this function replaces this string
-    
-    input:   url_string     string            url of www location
-             new_res        integer           new resolution (10, 32, ...)        
-    output:  url_string     string            url of new www location
-    '''
+    """ the file name can have the spatail resolution within, this function
+    replaces this string
+
+    Paramters
+    ---------
+    url_string : string
+        url of world wide web location
+    new_res : integer
+        new resolution (10, 32, ...)
+
+    Returns
+    -------
+    url_string : string
+        url of new world wide web location
+    """
     
     # get resolution
     props = url_string.split('_')
@@ -152,13 +186,19 @@ def change_url_resolution(url_string,new_res):
     return gran_url_new
 
 def reduce_duplicate_urls(url_list):
-    '''
-    because the shapefiles are in 2 meter, the tiles are 4 fold, therfore 
+    """ because the shapefiles are in 2 meter, the tiles are 4 fold, therfore
     make a selection, to bypass duplicates
-    
-    input:   url_list        list of strings         url of www location
-    output:  url_list        list of strings         url of www location    
-    '''
+
+    Parameters
+    ----------
+    url_list : list
+          list of strings with url's of www locations
+
+    Returns
+    -------
+    url_list : list
+        reduced list of strings with url's of www location
+    """
     tiles = ()
     for i in url_list: 
         tiles += (i.split('/')[-2],)

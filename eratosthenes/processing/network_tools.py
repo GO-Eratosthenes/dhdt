@@ -2,21 +2,31 @@ import numpy as np
 
 from sklearn.neighbors import NearestNeighbors
 
-from .handler_s2 import read_mean_sun_angles_s2
+from ..input.read_sentinel2 import read_mean_sun_angles_s2
 
-def getNetworkIndices(n):  # processing
+def get_network_indices(n):
+    """ Generate a list with all matchable combinations
+
+    Parameters
+    ----------
+    n : {integer, np.array}
+        number of images or list with id's
+
+    Returns
+    -------
+    grid_idxs : np.array, size=(2,k)
+        list of couples
     """
-    Generate a list with all matchable combinations
-    input:   n              integer           number of images
-    output:  GridIdxs       array (2 x k)     list of couples
-    """
-    Grids = np.indices((n, n))
-    Grid1 = np.triu(Grids[0] + 1, +1).flatten()
-    Grid1 = Grid1[Grid1 != 0] - 1
-    Grid2 = np.triu(Grids[1] + 1, +1).flatten()
-    Grid2 = Grid2[Grid2 != 0] - 1
-    GridIdxs = np.vstack((Grid1, Grid2))
-    return GridIdxs
+    if isinstance(n,int):
+        grids = np.indices((n, n))
+    else:
+        grids = np.meshgrid(n,n)
+    grid_1 = np.triu(grids[0] + 1, +1).flatten()
+    grid_1 = grid_1[grid_1 != 0] - 1
+    grid_2 = np.triu(grids[1] + 1, +1).flatten()
+    grid_2 = grid_2[grid_2 != 0] - 1
+    grid_idxs = np.vstack((grid_1, grid_2))
+    return grid_idxs
 
 def getNetworkBySunangles(datPath, sceneList, n):  # processing
     """

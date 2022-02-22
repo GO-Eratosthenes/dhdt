@@ -279,9 +279,31 @@ def rot_mat(theta):
                  +----> East & x
 
     """
-    R = np.array([[np.cos(np.radians(theta)), -np.sin(np.radians(theta))],
-                  [np.sin(np.radians(theta)), np.cos(np.radians(theta))]])
+    R = np.array([[+np.cos(np.radians(theta)), -np.sin(np.radians(theta))],
+                  [+np.sin(np.radians(theta)), +np.cos(np.radians(theta))]])
     return R
+
+def rot_covar(V, R):
+    V_r = R @ V @ np.transpose(R)
+    return V_r
+
+def rotate_variance(Theta, qii, qjj, rho):
+    qii_r, qjj_r = np.zeros_like(qii), np.zeros_like(qjj)
+    for iy, ix in np.ndindex(Theta.shape):
+        if ~np.isnan(Theta[iy,ix]) and ~np.isnan(rho[iy,ix]):
+            # construct co-variance matrix
+            try:
+                qij = rho[iy,ix]*np.sqrt(qii[iy,ix])*np.sqrt(qjj[iy,ix])
+            except:
+                breakpoint
+            V = np.array([[qjj[iy,ix], qij],
+                          [qij, qii[iy,ix]]])
+            R = rot_mat(Theta[iy,ix])
+            V_r = rot_covar(V, R)
+            qii_r[iy, ix], qjj_r[iy, ix] = V_r[1][1], V_r[0][0]
+        else:
+            qii_r[iy,ix], qjj_r[iy,ix] = np.nan, np.nan
+    return qii_r, qjj_r
 
 def lodrigues_est(XYZ_1, XYZ_2):
     m = XYZ_1.shape[0]

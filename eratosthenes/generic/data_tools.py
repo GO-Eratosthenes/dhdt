@@ -118,5 +118,3 @@ def secant(A, y, J, params, n_iters=5, print_diagnostics=False):
     if (history[0]<history[-1]) and print_diagnostics:
         print('no convergence')
     return params, history    
-
-    

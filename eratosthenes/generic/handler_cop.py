@@ -31,7 +31,7 @@ def get_itersecting_DEM_tile_names(index, geometry):
         file name of tiles of interest.
     """    
     # sometimes points are projected to infinity
-    # this is troublesome for intestections
+    # this is troublesome for intersections
     # hence remove these instances
     out_of_bounds = index['geometry'].area.isna()
     index = index[~out_of_bounds]
@@ -94,16 +94,16 @@ def mosaic_tiles(dem_tiles_filenames, bbox, crs, transform):
                     max(bbox[2],bbox_xy[2]), max(bbox[3],bbox_xy[3])) # spatial OR
 
         # extend area
-        dem_tile_xy = dem_tile_xy.rio.pad_box(minx=bbox_xy[0], \
-                                              miny=bbox_xy[2], \
-                                              maxx=bbox_xy[1], \
-                                              maxy=bbox_xy[3], \
+        dem_tile_xy = dem_tile_xy.rio.pad_box(minx=bbox_xy[0],
+                                              miny=bbox_xy[2],
+                                              maxx=bbox_xy[1],
+                                              maxy=bbox_xy[3],
                                               constant_values=-9999) 
         
         # crop area within tile
-        dem_tile_xy = dem_tile_xy.rio.clip_box(minx=bbox[0], \
-                                               miny=bbox[2], \
-                                               maxx=bbox[1], \
+        dem_tile_xy = dem_tile_xy.rio.clip_box(minx=bbox[0],
+                                               miny=bbox[2],
+                                               maxx=bbox[1],
                                                maxy=bbox[3])
                                                
         if 'dem_clip' not in locals():

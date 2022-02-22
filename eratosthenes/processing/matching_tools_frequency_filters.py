@@ -44,15 +44,18 @@ def perdecomp(img):
     >>> spec1 = np.fft.fft2(per)
     """
     assert type(img)==np.ndarray, ("please provide an array")
-    
+
+    # don't need to process empty arrays
+    if (0 in img.shape): return img, np.zeros_like(img)
+
     img = img.astype(float)
     if img.ndim==2:
         (m, n) = img.shape
         per = np.zeros((m, n), dtype=float)
-        
+
         per[+0,:] = +img[0,:] -img[-1,:]
-        per[-1,:] = -per[0,:]
-        
+        per[-1, :] = -per[0, :]
+
         per[:,+0] = per[:,+0] +img[:,+0] -img[:,-1]
         per[:,-1] = per[:,-1] -img[:,+0] +img[:,-1]
     
@@ -79,7 +82,7 @@ def perdecomp(img):
     else:
         cor = np.real( np.fft.ifft2( np.fft.fft2(per) *.5/ (2-Fx-Fy)))
     per = img-cor
-    return (per, cor)    
+    return per, cor
 
 def normalize_power_spectrum(Q):
     """transform spectrum to complex vectors with unit length 
@@ -480,7 +483,37 @@ def low_pass_circle(I, r=0.50):
     R = np.sqrt(Fx**2 + Fy**2) # radius
     # filter formulation 
     W = R<=r
-    return W 
+    return W
+
+
+def low_pass_ellipse(I, r1=0.50, r2=0.50):
+    """ create hard low-pass filter
+
+    Parameters
+    ----------
+    I : np.array, size=(m,n)
+        array with intensities
+    r1 : float, default=0.5
+        radius of the ellipse along the first axis, r=.5 is same as its width
+    r2 : float, default=0.5
+        radius of the ellipse along the second axis
+
+    Returns
+    -------
+    W : np.array, size=(m,n), dtype=bool
+        weighting mask
+
+    See Also
+    --------
+    raised_cosine, cosine_bell, high_pass_circle, low_pass_circle
+    """
+    sc = r1/r2
+    assert type(I) == np.ndarray, ("please provide an array")
+    Fx, Fy = make_fourier_grid(I, indexing='xy', system='normalized')
+    R = np.sqrt((sc*Fx) ** 2 + Fy ** 2)  # radius
+    # filter formulation
+    W = R <= r1
+    return W
 
 def high_pass_circle(I, r=0.50):
     """ create hard high-pass filter

@@ -4,8 +4,8 @@ from osgeo import ogr, osr, gdal
 
 import geopandas
 
-def get_bbox_from_path_row(path, row, \
-                           shp_dir='/Users/Alten005/surfdrive/Eratosthenes/SatelliteTiles', \
+def get_bbox_from_path_row(path, row,
+                           shp_dir='/Users/Alten005/surfdrive/Eratosthenes/SatelliteTiles',
                            shp_name='wrs2_descending.shp'):
     path,row = int(path), int(row)
     shp_path = os.path.join(shp_dir,shp_name)
