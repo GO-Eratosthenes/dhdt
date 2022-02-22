@@ -7,7 +7,7 @@ from eratosthenes.generic.mapping_io import read_geo_image
 from eratosthenes.generic.handler_im import bilinear_interpolation
 from eratosthenes.generic.mapping_tools import pix2map, pol2cart
 
-from eratosthenes.preprocessing.read_sentinel2 import \
+from eratosthenes.input.read_sentinel2 import \
     read_view_angles_s2, read_detector_mask, list_central_wavelength_s2
 from eratosthenes.preprocessing.image_transforms import mat_to_gray
 from eratosthenes.preprocessing.shadow_geometry import \

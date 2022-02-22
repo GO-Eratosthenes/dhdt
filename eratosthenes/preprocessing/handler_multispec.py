@@ -5,8 +5,8 @@ from osgeo import gdal, osr
 from ..generic.handler_im import get_image_subset
 from ..generic.mapping_tools import ref_trans, pix2map
 from ..generic.mapping_io import read_geo_image
-from .read_sentinel2 import read_band_s2, read_sun_angles_s2
-from .read_rapideye import read_band_re
+from eratosthenes.input.read_sentinel2 import read_band_s2, read_sun_angles_s2
+from ..input.read_rapideye import read_band_re
 from .shadow_transforms import enhance_shadow
 
 def create_shadow_image(dat_path, im_name, shadow_transform='ruffenacht', \

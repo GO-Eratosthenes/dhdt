@@ -7,8 +7,8 @@ import pandas as pd
 
 import geopandas
 
-def get_bbox_from_tile_code(tile_code, \
-                            shp_dir='/Users/Alten005/surfdrive/Eratosthenes/SatelliteTiles', \
+def get_bbox_from_tile_code(tile_code,
+                            shp_dir='/Users/Alten005/surfdrive/Eratosthenes/SatelliteTiles',
                             shp_name='sentinel2_tiles_world.shp'):
     tile_code = tile_code.upper()
     shp_path = os.path.join(shp_dir,shp_name)
@@ -18,7 +18,7 @@ def get_bbox_from_tile_code(tile_code, \
     toi = mgrs[mgrs['Name']==tile_code]
     return toi
 
-def get_array_from_xml(treeStruc):  # generic
+def get_array_from_xml(treeStruc):
     """
     Arrays within a xml structure are given line per line
     Output is an array
@@ -115,14 +115,22 @@ def meta_S2string(S2str):
     'T15MXV'
     """
     assert type(S2str)==str, ("please provide a string")
-    assert S2str[0:2]=='S2', ("please provide a Sentinel-2 file string")
-    S2split = S2str.split('_')
-    S2time = S2split[2][0:8]
+
+    if S2str[0:2]=='S2': # some have info about orbit and sensor
+        S2split = S2str.split('_')
+        S2time = S2split[2][0:8]
+        S2orbit = S2split[4]
+        S2tile = S2split[5]
+    elif S2str[0:1]=='T': # others have no info about orbit, sensor, etc.
+        S2split = S2str.split('_')
+        S2time = S2split[1][0:8]
+        S2tile = S2split[0]
+        S2orbit = None
+    else:
+        assert True, "please provide a Sentinel-2 file string"
     # convert to +YYYY-MM-DD string
     # then it can be in the meta-data of following products
-    S2time = '+' + S2time[0:4] +'-'+ S2time[4:6] +'-'+ S2time[6:8]
-    S2orbit = S2split[4]
-    S2tile = S2split[5]
+    S2time = '+' + S2time[0:4] + '-' + S2time[4:6] + '-' + S2time[6:8]
     return S2time, S2orbit, S2tile
 
 def get_S2_folders(im_path):

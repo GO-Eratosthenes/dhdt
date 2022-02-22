@@ -263,4 +263,28 @@ def cauchy_filtering(y,thres=2.385,preproc='normal'):
     IN = w<thres
     return IN
     
+def normalized_sampling_histogram(I):
+    """ sample histogram based upon Sturges' rule
 
+    Parameters
+    ----------
+    I : np.array, dim={1,n}, dtype={integer,float}
+
+    Returns
+    -------
+    values : np.array, size=(m)
+        occurances within an interval
+    base : np.array, size=(m)
+        central value of the interval
+
+    References
+    ----------
+    .. [1] Sturges, "The choice of a class interval". Journal of the american
+       statistical association. vol.21(153) pp.65–66.
+    """
+    sturge = 1.6 * (np.log2(I.size) + 1)
+    values, base = np.histogram(I.flatten(),
+                                bins=int(np.ceil(sturge)))
+    # transform to centers
+    base = base[:-1] + np.diff(base)
+    return values, base

@@ -1,6 +1,8 @@
 import os
 import numpy as np
 
+from scipy import ndimage
+
 from osgeo import ogr, osr, gdal
 
 def create_crs_from_utm_number(utm_code):
@@ -135,6 +137,11 @@ def shape2raster(shp_fname,im_fname,geoTransform,rows,cols,aoi='RGIId'):
     #main conversion method
     gdal.RasterizeLayer(rgiRaster, [1], rgiLayer, options=['ATTRIBUTE='+aoi])
     rgiRaster = None # missing link.....
+
+def get_mask_boundary(Msk):
+    inner = ndimage.morphology.binary_erosion(Msk)
+    Bnd = np.logical_xor(Msk, inner)
+    return Bnd
 
 def reproject_shapefile(path, in_file, targetprj):
     """ transforms shapefile into other projection

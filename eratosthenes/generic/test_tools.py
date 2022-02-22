@@ -39,6 +39,23 @@ def create_sample_image_pair(d=2**7, max_range=1, integer=False):
          * otherwise : float
     im1 : np.array, size=(512,512), dtype=float
         image in full resolution.
+
+    Notes
+    -----
+    The following coordinate system is used here:
+
+        .. code-block:: text
+
+          indexing   |
+          system 'ij'|
+                     |
+                     |       j
+             --------+-------->
+                     |
+                     |
+          image      | i
+          based      v
+
     """
     im1 = data.astronaut()
     im1 = mat_to_gray(im1[:,:,0], im1[:,:,0]==0)
@@ -67,17 +84,17 @@ def create_sample_image_pair(d=2**7, max_range=1, integer=False):
     im1_same = im1[mI//2-d:mI//2+d,nI//2-d:nI//2+d]
     return im1_same, im2, random_di, random_dj, im1
 
-def create_sheared_image_pair(d=2**7,sh_x=0.00, sh_y=0.00, max_range=1):
+def create_sheared_image_pair(d=2**7,sh_i=0.00, sh_j=0.00, max_range=1):
     """ create an image pair with random offset and shearing
 
     Parameters
     ----------
     d : integer, range=0...256
         radius of the template. The default is 2**7.
-    sh_x : float, unit=image
+    sh_j : float, unit=image
         horizontal shear to apply, scalar is based on the image width, ranging
         from -1...1 .
-    sh_y : float, unit=image
+    sh_i : float, unit=image
         vertical shear to apply, scalar is based on the image width, ranging
         from -1...1 .
     max_range : float
@@ -98,9 +115,25 @@ def create_sheared_image_pair(d=2**7,sh_x=0.00, sh_y=0.00, max_range=1):
 
     Notes
     -----
+    The following coordinate system is used here:
+
     .. code-block:: text
 
-            sh_x = 0         sh_x > 0
+      indexing   |
+      system 'ij'|
+                 |
+                 |       j
+         --------+-------->
+                 |
+                 |
+      image      | i
+      based      v
+
+    The shear is applied in the following manner:
+
+    .. code-block:: text
+
+            sh_j = 0         sh_j > 0
             +--------+      +--------+
             |        |     /        /
             |        |    /        /
@@ -108,6 +141,8 @@ def create_sheared_image_pair(d=2**7,sh_x=0.00, sh_y=0.00, max_range=1):
             |        |  /        /
             +--------+ +--------+
 
+    The shear parameter is based upon a centered unit image domain, that is, the
+    image extent spans -1...+1
     """
     scalar_mul = 2*np.minimum(d // 2, max_range)
 
@@ -118,10 +153,12 @@ def create_sheared_image_pair(d=2**7,sh_x=0.00, sh_y=0.00, max_range=1):
     im1 = mat_to_gray(im1[:,:,0], im1[:,:,0]==0)
     (mI,nI) = im1.shape
 
-    A = np.array([[1, sh_x], [sh_y, 1]]) # transformation matrix
+    A = np.array([[1, sh_i], [sh_j, 1]]) # transformation matrix
     (mI,nI) = im1.shape
 
-    (grd_i1,grd_j1) = np.meshgrid(np.linspace(-1, 1, mI), np.linspace(-1, 1, nI))
+    (grd_i1,grd_j1) = np.meshgrid(np.linspace(-1, 1, mI),
+                                  np.linspace(-1, 1, nI),
+                                  indexing='ij')
 
     stk_1 = np.vstack( (grd_i1.flatten(), grd_j1.flatten()) ).T
 
@@ -134,11 +171,12 @@ def create_sheared_image_pair(d=2**7,sh_x=0.00, sh_y=0.00, max_range=1):
     grd_i2 += random_di/mI
     grd_j2 += random_dj/nI
 
-    # do shearing
+    # do sheared interpolation
     im2 = griddata(stk_1, im1.flatten().T,
-                   (grd_i2[d:-d,d:-d],grd_j2[d:-d,d:-d]),
+                   (grd_i2[mI//2-d:mI//2+d,nI//2-d:nI//2+d],
+                    grd_j2[mI//2-d:mI//2+d,nI//2-d:nI//2+d]),
                    method='cubic')
-    im1_same = im1[d:-d,d:-d]
+    im1_same = im1[mI//2-d:mI//2+d,nI//2-d:nI//2+d]
     return im1_same, im2, random_di, random_dj, im1
 
 def create_scaled_image_pair(d=2**7,sc_x=1.00, sc_y=1.00, max_range=1):

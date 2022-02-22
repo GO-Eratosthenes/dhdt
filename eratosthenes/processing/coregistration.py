@@ -11,13 +11,13 @@ from .matching_tools_differential import simple_optical_flow
 from .network_tools import getNetworkIndices, getNetworkBySunangles, \
     getAdjacencyMatrixFromNetwork
 from .coupling_tools import match_pair
-from ..preprocessing.read_sentinel2 import read_view_angles_s2
+from eratosthenes.input.read_sentinel2 import read_view_angles_s2
 from ..generic.mapping_tools import cast_orientation, rot_mat
 from ..generic.filtering_statistical import mad_filtering
-from ..preprocessing.read_sentinel2 import read_sun_angles_s2
+from eratosthenes.input.read_sentinel2 import read_sun_angles_s2
 
 
-def coregister_to_shading(shadow,): # wip
+def coregister_to_shading(shadow,): # todo
 
     # does shading exist
 

@@ -3,13 +3,13 @@ import numpy as np
 from scipy import fftpack
 
 from .matching_tools import \
-    get_integer_peak_location, reposition_templates_from_center, \
-    make_templates_same_size
+    reposition_templates_from_center, make_templates_same_size, \
+    get_integer_peak_location
 from .matching_tools_frequency_filters import \
     raised_cosine, thresh_masking, normalize_power_spectrum, gaussian_mask
 
 # general frequency functions
-def create_complex_DCT(I, C_c, C_s):  #wip
+def create_complex_DCT(I, C_c, C_s):  #todo
     C_cc,C_ss = C_c*I*C_c.T, C_s*I*C_s.T
     C_sc,C_cs = C_s*I*C_c.T, C_c*I*C_s.T
 
@@ -26,7 +26,26 @@ def create_complex_fftpack_DCT(I):
     C = (C_cc - C_ss) - 1j*(C_cs + C_sc)
     return C
 
-def get_cosine_matrix(I,N=None): #wip
+def get_cosine_matrix(I,N=None): #todo
+    """ create matrix with a cosine-basis
+
+    Parameters
+    ----------
+    I : np.array, size=(m,n)
+        array with intensities
+    N : integer
+        amount of sine basis, if "None" is given "m" is used to create a square
+        matrix
+
+    Returns
+    -------
+    C : np.array, size=(m,N)
+        cosine matrix
+
+    See Also
+    --------
+    get_sine_matrix, create_complex_DCT, cosine_corr
+    """
     (L,_) = I.shape
     if N==None:
         N = np.copy(L)
@@ -40,7 +59,26 @@ def get_cosine_matrix(I,N=None): #wip
                     np.cos(np.divide(np.pi*k*(1/2+n), L, out=np.zeros_like(L), where=L!=0))
     return(C)
 
-def get_sine_matrix(I,N=None): #wip
+def get_sine_matrix(I,N=None): #todo
+    """ create matrix with a sine-basis
+
+    Parameters
+    ----------
+    I : np.array, size=(m,n)
+        array with intensities
+    N : integer
+        amount of sine basis, if "None" is given "m" is used to create a square
+        matrix
+
+    Returns
+    -------
+    C : np.array, size=(m,N)
+        sine matrix
+
+    See Also
+    --------
+    get_cosine_matrix, create_complex_DCT, cosine_corr
+    """
     (L,_) = I.shape
     if N==None:
         # make a square matrix
@@ -161,8 +199,8 @@ def cosine_corr(I1, I2):
 
     Returns
     -------
-    Q : np.array, size=(m,n), dtype=complex
-        cross-spectrum
+    C : np.array, size=(m,n), dtype=real
+        displacement surface
 
     See Also
     --------
@@ -176,8 +214,8 @@ def cosine_corr(I1, I2):
     assert type(I1)==np.ndarray, ('please provide an array')
     assert type(I2)==np.ndarray, ('please provide an array')
 
-    # construct cosine and sine basis matrices
-    Cc, Cs = get_cosine_matrix(I1), get_sine_matrix(I1)
+#    # construct cosine and sine basis matrices
+#    Cc, Cs = get_cosine_matrix(I1), get_sine_matrix(I1)
 
     if I1.ndim==3: # multi-spectral frequency stacking
         bands = I1.shape[2]
@@ -206,14 +244,26 @@ def cosine_corr(I1, I2):
         # C1 = create_complex_DCT(I1sub, Cc, Cs)
         # C2 = create_complex_DCT(I2sub, Cc, Cs)
         Q = (C1)*np.conj(C2)
-        Q = normalize_power_spectrum(Q)
-        C = np.fft.fftshift(np.real(np.fft.ifft2(Q)))
+        Qn = normalize_power_spectrum(Q)
+        C = np.fft.fftshift(np.real(np.fft.ifft2(Qn)))
     return C
 
-def masked_cosine_corr(I1, I2, M1, M2): # wip
-    '''
-    work in progress
-    '''
+def masked_cosine_corr(I1, I2, M1, M2): #todo
+    """
+
+    Parameters
+    ----------
+    I1 : np.array, size=(m,n), ndim=2
+        array with intensities
+    I2 : np.array, size=(m,n), ndim=2
+        array with intensities
+    M1 : np.array, size=(m,n), ndim=2, dtype={bool,float}
+        array with mask
+    M2 : np.array, size=(m,n), ndim=2, dtype={bool,float}
+        array with mask
+
+
+    """
     assert type(I1)==np.ndarray, ('please provide an array')
     assert type(I2)==np.ndarray, ('please provide an array')
     assert type(M1)==np.ndarray, ('please provide an array')
@@ -368,7 +418,7 @@ def projected_phase_corr(I1, I2, M1=np.array(()), M2=np.array(())):
 
     Returns
     -------
-    C : np.array, size=(m,n), real
+    C : np.array, size=(m,n), dtype=real
         displacement surface
 
     References
@@ -1235,4 +1285,4 @@ def masked_corr(I1, I2, M1=np.array(()), M2=np.array(())):
     NCC = np.divide(NCC_num, NCC_den,
                     out=np.zeros_like(NCC_den),
                     where=np.abs(NCC_den)!=0 )
-    return NCC
+    return np.real(NCC)

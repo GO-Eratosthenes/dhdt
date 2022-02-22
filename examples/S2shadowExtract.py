@@ -1,29 +1,18 @@
 import os
 import glob
 import numpy as np
-import matplotlib.pyplot as plt
-
-from scipy import interpolate
-from scipy import ndimage  # for image filtering
-from skimage import transform
-from skimage import measure
-
-
-from osgeo import ogr, osr, gdal
 
 from eratosthenes.generic.handler_s2 import meta_S2string
 from eratosthenes.generic.handler_www import bulk_download_and_mosaic, reduce_duplicate_urls
 from eratosthenes.generic.mapping_io import makeGeoIm, read_geo_image, read_geo_info
 from eratosthenes.generic.mapping_tools import get_bbox_polygon, find_overlapping_DEM_tiles
-from eratosthenes.generic.mapping_tools import get_bbox, map2pix, pix_centers, pix2map
+from eratosthenes.generic.mapping_tools import get_bbox, map2pix
 from eratosthenes.generic.mapping_tools import bilinear_interp_excluding_nodat
 from eratosthenes.generic.gis_tools import ll2utm, shape2raster, reproject_shapefile
 
 from eratosthenes.preprocessing.handler_multispec import create_shadow_image
-from eratosthenes.preprocessing.handler_multispec import create_caster_casted_list_from_polygons
-from eratosthenes.preprocessing.handler_rgi import which_rgi_region
-from eratosthenes.preprocessing.shadow_geometry import shadow_image_to_list, create_shadow_polygons, make_shadowing, draw_shadow_polygons
-from eratosthenes.preprocessing.read_sentinel2 import read_sun_angles_s2, read_mean_sun_angles_s2
+from eratosthenes.auxilary.handler_rgi import which_rgi_region
+from eratosthenes.preprocessing.shadow_geometry import shadow_image_to_list, create_shadow_polygons, make_shadowing
 
 from eratosthenes.processing.coregistration import coregister, get_coregistration, getNetworkBySunangles
 from eratosthenes.processing.coupling_tools import couple_pair
