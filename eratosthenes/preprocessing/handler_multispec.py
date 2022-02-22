@@ -7,7 +7,7 @@ from ..generic.mapping_tools import ref_trans, pix2map
 from ..generic.mapping_io import read_geo_image
 from eratosthenes.input.read_sentinel2 import read_band_s2, read_sun_angles_s2
 from ..input.read_rapideye import read_band_re
-from .shadow_transforms import enhance_shadow
+from .shadow_transforms import apply_shadow_transform
 
 def create_shadow_image(dat_path, im_name, shadow_transform='ruffenacht', \
                         bbox=(0, 0, 0, 0), Shw=None):
