@@ -594,7 +594,7 @@ def find_polygon_intersect(ridge_i,ridge_j,polygoon,sun_az,sun_zn,
                                [ridge_j - (np.sin(np.radians(sun_az)) * 1e4),
                                 ridge_i + (np.cos(np.radians(sun_az)) * 1e4)]])
     except IndexError:
-        continue
+        return
     try:
         castEnd = polygoon.intersection(castLine)
     except TopologicalError:

@@ -598,8 +598,9 @@ def normalized_difference_water_index(Green, Near):
     assert type(Near)==np.ndarray, ('please provide an array')
     assert type(Green)==np.ndarray, ('please provide an array')
     assert Green.shape[:2] == Near.shape[:2],('arrays should be of equal size')
-
-    NDWI = np.divide( (Green - Near), (Green + Near))
+    denom = (Green + Near)
+    NDWI = np.divide( (Green - Near), denom,
+                      out=np.zeros_like(denom), where=denom!=0)
     return NDWI
 
 def normalized_difference_blue_water_index(Blue, Near):
@@ -633,7 +634,9 @@ def normalized_difference_blue_water_index(Blue, Near):
     assert type(Blue)==np.ndarray, ('please provide an array')
     assert Blue.shape[:2] == Near.shape[:2],('arrays should be of equal size')
 
-    NDBWI = np.divide( (Blue - Near), (Blue + Near))
+    denom = (Blue + Near)
+    NDBWI = np.divide( (Blue - Near), denom,
+                      out=np.zeros_like(denom), where=denom!=0)
     return NDBWI
 
 def combinational_shadow_index(Blue,Green,Red,Near):
