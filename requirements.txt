@@ -9,3 +9,4 @@ Pillow
 pycairo
 shapely
 statsmodels
+git+https://github.com/GO-Eratosthenes/morphsnakes@albedo-included
