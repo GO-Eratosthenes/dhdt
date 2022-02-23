@@ -561,7 +561,7 @@ def list_occluder_and_casted(labels, sunZn, sunAz, geoTransform):
                                               sunAz[ridgeI[idx]][ridgeJ[idx]],
                                               sunZn[ridgeI[idx]][ridgeJ[idx]],
                                               geoTransform)
-            castList.append(castLine)
+            if castLine is not None: castList.append(castLine)
             del castLine
     return castList
 
