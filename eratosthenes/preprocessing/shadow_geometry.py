@@ -293,8 +293,8 @@ def find_valley(values, base, neighbors=2):
     quantiles = cumsum_norm[selec]
     return dips, quantiles
 
-def shadow_image_to_list(M, geoTransform, sen2Path, inputArg,
-                         Zn=None, Az=None):
+def shadow_image_to_list(M, geoTransform, sen2Path,
+                         Zn=None, Az=None, **kwargs):
     """
     Turns the image towards the sun, and looks along each solar ray, hereafter
     the caster and casted locations are written to a txt-file
@@ -316,7 +316,7 @@ def shadow_image_to_list(M, geoTransform, sen2Path, inputArg,
         Zn, Az = read_mean_sun_angles_s2(sen2Path)
 
     # turn towards the sun
-    M_rot = ndimage.rotate(M, 180-Az,
+    M_rot = ndimage.rotate(M.astype(float), 180-Az,
                            axes=(1, 0), reshape=True, output=None,
                            order=3, mode='constant', cval=-9999)
 
@@ -349,31 +349,35 @@ def shadow_image_to_list(M, geoTransform, sen2Path, inputArg,
             (shade_beg, ) = np.where(shade_node[2::]==+1)
             (shade_end, ) = np.where(shade_node[1::]==-1)
 
-        if len(shade_beg)!=0:
-            # coordinate transform, not image transform (loss of points)
-            col_idx = k*np.ones(shade_beg.size, dtype=np.int32)
-            x_beg = X_rot[shade_beg, col_idx] #index seems shifted...?
-            x_end = X_rot[shade_end, col_idx]
-            y_beg = Y_rot[shade_beg, col_idx]
-            y_end = Y_rot[shade_end, col_idx]
+#        (shade_A, ) = np.where(shade_node[2::]==+1)
+#        (shade_B, ) = np.where(shade_node[1::]==-1)
+#        shade_beg = np.minimum(shade_A, shade_B)
+#        shade_end = np.maximum(shade_A, shade_B)
 
-            suntrace_list = np.vstack((suntrace_list ,
-                                       np.transpose(np.vstack(
-                                           (x_beg[np.newaxis],
-                                            y_beg[np.newaxis],
-                                            x_end[np.newaxis],
-                                            y_end[np.newaxis] )) ) ))
+        if len(shade_beg)==0: continue
+
+        # coordinate transform, not image transform (loss of points)
+        col_idx = k*np.ones(shade_beg.size, dtype=np.int32)
+        # index seems shifted...?
+        x_beg, x_end = X_rot[shade_beg, col_idx], X_rot[shade_end, col_idx]
+        y_beg, y_end = Y_rot[shade_beg, col_idx], Y_rot[shade_end, col_idx]
+
+        suntrace_list = np.vstack((suntrace_list ,
+                                   np.transpose(np.vstack(
+                                       (x_beg[np.newaxis], y_beg[np.newaxis],
+                                        x_end[np.newaxis], y_end[np.newaxis] ))
+                                               ) ))
 
     # remove out of image sun traces
     OUT = np.any(suntrace_list==-9999, axis=1)
-
+    suntrace_list = suntrace_list[~OUT,:]
     # find azimuth and elevation at cast location
     (sunZn,sunAz) = read_sun_angles_s2(sen2Path)
-    if inputArg['bbox'] is not None:
-        sunZn = sunZn[inputArg['bbox'][0]:inputArg['bbox'][1],
-                      inputArg['bbox'][2]:inputArg['bbox'][3]]
-        sunAz = sunAz[inputArg['bbox'][0]:inputArg['bbox'][1],
-                      inputArg['bbox'][2]:inputArg['bbox'][3]]
+    if kwargs['bbox'] is not None:
+        sunZn = sunZn[kwargs['bbox'][0]:kwargs['bbox'][1],
+                      kwargs['bbox'][2]:kwargs['bbox'][3]]
+        sunAz = sunAz[kwargs['bbox'][0]:kwargs['bbox'][1],
+                      kwargs['bbox'][2]:kwargs['bbox'][3]]
     (iC,jC) = map2pix(geoTransform,
                       suntrace_list[:,0].copy(), suntrace_list[:,1].copy())
     iC, jC = np.round(iC).astype(int), np.round(jC).astype(int)
@@ -383,7 +387,7 @@ def shadow_image_to_list(M, geoTransform, sen2Path, inputArg,
     sun_angles = np.transpose(np.vstack((sunAz[iC,jC], sunZn[iC,jC])))
 
     # write to file
-    f = open(sen2Path + 'conn.txt', 'w')
+    f = open(os.path.join(sen2Path, 'conn.txt'), 'w')
 
     for k in range(suntrace_list.shape[0]):
         line = '{:+8.2f}'.format(suntrace_list[k,0]) + ' '

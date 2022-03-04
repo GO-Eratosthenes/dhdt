@@ -9,40 +9,26 @@ import numpy as np
 from sklearn.neighbors import NearestNeighbors
 from skimage import measure
 
-from ..generic.mapping_tools import map2pix, pix2map, rot_mat, \
-    cast_orientation, ref_trans
-from ..generic.mapping_io import read_geo_image
+from ..generic.mapping_tools import pix2map, cast_orientation, ref_trans, \
+    aff_trans_template_coord, rot_trans_template_coord
+from ..generic.mapping_io import read_geo_image, read_geo_info
 from ..generic.handler_im import bilinear_interpolation, select_boi_from_stack
 
-from eratosthenes.input.read_sentinel2 import read_sun_angles_s2
+from ..input.read_sentinel2 import \
+    read_sun_angles_s2, get_local_bbox_in_s2_tile
 
 from .matching_tools import \
     pad_images_and_filter_coord_list, pad_radius, get_integer_peak_location
 from .matching_tools_organization import \
     match_translation_of_two_subsets, estimate_subpixel, \
-    estimate_translation_of_two_subsets
-from .matching_tools_frequency_filters import \
-    perdecomp, thresh_masking
-from .matching_tools_frequency_correlators import \
-    cosi_corr, phase_only_corr, symmetric_phase_corr, amplitude_comp_corr, \
-    orientation_corr, phase_corr, cross_corr, masked_cosine_corr, \
-    binary_orientation_corr, masked_corr, robust_corr, windrose_corr, \
-    gaussian_transformed_phase_corr, upsampled_cross_corr, \
-    projected_phase_corr
-from .matching_tools_frequency_subpixel import \
-    phase_tpss, phase_svd, phase_radon, phase_hough, phase_ransac, \
-    phase_weighted_pca, phase_pca, phase_lsq, phase_difference
+    estimate_translation_of_two_subsets, list_frequency_correlators, \
+    list_spatial_correlators, list_peak_estimators, list_phase_estimators
 from .matching_tools_differential import \
     affine_optical_flow, simple_optical_flow
-from .matching_tools_spatial_correlators import \
-    normalized_cross_corr, sum_sq_diff, sum_sad_diff, cumulative_cross_corr
-from .matching_tools_spatial_subpixel import \
-    get_top_gaussian, get_top_parabolic, get_top_moment, \
-    get_top_mass, get_top_centroid, get_top_blais, get_top_ren, \
-    get_top_birchfield, get_top_equiangular, get_top_triangular, \
-    get_top_esinc, get_top_paraboloid, get_top_2d_gaussian
 from .matching_tools_binairy_boundaries import \
     beam_angle_statistics, cast_angle_neighbours, neighbouring_cast_distances
+from ..postprocessing.mapping_io import casting_pairs_mat2shp
+
 
 # simple image matching
 def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
@@ -81,14 +67,15 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
                   'orie_corr', 'mask_corr', 'bina_phas', 'wind_corr',\
                   'gaus_phas', 'upsp_corr', 'cros_corr', 'robu_corr',\
                   'lucas_kan', 'lucas_aff'}
-        Specifies which matching method to apply, see XXX\
-        for more information
+        Specifies which matching method to apply, see
+        "list_spatial_correlators", "list_frequency_correlators" or
+        "list_differential_correlators" for more information
     subpix : {'tpss' (default), 'svd', 'radon', 'hough', 'ransac', 'wpca',\
               'pca', 'lsq', 'diff', 'gauss_1', 'parab_1', 'moment', 'mass',\
               'centroid', 'blais', 'ren', 'birch', 'eqang', 'trian', 'esinc',\
               'gauss_2', 'parab_2', 'optical_flow'}
-        Method used to estimate the sub-pixel location, see XXX\
-        for more information
+        Method used to estimate the sub-pixel location, see
+        "list_peak_estimators", list_phase_estimators" for more information
     metric : {'peak_abs' (default), 'peak_ratio', 'peak_rms', 'peak_ener',
               'peak_nois', 'peak_conf', 'peak_entr'}
         Metric to be used to describe the matching score.
@@ -107,6 +94,14 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
         horizontal map coordinates of the refined matching centers of array M2
     Y2_grd : np.array, size=(k,l), type=float
         vertical map coordinates of the refined matching centers of array M2
+
+    See Also
+    --------
+    .matching_tools_organization.list_differential_correlators,
+    .matching_tools_organization.list_spatial_correlators,
+    .matching_tools_organization.list_frequency_correlators,
+    .matching_tools_organization.list_peak_estimators,
+    .matching_tools_organization.list_phase_estimators
     """
     # combating import loops
     from .matching_tools_organization import \
@@ -246,6 +241,183 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
         X2_grd,Y2_grd = np.squeeze(X2_grd), np.squeeze(Y2_grd)
     return X2_grd, Y2_grd, match_metric
 
+def couple_pair(file_1, file_2, bbox=None, rgi_id=None,
+                rect='metadata', prepro='bandpass',
+                match='wght_corr', boi=np.array([]),
+                temp_radius=7, search_radius = 22,
+                processing=None,
+                subpix='moment', metric='peak_entr'):
+    """ refine and couple two shadow images together
+
+    Parameters
+    ----------
+    file_1 : string
+        path to first image(ry)
+    file_2 : string
+        path to second image(ry)
+    bbox : {list, np.array}, size=(4,1)
+        bounding box of region of interest
+    rgi_id : string
+        code of the glacier of interest following the Randolph Glacier Inventory
+    rect : {"binary", "metadata", None}
+        rectify the imagery so shear and elongation is reduced, done by
+            * binary - asdsa
+            * metadata - estimate scale and shear from geometry and metadata
+            else: do not include affine corrections
+    prepro : string
+          #todo
+    match: {'norm_corr' (default), 'aff_of', 'cumu_corr', 'sq_diff',
+    'sad_diff', 'cosi_corr', 'phas_only', 'symm_phas', 'ampl_comp', 'orie_corr',
+    'mask_corr', 'bina_phas', 'wind_corr', 'gaus_phas', 'upsp_corr',
+    'cros_corr', 'robu_corr', 'lucas_kan', 'lucas_aff'}
+        Specifies which matching method to apply, see
+        "list_spatial_correlators", "list_frequency_correlators" or
+        "list_differential_correlators" for more information
+    boi : np.array
+        list of bands of interest
+    temp_radius: integer
+        amount of pixels from the center
+    search_radius: integer
+        amount of pixels from the center
+    processing : {"stacking", "shadow", None}
+        matching can be done on a single image pair, or by matching several
+        bands and combine the result (stacking)
+            * stacking - using multiple bands in the matching
+            * shadow - using the shadow transfrom in the given folder
+            else - using the image files provided in 'file1' & 'file2'
+    subpix : {'tpss' (default), 'svd', 'radon', 'hough', 'ransac', 'wpca',\
+              'pca', 'lsq', 'diff', 'gauss_1', 'parab_1', 'moment', 'mass',\
+              'centroid', 'blais', 'ren', 'birch', 'eqang', 'trian', 'esinc',\
+              'gauss_2', 'parab_2', 'optical_flow'}
+        Method used to estimate the sub-pixel location, see
+        "list_peak_estimators", list_phase_estimators" for more information
+
+    Returns
+    -------
+    post_1 : np.array, size=(k,2)
+        locations of shadow ridge at instance 1
+    post_2_corr : np.array, size=(k,2)
+        locations of shadow ridge at instance 2
+    casters : np.array, size=(k,2)
+        common point where the shadow originates
+    dh : np.array, size=(k,1)
+        elevation differences between "post_1" and "post_2_corr"
+    """
+    # admin
+    dir_im1, name_im1 = os.path.split(file_1)
+    dir_im2, name_im2 = os.path.split(file_2)
+
+    crs,geoTransform1,_,rows1,cols1,_ = read_geo_info(file_1)
+    _,geoTransform2,_,rows2,cols2,_ = read_geo_info(file_2)
+
+    if bbox is None:  bbox = get_local_bbox_in_s2_tile(fname_1, dir_im1)
+
+    # naming of the files
+    shw_fname = "shadow.tif"           # image with shadow transform / enhancement
+    label_fname = "labelPolygons.tif"  # numbered image with all the shadow polygons
+    if rgi_id == None:
+        conn_fname = "conn.txt"        # text file listing coordinates of shadow casting and casted points
+    else:
+        conn_fname = f"conn-rgi{rgi_id[0]:08d}.txt"
+    conn_1 = np.loadtxt(fname = os.path.join(dir_im1, conn_fname))
+    conn_2 = np.loadtxt(fname = os.path.join(dir_im2, conn_fname))
+
+    idxConn = pair_images(conn_1, conn_2) # connected list
+    caster = conn_1[idxConn[:,1],0:2]
+    # cast location in xy-coordinates
+    post_1 = conn_1[idxConn[:,1],2:4].copy()
+    post_2 = conn_2[idxConn[:,0],2:4].copy()
+
+    # output
+    #shp_name = os.path.join(dir_im1, 'pairs.shp')
+    #casting_pairs_mat2shp(post_1, caster, post_2, shp_name, crs)
+    # refine through feature descriptors
+    #todo
+    if match in ['feature']: # using the shadow polygons
+        L1 = read_geo_image(os.path.join(dir_im1, label_fname))[0]
+        L2 = read_geo_image(os.path.join(dir_im2, label_fname))[0]
+
+        # use polygon descriptors
+        #describ='NCD' # BAS
+        if subpix in ['CAN', 'NCD']: # sun angle needed?
+            (sun1_Zn,sun1_Az) = read_sun_angles_s2(file_1)
+            (sun2_Zn,sun2_Az) = read_sun_angles_s2(file_2)
+        else:
+            sun1_Az, sun2_Az = [], []
+
+        post_2_new, euc_score = match_shadow_ridge(L1, L2, sun1_Az, sun2_Az,
+                                                   geoTransform1, geoTransform2,
+                                                   post_1, post_2, subpix, K=10)
+    else: # refine through pattern matching
+        if rect in ['binary']: # get shadow classification if needed
+            L1 = read_geo_image(os.path.join(dir_im1, label_fname))[0]
+            L2 = read_geo_image(os.path.join(dir_im2, label_fname))[0]
+        else:
+            L1, L2 = np.ones((rows1,cols1)), np.ones((rows2,cols2))
+
+        if processing in ['shadow']:
+            I1 = read_geo_image(os.path.join(dir_im1, shw_fname), boi=boi)[0]
+            I2 = read_geo_image(os.path.join(dir_im2, shw_fname), boi=boi)[0]
+        elif processing in ['stacking']: # multi-spectral stacking
+            I1 = get_stack_out_of_dir(dir_im1,boi,bbox)[0]
+            I2 = get_stack_out_of_dir(dir_im2,boi,bbox)[0]
+        else: # load the files given
+            I1 = read_geo_image(file_1, boi=boi)[0]
+            I2 = read_geo_image(file_2, boi=boi)[0]
+
+        if (rect in ['binary']) | (prepro in ['sundir']): # get sun angles if needed
+            sun1_Az = read_sun_angles_s2(dir_im1)[1]
+            sun2_Az = read_sun_angles_s2(dir_im2)[1]
+            if bbox is not None: # clip when sub-set of imagery is used
+                sun1_Az = sun1_Az[bbox[0]:bbox[1], bbox[2]:bbox[3]]
+                sun2_Az = sun2_Az[bbox[0]:bbox[1], bbox[2]:bbox[3]]
+
+            if prepro in ['sundir']: # put emphasis on sun direction in the imagery
+                I1 = cast_orientation(I1, sun1_Az)
+                I2 = cast_orientation(I2, sun2_Az)
+        else:
+            sun1_Az, sun2_Az = [], []
+
+        if rect in ['metadata']:
+            az_1, az_2 = conn_1[idxConn[:, 1], 4], conn_2[idxConn[:, 0], 4]
+            scale_12, simple_sh = get_shadow_rectification(caster,
+                                                           post_1, post_2,
+                                                           az_1, az_2)
+        else: # start with rigid displacement
+            scale_12 = np.ones((np.shape(post_1)[0]))
+            simple_sh = np.zeros((np.shape(post_1)[0]))
+
+        post_2_new, corr_score = match_shadow_casts(I1, I2, L1, L2,
+                                                   sun1_Az, sun2_Az,
+                                                   geoTransform1, geoTransform2,
+                                                   post_1, post_2,
+                                                   scale_12, simple_sh,
+                                                   temp_radius=temp_radius,
+                                                   search_radius=search_radius,
+                                                   reg=rect, prepro=prepro,
+                                                   correlator=match,
+                                                   subpix=subpix,
+                                                   metric='peak_abs')
+    post_1 = conn_1[idxConn[:,1],2:4] # cast location in xy-coordinates for t1
+    post_2 = conn_2[idxConn[:,0],2:4]
+    # extract elevation change
+    sun_1 = conn_1[idxConn[:,1],4:6]
+    sun_2 = conn_2[idxConn[:,0],4:6]
+
+    score = euc_score if match in ['feature'] else corr_score
+    #IN = euc_score<0.7 if match in ['feature'] else corr_score>0.8
+    #IN = IN.flatten()
+
+    #post_1, post_2_new = post_1[IN,:], post_2_new[IN,:]
+    #sun_1, sun_2 = sun_1[IN,:], sun_2[IN,:]
+    #caster = caster[IN,:]
+
+    caster_new = get_caster(sun_1[:,0], sun_2[:,0], post_1, post_2_new)
+
+    dh = get_elevation_difference(sun_1, sun_2, post_1, post_2, caster)
+    dh_new = get_elevation_difference(sun_1, sun_2, post_1, post_2_new, caster)
+    return post_1, post_2_new, caster, dh_new, score, caster_new, dh, post_2,crs
+
 def create_template_at_center(I, i,j, radius, filling='random'):
     """ get sub template of data array, at a certain location
 
@@ -382,236 +554,23 @@ def make_time_pairing(acq_time,
 
     return idx_1[idx_sort], idx_2[idx_sort], couple_dt[idx_sort]
 
-def couple_pair(file1, file2, bbox, co_name, co_reg, rgi_id=None,
-                reg='binary', prepro='bandpass', \
-                match='cosicorr', boi=np.array([4]), \
-                processing='stacking',\
-                subpix='tpss'):
-    """
+def pair_images(conn_1, conn_2, thres=20):
+    """ Find the closest correspnding points in two lists, within a certain
+    bound (given by thres)
 
+    Parameters
+    ----------
+    conn_1 : np.array, size=(k,>=2)
+        list with spatial coordinates or any other index
+    conn_2 : np.array, size=(k,>=2)
+        list with spatial coordinates or any other index
+    thres : {integer,float}
+        search range to consider
 
-    :param dat_path:    STRING
-        directory to dump results
-    :param fname1:      STRING
-        path to first image(ry)
-    :param fname2:      STRING
-        path to second image(ry)
-    :param bbox:        NP.ARRAY [4x1]
-    :param co_name:
-    :param co_reg:
-    :param rgi_id:      STRING
-        code of the glacier of interest following the Randolph Glacier Inventory
-    :param reg:         STRING
-        asdasdasd
-          :options : binary - asdsa
-                     metadata - estimate scale and shear from geometry
-                     and metadata
-               else: don't include affine corrections
-    :param prepro:
-          :options :
-    :param match:
-          :options : norm_corr - normalized cross correlation
-                     aff_of - affine optical flow
-                     cumu_corr - cumulative cross correlation
-                     sq_diff - sum of squared difference
-                     cosi_corr - cosicorr
-                     phas_only - phase only correlation
-                     symm_phas - symmetric phase correlation
-                     ampl_comp - amplitude compensation phase correlation
-                     orie_corr - orientation correlation
-                     mask_corr - masked normalized cross correlation
-                     bina_phas - binary phase correlation
-    :param boi:        NP.ARRAY
-        list of bands of interest
-    :param processing: STRING
-        matching can be done on a single image pair, or by matching several
-        bands and combine the result (stacking)
-          :options : stacking - using multiple bands in the matching
-                     shadow - using the shadow transfrom in the given folder
-          :else :    using the image files provided in 'file1' & 'file2'
-    :param subpix:     STRING
-        matching is done at pixel resolution, but subpixel localization is
-        possible to increase this resolution
-          :options : tpss -
-                     svd -
-                     gauss_1 - 1D Gaussian fitting
-                     parab_1 - 1D parabolic fitting
-                     weighted - weighted polynomial fitting
-                     optical_flow - optical flow refinement
-
-    :return post1:
-    :return post2_corr:
-    :return casters:
-    :return dh:
-    """
-
-    # get start and finish points of shadow edges
-    im1_dir, im1_name = os.path.split(file1)
-    im2_dir, im2_name = os.path.split(file2)
-
-    # naming of the files
-    shw_fname = "shadow.tif"           # image with shadow transform / enhancement
-    label_fname = "labelPolygons.tif"  # numbered image with all the shadow polygons
-    if rgi_id == None:
-        conn_fname = "conn.txt"        # text file listing coordinates of shadow casting and casted points
-    else:
-        conn_fname = f"conn-rgi{rgi_id[0]:08d}.txt"
-    conn1 = np.loadtxt(fname = os.path.join(im1_dir, conn_fname))
-    conn2 = np.loadtxt(fname = os.path.join(im2_dir, conn_fname))
-
-    # compensate for coregistration
-    if co_name == None:
-        print('no coregistration is used or applied')
-    else:
-        coid1,coid2 = co_name.index(im1_name), co_name.index(im2_name)
-        coDxy = co_reg[coid1]-co_reg[coid2]
-
-        conn2[:,0] += coDxy[0]*10 # OBS! transform to meters?
-        conn2[:,1] += coDxy[1]*10
-
-    idxConn = pair_images(conn1, conn2)
-    # connected list
-    casters = conn1[idxConn[:,1],0:2]
-    post1 = conn1[idxConn[:,1],2:4].copy() # cast location in xy-coordinates for t1
-    post2 = conn2[idxConn[:,0],2:4].copy() # cast location in xy-coordinates for t2
-    # caster2 = conn2[idxConn[:,0],0:2]
-
-    # refine through feature descriptors
-    if match in ['feature']: # using the shadow polygons
-
-
-        (L1, crs, geoTransform1, targetprj) = read_geo_image(
-                os.path.join(im1_dir, label_fname))
-        (L2, crs, geoTransform2, targetprj) = read_geo_image(
-                os.path.join(im2_dir, label_fname))
-
-        # use polygon descriptors
-        #describ='NCD' # BAS
-        if subpix in ['CAN', 'NCD']: # sun angle needed?
-            (sun1_Zn,sun1_Az) = read_sun_angles_s2(os.path.join(im1_dir, im1_name))
-            (sun2_Zn,sun2_Az) = read_sun_angles_s2(os.path.join(im2_dir, im1_name))
-
-        else:
-            sun1_Az, sun2_Az = [], []
-
-        post2_new, euc_score = match_shadow_ridge(L1, L2, sun1_Az, sun2_Az,
-                                              geoTransform1, geoTransform2,
-                                              post1, post2, subpix, K=10)
-    else:
-        # refine through pattern matching
-
-        if reg in ['binary']: # get shadow classification if needed
-            (L1, crs, geoTransform1, targetprj) = read_geo_image(
-                    os.path.join(im1_dir, label_fname))
-            (L2, crs, geoTransform2, targetprj) = read_geo_image(
-                    os.path.join(im2_dir, label_fname))
-        else:
-            L1, L2 = [], []
-
-        if processing in ['shadow']:
-            (M1, crs, geoTransform1, targetprj) = read_geo_image(
-                    os.path.join(im1_dir, shw_fname)) # shadow transform template
-            (M2, crs, geoTransform2, targetprj) = read_geo_image(
-                    os.path.join(im2_dir, shw_fname)) # shadow transform search space
-        elif processing in ['stacking']: # multi-spectral stacking
-
-            M1,geoTransform1 = get_stack_out_of_dir(im1_dir,boi,bbox)
-            M2,geoTransform2 = get_stack_out_of_dir(im2_dir,boi,bbox)
-        else: # load the files given
-            (M1, crs, geoTransform1, targetprj) = read_geo_image(
-                    os.path.join(im1_dir, im1_name))
-            (M2, crs, geoTransform2, targetprj) = read_geo_image(
-                    os.path.join(im2_dir, im2_name))
-
-        if (reg in ['binary']) | (prepro in ['sundir']): # get sun angles if needed
-            (sun1_Zn, sun1_Az) = read_sun_angles_s2(os.path.join(dat_path, fname1))
-            (sun2_Zn, sun2_Az) = read_sun_angles_s2(os.path.join(dat_path, fname2))
-            if bbox is not None: # clip when sub-set of imagery is used
-                sun1_Zn = sun1_Zn[bbox[0]:bbox[1], bbox[2]:bbox[3]]
-                sun1_Az = sun1_Az[bbox[0]:bbox[1], bbox[2]:bbox[3]]
-                sun2_Zn = sun2_Zn[bbox[0]:bbox[1], bbox[2]:bbox[3]]
-                sun2_Az = sun2_Az[bbox[0]:bbox[1], bbox[2]:bbox[3]]
-
-            if prepro in ['sundir']: # put emphasis on sun direction in the imagery
-                if M1.ndim==3: # multi-spectral
-                    for i in range(M1.ndim):
-                        M1[:,:,i] = castOrientation(M1[:,:,i],
-                                                    sun1_Az[bbox[0]:bbox[1], \
-                                                            bbox[2]:bbox[3]])
-                else:
-                    M1 = castOrientation(M1, sun1_Az[bbox[0]:bbox[1], \
-                                                     bbox[2]:bbox[3]])
-                if M2.ndim==3: # multi-spectral
-                    for i in range(M2.ndim):
-                        M2[:,:,i] = castOrientation(M2[:,:,i],
-                                                    sun2_Az[bbox[0]:bbox[1], \
-                                                            bbox[2]:bbox[3]])
-                else:
-                    M2 = castOrientation(M2, sun2_Az[bbox[0]:bbox[1], \
-                                                     bbox[2]:bbox[3]])
-        else:
-            sun1_Az, sun2_Az = [], []
-
-        if reg in ['metadata']:
-            # estimate relative scale of templates
-            # get planar distance between
-            dist_1 = np.sqrt((post1[:,0]-casters[:,0])**2 + \
-                             (post1[:,1]-casters[:,1])**2)
-            dist_2 = np.sqrt((post2[:,0]-casters[:,0])**2 + \
-                             (post2[:,1]-casters[:,1])**2)
-            scale_12 = np.divide(dist_2, dist_1)
-
-            # sometimes caster and casted are on the same location,
-            # causing very large scalings, just reduce this
-            scale_12[scale_12<.2] = 1.
-            scale_12[scale_12>5] = 1.
-
-
-            az_1, az_2 = conn1[idxConn[:,1],4], conn2[idxConn[:,0],4]
-            simple_sh = np.tan(np.radians(az_1-az_2))
-
-            #breakpoint()
-        else: # start with rigid displacement
-            scale_12 = np.ones((np.shape(post1)[0]))
-            simple_sh = np.zeros((np.shape(post1)[0]))
-
-        temp_radius=7
-        search_radius=22
-        post2_corr, corr_score = match_shadow_casts(M1, M2, L1, L2,
-                                                    sun1_Az, sun2_Az,
-                                                    geoTransform1, geoTransform2,
-                                                    post1, post2,
-                                                    scale_12, simple_sh,
-                                                    temp_radius, search_radius,
-                                                    reg, prepro,
-                                                    match, processing,
-                                                    subpix)
-    post1 = conn1[idxConn[:,1],2:4] # cast location in xy-coordinates for t1
-    post2 = conn2[idxConn[:,0],2:4]
-    # extract elevation change
-    sun_1 = conn1[idxConn[:,1],4:6]
-    sun_2 = conn2[idxConn[:,0],4:6]
-
-    if match in ['feature']:
-        IN = euc_score<0.7
-        post2_corr = post2_new[IN.flatten(),:]
-    else:
-        IN = corr_score>0.8
-        post2_corr = post2_corr[IN.flatten(),:]
-
-    post1 = post1[IN.flatten(),:]
-    post2 = post2[IN.flatten(),:]
-    sun_1 = sun_1[IN.flatten(),:]
-    sun_2 = sun_2[IN.flatten(),:]
-    casters = casters[IN.flatten(),:]
-
-    dh = get_elevation_difference(sun_1, sun_2, post1, post2_corr, casters)
-    return post1, post2_corr, casters, dh, crs
-
-def pair_images(conn1, conn2, thres=20):
-    """
-    Find the closest correspnding points in two lists,
-    within a certain bound (given by thres)
+    Returns
+    -------
+    idxConn : np.array, size=(l,2)
+        array of indices of pairs
 
     Example
     -------
@@ -619,15 +578,15 @@ def pair_images(conn1, conn2, thres=20):
     >>> import matplotlib.pyplot as plt
 
     >>> for p in range(1006,2020):
-    >>> plt.plot(np.array([conn1[idxConn[p,0],0], conn1[idxConn[p,0],2]]),
-                 np.array([conn1[idxConn[p,0],1], conn1[idxConn[p,0],3]]) )
-    >>> plt.plot(np.array([conn2[idxConn[p,1],0], conn1[idxConn[p,1],2]]),
-                 np.array([conn2[idxConn[p,1],1], conn1[idxConn[p,1],3]]) )
+    >>> plt.plot(np.array([conn_1[idxConn[p,0],0], conn_1[idxConn[p,0],2]]),
+                 np.array([conn_1[idxConn[p,0],1], conn_1[idxConn[p,0],3]]) )
+    >>> plt.plot(np.array([conn_2[idxConn[p,1],0], conn_1[idxConn[p,1],2]]),
+                 np.array([conn_2[idxConn[p,1],1], conn_1[idxConn[p,1],3]]) )
     >>> plt.show()
 
     """
-    nbrs = NearestNeighbors(n_neighbors=1, algorithm='auto').fit(conn1[:,0:2])
-    distances, indices = nbrs.kneighbors(conn2[:,0:2])
+    nbrs = NearestNeighbors(n_neighbors=1, algorithm='auto').fit(conn_1[:,0:2])
+    distances, indices = nbrs.kneighbors(conn_2[:,0:2])
     IN = distances<thres
     idxConn = np.transpose(np.vstack((np.where(IN)[0], indices[IN])))
     return idxConn
@@ -635,12 +594,9 @@ def pair_images(conn1, conn2, thres=20):
 def match_shadow_ridge(M1, M2, Az1, Az2, geoTransform1, geoTransform2,
                         xy1, xy2, describ='BAS', K=5):
 
-    M1,M2,i1,j1,i2,j2 = pad_images_and_filter_coord_list(M1, geoTransform1,
-                                                 M2, geoTransform2,
-                                                 np.vstack((xy1[:,0],xy2[:,0])).T,
-                                                 np.vstack((xy1[:,1],xy2[:,1])).T,
-                                                 K, 2*K,
-                                                 same=False)
+    M1,M2,i1,j1,i2,j2 = pad_images_and_filter_coord_list(M1,M2,
+         geoTransform1, geoTransform2, np.vstack((xy1[:,0],xy2[:,0])).T,
+         np.vstack((xy1[:,1],xy2[:,1])).T, K, 2*K, same=False)
 
     if describ in ['CAN', 'NCD']: # sun angles are needed
         Az1 = np.pad(Az1, K,'constant', constant_values=0)
@@ -738,8 +694,8 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
                        scale_12, simple_sh,
                        temp_radius=7, search_radius=22,
                        reg='binary', prepro='bandpass',
-                       correlator='cosicorr', subpix='tpss',
-                       metric='peak_noise'):
+                       correlator='cosicorr', subpix='moment',
+                       metric='peak_nois'):
     """
     Redirecting arrays to
 
@@ -784,101 +740,44 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
                   'orie_corr', 'mask_corr', 'bina_phas', 'wind_corr',\
                   'gaus_phas', 'upsp_corr', 'cros_corr', 'robu_corr'}
        Method to be used to do the correlation/similarity using either spatial
-       meassures:
-
-        * 'norm_corr' : normalized cross correlation
-        * 'aff_of' : affine optical flow
-        * 'cumu_corr' : cumulative cross correlation
-        * 'sq_diff' : sum of squared difference
-        * 'sad_diff' : sum of absolute difference
-
-        or frequency methods:
-
-        * 'cosi_corr' : coregistration of optically sensed images and correlation
-        * 'phas_only' : phase only correlation
-        * 'symm_phas' : symmetric phase only correlation
-        * 'ampl_comp' : amplitude compensated phase correlation
-        * 'orie_corr' : orientation correlation
-        * 'mask_corr' : fourier based masked normalized cross-correlation
-        * 'bina_phas' : binary phase only correlation
-        * 'wind_corr' : windrose correlation
-        * 'gaus_phas' : gaussian transformed phase correlation
-        * 'upsp_corr' : upsampled cross correlation
-        * 'cros_corr' : cross correlation
-        * 'robu_corr' : robust correlation
+       measures for the options see "list_spatial_correlators" and
+       "list_frequency_correlators"
     subpix : {'tpss' (default), 'svd', 'radon', 'hough', 'ransac', 'wpca',\
               'pca', 'lsq', 'diff', 'gauss_1', 'parab_1', 'moment', 'mass',\
               'centroid', 'blais', 'ren', 'birch', 'eqang', 'trian', 'esinc',\
               'gauss_2', 'parab_2', 'optical_flow'}
-        Method used to estimate the sub-pixel location, these are either based\
-        on the phase plane:
-
-        * 'tpss' : two point step size
-        * 'svd' : single value decomposition
-        * 'radon' : radon transform
-        * 'hough' : hough transform
-        * 'ransac' : random sampling and consensus
-        * 'wpca' : weighted principle component analysis
-        * 'pca' : principle component analysis
-        * 'lsq' : least squares estimation
-        * 'diff' : phase difference
-
-        or peak fitting of the similarity function:
-
-        * 'gauss_1' : 1D Gaussian fitting
-        * 'parab_1' : 1D parabolic fitting
-        * 'moment' :
-        * 'mass' : center of mass fitting
-        * 'centroid' : estimate the centroid
-        * 'blais' :
-        * 'ren' :
-        * 'birch' :
-        * 'eqang' :
-        * 'trian' : triangular fitting
-        * 'esinc' : esinc
-        * 'gauss_2' : 2D Gaussian fitting
-        * 'parab_2' : 2D parabolic fitting
-        * 'optical_flow' : optical flow refinement
+        Abbreviation for the sub-pixel localization to be used, for the options
+        see "list_phase_estimators" and "list_peak_estimators"
     metric : {'peak_abs' (default), 'peak_ratio', 'peak_rms', 'peak_ener',
               'peak_nois', 'peak_conf', 'peak_entr'}
-        Metric to be used to describe the matching score, the following can be
-        chosen from:
-
-        * 'peak_abs' : the absolute score
-        * 'peak_ratio' : the primary peak ratio i.r.t. the second peak
-        * 'peak_rms' : the peak ratio i.r.t. the root mean square error
-        * 'peak_ener' : the peaks' energy
-        * 'peak_noise' : the peak reation i.r.t. to the noise
-        * 'peak_conf' : the peak confidence
-        * 'peak_entr' : the peaks' entropy
+        Abbreviation for the metric type to be calculated, for the options see
+        "list_matching_metrics" for the options
 
     Returns
     -------
     xy2_corr : np.array, size=(_,2), type=float
         map coordinates of the refined matching centers of array M2
     xy2_corr : np.array, size=(_,2), type=float
-        associtaed scoring metric of xy2_corr
+        associated scoring metric of xy2_corr
     """
-    correlator,subpix = correlator.lower(), subpix.lower()
-
+    correlator, subpix = correlator.lower(), subpix.lower()
     frequency_based = list_frequency_correlators()
-    peak_calc = list_spatial_correlators()
+    spatial_based = list_spatial_correlators()
 
     # some sub-pixel methods use the peak of the correlation surface,
     # while others need the phase of the cross-spectrum
-    phase_based = list_phase_estimators()
-    peak_based = list_peak_estimators()
+    phase_based, peak_based = list_phase_estimators(), list_peak_estimators()
 
     if correlator=='aff_of': # optical flow needs to be of the same size
         search_radius = np.copy(temp_radius)
 
-    M1,M2,i1,j1,i2,j2 = pad_images_and_filter_coord_list(M1, geoTransform1, \
-                                                     M2, geoTransform2,\
-                                                     np.vstack((xy1[:,0],xy2[:,0])).T, \
-                                                     np.vstack((xy1[:,1],xy2[:,1])).T, \
-                                                     temp_radius, \
-                                                     search_radius,\
-                                                     same=False)
+    M1,M2,i1,j1,i2,j2,IN = pad_images_and_filter_coord_list(M1, M2,
+         geoTransform1, geoTransform2, np.vstack((xy1[:,0],xy2[:,0])).T,
+         np.vstack((xy1[:,1],xy2[:,1])).T, temp_radius, search_radius,
+         same=False)
+    L1,L2 = pad_radius(L1, temp_radius), pad_radius(L2, temp_radius)
+    geoTransformPad2 = ref_trans(geoTransform2, -search_radius, -search_radius)
+
 
     ij2_corr = np.zeros((i1.shape[0],2)).astype(np.float64)
     xy2_corr = np.zeros((i1.shape[0],2)).astype(np.float64)
@@ -899,15 +798,8 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
             L1_sub = L1[i1_c-search_radius : i1_c+search_radius+1,
                     j1_c-search_radius : j1_c+search_radius+1]
 
+            Xr,Yr = rot_trans_template_coord(az1_sub, search_radius)
 
-            x = np.arange(-search_radius, search_radius+1)
-            y = np.arange(-search_radius, search_radius+1)
-
-            X = np.repeat(x[np.newaxis,:], y.shape[0],axis=0)
-            Y = np.repeat(y[:,np.newaxis], x.shape[0], axis=1)
-
-            Xr = +np.cos(np.degrees(az1_sub))*X +np.sin(np.degrees(az1_sub))*Y
-            Yr = -np.sin(np.degrees(az1_sub))*X +np.cos(np.degrees(az1_sub))*Y
             sun_along = np.abs(Xr)<(temp_radius/2) # sides lobe
             sun_top = Yr<=0 # upper part of the template
 
@@ -923,57 +815,56 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
             L2_sub = L2[i2_c-search_radius : i2_c+search_radius+1,
                     j2_c-search_radius : j2_c+search_radius+1]
 
-            Xr = +np.cos(np.degrees(az2_sub))*X +np.sin(np.degrees(az2_sub))*Y
-            Yr = -np.sin(np.degrees(az2_sub))*X +np.cos(np.degrees(az2_sub))*Y
+            Xr,Yr = rot_trans_template_coord(az2_sub, search_radius)
             sun_along = np.abs(Xr)<(temp_radius/2) # sides lobe
             sun_top = Yr<=0 # upper part of the template
 
             B2_sub = (sun_along & sun_top & L2_sub)
             B2_sub = np.logical_or(B2_sub, np.flip(np.flip(B2_sub, 0),1))
 
-
             breakpoint()
         else: # estimate scale and shear from geometry
             A = np.array([[1, simple_sh[counter]],
                           [0, scale_12[counter]]])
             A_inv = np.linalg.inv(A)
-            x = np.arange(-search_radius, search_radius+1)
-            y = np.arange(-search_radius, search_radius+1)
-
-            X = np.repeat(x[np.newaxis,:], y.shape[0],axis=0)
-            Y = np.repeat(y[:,np.newaxis], x.shape[0], axis=1)
-
-            X_aff = X*A_inv[0,0] + Y*A_inv[0,1]
-            Y_aff = X*A_inv[1,0] + Y*A_inv[1,1]
+            X_aff,Y_aff = aff_trans_template_coord(A_inv, search_radius)
 
         # create templates
-        M1_sub = create_template(M1,i1[counter],j1[counter],temp_radius)
-        M2_sub = bilinear_interpolation(M2, \
-                                        j2[counter]+X_aff, \
-                                        i2[counter]+Y_aff)
+        if correlator in frequency_based:
+            M1_sub = create_template_off_center(M1,i1[counter],j1[counter],
+                                                 temp_radius)
+            L1_sub = create_template_off_center(L1, i1[counter], j1[counter],
+                                                temp_radius)
+        else:
+            M1_sub = create_template_at_center(M1, i1[counter], j1[counter],
+                                                temp_radius)
+            L1_sub = create_template_at_center(L1, i1[counter], j1[counter],
+                                               temp_radius)
 
+        M2_sub = bilinear_interpolation(M2,
+                                        i2[counter]+Y_aff, j2[counter]+X_aff)
+        L2_sub = bilinear_interpolation(L2,
+                                        i2[counter]+Y_aff, j2[counter]+X_aff)
         if correlator in ['aff_of']:
             (di,dj,Aff,snr) = affine_optical_flow(M1_sub, M2_sub)
 
         else:
-            QC = match_translation_of_two_subsets(M1_sub, M2_sub,\
-                                               correlator,subpix,\
-                                               L1_sub,L2_sub)
-        if subpix in peak_based:
-            C = QC
-            max_score = np.amax(QC)
-            snr = max_score/np.mean(QC)
-            ij = np.unravel_index(np.argmax(QC), QC.shape)
-            di, dj = ij[::-1]
-            m0 = np.array([di, dj])
+            QC = match_translation_of_two_subsets(M1_sub, M2_sub,
+                                                  correlator,subpix,
+                                                  L1_sub,L2_sub)
+        if counter==6064:
+            breakpoint
+        if (subpix in peak_based) or (subpix is None):
+            di, dj, score, _ = get_integer_peak_location(QC, metric=metric)
         else:
-            m0 = np.zeros((1,2))
-
+            di, dj, score = np.zeros((1)), np.zeros((1)), np.zeros((1))
+        m0 = np.array([di, dj])
 
         if subpix in ['optical_flow']:
             # reposition second template
-            M2_new = create_template(M2,i2[counter]-di,
-                     j1[counter]-dj,temp_radius)
+            M2_new = create_template_at_center(M2,
+                                               i2[counter]-di,
+                                               j1[counter]-dj,temp_radius)
             # optical flow refinement
             ddi,ddj = simple_optical_flow(M1_sub, M2_new)
 
@@ -997,19 +888,16 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
             dj_rig = dj*A[0,0] + di*A[0,1]
             di_rig = dj*A[1,0] + di*A[1,1]
 
-        snr_score[counter] = snr
+        snr_score[counter] = score
 
         ij2_corr[counter,0] = i2[counter] - di_rig
         ij2_corr[counter,1] = j2[counter] - dj_rig
 
-    xy2_corr[:,0], xy2_corr[:,1] = pix2map(geoTransform1, ij2_corr[:,0], ij2_corr[:,1])
-
+    xy2_corr[:,0], xy2_corr[:,1] = pix2map(geoTransformPad2,
+                                           ij2_corr[:,0], ij2_corr[:,1])
     return xy2_corr, snr_score
 
-
-
-
-def get_stack_out_of_dir(im_dir,boi,bbox):
+def get_stack_out_of_dir(im_dir,boi,bbox): #todo I donot think this is a very robust function
     """
     Create a stack of images from different bands, with at specific bounding box
 
@@ -1046,11 +934,6 @@ def get_stack_out_of_dir(im_dir,boi,bbox):
 
     geoTransform = ref_trans(geoTransform,bbox[0],bbox[2])
     return M, geoTransform
-
-
-# establish dH between locations
-
-#
 
 def angles2unit(azimuth):
     """ Transforms arguments in degrees to unit vector, in planar coordinates
@@ -1128,8 +1011,10 @@ def get_intersection(xy_1, xy_2, xy_3, xy_4):
              /
             + xy_3
     """
-    assert (isinstance(xy_1, (float, np.ndarray)) and isinstance(xy_2, (float, np.ndarray)))
-    assert (isinstance(xy_3, (float, np.ndarray)) and isinstance(xy_4, (float, np.ndarray)))
+    assert (isinstance(xy_1, (float, np.ndarray)) and
+            isinstance(xy_2, (float, np.ndarray)))
+    assert (isinstance(xy_3, (float, np.ndarray)) and
+            isinstance(xy_4, (float, np.ndarray)))
     if isinstance(xy_1, np.ndarray):
         assert xy_1.shape==xy_2.shape, ('coordinate list should be same size')
         assert xy_3.shape==xy_4.shape, ('coordinate list should be same size')
@@ -1177,5 +1062,71 @@ def get_elevation_difference(sun_1, sun_2, xy_1, xy_2, xy_t):
     # get elevation difference
     dh = np.tan(np.radians(sun_1[:,1]))*dist_1 - \
         np.tan(np.radians(sun_2[:,1]))*dist_2
-
     return dh
+
+def get_caster(sun_1, sun_2, xy_1, xy_2):
+    """ estimate the location of the common caster
+
+    Parameters
+    ----------
+    sun_1 : np.array, size=(m,), units=degrees
+        illumination direction at instance 1
+    sun_2 : np.array, size=(m,), units=degrees
+        illumination direction at instance 2
+    xy_1 : np.array, size=(m,2)
+        spatial location at instance 1
+    xy_2 : np.array, size=(m,2)
+        spatial location at instance 1
+
+    Returns
+    -------
+    caster_new : np.array, size=(m,2)
+        estimated spatial location of common caster
+    """
+    m = sun_1.shape[0]
+    caster_new = get_intersection(xy_1, xy_1+np.stack((np.sin(np.deg2rad(sun_1)),
+                                                       np.cos(np.deg2rad(sun_1))),
+                                                      axis=1),
+                                  xy_2, xy_2+np.stack((np.sin(np.deg2rad(sun_2)),
+                                                       np.cos(np.deg2rad(sun_2))),
+                                                      axis=1))
+    return caster_new
+
+def get_shadow_rectification(casters, post_1, post_2, az_1, az_2):
+    """
+    estimate relative scale and shear of templates, assuming a planar surface
+
+    Parameters
+    ----------
+    casters : np.array, size=(k,2), unit=meters
+        coordinates of the locations that casts shadow
+    post_1 : np.array, size=(k,2), unit=meters
+        coordinates of the locations that receives shadow at instance 1
+    post_2 : np.array, size=(k,2), unit=meters
+        coordinates of the locations that receives shadow at instance 2
+    az_1 : np.array, size=(k,1), unit=degrees
+        illumination orientation of the caster at instance 1
+    az_2 : np.array, size=(k,1), unit=degrees
+        illumination orientation of the caster at instance 2
+
+    Returns
+    -------
+    scale_12 : np.array, size=(k,1), unit=[]
+        relative scale difference between instance 1 & 2
+    simple_sh : np.array, size=(k,1), unit=[]
+        relative shear between instance 1 & 2
+    """
+    # get planar distance between
+    dist_1 = np.sqrt((post_1[:, 0] - casters[:, 0]) ** 2 + \
+                     (post_1[:, 1] - casters[:, 1]) ** 2)
+    dist_2 = np.sqrt((post_2[:, 0] - casters[:, 0]) ** 2 + \
+                     (post_2[:, 1] - casters[:, 1]) ** 2)
+    scale_12 = np.divide(dist_2, dist_1)
+
+    # sometimes caster and casted are on the same location,
+    # causing very large scaling, just reduce this
+    scale_12[scale_12 < .2] = 1.
+    scale_12[scale_12 > 5] = 1.
+
+    simple_sh = np.tan(np.radians(az_1 - az_2))
+    return scale_12, simple_sh

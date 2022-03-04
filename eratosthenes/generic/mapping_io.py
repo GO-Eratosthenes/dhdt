@@ -31,6 +31,8 @@ def read_geo_info(fname):
     bands : integer
         number of bands in the image, that is its depth
     """
+    assert len(glob.glob(fname)) != 0, ('file does not seem to be present')
+
     img = gdal.Open(fname)
     spatialRef = img.GetProjection()
     geoTransform = img.GetGeoTransform()
@@ -40,7 +42,7 @@ def read_geo_info(fname):
     bands = img.RasterCount
     return spatialRef, geoTransform, targetprj, rows, cols, bands
 
-def read_geo_image(fname):
+def read_geo_image(fname, boi=np.array([])):
     """ This function takes as input the geotiff name and the path of the
     folder that the images are stored, reads the image and returns the data as
     an array
@@ -49,6 +51,9 @@ def read_geo_image(fname):
     ----------
     fname : string
         geotiff file name and path.
+    boi : np.array, size=(k,1)
+        bands of interest, if a multispectral image is read, a selection can
+        be specified
 
     Returns
     -------
@@ -68,12 +73,12 @@ def read_geo_image(fname):
     Example
     -------
     >>> import os
-    >>> fpath = os.path.join(os.getcwd(), ‘data.jp2')
+    >>> fpath = os.path.join(os.getcwd(), "data.jp2" )
     
     >>> (I, spatialRef, geoTransform, targetPrj) = read_geo_image(fpath)
     
     >>> I_ones = np.zeros(I.shape, dtype=bool)
-    >>> make_geo_im(I_ones, geoTransformM, spatialRefM, ‘ones.tif’)
+    >>> make_geo_im(I_ones, geoTransformM, spatialRefM, "ones.tif")
     assert os.path.exists(fname), ('file must exist')
 
     """
@@ -81,12 +86,18 @@ def read_geo_image(fname):
 
     img = gdal.Open(fname)
     # imagery can consist of multiple bands
-    for counter in range(img.RasterCount):
-        band = np.array(img.GetRasterBand(counter+1).ReadAsArray())
-        if counter == 0:
-            data = band
-        else:
-            data = np.dstack((data, band[:,:,np.newaxis]))
+    if len(boi) == 0:
+        for counter in range(img.RasterCount):
+            band = np.array(img.GetRasterBand(counter+1).ReadAsArray())
+            data = band if counter == 0 else np.dstack((data,
+                                                        band[:,:,np.newaxis]))
+    else:
+        num_bands = img.RasterCount
+        assert (np.max(boi)+1)<=num_bands, 'bands of interest is out of range'
+        for band_id, counter in enumerate(boi):
+            band = np.array(img.GetRasterBand(band_id+1).ReadAsArray())
+            data = band if counter==0 else np.dstack((data,
+                                                      band[:, :, np.newaxis]))
     spatialRef = img.GetProjection()
     geoTransform = img.GetGeoTransform()
     targetprj = osr.SpatialReference(wkt=img.GetProjection())
@@ -118,7 +129,7 @@ def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes',
     -------
     
     >>> import os
-    >>> fpath = os.path.join(os.getcwd(), ‘data.jp2')
+    >>> fpath = os.path.join(os.getcwd(), "data.jp2")
     
     >>> (I, spatialRef, geoTransform, targetPrj) = read_geo_image(fpath)
     

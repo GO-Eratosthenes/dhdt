@@ -499,6 +499,28 @@ def ref_scale(geoTransform, scaling):
 
     return newTransform[0]
 
+def aff_trans_template_coord(A, t_radius):
+    x = np.arange(-t_radius, t_radius + 1)
+    y = np.arange(-t_radius, t_radius + 1)
+
+    X = np.repeat(x[np.newaxis, :], y.shape[0], axis=0)
+    Y = np.repeat(y[:, np.newaxis], x.shape[0], axis=1)
+
+    X_aff = X * A[0, 0] + Y * A[0, 1]
+    Y_aff = X * A[1, 0] + Y * A[1, 1]
+    return X_aff, Y_aff
+
+def rot_trans_template_coord(theta, t_radius):
+    x = np.arange(-t_radius, t_radius + 1)
+    y = np.arange(-t_radius, t_radius + 1)
+
+    X = np.repeat(x[np.newaxis, :], y.shape[0], axis=0)
+    Y = np.repeat(y[:, np.newaxis], x.shape[0], axis=1)
+
+    X_r = +np.cos(np.deg2rad(theta)) * X + np.sin(np.deg2rad(theta)) * Y
+    Y_r = -np.sin(np.deg2rad(theta)) * X + np.cos(np.deg2rad(theta)) * Y
+    return X_r, Y_r
+
 def pix_centers(geoTransform, rows, cols, make_grid=True):
     """ provide the pixel coordinate from the axis, or the whole grid
 
@@ -595,14 +617,22 @@ def bilinear_interp_excluding_nodat(I, i_I, j_I, noData=-9999):
 
     """
     assert type(I)==np.ndarray, ("please provide an array")
+    m, n = I.shape[0], I.shape[1]
 
     i_prio, i_post = np.floor(i_I).astype(int), np.ceil(i_I).astype(int)
     j_prio,j_post = np.floor(j_I).astype(int), np.ceil(j_I).astype(int)
 
     wi,wj = np.remainder(i_I,1), np.remainder(j_I,1)
 
-    I_1,I_2 = I[i_prio,j_prio], I[i_prio,j_post]
-    I_3,I_4 = I[i_post,j_post], I[i_post,j_prio]
+    # make resistant to locations outside the bounds of the array
+    I_1, I_2 = np.ones_like(i_prio)*noData, np.ones_like(i_prio)*noData
+    I_3, I_4 = np.ones_like(i_prio)*noData, np.ones_like(i_prio)*noData
+
+    IN = np.logical_and.reduce(((i_prio >= 0), (i_post <= (m-1)),
+                                (j_prio >= 0), (j_post <= (n-1))))
+
+    I_1[IN],I_2[IN] = I[i_prio[IN],j_prio[IN]], I[i_prio[IN],j_post[IN]]
+    I_3[IN],I_4[IN] = I[i_post[IN],j_post[IN]], I[i_post[IN],j_prio[IN]]
 
     no_dat = np.any(np.vstack((I_1,I_2,I_3,I_4))==noData, axis=0)
 
@@ -811,10 +841,10 @@ def make_same_size(Old,geoTransform_old, geoTransform_new, rows_new, cols_new):
         Old = np.concatenate((np.repeat(np.expand_dims(Old[:,0], axis = 1),
                                         abs(dj), axis=1), Old), axis = 1)
     elif np.sign(dj)==1: # reduce array
-        Old = Old[:,abs(dj):]
+        Old = Old[:,abs(dj).astype(int):]
 
     if np.sign(di)==-1: # reduce array
-        Old = Old[abs(di):,:]
+        Old = Old[abs(di).astype(int):,:]
     elif np.sign(di)==1: # extend array by simple copy of border values
         Old = np.concatenate((np.repeat(np.expand_dims(Old[0,:], axis = 1).T,
                                         abs(di), axis=0), Old), axis = 0)
@@ -829,7 +859,7 @@ def make_same_size(Old,geoTransform_old, geoTransform_new, rows_new, cols_new):
                                         abs(dj), axis=1)), axis = 1)
 
     if np.sign(di)==-1: # reduce array
-        Old = Old[di:,:]
+        Old = Old[:di,:]
     elif np.sign(di)==1: # extend array by simple copy of border values
         Old = np.concatenate((np.repeat(Old, np.expand_dims(Old[-1,:], axis=1).T,
                                         abs(di), axis=0)), axis = 0)

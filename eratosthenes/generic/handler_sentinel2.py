@@ -1,15 +1,19 @@
 import glob
 import os
+
 from xml.etree import ElementTree
+from osgeo import ogr
 
 import numpy as np
 import pandas as pd
 
 import geopandas
 
-def get_bbox_from_tile_code(tile_code,
-                            shp_dir='/Users/Alten005/surfdrive/Eratosthenes/SatelliteTiles',
-                            shp_name='sentinel2_tiles_world.shp'):
+def get_bbox_from_tile_code(tile_code, shp_dir=None, shp_name=None):
+    if shp_dir is None:
+        shp_dir = '/Users/Alten005/surfdrive/Eratosthenes/SatelliteTiles'
+    if shp_name is None: shp_name='sentinel2_tiles_world.shp'
+
     tile_code = tile_code.upper()
     shp_path = os.path.join(shp_dir,shp_name)
 
@@ -17,6 +21,25 @@ def get_bbox_from_tile_code(tile_code,
 
     toi = mgrs[mgrs['Name']==tile_code]
     return toi
+
+#todo for OGR geometry
+def get_geom_for_tile_code(tile_code, shp_dir=None, shp_name=None):
+    if shp_dir is None:
+        shp_dir = '/Users/Alten005/surfdrive/Eratosthenes/SatelliteTiles'
+    if shp_name is None: shp_name='sentinel2_tiles_world.shp'
+
+    tile_code = tile_code.upper()
+    shp_path = os.path.join(shp_dir,shp_name)
+
+    # open the shapefile of the coast
+    shp = ogr.Open(shp_path)
+    lyr = shp.GetLayer()
+
+    for feature in lyr:
+        if feature.GetField('Name')== tile_code:
+            geom = feature.GetGeometryRef()
+    lyr = None
+    return geom
 
 def get_array_from_xml(treeStruc):
     """
@@ -70,7 +93,7 @@ def get_S2_image_locations(fname,s2_df):
     'S2A_OPER_MSI_L1C_DS_VGS1_20200923T200821_S20200923T163313_N02.09'
     """
     assert len(glob.glob(fname)) != 0, ('metafile does not seem to be present')
-
+    #todo see if it is a folder or a file
     dom = ElementTree.parse(glob.glob(fname)[0])
     root = dom.getroot()
     granule_list = root[0][0][11][0][0]

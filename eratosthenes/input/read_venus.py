@@ -9,7 +9,7 @@ from xml.etree import ElementTree
 import numpy as np
 import pandas as pd
 
-from eratosthenes.generic.mapping_io import read_geo_image
+from ..generic.mapping_io import read_geo_image
 
 def list_platform_metadata_vn():
     vn_dict = {

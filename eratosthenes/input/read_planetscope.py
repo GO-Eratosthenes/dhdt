@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from .read_sentinel2 import get_root_of_table
-from eratosthenes.generic.mapping_io import read_geo_image
+from ..generic.mapping_io import read_geo_image
 
 # dove-C
 def list_central_wavelength_dc():

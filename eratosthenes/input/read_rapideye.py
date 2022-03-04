@@ -6,7 +6,7 @@ import pandas as pd
 
 from xml.etree import ElementTree
 
-from eratosthenes.generic.mapping_io import read_geo_image
+from ..generic.mapping_io import read_geo_image
 
 def list_platform_metadata_re1():
     re1_dict = {

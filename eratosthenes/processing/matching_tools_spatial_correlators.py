@@ -170,6 +170,14 @@ def weighted_normalized_cross_correlation(I1,I2,W1=None,W2=None):
     -------
     wncc : np.array
         weighted normalized cross-correlation
+    support : np.array, range=0...1
+        amount of overlap present and used in both imagery
+
+    References
+    ----------
+    .. [1] Altena & Kääb "Quantifying river ice movement through a combination
+       of European satellite monitoring services" International journal of
+       applied Earth observation and geoinformation, vol.98 pp.102315, 2021.
     """
     (m1,n1) = I1.shape
     # create weighting matrix
@@ -246,7 +254,8 @@ def weighted_normalized_cross_correlation(I1,I2,W1=None,W2=None):
     denom = np.sqrt(wght_cov_11 * wght_cov_22)
     wncc = np.divide(wght_cov_12, denom,
                      where=denom!=0, out=np.zeros_like(denom))
-    return wncc
+    support = elem_M12/(m1*n1)
+    return wncc, support
 
 # weighted sum of differences
 # sum of robust differences, see Li_03

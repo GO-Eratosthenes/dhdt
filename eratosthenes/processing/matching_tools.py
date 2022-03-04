@@ -166,7 +166,7 @@ def get_template(I, idx_1, idx_2, radius):
     I_sub = np.reshape(I_sub, (2*radius+1, 2*radius+1))
     return I_sub
 
-def pad_images_and_filter_coord_list(M1, M2, geoTransform1, geoTransform2,\
+def pad_images_and_filter_coord_list(M1, M2, geoTransform1, geoTransform2,
                                      X_grd, Y_grd, ds1, ds2, same=True):
     """ pad imagery, depending on the template size, also transform and shift
     the associated coordinate grids/lists
@@ -244,10 +244,8 @@ def pad_images_and_filter_coord_list(M1, M2, geoTransform1, geoTransform2,\
     i2,j2 = I2_grd.flatten(), J2_grd.flatten()
 
     # remove posts outside image
-    IN = np.logical_and.reduce((i1>=0, i1<=M1.shape[0],
-                                j1>=0, j1<=M1.shape[1],
-                                i2>=0, i2<=M2.shape[0],
-                                j2>=0, j2<=M2.shape[1]))
+    IN = np.logical_and.reduce((i1>=0, i1<=M1.shape[0], j1>=0, j1<=M1.shape[1],
+                                i2>=0, i2<=M2.shape[0], j2>=0, j2<=M2.shape[1]))
 
     i1, j1, i2, j2 = i1[IN], j1[IN], i2[IN], j2[IN]
 
@@ -262,7 +260,7 @@ def pad_images_and_filter_coord_list(M1, M2, geoTransform1, geoTransform2,\
 
     return M1_new, M2_new, i1, j1, i2, j2, IN
 
-def pad_radius(I, radius):
+def pad_radius(I, radius, cval=0):
     """ add extra boundary to array, so templates can be easier extracted
 
     Parameters
@@ -271,6 +269,8 @@ def pad_radius(I, radius):
         data array
     radius : {positive integer, tuple}
         extra boundary to be added to the data array
+    cval = {integer, flaot}
+        conastant value to be used in the padding region
 
     Returns
     -------
@@ -281,14 +281,14 @@ def pad_radius(I, radius):
     if I.ndim==3:
         I_xtra = np.pad(I,
                         ((radius[0],radius[1]), (radius[0],radius[1]), (0,0)),
-                        'constant', constant_values=0)
+                        'constant', constant_values=cval)
     else:
         I_xtra = np.pad(I,
                         ((radius[0],radius[1]), (radius[0],radius[1])),
-                        'constant', constant_values=0)
+                        'constant', constant_values=cval)
     return I_xtra
 
-def prepare_grids(im_stack, ds):
+def prepare_grids(im_stack, ds, cval=0):
     """prepare stack by padding, dependent on the matching template
 
     the image stack is sampled by a template, that samples without overlap. all
@@ -301,6 +301,8 @@ def prepare_grids(im_stack, ds):
         imagery array
     ds : integer
         size of the template, in pixels
+    cval : {integer, float}
+        value to pad the imagery with
 
     Returns
     -------
@@ -314,13 +316,16 @@ def prepare_grids(im_stack, ds):
     """
     assert type(im_stack)==np.ndarray, ("please provide an array")
     assert type(ds)==int, ("please provide an integer")
+    if im_stack.ndim==2: im_stack = im_stack[:,:,np.newaxis]
 
     # padding is needed to let all imagery be of the correct template size
     i_pad = int(np.ceil(im_stack.shape[0]/ds)*ds - im_stack.shape[0])
     j_pad = int(np.ceil(im_stack.shape[1]/ds)*ds - im_stack.shape[1])
+
     im_stack = np.pad(im_stack,
                       ((0, i_pad), (0, j_pad), (0, 0)),
-                      'constant', constant_values=(0, 0))
+                      'constant', constant_values=(cval, cval))
+    im_stack = np.squeeze(im_stack)
 
     # ul
     i_samp = np.arange(0,im_stack.shape[0]-ds,ds)

@@ -4,7 +4,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from eratosthenes.generic.mapping_io import read_geo_image
+from ..generic.mapping_io import read_geo_image
 
 def list_platform_metadata_l7():
     l7_dict = {

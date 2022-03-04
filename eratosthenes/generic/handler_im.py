@@ -233,17 +233,16 @@ def bilinear_interpolation(I, di, dj):
     ----------
     I : np.array, size=(m,n), ndim={2,3}
         data array.
-    dj :
-        * np.array, size=(k,l), ndim=2
-            horizontal locations, within local image frame.
-        * float
-            uniform horizontal displacement
     di :
         * np.array, size=(k,l), ndim=2
             vertical locations, within local image frame.
         * float
             uniform horizontal displacement
-
+    dj :
+        * np.array, size=(k,l), ndim=2
+            horizontal locations, within local image frame.
+        * float
+            uniform horizontal displacement
     Returns
     -------
     I_new : np.array, size=(k,l), ndim=2, dtype={float,complex}

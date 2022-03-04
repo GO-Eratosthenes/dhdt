@@ -1150,7 +1150,10 @@ def shade_index(*args):
 
     References
     ----------
-    .. [1] Altena, "Filling the white gap on the map: Photoclinometry for
+    .. [1] Hogan & Smith, "Refinement of digital elvation models from shadowing
+       cues" IEEE computer society conference on computer vision and pattern
+       recognition, 2010.
+    .. [2] Altena, "Filling the white gap on the map: Photoclinometry for
        glacier elevation modelling" MSc thesis TU Delft, 2012.
     """
     im_stack = np.stack(args, axis=2)
