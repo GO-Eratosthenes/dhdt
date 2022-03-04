@@ -1,103 +1,47 @@
-.. list-table::
-   :widths: 25 25
-   :header-rows: 1
-
-   * - fair-software.nl recommendations
-     - Badges
-   * - \1. Code repository
-     - |GitHub Badge|
-   * - \2. License
-     - |License Badge|
-   * - \3. Community Registry
-     - |PyPI Badge| |Research Software Directory Badge|
-   * - \4. Enable Citation
-     - |Zenodo Badge|
-   * - \5. Checklist
-     - |CII Best Practices Badge|
-   * - **Other best practices**
-     -
-   * - Continuous integration
-     - |Python Build| |PyPI Publish|
-
-(Customize these badges with your own links, and check https://shields.io/ or https://badgen.net/ to see which other badges are available.)
+|GitHub Badge| |License Badge| |Python Build| 
 
 .. |GitHub Badge| image:: https://img.shields.io/badge/github-repo-000.svg?logo=github&labelColor=gray&color=blue
    :target: https://github.com/GO-Eratosthenes/eratosthenes
    :alt: GitHub Badge
 
-.. |License Badge| image:: https://img.shields.io/github/license/GO-Eratosthenes/eratosthenes
-   :target: https://github.com/GO-Eratosthenes/eratosthenes
+.. |License Badge| image:: https://img.shields.io/github/license/GO-Eratosthenes/start-code
+   :target: https://github.com/GO-Eratosthenes/start-code
    :alt: License Badge
 
-.. |PyPI Badge| image:: https://img.shields.io/pypi/v/eratosthenes.svg?colorB=blue
-   :target: https://pypi.python.org/project/eratosthenes/
-   :alt: PyPI Badge
-.. |Research Software Directory Badge| image:: https://img.shields.io/badge/rsd-eratosthenes-00a3e3.svg
-   :target: https://www.research-software.nl/software/eratosthenes
-   :alt: Research Software Directory Badge
-
-..
-    Goto https://zenodo.org/account/settings/github/ to enable Zenodo/GitHub integration.
-    After creation of a GitHub release at https://github.com/GO-Eratosthenes/eratosthenes/releases
-    there will be a Zenodo upload created at https://zenodo.org/deposit with a DOI, this DOI can be put in the Zenodo badge urls.
-    In the README, we prefer to use the concept DOI over versioned DOI, see https://help.zenodo.org/#versioning.
-.. |Zenodo Badge| image:: https://zenodo.org/badge/DOI/< replace with created DOI >.svg
-   :target: https://doi.org/<replace with created DOI>
-   :alt: Zenodo Badge
-
-..
-    A CII Best Practices project can be created at https://bestpractices.coreinfrastructure.org/en/projects/new
-.. |CII Best Practices Badge| image:: https://bestpractices.coreinfrastructure.org/projects/< replace with created project identifier >/badge
-   :target: https://bestpractices.coreinfrastructure.org/projects/< replace with created project identifier >
-   :alt: CII Best Practices Badge
-
-.. |Python Build| image:: https://github.com/GO-Eratosthenes/eratosthenes/workflows/Python/badge.svg
-   :target: https://github.com/GO-Eratosthenes/eratosthenes/actions?query=workflow%3A%22Python%22
+.. |Python Build| image:: https://github.com/GO-Eratosthenes/start-code/workflows/Build/badge.svg
+   :target: https://github.com/GO-Eratosthenes/start-code/actions?query=workflow%3A%22build.yml%22
    :alt: Python Build
 
-.. |PyPI Publish| image:: https://github.com/GO-Eratosthenes/eratosthenes/workflows/PyPI/badge.svg
-   :target: https://github.com/GO-Eratosthenes/eratosthenes/actions?query=workflow%3A%22PyPI%22
-   :alt: PyPI Publish
+############
+Eratosthenes
+############
 
-################################################################################
-eratosthenes
-################################################################################
+Extracting topography from mountain glaciers, through the use of shadow casted by surrounding mountains. Imagery from optical satellite systems are used, over all mountain ranges on Earth.
 
-extracting topography from mountain glaciers, through the use of shadow casted by surrounding mountains. imagery from optical satellite systems are used, over all mountain ranges on Earth.
-
-
-The project setup is documented in `a separate document <project_setup.rst>`_. Feel free to remove this document (and/or the link to this document) if you don't need it.
 
 Installation
-------------
+************
 
-To install eratosthenes, do:
+This package requires the [GDAL](https://gdal.org) library, which is most 
+easily installed through `conda` from the `conda-forge` channel:
 
 .. code-block:: console
 
-  git clone https://github.com/GO-Eratosthenes/eratosthenes.git
-  cd eratosthenes
+   conda install gdal -c conda-forge
+
+This package can then be downloaded and installed using `git` and `pip`:
+
+.. code-block:: console
+
+  git clone https://github.com/GO-Eratosthenes/start-code.git
+  cd start-code
   pip install .
 
-
-Run tests (including coverage) with:
-
-.. code-block:: console
-
-  python setup.py test
-
-
-Documentation
-*************
-
-.. _README:
-
-Include a link to your project's full documentation here.
 
 Contributing
 ************
 
-If you want to contribute to the development of eratosthenes,
+If you want to contribute to the development of this package,
 have a look at the `contribution guidelines <CONTRIBUTING.rst>`_.
 
 License
@@ -116,8 +60,6 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
-
 
 Credits
 *******
