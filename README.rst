@@ -22,7 +22,7 @@ Extracting topography from mountain glaciers, through the use of shadow casted b
 Installation
 ************
 
-This package requires the [GDAL](https://gdal.org) library, which is most 
+This package requires the `GDAL <https://gdal.org>`_ library, which is most 
 easily installed through `conda` from the `conda-forge` channel:
 
 .. code-block:: console
