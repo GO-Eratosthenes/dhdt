@@ -15,7 +15,7 @@ with open('README.rst') as readme_file:
     readme = readme_file.read()
 
 with open('requirements.txt') as requirements_file:
-    requirements = requirements_file.read().split()
+    requirements = [line.strip("\n") for line in requirements_file.readlines()]
 
 setup(
     name='eratosthenes',
@@ -25,7 +25,7 @@ setup(
     author="Bas Altena",
     author_email='b.altena@uu.nl',
     url='https://github.com/GO-Eratosthenes/eratosthenes',
-    packages=find_packages(),
+    packages=find_packages(exclude=["*tests*"]),
     include_package_data=True,
     license="Apache Software License 2.0",
     zip_safe=False,
