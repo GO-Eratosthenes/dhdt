@@ -598,8 +598,9 @@ def normalized_difference_water_index(Green, Near):
     assert type(Near)==np.ndarray, ('please provide an array')
     assert type(Green)==np.ndarray, ('please provide an array')
     assert Green.shape[:2] == Near.shape[:2],('arrays should be of equal size')
-
-    NDWI = np.divide( (Green - Near), (Green + Near))
+    denom = (Green + Near)
+    NDWI = np.divide( (Green - Near), denom,
+                      out=np.zeros_like(denom), where=denom!=0)
     return NDWI
 
 def normalized_difference_blue_water_index(Blue, Near):
@@ -633,7 +634,9 @@ def normalized_difference_blue_water_index(Blue, Near):
     assert type(Blue)==np.ndarray, ('please provide an array')
     assert Blue.shape[:2] == Near.shape[:2],('arrays should be of equal size')
 
-    NDBWI = np.divide( (Blue - Near), (Blue + Near))
+    denom = (Blue + Near)
+    NDBWI = np.divide( (Blue - Near), denom,
+                      out=np.zeros_like(denom), where=denom!=0)
     return NDBWI
 
 def combinational_shadow_index(Blue,Green,Red,Near):
@@ -1147,7 +1150,10 @@ def shade_index(*args):
 
     References
     ----------
-    .. [1] Altena, "Filling the white gap on the map: Photoclinometry for
+    .. [1] Hogan & Smith, "Refinement of digital elvation models from shadowing
+       cues" IEEE computer society conference on computer vision and pattern
+       recognition, 2010.
+    .. [2] Altena, "Filling the white gap on the map: Photoclinometry for
        glacier elevation modelling" MSc thesis TU Delft, 2012.
     """
     im_stack = np.stack(args, axis=2)

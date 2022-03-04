@@ -15,9 +15,9 @@ from PIL import Image, ImageDraw
 from skimage.transform import resize
 from scipy.interpolate import griddata
 
-from eratosthenes.generic.handler_sentinel2 import get_array_from_xml
-from eratosthenes.generic.mapping_tools import map2pix, ecef2map
-from eratosthenes.generic.mapping_io import read_geo_image
+from ..generic.handler_sentinel2 import get_array_from_xml
+from ..generic.mapping_tools import map2pix, ecef2map, get_bbox
+from ..generic.mapping_io import read_geo_image, read_geo_info
 
 def list_platform_metadata_s2a():
     s2a_dict = {
@@ -60,7 +60,7 @@ def list_central_wavelength_msi():
 
     >>> boi = ['red', 'green', 'blue', 'near infrared']
     >>> s2_df = list_central_wavelength_msi()
-    >>> s2_df = s2_df[s2_df['name'].isin(boi)]
+    >>> s2_df = s2_df[s2_df['common_name'].isin(boi)]
     >>> s2_df
              wavelength  bandwidth  resolution       name  bandid
     B02         492         66          10           blue       1
@@ -71,7 +71,7 @@ def list_central_wavelength_msi():
     similarly you can also select by pixel resolution:
 
     >>> s2_df = list_central_wavelength_s2()
-    >>> tw_df = s2_df[s2_df['resolution']==20]
+    >>> tw_df = s2_df[s2_df['gsd']==20]
     >>> tw_df.index
     Index(['B05', 'B06', 'B07', 'B8A', 'B11', 'B12'], dtype='object')
 
@@ -200,10 +200,10 @@ def read_stack_s2(path, s2_df):
     assert 'filepath' in s2_df, ('please first run "get_S2_image_locations"'+
                                 ' to find the proper file locations')
 
-    roi = np.min(s2_df['resolution'].array) # resolution of interest
-    im_scaling = s2_df['resolution'] / roi
+    roi = np.min(s2_df['gsd'].array) # resolution of interest
+    im_scaling = s2_df['gsd'] / roi
     # start with the highest resolution
-    for val, idx in enumerate(s2_df.sort_values('resolution').index):
+    for val, idx in enumerate(s2_df.sort_values('gsd').index):
         full_path = s2_df['filepath'][idx] + '.jp2'
         if val==0:
             im_stack, spatialRef, geoTransform, targetprj = read_band_s2(full_path)
@@ -229,6 +229,43 @@ def get_root_of_table(path, fname):
     dom = ElementTree.parse(glob.glob(full_name)[0])
     root = dom.getroot()
     return root
+
+def read_geotransform_s2(path, fname='MTD_TL.xml', resolution=10):
+    """
+
+    Parameters
+    ----------
+    path : string
+        location where the meta data is situated
+    fname : string
+        file name of the meta-data file
+    resolution : {float,integer}, unit=meters, default=10
+        resolution of the grid
+
+    Returns
+    -------
+    geoTransform : tuple, size=(1,6)
+        affine transformation coefficients
+    """
+    root = get_root_of_table(path, fname)
+
+    # image dimensions
+    for meta in root.iter('Geoposition'):
+        res = float(meta.get('resolution'))
+        if res == resolution:
+            ul_X,ul_Y= float(meta[0].text), float(meta[1].text)
+            d_X, d_Y = float(meta[2].text), float(meta[3].text)
+    geoTransform = (ul_X, d_X, 0., ul_Y, 0., d_Y)
+    return geoTransform
+
+def get_local_bbox_in_s2_tile(fname_1, s2dir):
+    _,geoTransform, _, rows, cols, _ = read_geo_info(fname_1)
+    bbox_xy = get_bbox(geoTransform, rows, cols)
+
+    s2Transform = read_geotransform_s2(s2dir)
+    bbox_i, bbox_j = map2pix(s2Transform, bbox_xy[0:2], bbox_xy[2::])
+    bbox_ij = np.concatenate((np.flip(bbox_i), bbox_j)).astype(int)
+    return bbox_ij
 
 def read_sun_angles_s2(path, fname='MTD_TL.xml'):
     """ This function reads the xml-file of the Sentinel-2 scene and extracts
@@ -378,12 +415,12 @@ def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
           +----- surface        +------
 
     """
-    assert boi['resolution'].var()==0, \
+    assert boi['gsd'].var()==0, \
         ('make sure all bands are the same resolution')
     root = get_root_of_table(path, fname)
 
     if det_stack.size==0:
-        roi = boi['resolution'].mode()[0] # resolution of interest
+        roi = boi['gsd'].mode()[0] # resolution of interest
         # image dimensions
         for meta in root.iter('Size'):
             res = float(meta.get('resolution'))
@@ -410,8 +447,8 @@ def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
 
             col_sep = float(grd[0][0].text) # in meters
             row_sep = float(grd[0][0].text) # in meters
-            col_res = float(boi.loc[boi.index[det_idx],'resolution'])
-            row_res = float(boi.loc[boi.index[det_idx],'resolution'])
+            col_res = float(boi.loc[boi.index[det_idx],'gsd'])
+            row_res = float(boi.loc[boi.index[det_idx],'gsd'])
 
             Zarray = get_array_from_xml(grd[0][2])
             Aarray = get_array_from_xml(grd[1][2])

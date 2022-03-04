@@ -1,6 +1,6 @@
 import numpy as np
 
-def mat_to_gray(I, notI=None):
+def mat_to_gray(I, notI=None, vmin=None, vmax=None):
     """ transform matix array  to float, omitting nodata values
 
     Parameters
@@ -36,10 +36,15 @@ def mat_to_gray(I, notI=None):
     else:
         yesI = ~notI
     Inew = np.float64(I)  # /2**16
-    if np.ptp(I) != 0:
-        Inew[yesI] = np.interp(Inew[yesI],
-                               (Inew[yesI].min(),
-                                Inew[yesI].max()), (0, +1))
+
+    if np.ptp(I) == 0: return
+
+    if vmin is not None: Inew[yesI] = np.maximum(Inew[yesI], vmin)
+    if vmax is not None: Inew[yesI] = np.minimum(Inew[yesI], vmax)
+
+    Inew[yesI] = np.interp(Inew[yesI],
+                           (Inew[yesI].min(),
+                            Inew[yesI].max()), (0, +1))
     Inew[notI] = 0
     return Inew
 

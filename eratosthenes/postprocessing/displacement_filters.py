@@ -14,23 +14,24 @@ def local_mad_filter(I, tsize=5):
 
 def infill_func(buffer):
     central_pix = buffer[buffer.size//2]
-    if ~np.isnan(central_pix):
-        # construct distance matrix
-        d = int(np.sqrt(buffer.size))
-        r = d//2
-        IJ = np.mgrid[-r:+r+1, -r:+r+1] # local coordinate frame
-        D = np.linalg.norm(IJ, axis=0)
 
-        D = D[~np.isnan(buffer)] # remove no-data values in array
-        # inverse distance weighting
-        W = np.divide(1, D,
-                      out=np.zeros_like(D),
-                      where=np.isnan(D!=0))
-        W /= np.sum(W) # normalize weights
-        interp_pix = np.sum(np.multiply( W, buffer))
-        return interp_pix
-    else:
-        return central_pix
+    if ~np.isnan(central_pix): return central_pix
+    if np.all(np.isnan(buffer)): return np.nan
+
+    # construct distance matrix
+    d = int(np.sqrt(buffer.size))
+    r = d//2
+    IJ = np.mgrid[-r:+r+1, -r:+r+1] # local coordinate frame
+    D = np.linalg.norm(IJ, axis=0)
+
+    D = D[~np.isnan(buffer)] # remove no-data values in array
+    # inverse distance weighting
+    W = np.divide(1, D,
+                  out=np.zeros_like(D),
+                  where=np.isnan(D!=0))
+    W /= np.sum(W) # normalize weights
+    interp_pix = np.sum(np.multiply( W, buffer))
+    return interp_pix
 
 def local_infilling_filter(I, tsize=5):
     I_new = ndimage.generic_filter(I, infill_func, size=(tsize, tsize))

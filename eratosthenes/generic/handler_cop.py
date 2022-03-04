@@ -46,22 +46,39 @@ def copDEM_files(members):
             yield tarinfo
 
 def download_and_mosaic_through_ftps(file_list, tmp_path, cds_url, cds_path,
-                                     sso, pw, bbox, crs, transform):
-    """
-    Download DEM tiles and create mosaic according to satellite imagery tiling
-    scheme
+                                     cds_sso, cds_pw, bbox, crs, geoTransform):
+    """ Download Copernicus DEM tiles and create mosaic according to satellite
+    imagery tiling scheme
     
-    :param url_list: list of DEM tile filenames
-    :param tmp_path: work path where to download and untar DEM tiles
-    :param bbox: bound box (xmin, ymin, xmax, ymax)
-    :param crs: coordinate reference system of the DEM tile
-    :param transform: Affine transform of the DEM tile
-    :return: retiled DEM (DataArray object) 
+    file_list : list with strings
+        list of DEM tile filenames
+    tmp_path : string
+        work path where to download and untar DEM tiles
+    cds_url : string
+        asd
+    cds_path : string
+        asd
+    cds_sso : string
+        ad
+    cds_pw : string
+        pass word
+    bbox : list
+        bound box formated as (x_min, y_min, x_max, y_max)
+    crs : string
+        coordinate reference string
+    geoTransform : tuple, size=(6,1)
+        affine transformation coefficients of the DEM tile
+
+    Returns
+    -------
+    dem_clip : DataArray object
+        retiled DEM
     """
     with tempfile.TemporaryDirectory(dir=tmp_path) as tmpdir:
     
         for file_name in file_list:
-            get_file_from_ftps(cds_url, sso, pw, cds_path, file_name, tmpdir)
+            get_file_from_ftps(cds_url, cds_sso, cds_pw,
+                               cds_path, file_name, tmpdir)
 
         tar_tiles_filenames = [f for f in os.listdir(tmpdir) if f.endswith('.tar')]
         for tar_fname in tar_tiles_filenames:
@@ -72,21 +89,39 @@ def download_and_mosaic_through_ftps(file_list, tmp_path, cds_url, cds_path,
             
             
         dem_tiles_filename = pathlib.Path(tmpdir).glob("**/*_DEM.tif")
-        dem_clip = mosaic_tiles(dem_tiles_filename, bbox, crs, transform)
+        dem_clip = mosaic_tiles(dem_tiles_filename, bbox, crs, geoTransform)
           
         # sometimes out of bound tiles are still present,
         # hence rerun a clip to be sure
         # dem_clip = dem_clip.rio.clip_box(*bbox)
     return dem_clip
 
-def mosaic_tiles(dem_tiles_filenames, bbox, crs, transform):
+def mosaic_tiles(dem_tiles_filenames, bbox, crs, geoTransform):
+    """ given a selection of elevation models, mosaic them together
+
+    Parameters
+    ----------
+    dem_tiles_filenames : list with strings
+        list of DEM tile filenames
+    bbox : list
+        bound box formated as (x_min, y_min, x_max, y_max)
+    crs : string
+        coordinate reference string
+    geoTransform : tuple, size=(6,1)
+        affine transformation coefficients of the DEM tile
+
+    Returns
+    -------
+    dem_clip : DataArray object
+        mosaiced DEM
+    """
     # first transform bbox from intended to source projection,
     # in this way, clipping is possible and less transformation is needed        
     for f in dem_tiles_filenames:
         dem_tile = rioxarray.open_rasterio(f)
         dem_tile = dem_tile.rio.write_nodata(-9999)
         # reproject to image CRS
-        dem_tile_xy = dem_tile.rio.reproject(crs, transform=transform, 
+        dem_tile_xy = dem_tile.rio.reproject(crs, transform=geoTransform,
                                              resampling=Resampling.lanczos)
         
         bbox_xy = dem_tile_xy.rio.bounds()

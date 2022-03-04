@@ -26,6 +26,22 @@ from .matching_tools_differential import \
 
 # admin
 def list_frequency_correlators():
+    """ list the abbreviations of the different implemented correlators, being:
+        cosi_corr - cosicorr
+        phas_only - phase only correlation
+        symm_phas - symmetric phase correlation
+        ampl_comp - amplitude compensation phase correlation
+        orie_corr - orientation correlation
+        mask_corr - masked normalized cross correlation
+        bina_phas - binary phase correlation
+        wind_corr - windrose correlation
+        gaus_phas - gaussian transformed phase correlation
+        upsp_corr - upsampled cross correlation
+        cros_corr - cross correlation
+        robu_corr - robust phase correlation
+        proj_phas - projected phase correlation
+        phas_corr - phase correlation
+    """
     correlator_list = ['cosi_corr', 'phas_only', 'symm_phas', 'ampl_comp',
                        'orie_corr', 'mask_corr', 'bina_phas', 'wind_corr',
                        'gaus_phas', 'upsp_corr', 'cros_corr', 'robu_corr',
@@ -33,6 +49,14 @@ def list_frequency_correlators():
     return correlator_list
 
 def list_spatial_correlators():
+    """ list the abbreviations of the different implemented correlators, being:
+        norm_corr - normalized cross correlation
+        cumu_corr - cumulative cross correlation
+        sq_diff - sum of squared differences
+        sad_diff - sum of absolute differences
+        max_like - phase correlation
+        wght_corr - weighted normalized cross correlation
+    """
     correlator_list = ['norm_corr', 'cumu_corr', 'sq_diff', 'sad_diff',
                        'max_like', 'wght_corr']
     return correlator_list
@@ -42,11 +66,40 @@ def list_differential_correlators():
     return correlator_list
 
 def list_phase_estimators():
+    """ list the abbreviations of the different implemented phase plane
+    estimation procedures, being:
+        * 'tpss' : two point step size
+        * 'svd' : single value decomposition
+        * 'radon' : radon transform
+        * 'hough' : hough transform
+        * 'ransac' : random sampling and consensus
+        * 'wpca' : weighted principle component analysis
+        * 'pca' : principle component analysis
+        * 'lsq' : least squares estimation
+        * 'diff' : phase difference
+    """
     subpix_list = ['tpss','svd','radon', 'hough', 'ransac', 'wpca',\
                    'pca', 'lsq', 'diff']
     return subpix_list
 
 def list_peak_estimators():
+    """ list the abbreviations of the different implemented for the peak fitting
+    of the similarity function, being:
+        'gauss_1' : 1D Gaussian fitting
+        'parab_1' : 1D parabolic fitting
+        'moment' : 2D moment of the peak
+        'mass' : 2D center of mass fitting
+        'centroid' : 2D estimate the centroid
+        'blais' : 1D estimate through forth order filter
+        'ren' : 1D parabolic fitting
+        'birch' : 1D weighted sum
+        'eqang' : 1D equiangular line fitting
+        'trian' : 1D triangular fitting
+        'esinc' : 1D exponential esinc function
+        'gauss_2' : 2D Gaussian fitting
+        'parab_2' : 2D parabolic fitting
+        'optical_flow' : optical flow refinement
+    """
     subpix_list = ['gauss_1', 'parab_1', 'moment', 'mass', 'centroid',
                   'blais', 'ren', 'birch', 'eqang', 'trian', 'esinc',
                   'gauss_2', 'parab_2', 'optical_flow']

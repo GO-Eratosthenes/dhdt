@@ -5,6 +5,16 @@ from skimage.morphology import extrema
 from ..preprocessing.image_transforms import high_pass_im
 
 def list_matching_metrics():
+    """ list the abbreviations of the different implemented correlation metrices
+    there are:
+        'peak_abs' : the absolute score
+        'peak_ratio' : the primary peak ratio i.r.t. the second peak
+        'peak_rms' : the peak ratio i.r.t. the root mean square error
+        'peak_ener' : the peaks' energy
+        'peak_noise' : the peak score i.r.t. to the noise level
+        'peak_conf' : the peak confidence
+        'peak_entr' : the peaks' entropy
+    """
     metrics_list = ['peak_ratio', 'peak_rms', 'peak_ener', 'peak_nois',
                     'peak_conf', 'peak_entr', 'peak_abs', 'peak_marg',
                     'peak_win', 'peak_num']

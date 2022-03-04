@@ -1,10 +1,15 @@
-from PIL import Image, ImageDraw
-
+import os
 import numpy as np
+
+from PIL import Image, ImageDraw
+from skimage.color import hsv2rgb
 
 import matplotlib.pyplot as plt
 
+from ..generic.mapping_tools import map2pix
+from ..generic.handler_im import bilinear_interpolation
 from ..preprocessing.image_transforms import mat_to_gray
+from ..postprocessing.solar_tools import make_shading
 
 def make_image(data, outputname, size=(1, 1), dpi=80, cmap='hot'):
     """ create a matplotlib figure and exprot this view
@@ -50,7 +55,6 @@ def resize_image(data, size, method='nearest'):
     return new_img
 
 def output_image(data, outputname, cmap='bone', compress=95):
-
     # test if no-data is present
     OUT = np.isnan(data)
     if np.any(OUT):
@@ -93,7 +97,8 @@ def output_mask(data, outputname, color=np.array([255, 0, 64])):
     return
 
 def output_draw_lines_overlay(i_1,j_1, i_2,j_2, im_size, outputname,
-                              color=np.array([255, 0, 64]), interval=4):
+                              color=np.array([255, 0, 64]),
+                              interval=4, pen=1):
     """ saves a transparent image of a list of line coordinates
 
     Parameters
@@ -115,6 +120,9 @@ def output_draw_lines_overlay(i_1,j_1, i_2,j_2, im_size, outputname,
     interval : integer
         interval of the lines to be used
 
+    See Also
+    --------
+    output_cast_lines_from_conn_txt
     """
     # PIL has a reversed order i.r.t. Python
     im_size = im_size[::-1]
@@ -123,7 +131,93 @@ def output_draw_lines_overlay(i_1,j_1, i_2,j_2, im_size, outputname,
     draw = ImageDraw.Draw(img)
     for k in np.arange(0,len(i_1),interval):
         draw.line((j_1[k], i_1[k], j_2[k], i_2[k]),
-                  fill=(color[0],color[2],color[2],255), width=1)
+                  fill=(color[0],color[2],color[2],255), width=pen)
 
     img.save(outputname)
+    return
+
+def output_draw_color_lines_overlay(i_1,j_1, i_2,j_2, val, im_size, outputname,
+                                    cmap='gray', vmin=-100, vmax=+100,
+                                    interval=4, pen=1):
+    """ saves a transparent image of a list of line coordinates
+
+    Parameters
+    ----------
+    i_1 : np.array, size=(,m), {float,integer}
+        row location of the first point of the line
+    j_1 : np.array, size=(,m), {float,integer}
+        collumn location of the first point of the line
+    i_2 : np.array, size=(,m), {float,integer}
+        row location of the second point of the line
+    j_2 : np.array, size=(,m), {float,integer}
+        collumn location of the second point of the line
+    im_size : tuple, size=2
+        size of the image extent
+    outputname : string, ending='.png'
+        name of the output file
+    color : np.array, size=(,3), range=0...255
+        color of the lines to be drawn
+    interval : integer
+        interval of the lines to be used
+
+    See Also
+    --------
+    output_cast_lines_from_conn_txt
+    """
+    # PIL has a reversed order i.r.t. Python
+    im_size = im_size[::-1]
+    img = Image.new("RGBA", im_size) # create transparent image
+
+    col_map = plt.cm.get_cmap(cmap, 256)
+    col_arr = (col_map(range(256)) * 255).astype(np.uint8)
+
+    val = np.uint8(np.round(mat_to_gray(val, vmin=vmin, vmax=vmax) * 255))
+
+    draw = ImageDraw.Draw(img)
+    for k in np.arange(0,len(i_1),interval):
+        draw.line((j_1[k], i_1[k], j_2[k], i_2[k]),
+                  fill=(col_arr[val[k],0],
+                        col_arr[val[k],1],
+                        col_arr[val[k],2], 255), width=pen)
+    img.save(outputname)
+    return
+
+def output_glacier_map_background(Z, RGI, outputname, compress=95,
+                                  az=45, zn=45):
+    # make typical shading image, or depedent on the image
+    Shd = make_shading(Z, az, zn, spac=10)
+
+    # transform to binary class
+    RGI = RGI != 0
+    # make composite
+    I_rgb = hsv2rgb(np.dstack((RGI.astype(float) * .55,
+                               RGI.astype(float) * .25,
+                               (Shd * .2) + .8)))
+    I_rgb = np.uint8(I_rgb * 2 ** 8)
+
+    img = Image.fromarray(I_rgb)
+    img.save(outputname, quality=compress)
+    return
+
+def output_cast_lines_from_conn_txt(conn_dir, geoTransform, RGI,
+                                    outputname='conn.png', pen=1, step=2,
+                                    color=np.array([255, 128, 0])):
+    RGI = RGI.astype(bool)
+    cast_list = np.loadtxt(os.path.join(conn_dir, 'conn.txt'))
+
+    # transform to pixel coordinates
+    shdw_i, shdw_j = map2pix(geoTransform, cast_list[:, 2], cast_list[:, 3])
+
+    # make selection if shadow is on glacier
+    IN_glac = bilinear_interpolation(RGI, shdw_i, shdw_j)>.5
+    cast_list = cast_list[IN_glac, :]
+
+    # transform to pixel coordinates
+    ridg_i, ridg_j = map2pix(geoTransform, cast_list[:, 0], cast_list[:, 1])
+    shdw_i, shdw_j = map2pix(geoTransform, cast_list[:, 2], cast_list[:, 3])
+
+    output_draw_lines_overlay(ridg_i, ridg_j, shdw_i, shdw_j,
+                              RGI.shape, os.path.join(conn_dir, outputname),
+                              color=color, interval=step,
+                              pen=1)
     return

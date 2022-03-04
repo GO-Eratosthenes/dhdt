@@ -4,6 +4,35 @@ from ..generic.filtering_statistical import make_2D_Gaussian
 from ..processing.matching_tools import pad_radius
 from .shadow_geometry import estimate_surface_normals
 
+def slope_along_perp(Z, Az, spac=10):
+    """ get the slope of the terrain along a specific direction
+
+    Parameters
+    ----------
+    Z : np.array, size=(m,n), units=meters
+        elevation model
+    Az : {np.array, float}, units=degrees
+        argument or azimuth angle of interest
+    spac : float, units=meters
+        spacing used for the elevation model
+
+    Returns
+    -------
+    Slp_para : np.array, size=(m,n), units=degrees
+        slope in the along direction of the azimuth angle
+    Slp_perp : np.array, size=(m,n), units=degrees
+        slope in the perpendicular direction of the azimuth angle
+    """
+    dy, dx = np.gradient(Z, spac)
+
+    Slp_para = dx*np.cos(np.rad2deg(Az)) + dy*np.sin(np.rad2deg(Az))
+    Slp_perp = dx*np.sin(np.rad2deg(Az)) - dy*np.cos(np.rad2deg(Az))
+
+    # transfer to slopes in degrees
+    Slp_para = np.degrees(np.arctan(Slp_para))
+    Slp_perp = np.degrees(np.arctan(Slp_perp))
+    return Slp_perp, Slp_para
+
 def get_template_aspect_slope(Z,i_samp,j_samp,t_size,spac=10.):
     """
 
@@ -63,13 +92,12 @@ def get_template_aspect_slope(Z,i_samp,j_samp,t_size,spac=10.):
     Aspect = np.zeros_like(i_samp, dtype=np.float64)
     for idx_ij, val_i in enumerate(i_samp.flatten()):
         idx_i, idx_j = np.unravel_index(idx_ij, i_samp.shape, order='C')
-        i_min = i_samp[idx_i, idx_j] - (t_size // 2) + 0
-        j_min = j_samp[idx_i, idx_j] - (t_size // 2) + 0
-        i_max = i_samp[idx_i, idx_j] + (t_size // 2) + offset
-        j_max = j_samp[idx_i, idx_j] + (t_size // 2) + offset
+        i_min = i_samp[idx_i, idx_j] - t_rad + 0
+        j_min = j_samp[idx_i, idx_j] - t_rad + 0
+        i_max = i_samp[idx_i, idx_j] + t_rad + offset
+        j_max = j_samp[idx_i, idx_j] + t_rad + offset
 
         n_sub = Normal[i_min:i_max, j_min:j_max]
-
         # estimate mean surface normal
         slope_bar = np.arccos(np.sum(n_sub[:, :, -1] * kernel))  # slope
         aspect_bar = np.arctan2(np.sum(n_sub[:, :, 0] * kernel),
