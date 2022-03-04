@@ -27,10 +27,10 @@ jobs:
         env:
           CONDA_PREFIX: /usr/share/miniconda
         run: pip install -e .
-      - name: Test
-        env:
-          CONDA_PREFIX: /usr/share/miniconda
-        shell: bash -l {0}
-        run: |
-          python setup.py test
-          pytest --cov --cov-report term --cov-report xml --junitxml=xunit-result.xml
+#      - name: Test
+#        env:
+#          CONDA_PREFIX: /usr/share/miniconda
+#        shell: bash -l {0}
+#        run: |
+#          python setup.py test
+#          pytest --cov --cov-report term --cov-report xml --junitxml=xunit-result.xml
