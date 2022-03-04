@@ -149,39 +149,6 @@ def make_shading(dem_path, dem_file, im_path, im_name,
     Shd = normal[:,:,0]*sun[:,:,0] + normal[:,:,1]*sun[:,:,1] + normal[:,:,2]*sun[:,:,2]
     return Shd
 
-def create_shadow_polygons(M, im_path, bbox=(0, 0, 0, 0),
-                           median_filtering=True):
-    """
-    Generate polygons from floating array, combine this with sun illumination
-    information, to generate connected pixels on the edge of these polygons
-    input:   M              array (m x n)     array with intensity values
-             im_path        string            location of the image metadata
-    output:  labels         array (m x n)     array with numbered labels
-             label_ridge    array (m x n)     array with numbered superpixels
-             cast_conn      array (m x n)     array with numbered edge pixels
-    """
-
-    minI = bbox[0]
-    maxI = bbox[1]
-    minJ = bbox[2]
-    maxJ = bbox[3]
-
-    if median_filtering:
-        siz, loop = 5, 10
-        M = median_filter_shadows(M,siz,loop)
-
-    labels,thres_val = sturge(M) # classify into regions
-
-    # get self-shadow and cast-shadow
-    (sunZn,sunAz) = read_sun_angles_s2(im_path)
-    if (minI!=0 or maxI!=0 and minI!=0 or maxI!=0):
-        sunZn = sunZn[minI:maxI,minJ:maxJ]
-        sunAz = sunAz[minI:maxI,minJ:maxJ]
-
-    cast_conn = labelOccluderAndCasted(labels, sunAz, M)#, subTransform)
-
-    return labels, cast_conn
-
 # geometric functions
 def getShadowPolygon(M, sizPix, thres):  # pre-processing
     """

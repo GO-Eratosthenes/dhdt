@@ -200,10 +200,10 @@ def read_stack_s2(path, s2_df):
     assert 'filepath' in s2_df, ('please first run "get_S2_image_locations"'+
                                 ' to find the proper file locations')
 
-    roi = np.min(s2_df['resolution'].array) # resolution of interest
-    im_scaling = s2_df['resolution'] / roi
+    roi = np.min(s2_df['gsd'].array) # resolution of interest
+    im_scaling = s2_df['gsd'] / roi
     # start with the highest resolution
-    for val, idx in enumerate(s2_df.sort_values('resolution').index):
+    for val, idx in enumerate(s2_df.sort_values('gsd').index):
         full_path = s2_df['filepath'][idx] + '.jp2'
         if val==0:
             im_stack, spatialRef, geoTransform, targetprj = read_band_s2(full_path)
