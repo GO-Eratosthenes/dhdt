@@ -59,14 +59,18 @@ def list_central_wavelength_dr():
     df = pd.DataFrame(d)
     return df
 
-def list_central_wavelength_sd():
+def list_central_wavelength_sd(num_bands=4):
     center_wavelength = {"B1": 443., "B2" : 490., "B3" : 531., "B4" : 565.,
                          "B5": 665., "B6" : 610., "B10": 705., "B13": 865.}
     full_width_half_max = {"B1": 20., "B2" : 50., "B3" :  36., "B4" :  36.,
                            "B5": 31., "B6" : 20., "B10":  15., "B13":  40.}
     gsd = {"B1" :12., "B2" : 3., "B3" : 3., "B4" : 3.,
            "B5" : 3., "B6" : 6., "B10": 6., "B13": 6.,}
-    bandid = {"B2": 0, "B4" : 1, "B5" : 2, "B13" : 3}
+    if num_bands==4:
+        bandid = {"B2": 0, "B4" : 1, "B5" : 2, "B13" : 3}
+    else:
+        bandid = {"B1" : 0, "B2" : 1, "B3" : 2, "B4" : 3, "B5" : 4,
+                  "B6" : 5, "B10": 6, "B13": 7, }
     # along_track_view_angle =
     field_of_view = {"B1": 4., "B2": 4., "B3": 4., "B4": 4.,
                      "B5": 4., "B6": 4., "B10":4., "B13":4.}

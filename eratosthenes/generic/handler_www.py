@@ -33,7 +33,8 @@ def get_file_from_ftps(url, user, password,
         dump_dir += '/'
     client = ftps.FTPS('ftps://' +user+ ':' +password+ '@' +url)
     client.list()
-    client.download(file_path+file_name, dump_dir+file_name)
+    client.download( os.path.join(file_path, file_name),
+                     os.path.join(dump_dir, file_name))
     return
 
 def url_exist(file_url):

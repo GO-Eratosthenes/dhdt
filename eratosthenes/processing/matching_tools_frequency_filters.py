@@ -170,10 +170,10 @@ def make_fourier_grid(Q, indexing='ij', system='radians'):
     assert type(Q)==np.ndarray, ("please provide an array")
     (m,n) = Q.shape
     if indexing=='ij':
-        (I_grd,J_grd) = np.meshgrid(np.arange(0,n)-(n//2), 
-                                    np.arange(0,m)-(m//2), \
+        (I_grd,J_grd) = np.meshgrid(np.arange(0,m)-(m//2),
+                                    np.arange(0,n)-(n//2),
                                     indexing='ij')
-        F_1,F_2 = I_grd/n, J_grd/m
+        F_1, F_2 = I_grd/m, J_grd/n
     else:
         fy = np.flip((np.arange(0,m)-(m/2)) /m)
         fx = (np.arange(0,n)-(n/2)) /n
@@ -675,61 +675,6 @@ def adaptive_masking(S, m=.9):
 
     M = NLS>mean_NLS
     return M
-
-def local_coherence(Q, ds=1): 
-    """ estimate the local coherence of a spectrum
-    
-    Parameters
-    ----------    
-    Q : np.array, size=(m,n), dtype=complex
-        array with cross-spectrum, with centered coordinate frame
-    ds : integer, default=1
-        kernel radius to describe the neighborhood
-        
-    Returns
-    -------
-    M : np.array, size=(m,n), dtype=float
-        vector coherence from no to ideal, i.e.: 0...1
-    
-    See Also
-    --------
-    thresh_masking   
-    
-    Example
-    -------
-    >>> import numpy as np
-    >>> import matplotlib.pyplot as plt
-    >>> from ..generic.test_tools import create_sample_image_pair
-    
-    >>> # create cross-spectrum with random displacement
-    >>> im1,im2,_,_,_ = create_sample_image_pair(d=2**4, max_range=1)
-    >>> spec1,spec2 = np.fft.fft2(im1), np.fft.fft2(im2)
-    >>> Q = spec1 * np.conjugate(spec2)
-    >>> Q = normalize_spectrum(Q)
-    >>> Q = np.fft.fftshift(Q) # transform to centered grid
-
-    >>> C = local_coherence(Q)
-    
-    >>> plt.imshow(C), cmap='OrRd'), plt.colorbar(), plt.show()
-    >>> plt.imshow(Q), cmap='twilight'), plt.colorbar(), plt.show()
-    """
-    assert type(Q)==np.ndarray, ("please provide an array")
-    
-    diam = 2*ds+1
-    C = np.zeros_like(Q)
-    (isteps,jsteps) = np.meshgrid(np.linspace(-ds,+ds,2*ds+1, dtype=int), \
-                          np.linspace(-ds,+ds,2*ds+1, dtype=int))
-    IN = np.ones(diam**2, dtype=bool)  
-    IN[diam**2//2] = False
-    isteps,jsteps = isteps.flatten()[IN], jsteps.flatten()[IN]
-    
-    for idx, istep in enumerate(isteps):
-        jstep = jsteps[idx]
-        Q_step = np.roll(Q, (istep,jstep))
-        # if the spectrum is normalized, then no division is needed
-        C += Q*np.conj(Q_step)
-    C = np.abs(C)/np.sum(IN)
-    return C
 
 def gaussian_mask(S):
     """ mask significant intensities in spectrum

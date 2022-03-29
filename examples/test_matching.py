@@ -4,12 +4,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+from eratosthenes.generic.handler_im import \
+    nan_resistant_conv2, nan_resistant_diff2
 from eratosthenes.generic.filtering_statistical import mad_filtering
 from eratosthenes.generic.test_tools import create_sample_image_pair, \
     construct_phase_plane, signal_to_noise, test_phase_plane_localization, \
     test_normalize_power_spectrum, test_subpixel_localization, \
     construct_correlation_peak, \
     create_sheared_image_pair, create_scaled_image_pair
+from eratosthenes.preprocessing.image_transforms import \
+    histogram_equalization
 from eratosthenes.processing.matching_tools import \
     get_integer_peak_location
 from eratosthenes.processing.matching_tools_frequency_affine import \
@@ -26,17 +30,118 @@ from eratosthenes.processing.matching_tools_frequency_subpixel import \
     phase_weighted_pca, phase_secant #, phase_jac # jac:mag er later wel uit
 from eratosthenes.processing.matching_tools_frequency_filters import \
     normalize_power_spectrum, perdecomp, low_pass_circle, raised_cosine, \
-    local_coherence, thresh_masking, adaptive_masking, gaussian_mask
+    local_coherence, thresh_masking, adaptive_masking, gaussian_mask, \
+    low_pass_ellipse
 
 from eratosthenes.processing.matching_tools_differential import \
-    simple_optical_flow, hough_optical_flow
+    simple_optical_flow, hough_optical_flow, affine_optical_flow
 
 from eratosthenes.processing.matching_tools_spatial_correlators import \
     normalized_cross_corr, cumulative_cross_corr, sum_sq_diff, \
-    sum_sad_diff
+    sum_sad_diff, weighted_normalized_cross_correlation
 from eratosthenes.processing.matching_tools_spatial_subpixel import \
     get_top_moment, get_top_gaussian, get_top_parabolic, \
-    get_top_birchfield, get_top_2d_gaussian, get_top_paraboloid
+    get_top_birchfield, get_top_2d_gaussian, get_top_paraboloid, \
+    get_top_blue
+
+im1,im2,di,dj,im1_big = create_sample_image_pair(d=2**4, max_range=1, integer=False)
+print('di:{:+.4f}'.format(di)+' dj:{:+.4f}'.format(dj))
+mu = np.mean(im2.ravel())
+
+W1 = np.random.rand(2**5,2**5)<.5
+W2 = np.random.rand(2**9,2**9)<.5
+#W1, W2 = im2>mu, im1_big>mu
+wncc = weighted_normalized_cross_correlation(im2,im1_big,
+                                             W1, W2)
+
+
+
+
+di, dj = 2*np.random.random()-1, 2*np.random.random()-1
+#di, dj = 10*di, 10*dj
+C_tilde = construct_correlation_peak(np.zeros((2**7,2**7)), di, dj)
+
+ddi,ddj,ii,jj = get_top_blue(C_tilde, ds=1)
+
+
+from eratosthenes.presentation.image_io import make_image
+
+from eratosthenes.preprocessing.shadow_filters import anistropic_diffusion_scalar
+
+im1_ani = anistropic_diffusion_scalar(im1_big)
+
+
+m,n = 20,16
+nan_elem = 40
+I = np.random.random((m,n))
+I_clean = np.copy(I)
+nan_idx = np.random.randint(m*n, size=nan_elem)
+I[np.unravel_index(nan_idx, I.shape, 'C')] = np.nan
+
+#dy = np.outer(np.array([2,4,2]),np.array([1,2,1]))
+dy = np.outer(np.array([-1,0,+1]),np.array([1,2,1]))
+I_dy = nan_resistant_diff2(I,dy)
+
+
+
+
+di_hof,dj_hof,sc_hof = hough_optical_flow(im1,im2,param_resol=40, sample_fraction=1)
+print('di:{:+.4f}'.format(di_hof[0])+' dj:{:+.4f}'.format(dj_hof[0]))
+
+
+
+im1,im2,di,dj,im1_big = create_sample_image_pair(d=2**4, max_range=1, integer=False)
+C_cos = cosine_corr(np.pad(im1,((4,16),(10,10))),\
+                             np.pad(im1,((0,20),(0,20))))
+
+C_cos = cosine_corr(im1,im2)
+
+# di_cos, dj_cos
+
+
+
+
+
+
+from eratosthenes.preprocessing.shadow_filters import anistropic_diffusion_scalar
+
+im1_ani = anistropic_diffusion_scalar(im1_big)
+wncc = weighted_normalized_cross_correlation(im2,im1_big[200:-200,200:-200])
+
+
+im1,im2,di,dj,im1_big = create_sample_image_pair(d=2**5, max_range=1, integer=False)
+
+
+beta_1,beta_2 = 0.35, 0.5
+W_1,W_2 = raised_cosine(im1,beta_1), raised_cosine(im2,beta_2)
+im1,_ = perdecomp(im1)
+im2,_ = perdecomp(im2)
+S_1,S_2 = np.fft.fft2(im1), np.fft.fft2(im2)
+Q_hat = (np.multiply(W_1,S_1))*np.conjugate(np.multiply(W_2,S_2))
+
+C_hat = np.real(np.fft.ifft2(Q_hat))
+
+Q_tilde = construct_phase_plane(im1, di, dj, indexing='ij')
+W = low_pass_ellipse(Q_tilde, r1=.1, r2=.3)
+
+C_tilde = np.real(np.fft.fftshift(np.fft.ifft2(W*Q_tilde)))
+
+np.fft.fftshift(C_hat)
+
+im1, im2, di, dj, im1_big = create_sheared_image_pair(d=2**5,
+                                                      sh_i=0.00, sh_j=0.04,
+                                                      max_range=1)
+print(di, dj)
+u, v, A, snr = affine_optical_flow(im1, im2, model='affine', iteration=10)
+
+
+im1, im2, di, dj, im1_big = create_sheared_image_pair(d=2**5,
+                                                      sh_i=0.00, sh_j=0.00,
+                                                      max_range=1)
+
+u,v = hough_optical_flow(im1, im2, num_estimates=1)
+
+
 
 
 
@@ -77,8 +182,6 @@ di_cos, dj_cos = cosine_corr(im1, im2)
 
 
 
-di_cos, dj_cos = cosine_corr(np.pad(im1,((4,16),(10,10))),\
-                             np.pad(im1,((0,20),(0,20))))
 
 
 beta_1,beta_2 = 0.35, 0.5
@@ -189,7 +292,7 @@ print('{:.4f}'.format(dj))
                                                       sigma=2)
 
 S1, S2 = np.fft.fft2(im1), np.fft.fft2(im2) 
-di_02,dj_02 = upsampled_cross_corr(S1,S2, upsampling=2) #wip
+di_02,dj_02 = upsampled_cross_corr(S1,S2, upsampling=2) #todo
 di_04,dj_04 = upsampled_cross_corr(S1,S2, upsampling=4)
 di_08,dj_08 = upsampled_cross_corr(S1,S2, upsampling=8)
 di_16,dj_16 = upsampled_cross_corr(S1,S2, upsampling=16)

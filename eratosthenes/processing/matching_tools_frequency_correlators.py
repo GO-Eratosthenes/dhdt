@@ -1,7 +1,8 @@
 # general libraries
 import numpy as np
-from scipy import fftpack
+from scipy import fftpack, ndimage
 
+from ..generic.handler_im import get_grad_filters
 from .matching_tools import \
     reposition_templates_from_center, make_templates_same_size, \
     get_integer_peak_location
@@ -732,6 +733,165 @@ def robust_corr(I1, I2):
             Q += (S1p)*np.conj(S2p)
     return Q
 
+def gradient_corr(I1, I2):
+    """ match two imagery through gradient correlation
+
+    Parameters
+    ----------
+    I1 : np.array, size=(m,n), ndim={2,3}
+        array with intensities
+    I2 : np.array, size=(m,n), ndim={2,3}
+        array with intensities
+
+    Returns
+    -------
+    Q : np.array, size=(m,n), dtype=complex
+        cross-spectrum
+
+    See Also
+    --------
+    phase_corr, orientation_corr
+
+    References
+    ----------
+    .. [1] Argyriou & Vlachos. "Estimation of sub-pixel motion using gradient
+           cross-correlation", Electronics letters, vol.39(13) pp.980--982,
+           2003.
+    .. [2] Tzimiropoulos et al. "Subpixel registration with gradient
+           correlation" IEEE transactions on image processing, vol.20(6)
+           pp.1761--1767, 2010.
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from .matching_tools import get_integer_peak_location
+    >>> from ..generic.test_tools import create_sample_image_pair
+
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
+    >>> Q = gradient_corr(im1, im2)
+    >>> C = np.fft.ifft2(Q)
+    >>> di,dj,_,_ = get_integer_peak_location(C)
+
+    >>> assert(np.isclose(ti, di, atol=1))
+    >>> assert(np.isclose(ti, di, atol=1))
+    """
+    assert type(I1)==np.ndarray, ('please provide an array')
+    assert type(I2)==np.ndarray, ('please provide an array')
+
+    H_x,_ = get_grad_filters(ftype='kroon', tsize=3, order=1)
+    H_y = np.transpose(H_x)
+    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
+        I1sub,I2sub = make_templates_same_size(I1,I2)
+        bands = I1.shape[2]
+
+        for i in range(bands): # loop through all bands
+            I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
+
+            G1 = ndimage.convolve(I1bnd, H_x) + 1j*ndimage.convolve(I1bnd, H_y)
+            G2 = ndimage.convolve(I2bnd, H_x) + 1j*ndimage.convolve(I2bnd, H_y)
+
+            S1, S2 = np.fft.fft2(G1), np.fft.fft2(G2)
+
+            if i == 0:
+                Q = (S1)*np.conj(S2)
+            else:
+                Q_b = (S1)*np.conj(S2)
+                Q = (1/(i+1))*Q_b + (i/(i+1))*Q
+
+    else:
+        I1sub,I2sub = make_templates_same_size(I1,I2)
+
+        G1 = ndimage.convolve(I1sub, H_x) + 1j * ndimage.convolve(I1sub, H_y)
+        G2 = ndimage.convolve(I2sub, H_x) + 1j * ndimage.convolve(I2sub, H_y)
+
+        S1, S2 = np.fft.fft2(G2), np.fft.fft2(G2)
+
+        Q = (S1)*np.conj(S2)
+    return Q
+
+def normalized_gradient_corr(I1, I2):
+    """ match two imagery through gradient correlation
+
+    Parameters
+    ----------
+    I1 : np.array, size=(m,n), ndim={2,3}
+        array with intensities
+    I2 : np.array, size=(m,n), ndim={2,3}
+        array with intensities
+
+    Returns
+    -------
+    Q : np.array, size=(m,n), dtype=complex
+        cross-spectrum
+
+    See Also
+    --------
+    phase_corr, windrose_corr
+
+    References
+    ----------
+    .. [1] Tzimiropoulos et al. "Subpixel registration with gradient
+           correlation" IEEE transactions on image processing, vol.20(6)
+           pp.1761--1767, 2010.
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> from .matching_tools import get_integer_peak_location
+    >>> from ..generic.test_tools import create_sample_image_pair
+
+    >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
+    >>> Q = normalized_gradient_corr(im1, im2)
+    >>> C = np.fft.ifft2(Q)
+    >>> di,dj,_,_ = get_integer_peak_location(C)
+
+    >>> assert(np.isclose(ti, di, atol=1))
+    >>> assert(np.isclose(ti, di, atol=1))
+    """
+    assert type(I1)==np.ndarray, ('please provide an array')
+    assert type(I2)==np.ndarray, ('please provide an array')
+
+    H_x,_ = get_grad_filters(ftype='kroon', tsize=3, order=1)
+    H_y = np.transpose(H_x)
+    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
+        I1sub,I2sub = make_templates_same_size(I1,I2)
+        bands = I1.shape[2]
+
+        for i in range(bands): # loop through all bands
+            I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
+
+            G1 = ndimage.convolve(I1bnd, H_x) + 1j*ndimage.convolve(I1bnd, H_y)
+            G2 = ndimage.convolve(I2bnd, H_x) + 1j*ndimage.convolve(I2bnd, H_y)
+
+            G1 -= np.mean(G1)
+            G2 -= np.mean(G2)
+            G1 /= np.max(G1)
+            G2 /= np.max(G2)
+
+            S1, S2 = np.fft.fft2(G1), np.fft.fft2(G2)
+
+            if i == 0:
+                Q = (S1)*np.conj(S2)
+            else:
+                Q_b = (S1)*np.conj(S2)
+                Q = (1/(i+1))*Q_b + (i/(i+1))*Q
+
+    else:
+        I1sub,I2sub = make_templates_same_size(I1,I2)
+
+        G1 = ndimage.convolve(I1sub, H_x) + 1j * ndimage.convolve(I1sub, H_y)
+        G2 = ndimage.convolve(I2sub, H_x) + 1j * ndimage.convolve(I2sub, H_y)
+
+        G1 -= np.mean(G1)
+        G2 -= np.mean(G2)
+        G1 /= np.max(G1)
+        G2 /= np.max(G2)
+
+        S1, S2 = np.fft.fft2(G2), np.fft.fft2(G2)
+
+        Q = (S1)*np.conj(S2)
+    return Q
+
 def orientation_corr(I1, I2):
     """ match two imagery through orientation correlation
 
@@ -776,6 +936,9 @@ def orientation_corr(I1, I2):
     assert type(I1)==np.ndarray, ('please provide an array')
     assert type(I2)==np.ndarray, ('please provide an array')
 
+    H_x,_ = get_grad_filters(ftype='kroon', tsize=3, order=1)
+    H_y = np.transpose(H_x)
+
     if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
         I1sub,I2sub = make_templates_same_size(I1,I2)
         bands = I1.shape[2]
@@ -783,20 +946,24 @@ def orientation_corr(I1, I2):
         for i in range(bands): # loop through all bands
             I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
 
-            S1, S2 = np.fft.fft2(I1bnd), np.fft.fft2(I2bnd)
-            S1,S2 = normalize_power_spectrum(S1),normalize_power_spectrum(S2)
+            G1 = ndimage.convolve(I1bnd, H_x) + 1j*ndimage.convolve(I1bnd, H_y)
+            G2 = ndimage.convolve(I2bnd, H_x) + 1j*ndimage.convolve(I2bnd, H_y)
+            G1,G2 = normalize_power_spectrum(G1),normalize_power_spectrum(G2)
 
+            S1, S2 = np.fft.fft2(G1), np.fft.fft2(G2)
             if i == 0:
                 Q = (S1)*np.conj(S2)
             else:
                 Q_b = (S1)*np.conj(S2)
                 Q = (1/(i+1))*Q_b + (i/(i+1))*Q
-
     else:
         I1sub,I2sub = make_templates_same_size(I1,I2)
 
-        S1, S2 = np.fft.fft2(I1sub), np.fft.fft2(I2sub)
-        S1,S2 = normalize_power_spectrum(S1),normalize_power_spectrum(S2)
+        G1 = ndimage.convolve(I1sub, H_x) + 1j*ndimage.convolve(I1sub, H_y)
+        G2 = ndimage.convolve(I2sub, H_x) + 1j*ndimage.convolve(I2sub, H_y)
+        G1, G2 = normalize_power_spectrum(G1), normalize_power_spectrum(G2)
+
+        S1, S2 = np.fft.fft2(G1), np.fft.fft2(G2)
 
         Q = (S1)*np.conj(S2)
     return Q
@@ -818,7 +985,7 @@ def windrose_corr(I1, I2):
 
     See Also
     --------
-    orientation_corr, phase_only_corr
+    binary_orientation_corr, orientation_corr, phase_only_corr
 
     References
     ----------
@@ -850,7 +1017,7 @@ def windrose_corr(I1, I2):
         for i in range(bands): # loop through all bands
             I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
 
-            S1, S2 = np.fft.fft2(I1bnd), np.fft.fft2(I2bnd)
+            S1, S2 = np.sign(np.fft.fft2(I1bnd)), np.sign(np.fft.fft2(I2bnd))
             if i == 0:
                 Q = (S1)*np.conj(S2)
             else:
@@ -859,7 +1026,6 @@ def windrose_corr(I1, I2):
 
     else:
         I1sub,I2sub = make_templates_same_size(I1,I2)
-
         S1, S2 = np.sign(np.fft.fft2(I1sub)), np.sign(np.fft.fft2(I2sub))
 
         Q = (S1)*np.conj(S2)

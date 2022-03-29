@@ -94,6 +94,8 @@ def primary_peak_ratio(C):
     """
     from .matching_tools import get_peak_indices
 
+    assert type(C) == np.ndarray, ('please provide an array')
+
     idx, val = get_peak_indices(C, num_estimates=2)
     ppr = np.divide(val[0], val[1],
                     out=np.ones(1), where=val[1]!=0)
@@ -125,6 +127,8 @@ def primary_peak_margin(C):
     """
     from .matching_tools import get_peak_indices
 
+    assert type(C) == np.ndarray, ('please provide an array')
+
     idx, val = get_peak_indices(C, num_estimates=2)
     ppm = val[0] - val[1]
     return ppm
@@ -152,6 +156,8 @@ def peak_winner_margin(C):
     .. [1] Scharstein & Szeliski, "Stereo matching with nonlinear diffusion"
        International journal of computer vision, vol.28(2) pp.155-174, 1998.
     """
+    assert type(C) == np.ndarray, ('please provide an array')
+
     pwm = primary_peak_margin(C)/np.sum(C)
     return pwm
 
@@ -180,6 +186,8 @@ def num_of_peaks(C, filtering=True):
        stereo vision" IEEE transactions on pattern analysis and machine
        intelligence, vol.34(11) pp.2121-2133, 2012.
     """
+    assert type(C) == np.ndarray, ('please provide an array')
+
     if filtering==True: # low pass filtering
         C -= high_pass_im(C, radius=3)
 
@@ -209,6 +217,8 @@ def peak_rms_ratio(C):
     .. [2] Rosen et al. "Updated repeat orbit interferometry package released"
        EOS, vol.85(5) pp.47
     """
+    assert type(C) == np.ndarray, ('please provide an array')
+
     max_corr = np.amax(C)
     hlf_corr = np.divide( max_corr, 2)
     noise = C<=hlf_corr
@@ -241,6 +251,8 @@ def peak_corr_energy(C):
        ratio metrics and measurement uncertainty quantification" Measurement
        science and technology, vol.25 pp.115301, 2014.
     """
+    assert type(C) == np.ndarray, ('please provide an array')
+
     max_corr = np.amax(C)
     E_c = np.sum(np.abs(C.flatten())**2)
     pce = np.divide(max_corr**2, E_c)
@@ -268,6 +280,8 @@ def peak_to_noise(C):
        deriving glacier surface displacements globally from optical satellite
        imagery." Remote sensing of environment vol.118 pp.339-355, 2012.
     """
+    assert type(C) == np.ndarray, ('please provide an array')
+
     C = C.flatten()
     max_idx, max_corr = np.argmax(C), np.amax(C)
     mean_corr = np.mean(np.concatenate((C[:max_idx],
@@ -303,6 +317,8 @@ def peak_confidence(C, radius=1):
     """
     from .matching_tools import get_template
 
+    assert type(C) == np.ndarray, ('please provide an array')
+
     C_max = np.argmax(C)
     ij = np.unravel_index(C_max, C.shape, order='F')
     idx_2, idx_1 = ij[::-1]
@@ -336,6 +352,8 @@ def entropy_corr(C):
     .. [3] Sturges, "The choice of a class interval". Journal of the american
        statistical association. vol.21(153) pp.65–66.
     """
+    assert type(C) == np.ndarray, ('please provide an array')
+
     sturges = 1.6 * (np.log2(C.size) + 1) # [1] uses 30, but [2] is more adaptive
     values, base = np.histogram(C.flatten(),
                                 bins=int(np.ceil(sturges)))
@@ -376,6 +394,8 @@ def hessian_spread(C, intI, intJ):
        offset SBAS Technique" IEEE transactions in geoscience and remote
        sensing vol.49(7) pp.2752--2763, 2011.
     """
+    assert type(C) == np.ndarray, ('please provide an array')
+
     if (intI==0) or (intI+1==C.shape[0]) or (intJ==0) or (intJ+1==C.shape[1]):
         C = np.pad(C, 1, mode='linear_ramp')
         intI += 1
@@ -447,6 +467,8 @@ def gauss_spread(C, intI, intJ, dI, dJ, est='dist'):
        uncertainty of remotely sensed glacier displacements" The cryosphere
        discussions, 2021.
     """
+    assert type(C) == np.ndarray, ('please provide an array')
+
     (m, n) = C.shape
     C -= np.mean(C)
 
@@ -530,6 +552,9 @@ def intensity_disparity(I1,I2):
     .. [1] Sciacchitano et al. "PIV uncertainty quantification by image
        matching" Measurement science and technology, vol.24 pp.045302, 2013.
     """
+    assert type(I1) == np.ndarray, ('please provide an array')
+    assert type(I2) == np.ndarray, ('please provide an array')
+
     I1, I2 = I1.flatten(), I2.flatten()
 
     dI = I1 - I2

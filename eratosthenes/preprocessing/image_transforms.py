@@ -35,16 +35,16 @@ def mat_to_gray(I, notI=None, vmin=None, vmax=None):
         notI = ~yesI
     else:
         yesI = ~notI
-    Inew = np.float64(I)  # /2**16
+    Inew = np.zeros_like(I, dtype=np.float64)  # /2**16
 
-    if np.ptp(I) == 0: return
+    if np.ptp(I) == 0: return Inew
 
     if vmin is not None: Inew[yesI] = np.maximum(Inew[yesI], vmin)
     if vmax is not None: Inew[yesI] = np.minimum(Inew[yesI], vmax)
 
-    Inew[yesI] = np.interp(Inew[yesI],
-                           (Inew[yesI].min(),
-                            Inew[yesI].max()), (0, +1))
+    Inew[yesI] = np.interp(I[yesI],
+                           (I[yesI].min(),
+                            I[yesI].max()), (0, +1))
     Inew[notI] = 0
     return Inew
 

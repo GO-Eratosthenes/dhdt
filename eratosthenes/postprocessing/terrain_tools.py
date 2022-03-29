@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib as plt
 
 from scipy import ndimage
 
@@ -97,7 +98,10 @@ def get_d8_offsets(shape, order='C'):
             0])     # no data value - stationary
     return d8_offset
 
-def d8_flow(Class, V_x, V_y, iter=4):
+def d8_flow(Class, V_x, V_y, iter=4, analysis=True): #todo: create colored polygon outputs
+
+    # analysis : boolean
+    #    create intermediate results, to see the evolution of the algorithm
 
     # admin
     (m, n) = Class.shape
@@ -113,6 +117,8 @@ def d8_flow(Class, V_x, V_y, iter=4):
     idx = np.linspace(0, mn - 1, mn, dtype=int).reshape([m, n], order='C')
     Class_new = ndimage.grey_dilation(Class, size=(5, 5))
 
+    if analysis: Class_stack = np.zeros((m, n, iter))
+
     for i in range(iter):
         # find the boundary of the polygons
         Bnd = np.sign(np.abs(np.gradient(Class_new)).sum(0)).astype(bool) != 0
@@ -125,5 +131,9 @@ def d8_flow(Class, V_x, V_y, iter=4):
 
         # update
         Class_new[Bnd] = Class_new.ravel()[downstream_idx]
+        if analysis: Class_stack[:,:,i] = Class_new.copy()
 
-    return Class_new
+    if analysis:
+        return Class_stack
+    else:
+        return Class_new

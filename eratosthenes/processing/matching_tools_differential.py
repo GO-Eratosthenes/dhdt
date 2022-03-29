@@ -47,6 +47,8 @@ def create_differential_data(I1,I2):
           image      | i         map         |
           based      v           based       |
     """
+    assert type(I1) == np.ndarray, ("please provide an array")
+    assert type(I2) == np.ndarray, ("please provide an array")
     # admin
     kernel_t = np.array(
         [[1., 1., 1.],
@@ -147,6 +149,8 @@ def simple_optical_flow(I1, I2, window_size, sampleI, sampleJ,
        application to stereo vision", Proceedings of 7th international joint
        conference on artificial intelligence, 1981.
     """
+    assert type(I1) == np.ndarray, ("please provide an array")
+    assert type(I2) == np.ndarray, ("please provide an array")
 
     # check and initialize
     if isinstance(sampleI, int):
@@ -289,6 +293,8 @@ def affine_optical_flow(I1, I2, model='affine', iteration=10,
        epipolar line constraint", Proceedings of the international conference on
        computer vision systems, 2015.
     """
+    assert type(I1) == np.ndarray, ("please provide an array")
+    assert type(I2) == np.ndarray, ("please provide an array")
     assert isinstance(model, str), ('please provide a model; ',
                                     '{''simple'',''affine'',''similarity''}')
     model = model.lower()
@@ -455,6 +461,9 @@ def hough_optical_flow(I1, I2, param_resol=100, sample_fraction=1,
     .. [2] Guo & Lü, "Phase-shifting algorithm by use of Hough transform"
        Optics express vol.20(23) pp.26037-26049, 2012.
     """
+    assert type(I1) == np.ndarray, ("please provide an array")
+    assert type(I2) == np.ndarray, ("please provide an array")
+
     Msk_1, Msk_2 = ~np.isnan(I1), ~np.isnan(I2)
     I1[~Msk_1], I2[~Msk_2] = np.nan, np.nan
 
@@ -519,6 +528,7 @@ def hough_sinus(phi,rho,
     .. [1] Guo & Lü, "Phase-shifting algorithm by use of Hough transform"
        Optics express vol.20(23) pp.26037-26049, 2012.
     """
+    param_resol = param_resol.astype(int)
     phi,rho = phi.flatten(), rho.flatten()
     sample_size = rho.size
     if sample_fraction==1:
@@ -553,9 +563,9 @@ def hough_sinus(phi,rho,
         rho_H, phi_H = np.zeros(num_estimates), np.zeros(num_estimates)
         for cnt,sc in enumerate(score):
             if sc!=0:
-                rho_H = np.sqrt( u[ind[cnt,0]][ind[cnt,1]]**2 +
+                rho_H[cnt] = np.sqrt( u[ind[cnt,0]][ind[cnt,1]]**2 +
                                  v[ind[cnt,0]][ind[cnt,1]]**2 )
-                phi_H = np.arctan2(u[ind[cnt,0]][ind[cnt,1]],
+                phi_H[cnt] = np.arctan2(u[ind[cnt,0]][ind[cnt,1]],
                                    v[ind[cnt,0]][ind[cnt,1]])
         return phi_H, rho_H
     elif indexing in ('cartesian'):

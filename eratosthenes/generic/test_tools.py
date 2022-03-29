@@ -8,7 +8,8 @@ from ..preprocessing.image_transforms import mat_to_gray
 from ..processing.matching_tools_frequency_filters import \
     normalize_power_spectrum
 from ..processing.matching_tools import get_integer_peak_location
-
+from ..processing.matching_tools_frequency_filters import \
+    make_fourier_grid
 # assert np.isclose()
 
 def create_sample_image_pair(d=2**7, max_range=1, integer=False):
@@ -253,17 +254,17 @@ def create_scaled_image_pair(d=2**7,sc_x=1.00, sc_y=1.00, max_range=1):
     im1_same = im1[d:-d,d:-d]
     return im1_same, im2, random_di, random_dj, im1
 
-def construct_correlation_peak(I, di, dj, fwhm=3.):
+def construct_correlation_peak(I, di, dj, fwhm=3., origin='center'):
     """given a displacement, create a gaussian peak
 
     Parameters
     ----------
     I : np.array, size=(m,n)
         image domain
-    di : float
-        displacment along the vertical axis
-    dj : float
-        displacment along the horizantal axis
+    di : {float, np.array}
+        displacement along the vertical axis
+    dj : {float, np.array}
+        displacement along the horizontal axis
     fwhm: float
         full width half maximum
 
@@ -274,14 +275,27 @@ def construct_correlation_peak(I, di, dj, fwhm=3.):
     """
     (m,n) = I.shape
 
-    (I_grd,J_grd) = np.meshgrid(np.arange(0,n)-(n//2),
-                                np.arange(0,m)-(m//2), \
-                                indexing='ij')
+    (I_grd, J_grd) = np.meshgrid(np.arange(0, m),
+                                 np.arange(0, n),
+                                 indexing='ij')
+    if origin in ('center'):
+        I_grd -= m//2
+        J_grd -= n//2
     I_grd,J_grd = I_grd.astype('float64'), J_grd.astype('float64')
-    I_grd -= di
-    J_grd -= dj
 
-    C = np.exp(-4*np.log(2) * (I_grd**2 + J_grd**2) / fwhm**2)
+    if len(di)==1:
+        I_grd -= di
+        J_grd -= dj
+        C = np.exp(-4*np.log(2) * (I_grd**2 + J_grd**2) / fwhm**2)
+        return C
+
+    C = np.zeros((m,n), dtype=float)
+    for idx,delta_i in enumerate(di):
+        delta_j = dj[idx]
+        C = np.maximum(C,
+                       np.real(
+                       np.exp(-4*np.log(2) * ((I_grd-delta_i)**2 +
+                                              (J_grd-delta_j)**2) / fwhm**2)))
     return C
 
 def construct_phase_plane(I, di, dj, indexing='ij'):
@@ -372,27 +386,42 @@ def construct_phase_values(IJ, di, dj, indexing='ij', system='radians'):
     Q = np.cos(-Q_unwrap) + 1j*np.sin(-Q_unwrap)
     return Q
 
-def signal_to_noise(Q,C,norm=2):
-    """ calculate the signal to noise from a theoretical and a cross-spectrum
+def cross_spectrum_to_coordinate_list(data, W=np.array([])):
+    """ if data is given in array for, then transform it to a coordinate list
 
     Parameters
     ----------
-    Q : np.array, size=(m,n), dtype=complex
+    data : np.array, size=(m,n), dtype=complex
         cross-spectrum
-    C : np.array, size=(m,n), dtype=complex
-        phase plane
-    norm : integer
-        norm for the difference
+    W : np.array, size=(m,n), dtype=boolean
+        weigthing matrix of the cross-spectrum
 
     Returns
     -------
-    snr : float, range=0...1
-        signal to noise ratio
+    data_list : np.array, size=(m*n,3), dtype=float
+        coordinate list with angles, in normalized ranges, i.e: -1 ... +1
     """
-    Qn = normalize_power_spectrum(Q)
-    Q_diff = np.abs(Qn-C)**norm
-    snr = 1 - (np.sum(Q_diff) / (2*norm*np.prod(C.shape)))
-    return snr
+    assert type(data)==np.ndarray, ("please provide an array")
+    assert type(W)==np.ndarray, ("please provide an array")
+
+    if data.shape[0]==data.shape[1]:
+        (m,n) = data.shape
+        F1,F2 = make_fourier_grid(np.zeros((m,n)),
+                                  indexing='ij', system='unit')
+
+        # transform from complex to -1...+1
+        Q = np.fft.fftshift(np.angle(data) / np.pi) #(2*np.pi))
+
+        data_list = np.vstack((F1.flatten(),
+                               F2.flatten(),
+                               Q.flatten() )).T
+        if W.size>0: # remove masked data
+            data_list = data_list[W.flatten()==1,:]
+    elif W.size!= 0:
+        data_list = data[W.flatten()==1,:]
+    else:
+        data_list = data
+    return data_list
 
 def test_phase_plane_localization(Q, di, dj, tolerance=1.):
     C = np.fft.fftshift(np.real(np.fft.ifft2(Q)))

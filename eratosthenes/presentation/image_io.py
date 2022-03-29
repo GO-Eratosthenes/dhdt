@@ -12,7 +12,7 @@ from ..preprocessing.image_transforms import mat_to_gray
 from ..postprocessing.solar_tools import make_shading
 
 def make_image(data, outputname, size=(1, 1), dpi=80, cmap='hot'):
-    """ create a matplotlib figure and exprot this view
+    """ create a matplotlib figure and export this view
 
     Parameters
     ----------
@@ -83,10 +83,11 @@ def output_image(data, outputname, cmap='bone', compress=95):
     img.save(outputname, quality=compress)
     return
 
-def output_mask(data, outputname, color=np.array([255, 0, 64])):
+def output_mask(data, outputname,
+                color=np.array([255, 0, 64]), alpha=255):
 
     col_arr = np.stack((np.array([255,255,255,0]),
-                        np.hstack((color,255))))
+                        np.hstack((color,alpha))))
 
     data = np.uint8(data.astype('float'))
     rgba = np.zeros((data.shape[0], data.shape[1], 4), dtype=np.uint8)

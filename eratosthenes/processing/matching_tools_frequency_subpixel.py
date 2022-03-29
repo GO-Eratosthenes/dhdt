@@ -5,17 +5,18 @@ import numpy as np
 # image processing libraries
 from scipy import ndimage
 from skimage.transform import radon
-# from skimage.measure import ransac
 from skimage.measure.fit import _dynamic_max_trials
 
-from ..generic.test_tools import construct_phase_plane, construct_phase_values
+from ..generic.test_tools import \
+    construct_phase_plane, cross_spectrum_to_coordinate_list
 from ..generic.data_tools import gradient_descent, secant
 from ..preprocessing.shadow_transforms import pca
 from .matching_tools_frequency_filters import \
-    raised_cosine, local_coherence, thresh_masking, normalize_power_spectrum, \
+    raised_cosine, thresh_masking, normalize_power_spectrum, \
     make_fourier_grid
+from .matching_tools_frequency_metrics import local_coherence
 
-def phase_jac(Q, m, W=np.array([]), \
+def phase_jac(Q, m, W=np.array([]),
               F1=np.array([]), F2=np.array([]), rank=2): # wip
     """
     Parameters
@@ -480,43 +481,6 @@ def phase_difference(Q, W=np.array([])):
 
     return di,dj
 
-def cross_spectrum_to_coordinate_list(data, W=np.array([])):
-    """ if data is given in array for, then transform it to a coordinate list
-
-    Parameters
-    ----------
-    data : np.array, size=(m,n), dtype=complex
-        cross-spectrum
-    W : np.array, size=(m,n), dtype=boolean
-        weigthing matrix of the cross-spectrum
-
-    Returns
-    -------
-    data_list : np.array, size=(m*n,3), dtype=float
-        coordinate list with angles, in normalized ranges, i.e: -1 ... +1
-    """
-    assert type(data)==np.ndarray, ("please provide an array")
-    assert type(W)==np.ndarray, ("please provide an array")
-
-    if data.shape[0]==data.shape[1]:
-        (m,n) = data.shape
-        F1,F2 = make_fourier_grid(np.zeros((m,n)), \
-                                  indexing='ij', system='unit')
-
-        # transform from complex to -1...+1
-        Q = np.fft.fftshift(np.angle(data) / np.pi) #(2*np.pi))
-
-        data_list = np.vstack((F1.flatten(),
-                               F2.flatten(),
-                               Q.flatten() )).T
-        if W.size>0: # remove masked data
-            data_list = data_list[W.flatten()==1,:]
-    elif W.size!= 0:
-        data_list = data[W.flatten()==1,:]
-    else:
-        data_list = data
-    return data_list
-
 def phase_lsq(data, W=np.array([])):
     """get phase plane of cross-spectrum through least squares plane fitting
 
@@ -627,7 +591,7 @@ def phase_pca(data, W=np.array([])):
 # Hubert, Rousseeuw, van Aelst. 2008
 # High-breakdown robust multivariate methods
 
-def phase_weighted_pca(Q, W): # wip
+def phase_weighted_pca(Q, W): #todo
     """get phase plane of cross-spectrum through principle component analysis
 
     find slope of the phase plane through

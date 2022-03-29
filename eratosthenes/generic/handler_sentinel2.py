@@ -2,7 +2,7 @@ import glob
 import os
 
 from xml.etree import ElementTree
-from osgeo import ogr
+from osgeo import ogr, osr
 
 import numpy as np
 import pandas as pd
@@ -171,3 +171,34 @@ def get_utm_from_S2_tiles(tile_list):
     utm_list = list(set(utm_list))
     return utm_list
 
+def get_utmzone_from_mgrs_tile(tile_code):
+    return int(tile_code[:2])
+
+def get_crs_from_mgrs_tile(tile_code):
+    """
+
+    Parameters
+    ----------
+    tile_code : string
+        US Military Grid Reference System (MGRS) tile code
+
+    Returns
+    -------
+    crs : osgeo.osr.SpatialReference
+        target projection system
+
+    Notes
+    -----
+    The tile structure is a follows "AABCC"
+        * "AA" utm zone number, starting from the East, with steps of 8 degrees
+        * "B" latitude zone, starting from the South, with steps of 6 degrees
+    """
+    utm_num = get_utmzone_from_mgrs_tile(tile_code)
+    epsg_code = 32600 + utm_num
+
+    # N to X are in the Northern hemisphere
+    if tile_code[2] < 'N': epsg_code += 100
+
+    crs = osr.SpatialReference()
+    crs.ImportFromEPSG(epsg_code)
+    return crs

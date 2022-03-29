@@ -149,6 +149,58 @@ def map2pix(geoTransform, x, y):
 
     return i, j
 
+def vel2pix(geoTransform, dx, dy):
+    """ transform map displacements to local image displacements
+
+    Parameters
+    ----------
+    geoTransform : tuple, size=(6,1)
+        georeference transform of an image.
+    dx : np.array, size=(m), ndim={1,2,3}, dtype=float
+        horizontal map displacement.
+    dy : np.array, size=(m), ndim={1,2,3}, dtype=float
+        vertical map displacement.
+
+    Returns
+    -------
+    di : np.array, ndim={1,2,3}, dtype=float
+        row coordinate(s) in local image space
+    dj : np.array, ndim={1,2,3}, dtype=float
+        column coordinate(s) in local image space
+
+    Notes
+    -----
+    Two different coordinate system are used here:
+
+        .. code-block:: text
+
+          indexing   |           indexing    ^ y
+          system 'ij'|           system 'xy' |
+                     |                       |
+                     |       i               |       x
+             --------+-------->      --------+-------->
+                     |                       |
+                     |                       |
+          image      | j         map         |
+          based      v           based       |
+
+    """
+    if isinstance(dx, np.ndarray):
+        assert dx.shape==dy.shape, ('arrays should be of the same size')
+    assert isinstance(geoTransform, tuple), ('geoTransform should be a tuple')
+
+    if geoTransform[2] == 0:
+        dj = dx / geoTransform[1]
+    else:
+        dj = (dx / geoTransform[1] + dy / geoTransform[2])
+
+    if geoTransform[4] == 0:
+        di = dy / geoTransform[5]
+    else:
+        di = (dx / geoTransform[4] + dy / geoTransform[5])
+
+    return di, dj
+
 def ecef2llh(xyz):
     """ transform 3D cartesian Earth Centered Earth fixed coordinates, to
     spherical angles and height above the ellipsoid
@@ -539,10 +591,10 @@ def pix_centers(geoTransform, rows, cols, make_grid=True):
     -------
     X : np.array, dtype=float
          * "make_grid" : size=(m,n)
-         * otherwise : size=(1,n)
+         otherwise : size=(1,n)
     Y : np.array, dtype=float
          * "make_grid" : size=(m,n)
-         * otherwise : size=(m,1)
+         otherwise : size=(m,1)
 
     See Also
     --------
@@ -716,6 +768,55 @@ def get_bbox(geoTransform, rows, cols):
 #    # get extent not pixel centers
 #    bbox += np.array([-spacing_x, +spacing_x, -spacing_y, +spacing_y])
     return bbox
+
+def get_shape_extent(bbox, geoTransform):
+    """ given geographic meta data of array, calculate its shape
+
+    Parameters
+    ----------
+    bbox : np.array, size=(1,4), dtype=float
+        bounding box, in the following order: min max X, min max Y
+    geoTransform : tuple, size=(1,6)
+        georeference transform of an image.
+
+    Returns
+    -------
+    rows : integer
+        amount of rows in an image.
+    cols : integer
+        amount of collumns in an image.
+
+    See Also
+    --------
+    map2pix, pix2map, pix_centers, get_map_extent, get_bbox
+
+    Notes
+    -----
+    Two different coordinate system are used here:
+
+        .. code-block:: text
+
+          indexing   |           indexing    ^ y
+          system 'ij'|           system 'xy' |
+                     |                       |
+                     |       i               |       x
+             --------+-------->      --------+-------->
+                     |                       |
+                     |                       |
+          image      | j         map         |
+          based      v           based       |
+
+    OBS: rasterio uses a different formulation for the bounding box, stated as
+    (min_X, min_Y, max_X, max_Y). Transformation can be done through:
+    bbox_swap = bbox.reshape((2,2)).T.ravel()
+    """
+    rows = np.divide(bbox[3]-bbox[2],
+                      np.sqrt(geoTransform[4]**2+geoTransform[5]**2)
+                     ).astype(int)
+    cols = np.divide(bbox[1]-bbox[0],
+                      np.sqrt(geoTransform[1]**2+geoTransform[2]**2)
+                     ).astype(int)
+    return (rows, cols)
 
 def get_map_extent(bbox):
     """ generate coordinate list in counterclockwise direction from boundingbox

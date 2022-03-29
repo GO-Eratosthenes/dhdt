@@ -1,5 +1,9 @@
 import numpy as np
 
+# local functions
+from ..processing.matching_tools_frequency_filters import \
+    make_fourier_grid
+
 def project_along_flow(dX_raw,dY_raw,dX_prio,dY_prio,e_perp):
     """
 
@@ -63,6 +67,63 @@ def project_along_flow(dX_raw,dY_raw,dX_prio,dY_prio,e_perp):
     dX_proj = d_proj * dX_raw
     dY_proj = d_proj * dY_raw 
     return dX_proj,dY_proj 
- 
+
+def rotate_disp_field(UV, theta):
+    """ rotate a complex number through an angle
+
+    Parameters
+    ----------
+    UV : np.array, size=(m,n), dtype=complex
+        grid with displacements in complex form
+    theta : angle, unit=degrees
+        rotation angle
+
+    UV_r :  np.array, size=(m,n), dtype=complex
+        grid with rotated displacements in complex form
+    """
+    assert(UV.dtype is np.dtype('complex'))
+    UV_r = np.multiply(UV, np.exp(1j*np.deg2rad(theta)),
+                       out=UV, where=np.invert(np.isnan(UV)))
+    return UV_r
+
+def helmholtz_hodge(dX, dY):
+    """
+
+    Parameters
+    ----------
+    dX : np.array, size=(m,n)
+        horizontal displacement
+    dY : np.array, size=(m,n)
+        vertical displacement
+
+    Returns
+    -------
+    dX_divfre, dY_divfre : np.array, size=(m,n)
+        divergence-free vector field
+    dX_irrot, dY_irrot : np.array, size=(m,n)
+        irrotational vector field
+    """
+    assert type(dX) == np.ndarray, ("please provide an array")
+    assert type(dY) == np.ndarray, ("please provide an array")
+
+    # a Fourier transform can not handle nan's very well, hence mask with zeros
+    Msk = np.logical_or(np.isnan(dX), np.isnan(dY))
+    if np.any(Msk): dX[Msk], dY[Msk] = 0, 0
+
+    dX_F, dY_F = np.fft.fftn(dX), np.fft.fftn(dX)
+    F1, F2 = make_fourier_grid(dX, indexing='ij', system='unit')
+    K = np.sqrt(F1**2 + F2**2)
+    K[0,0] = 1
+
+    div_dXY_F = np.divide(dX_F*F2 + dY_F*F1, K,
+                          out=np.zeros_like(dX_F), where=K!=0)
+
+    dX_irrot = np.real(np.fft.ifftn(div_dXY_F*F2))
+    dY_irrot = np.real(np.fft.ifftn(div_dXY_F*F1))
+    dX_divfre, dY_divfre = dX - dX_irrot, dY - dY_irrot
+
+    if np.any(Msk): dX_irrot[Msk], dY_irrot[Msk] = np.nan, np.nan
+    return dX_divfre, dY_divfre, dX_irrot, dY_irrot
+
 # geometric_configuration
 # temporal_configuration  
