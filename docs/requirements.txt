@@ -2,4 +2,3 @@ sphinx
 docutils==0.16
 sphinx_rtd_theme==0.5.2
 recommonmark
-pip install --compile --install-option="--with-openssl" pycurl
