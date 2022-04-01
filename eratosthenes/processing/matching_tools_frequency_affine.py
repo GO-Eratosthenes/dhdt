@@ -4,16 +4,78 @@ import numpy as np
 from PIL import Image, ImageDraw
 from scipy import interpolate
 from scipy.optimize import fsolve
-from skimage.transform import radon
 from skimage.measure import find_contours
 
-# inhouse functions
-from ..generic.mapping_tools import pol2cart, cart2pol
+# local functions
+from ..generic.mapping_tools import pol2cart, cart2pol, rot_mat
 
 from .matching_tools_frequency_filters import \
     make_fourier_grid
 
-#todo - experimental
+# radon > direction > sign > shear
+
+def rotated_coord_system(I_grd, J_grd, theta):
+    """ create rotated coordinate system
+
+    Parameters
+    ----------
+    I_grd, J_grd : np.array, size=(m,n), float
+        grid with coordinates
+    theta : float, unit=angle
+        rotation angle
+
+    Returns
+    -------
+    I_new, J_new : np.array, size=(m,n), float
+        new sheared coordinate system
+    """
+    (m, n) = I_grd.shape
+    R = rot_mat(theta)
+
+    stack_grd = np.vstack((I_grd.ravel(), J_grd.ravel())).T
+
+    # calculate new interpolation grid
+    grd_new = np.matmul(R, stack_grd.T)
+
+    I_new = np.reshape(grd_new[0, :], (m, n))
+    J_new = np.reshape(grd_new[1, :], (m, n))
+    return I_new, J_new
+
+def sheared_coord_system(I_grd, J_grd, shear):
+    """ create sheared coordinate system
+
+    Parameters
+    ----------
+    I_grd, J_grd : np.array, size=(m,n), float
+        grid with coordinates
+    shear : float
+        per pixel shear
+
+    Returns
+    -------
+    I_new, J_new : np.array, size=(m,n), float
+        new sheared coordinate system
+    """
+    (m, n) = I_grd.shape
+    A = np.array([[1, (2*shear)/m], [0, 1]])  # transformation matrix
+
+    stack_grd = np.vstack((I_grd.ravel(), J_grd.ravel())).T
+
+    # calculate new interpolation grid
+    grd_new = np.matmul(A, stack_grd.T)
+
+    I_new = np.reshape(grd_new[0, :], (m, n))
+    J_new = np.reshape(grd_new[1, :], (m, n))
+    return I_new, J_new
+
+def sheared_cross_spectrum(Q, shear, theta):
+    (m, n) = Q.shape
+    F_1, F_2 = make_fourier_grid(Q, indexing='ij', system='pixel')
+
+    F_1r,F_2r = rotated_coord_system(F_1, F_2, +theta)
+    F_1s,F_2s = sheared_coord_system(F_1r, F_2r, shear)
+    F_1n,F_2n = rotated_coord_system(F_1s, F_2s, -theta)
+    return F_1n, F_2n
 
 def compute_E(cirus, theta):
     # following Kadyrov '06
@@ -182,7 +244,7 @@ def periodic_corr(x, y):
 # def trace_transform(S1,S2):
 #    return a,b,c,d
 
-def scaling_through_power_summation(S1,S2):
+def scaling_through_power_summation(S1, S2):
     """ refine two spectra through integration/summation
     
     Parameters

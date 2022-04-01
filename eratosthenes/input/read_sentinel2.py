@@ -13,7 +13,7 @@ from osgeo import gdal, osr
 # raster/image libraries
 from PIL import Image, ImageDraw
 from skimage.transform import resize
-from scipy.interpolate import griddata
+from scipy.interpolate import griddata, interp2d
 
 from ..generic.handler_sentinel2 import get_array_from_xml
 from ..generic.mapping_tools import map2pix, ecef2map, get_bbox
@@ -419,61 +419,107 @@ def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
         ('make sure all bands are the same resolution')
     root = get_root_of_table(path, fname)
 
-    if det_stack.size==0:
-        roi = boi['gsd'].mode()[0] # resolution of interest
+    det_list = np.unique(det_stack)
+    bnd_list = np.asarray(boi['bandid'])
+    Zn_grd, Az_grd = None, None
+    # get coarse grids
+    for grd in root.iter('Viewing_Incidence_Angles_Grids'):
+        bid = float(grd.get('bandId'))
+        if not boi['bandid'].isin([bid]).any():
+            continue
+        grd_idx_3 = np.where(bnd_list==bid)[0][0]
+
+        # link to band in detector stack, by finding the integer index
+        det_idx = np.flatnonzero(boi['bandid'].isin([bid]))[0]
+
+        # link to detector id, within this band
+        did = float(grd.get('detectorId'))
+        grd_idx_4 = np.where(det_list==did)[0][0]
+#        det_arr = det_stack[:,:,det_idx]==did
+
+        col_sep = float(grd[0][0].text) # in meters
+        row_sep = float(grd[0][0].text) # in meters
+        col_res = float(boi.loc[boi.index[det_idx],'gsd'])
+        row_res = float(boi.loc[boi.index[det_idx],'gsd'])
+
+        Zarray = get_array_from_xml(grd[0][2])
+        if Zn_grd is None:
+            Zn_grd = np.zeros((Zarray.shape[0], Zarray.shape[1],
+                              len(bnd_list), len(det_list)), dtype=np.float64)
+        Zn_grd[:,:,grd_idx_3,grd_idx_4] = Zarray
+        Aarray = get_array_from_xml(grd[1][2])
+        if Az_grd is None:
+            Az_grd = np.zeros((Aarray.shape[0], Aarray.shape[1],
+                              len(bnd_list), len(det_list)), dtype=np.float64)
+        Az_grd[:,:,grd_idx_3,grd_idx_4] = Aarray
+
+    # azimuth is gradual
+    for bnd, idx in enumerate(bnd_list):
+        for i in range(2): # even and odd
+            Zn_samp = np.nanmax(np.squeeze(
+                Zn_grd[:,:,bnd,np.mod(det_list, 2)==0]), axis=2)
+
+    det_grp = np.array([[1,3,5],[2,4,6],[7,9,11],[8,10,12]])
+    for bnd,idx in enumerate(bnd_list):
+        for i in range(det_grp.shape[1]):
+            Zn_samp = np.squeeze(Zn_grd[:,:,bnd,np.isin(det_list, det_grp[i,:])])
+            if Zn_samp.ndim==3: Zn_samp = np.nanmax(Zn_samp, axis=2)
+
+    if det_stack.size == 0:
+        roi = boi['gsd'].mode()[0]  # resolution of interest
         # image dimensions
         for meta in root.iter('Size'):
             res = float(meta.get('resolution'))
             if res == roi:
                 mI = float(meta[0].text)
                 nI = float(meta[1].text)
-        Zn = np.zeros((mI,nI,len(boi)), dtype=np.float64),
-        Az = np.zeros((mI,nI,len(boi)), dtype=np.float64)
-        det_stack = np.ones((mI,nI,len(boi)))
+        Zn = np.zeros((mI, nI, len(boi)), dtype=np.float64),
+        Az = np.zeros((mI, nI, len(boi)), dtype=np.float64)
+        det_stack = np.ones((mI, nI, len(boi)))
     else:
         Zn = np.zeros_like(det_stack, dtype=np.float64)
         Az = np.zeros_like(det_stack, dtype=np.float64)
-    # get coarse grids
-    for grd in root.iter('Viewing_Incidence_Angles_Grids'):
-        bid = float(grd.get('bandId'))
-        if boi['bandid'].isin([bid]).any():
-            # link to band in detector stack, by finding the integer index
-            det_idx = np.flatnonzero(boi['bandid'].isin([bid]))[0]
 
-            # link to detector id, within this band
-            did = float(grd.get('detectorId'))
 
-            det_arr = det_stack[:,:,det_idx]==did
 
-            col_sep = float(grd[0][0].text) # in meters
-            row_sep = float(grd[0][0].text) # in meters
-            col_res = float(boi.loc[boi.index[det_idx],'gsd'])
-            row_res = float(boi.loc[boi.index[det_idx],'gsd'])
+#            I_grd,J_grd = np.mgrid[0:Zarray.shape[0],0:Zarray.shape[1]]
+#            IN = ~np.isnan(Zarray)
+#            I_grd,J_grd = I_grd[IN].astype('float64'), J_grd[IN].astype('float64')
+#            Z_grd,A_grd = Zarray[IN], Aarray[IN]
+#            I_grd *= (col_sep/col_res)
+#            J_grd *= (row_sep/row_res)
 
-            Zarray = get_array_from_xml(grd[0][2])
-            Aarray = get_array_from_xml(grd[1][2])
-
-            I_grd,J_grd = np.mgrid[0:Zarray.shape[0],0:Zarray.shape[1]]
-            IN = ~np.isnan(Zarray)
-            I_grd,J_grd = I_grd[IN].astype('float64'), J_grd[IN].astype('float64')
-            Z_grd,A_grd = Zarray[IN], Aarray[IN]
-            I_grd *= (col_sep/col_res)
-            J_grd *= (row_sep/row_res)
-
-            det_i,det_j = np.where(det_arr)
-
+#            det_i,det_j = np.where(det_arr)
+#            det_i,det_j = det_i.astype('float64'), det_j.astype('float64')
             # do linear regression, so extrapolation is possible
-            A = np.vstack((I_grd,J_grd, np.ones(I_grd.size) )).T
-            x_z = np.linalg.lstsq(A, Z_grd, rcond=None)[0]
-            det_Z = x_z[0]*det_i.astype('float64') + \
-                x_z[1]*det_j.astype('float64') + x_z[2]
-            x_a = np.linalg.lstsq(A, A_grd, rcond=None)[0]
-            det_A = x_a[0]*det_i.astype('float64') + \
-                x_a[1]*det_j.astype('float64') + x_a[2]
+#            if np.sum(IN)<=5:
+#                # simple model
+#                A = np.vstack((I_grd, J_grd, np.ones(I_grd.size))).T
 
-            det_k = np.repeat(det_idx,len(det_j))
-            Zn[det_i,det_j,det_k] = det_Z
-            Az[det_i,det_j,det_k] = det_A
+#                x_z = np.linalg.lstsq(A, Z_grd, rcond=None)[0]
+#                det_Z = x_z[0]*det_i + x_z[1]*det_j + x_z[2]
+
+#                x_a = np.linalg.lstsq(A, A_grd, rcond=None)[0]
+#                det_A = x_a[0]*det_i + x_a[1]*det_j + x_a[2]
+#            else:
+                # polynomial model
+#                A = np.vstack((I_grd, J_grd, I_grd**2, I_grd*J_grd, J_grd**2,
+#                               np.ones(I_grd.size))).T
+
+#                x_z = np.linalg.lstsq(A, Z_grd, rcond=None)[0]
+#                det_Z = x_z[0]*det_i + x_z[1]*det_j + \
+#                        x_z[2]*det_i**2 + x_z[3]*det_i*det_j + \
+#                        x_z[4]*det_j**2 + x_z[5]
+
+#                x_a = np.linalg.lstsq(A, A_grd, rcond=None)[0]
+#                det_A = x_a[0]*det_i + x_a[1]*det_j + \
+#                        x_a[2]*det_i**2 + x_a[3]*det_i*det_j + \
+#                        x_a[4]*det_j**2 + x_a[5]
+
+#            det_i, det_j = det_i.astype('int'), det_j.astype('int')
+#            det_k = np.repeat(det_idx,len(det_j))
+
+#            Zn[det_i,det_j,det_k], Az[det_i,det_j,det_k] = det_Z, det_A
     return Zn, Az
 
 def read_mean_sun_angles_s2(path, fname='MTD_TL.xml'):
