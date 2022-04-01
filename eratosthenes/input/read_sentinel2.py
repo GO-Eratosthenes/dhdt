@@ -1,6 +1,7 @@
 # generic libraries
 import glob
 import os
+import warnings
 
 from xml.etree import ElementTree
 
@@ -13,6 +14,7 @@ from osgeo import gdal, osr
 # raster/image libraries
 from PIL import Image, ImageDraw
 from skimage.transform import resize
+from sklearn.neighbors import NearestNeighbors
 from scipy.interpolate import griddata, interp2d
 
 from ..generic.handler_sentinel2 import get_array_from_xml
@@ -435,7 +437,6 @@ def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
         # link to detector id, within this band
         did = float(grd.get('detectorId'))
         grd_idx_4 = np.where(det_list==did)[0][0]
-#        det_arr = det_stack[:,:,det_idx]==did
 
         col_sep = float(grd[0][0].text) # in meters
         row_sep = float(grd[0][0].text) # in meters
@@ -453,73 +454,56 @@ def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
                               len(bnd_list), len(det_list)), dtype=np.float64)
         Az_grd[:,:,grd_idx_3,grd_idx_4] = Aarray
 
-    # azimuth is gradual
-    for bnd, idx in enumerate(bnd_list):
-        for i in range(2): # even and odd
-            Zn_samp = np.nanmax(np.squeeze(
-                Zn_grd[:,:,bnd,np.mod(det_list, 2)==0]), axis=2)
-
-    det_grp = np.array([[1,3,5],[2,4,6],[7,9,11],[8,10,12]])
-    for bnd,idx in enumerate(bnd_list):
-        for i in range(det_grp.shape[1]):
-            Zn_samp = np.squeeze(Zn_grd[:,:,bnd,np.isin(det_list, det_grp[i,:])])
-            if Zn_samp.ndim==3: Zn_samp = np.nanmax(Zn_samp, axis=2)
-
     if det_stack.size == 0:
         roi = boi['gsd'].mode()[0]  # resolution of interest
         # image dimensions
         for meta in root.iter('Size'):
             res = float(meta.get('resolution'))
             if res == roi:
-                mI = float(meta[0].text)
-                nI = float(meta[1].text)
-        Zn = np.zeros((mI, nI, len(boi)), dtype=np.float64),
-        Az = np.zeros((mI, nI, len(boi)), dtype=np.float64)
-        det_stack = np.ones((mI, nI, len(boi)))
+                mI, nI = float(meta[0].text), float(meta[1].text)
     else:
-        Zn = np.zeros_like(det_stack, dtype=np.float64)
-        Az = np.zeros_like(det_stack, dtype=np.float64)
+        mI, nI = det_stack.shape[0], det_stack.shape[1]
 
+    # create grid coordinate frame
+    I_grd, J_grd = np.mgrid[0:Zn_grd.shape[0], 0:Zn_grd.shape[1]]
+    I_grd, J_grd = I_grd.astype('float64'), J_grd.astype('float64')
+    I_grd *= (col_sep / col_res)
+    J_grd *= (row_sep / row_res)
 
+    Zn, Az = None, None
+    det_grp = np.array([[1,3,5],[2,4,6],[7,9,11],[8,10,12]])
+    for idx, bnd in enumerate(bnd_list):
+        Zn_bnd, Az_bnd = np.zeros((mI, nI)), np.zeros((mI, nI))
+        for i in range(det_grp.shape[0]):
+            Zn_samp = np.squeeze(Zn_grd[:,:,idx,np.isin(det_list, det_grp[i,:])])
+            if Zn_samp.ndim==3:
+                with warnings.catch_warnings():
+                    warnings.filterwarnings('ignore',
+                                            r'All-NaN (slice|axis) encountered')
+                    Zn_samp = np.nanmax(Zn_samp, axis=2)
 
-#            I_grd,J_grd = np.mgrid[0:Zarray.shape[0],0:Zarray.shape[1]]
-#            IN = ~np.isnan(Zarray)
-#            I_grd,J_grd = I_grd[IN].astype('float64'), J_grd[IN].astype('float64')
-#            Z_grd,A_grd = Zarray[IN], Aarray[IN]
-#            I_grd *= (col_sep/col_res)
-#            J_grd *= (row_sep/row_res)
+            Az_samp = np.squeeze(Az_grd[:,:,idx,np.isin(det_list, det_grp[i,:])])
+            if Az_samp.ndim==3:
+                with warnings.catch_warnings():
+                    warnings.filterwarnings('ignore',
+                                            r'All-NaN (slice|axis) encountered')
+                    Az_samp = np.nanmax(Az_samp, axis=2)
 
-#            det_i,det_j = np.where(det_arr)
-#            det_i,det_j = det_i.astype('float64'), det_j.astype('float64')
-            # do linear regression, so extrapolation is possible
-#            if np.sum(IN)<=5:
-#                # simple model
-#                A = np.vstack((I_grd, J_grd, np.ones(I_grd.size))).T
+            IN = np.invert(np.isnan(Zn_samp))
+            nbrs = NearestNeighbors(n_neighbors=1, algorithm='kd_tree').fit(
+                np.stack((I_grd[IN], J_grd[IN])).T)
 
-#                x_z = np.linalg.lstsq(A, Z_grd, rcond=None)[0]
-#                det_Z = x_z[0]*det_i + x_z[1]*det_j + x_z[2]
+            det_arr = np.isin(det_stack[:,:,idx], det_grp[i, :])
+            det_i, det_j = np.where(det_arr)
+            det_i,det_j = det_i.astype('float64'), det_j.astype('float64')
 
-#                x_a = np.linalg.lstsq(A, A_grd, rcond=None)[0]
-#                det_A = x_a[0]*det_i + x_a[1]*det_j + x_a[2]
-#            else:
-                # polynomial model
-#                A = np.vstack((I_grd, J_grd, I_grd**2, I_grd*J_grd, J_grd**2,
-#                               np.ones(I_grd.size))).T
-
-#                x_z = np.linalg.lstsq(A, Z_grd, rcond=None)[0]
-#                det_Z = x_z[0]*det_i + x_z[1]*det_j + \
-#                        x_z[2]*det_i**2 + x_z[3]*det_i*det_j + \
-#                        x_z[4]*det_j**2 + x_z[5]
-
-#                x_a = np.linalg.lstsq(A, A_grd, rcond=None)[0]
-#                det_A = x_a[0]*det_i + x_a[1]*det_j + \
-#                        x_a[2]*det_i**2 + x_a[3]*det_i*det_j + \
-#                        x_a[4]*det_j**2 + x_a[5]
-
-#            det_i, det_j = det_i.astype('int'), det_j.astype('int')
-#            det_k = np.repeat(det_idx,len(det_j))
-
-#            Zn[det_i,det_j,det_k], Az[det_i,det_j,det_k] = det_Z, det_A
+            _,indices = nbrs.kneighbors(np.stack((det_i,det_j)).T)
+            Zn_bnd[det_arr] = np.squeeze(Zn_samp[IN][indices])
+            Az_bnd[det_arr] = np.squeeze(Az_samp[IN][indices])
+        if Zn is None:
+            Zn, Az = Zn_bnd.copy(), Az_bnd.copy()
+        else:
+            Zn, Az = np.dstack((Zn, Zn_bnd)), np.dstack((Az, Az_bnd))
     return Zn, Az
 
 def read_mean_sun_angles_s2(path, fname='MTD_TL.xml'):
