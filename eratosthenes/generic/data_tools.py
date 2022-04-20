@@ -3,7 +3,8 @@ import numpy as np
 #from ..processing.matching_tools_frequency_subpixel import phase_jac
 
 def squared_difference(A,B):
-    """ efficient computation of the squared difference
+    """
+    efficient computation of the squared difference
 
     Parameters
     ----------

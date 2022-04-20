@@ -13,7 +13,7 @@
    :alt: Python Build
 
 ############
-Eratosthenes
+dhdt
 ############
 
 Extracting topography from mountain glaciers, through the use of shadow casted by surrounding mountains. Imagery from optical satellite systems are used, over all mountain ranges on Earth.

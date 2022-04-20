@@ -983,7 +983,7 @@ class SawtoothModel(BaseModel):
             True, if model estimation succeeds.
         """
         if data.shape[0] >= 2:  # well determined
-            if params_bound is not 0:
+            if params_bound != 0:
                 # create multitudes of cycles
                 param_cycle = np.mgrid[-params_bound:+params_bound+1, \
                                        -params_bound:+params_bound+1]

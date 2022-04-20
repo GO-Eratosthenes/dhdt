@@ -189,7 +189,8 @@ def cosi_corr(I1, I2, beta1=.35, beta2=.50, m=1e-4):
     return Qn, WS, m0
 
 def cosine_corr(I1, I2):
-    """ match two imagery through discrete cosine transformation
+    """
+    match two imagery through discrete cosine transformation
 
     Parameters
     ----------
@@ -323,7 +324,8 @@ def masked_cosine_corr(I1, I2, M1, M2): #todo
     return Q
 
 def phase_only_corr(I1, I2):
-    """ match two imagery through phase only correlation
+    """
+    match two imagery through phase only correlation
 
     Parameters
     ----------

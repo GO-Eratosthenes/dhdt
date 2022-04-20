@@ -51,10 +51,11 @@ def list_central_wavelength_oli():
         metadata and general multispectral information about the OLI
         instrument that is onboard Landsat8, having the following collumns:
 
-            * wavelength : central wavelength of the band
-            * bandwidth : extent of the spectral sensativity
+            * wavelength, unit=µm : central wavelength of the band
+            * bandwidth, unit=µm : extent of the spectral sensativity
             * bandid : number for identification in the meta data
-            * resolution : spatial resolution of a pixel
+            * resolution, unit=m : spatial resolution of a pixel
+            * field_of_view, unit=degrees : angle of swath of instrument
             * name : general name of the band, if applicable
 
     References
@@ -118,22 +119,23 @@ def list_central_wavelength_oli():
     center_wavelength = {"B1": .443, "B2": .482, "B3": .561, "B4": .655,
                          "B5": .865, "B6":1.609, "B7":2.201, "B8": .590,
                          "B9":1.373, "B10":10.896,"B11":12.001,
-                        }
+                        }*1E3
+    # convert from nm to µm
+    center_wavelength = {k: v*1E3 for k, v in center_wavelength.items()}
+
     # full_width_half_max = max_wavelength - min_wavelength
     full_width_half_max = {"B1": 0.016, "B2": 0.060, "B3": 0.057, "B4": 0.037,
                  "B5": 0.028, "B6": 0.085, "B7": 0.187, "B8": 0.172,
                  "B9": 0.020, "B10": .588, "B11":1.011,
                  }
+    # convert from nm to µm
+    full_width_half_max = {k: v*1E3 for k, v in full_width_half_max.items()}
+
     bandid = {"B1": 1, "B2": 2,  "B3": 3, "B4": 4,
               "B5": 5, "B6": 6,  "B7": 7, "B8": 8,
               "B9": 9, "B10":10, "B11":11,
                   }
 
-
-
-#    relative_timing = {"B1": 0., "B2": 52.e-3,  "B3": 0.e-3, "B4": 13.e-3,
-#                       "B5": 26e-3, "B6": 0.,  "B7": 0., "B8": 65.e-3,
-#                       "B9": 0., "B10":0., "B11": 0.,}
     gsd = {"B1": 30, "B2": 30,  "B3": 30, "B4": 30,
            "B5": 30, "B6": 30,  "B7": 30, "B8": 15,
            "B9": 30, "B10":100, "B11":100,
@@ -159,7 +161,7 @@ def list_central_wavelength_oli():
     df = pd.DataFrame(d)
     return df
 
-def get_oli_relativ_band_time():
+def get_oli_relative_band_time():
     relative_timing = {"B1": np.datetime64(00, 'ms'),
                        "B2": np.datetime64(52, 'ms'),
                        "B3": np.datetime64(00, 'ms'),

@@ -274,6 +274,35 @@ def ll2map(ll, spatialRef):
     xy = np.stack(xy, axis=0)
     return xy
 
+def map2ll(xy, spatialRef):
+    """ transforms map coordinates (that is 2D) in a projection frame to angles
+
+    Parameters
+    ----------
+    xy : np.array, size=(m,2), unit=meter
+        np.array with 2D coordinates. In the following form:
+        [[x, y], [x, y], ... ]
+    spatialRef : osgeo.osr.SpatialReference
+        target projection system
+
+    Returns
+    -------
+    ll : np.array, size=(m,2), unit=(deg,deg)
+        np.array with spherical coordinates. In the following form:
+        [[lat, lon], [lat, lon], ... ]
+    """
+    if isinstance(spatialRef, str):
+        spatialStr = spatialRef
+        spatialRef = osr.SpatialReference()
+        spatialRef.ImportFromWkt(spatialStr)
+    llSpatialRef = osr.SpatialReference()
+    llSpatialRef.ImportFromEPSG(4326)
+
+    coordTrans = osr.CoordinateTransformation(spatialRef, llSpatialRef)
+    ll = coordTrans.TransformPoints(list(xy))
+    ll = np.stack(ll, axis=0)
+    return ll[:,:-1]
+
 def ecef2map(xyz, spatialRef):
     """ transform 3D cartesian Earth Centered Earth fixed coordinates, to
     map coordinates (that is 2D) in a projection frame

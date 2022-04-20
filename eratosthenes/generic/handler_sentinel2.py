@@ -9,6 +9,45 @@ import pandas as pd
 
 import geopandas
 
+def get_parallax_msi():
+    """ create dataframe with metadata about Sentinel-2
+
+    References
+    -------
+    .. [1] Languille et al. "Sentinel-2 geometric image quality commissioning:
+       first results" Proceedings of the SPIE, 2015.
+    """
+    crossband_parallax = {"B01": 443, "B02": 492, "B03": 560, "B04": 665,
+                          "B05": 704, "B06": 741, "B07": 783, "B08": 833, "B8A": 865,
+                          "B09": 945, "B10": 1374, "B11": 1614, "B12": 2202,
+                          }
+    order= {"B01": 21, "B02": 1, "B03": 36, "B04": 31,
+                           "B05": 15, "B06": 15, "B07": 20, "B08": 2, "B8A": 21,
+                           "B09": 20, "B10": 31, "B11": 91, "B12": 175,
+                           }
+    gsd = {"B01": 60, "B02": 10, "B03": 10, "B04": 10,
+           "B05": 20, "B06": 20, "B07": 20, "B08": 10, "B8A": 20,
+           "B09": 60, "B10": 60, "B11": 20, "B12": 20,
+           }
+    common_name = {"B01": 'coastal', "B02": 'blue',
+                   "B03": 'green', "B04": 'red',
+                   "B05": 'rededge', "B06": 'rededge',
+                   "B07": 'rededge', "B08": 'nir',
+                   "B8A": 'nir08', "B09": 'nir09',
+                   "B10": 'cirrus', "B11": 'swir16',
+                   "B12": 'swir22'}
+    d = {
+        "center_wavelength": pd.Series(center_wavelength),
+        "full_width_half_max": pd.Series(full_width_half_max),
+        "gsd": pd.Series(gsd),
+        "common_name": pd.Series(common_name),
+        "bandid": pd.Series(bandid),
+        "field_of_view": pd.Series(field_of_view),
+        "solar_illumination": pd.Series(solar_illumination)
+    }
+    df = pd.DataFrame(d)
+    return df
+
 def get_bbox_from_tile_code(tile_code, shp_dir=None, shp_name=None):
     if shp_dir is None:
         shp_dir = '/Users/Alten005/surfdrive/Eratosthenes/SatelliteTiles'

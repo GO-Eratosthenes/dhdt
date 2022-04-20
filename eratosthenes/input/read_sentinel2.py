@@ -16,6 +16,8 @@ from PIL import Image, ImageDraw
 from skimage.transform import resize
 from sklearn.neighbors import NearestNeighbors
 from scipy.interpolate import griddata, interp2d
+from scipy.ndimage import label
+from scipy.signal import convolve2d
 
 from ..generic.handler_sentinel2 import get_array_from_xml
 from ..generic.mapping_tools import map2pix, ecef2map, get_bbox
@@ -50,11 +52,23 @@ def list_central_wavelength_msi():
         metadata and general multispectral information about the MSI
         instrument that is onboard Sentinel-2, having the following collumns:
 
-            * wavelength : central wavelength of the band
-            * bandwidth : extent of the spectral sensativity
+            * wavelength, unit=µm : central wavelength of the band
+            * bandwidth, unit=µm : extent of the spectral sensativity
             * bandid : number for identification in the meta data
-            * resolution : spatial resolution of a pixel
+            * resolution, unit=m : spatial resolution of a pixel
+            * field_of_view, unit=degrees : angle of swath of instrument
+            * crossdetector_parallax, unit=degress : in along-track direction
             * name : general name of the band, if applicable
+            * solar_illumination, unit=W m-2 µm-1 :
+
+    Notes
+    -----
+    The Multi Spectral instrument (MSI) has a Tri Mirror Anastigmat (TMA)
+    telescope, which is opened at F/4 and has a focal length of 60 centimeter.
+
+    The crossdetector parallex is given here as well, see [1]. While the
+    crossband parallax is 0.018 for VNIR and 0.010 for the SWIR detector,
+    respectively.
 
     Example
     -------
@@ -77,6 +91,10 @@ def list_central_wavelength_msi():
     >>> tw_df.index
     Index(['B05', 'B06', 'B07', 'B8A', 'B11', 'B12'], dtype='object')
 
+    References
+    -------
+    .. [1] Languille et al. "Sentinel-2 geometric image quality commissioning:
+       first results" Proceedings of the SPIE, 2015.
     """
     center_wavelength = {"B01": 443, "B02": 492, "B03": 560, "B04": 665,
                   "B05": 704, "B06": 741, "B07": 783, "B08": 833, "B8A": 865,
@@ -99,6 +117,17 @@ def list_central_wavelength_msi():
                      "B05": 20.6, "B06": 20.6, "B07": 20.6, "B08": 20.6,
                      "B8A": 20.6, "B09": 20.6, "B10": 20.6, "B11": 20.6,
                      "B12": 20}
+    # given as base-to-height
+    crossdetector_parallax = {"B01": 0.055, "B02": 0.022, "B03": 0.030,
+                              "B04": 0.034, "B05": 0.038, "B06": 0.042,
+                              "B07": 0.046, "B08": 0.026, "B8A": 0.051,
+                              "B09": 0.059, "B10": 0.030, "B11": 0.040,
+                              "B12": 0.050,
+                          }
+    # convert to angles in degrees
+    crossdetector_parallax = \
+        {k: 2*np.tan(v/2) for k,v in crossdetector_parallax.items()}
+
     common_name = {"B01": 'coastal',       "B02" : 'blue',
                    "B03" : 'green',        "B04" : 'red',
                    "B05" : 'rededge',      "B06" : 'rededge',
@@ -117,7 +146,8 @@ def list_central_wavelength_msi():
          "common_name": pd.Series(common_name),
          "bandid": pd.Series(bandid),
          "field_of_view" : pd.Series(field_of_view),
-         "solar_illumination": pd.Series(solar_illumination)
+         "solar_illumination": pd.Series(solar_illumination),
+         "crossdetector_parallax": pd.Series(crossdetector_parallax)
          }
     df = pd.DataFrame(d)
     return df
@@ -287,6 +317,21 @@ def read_sun_angles_s2(path, fname='MTD_TL.xml'):
 
     Notes
     -----
+    The computation of the solar angles is done in two steps: 1) Computation of
+    the solar angles in J2000; 2) Transformation of the vector to the mapping
+    frame.
+
+    .. 1) The outputs of the first step is the solar direction normalized vector
+    with the Earth-Sun distance, considering that the direction of the sun is
+    the same at the centre of the Earth and at the centre of the Sentinel-2
+    satellite.
+    .. 2) Attitude of the satellite platform are used to rotate the solar vector to
+    the mapping frame. Also Ground Image Calibration Parameters (GICP Diffuser
+    Model) are used to transform from the satellite to the diffuser, as
+    Sentinel-2 has a forward and backward looking sensor configuration. The
+    diffuser model also has stray-light correction and a Bi-Directional
+    Reflection Function model.
+
     The angle(s) are declared in the following coordinate frame:
 
         .. code-block:: text
@@ -546,9 +591,10 @@ def read_mean_sun_angles_s2(path, fname='MTD_TL.xml'):
           +----                 +------
     """
     root = get_root_of_table(path, fname)
-
-    Zn = float(root[1][1][1][0].text)
-    Az = float(root[1][1][1][1].text)
+    Zn, Az = [], []
+    for att in root.iter('Mean_Sun_Angle'):
+        Zn = float(att[0].text)
+        Az = float(att[1].text)
     return Zn, Az
 
 def read_sensing_time_s2(path, fname='MTD_TL.xml'):
@@ -589,6 +635,31 @@ def read_sensing_time_s2(path, fname='MTD_TL.xml'):
     for att in root.iter('Sensing_Time'.upper()):
         rec_time = np.datetime64(att.text, 'ns')
     return rec_time
+
+def get_xy_poly_from_gml(gml_struct,idx):
+    # get detector number from meta-data
+    det_id = gml_struct[idx].attrib
+    det_id = list(det_id.items())[0][1].split('-')[2]
+    det_num = int(det_id)
+
+    # get footprint
+    pos_dim = gml_struct[idx][1][0][0][0][0].attrib
+    pos_dim = int(list(pos_dim.items())[0][1])
+    pos_list = gml_struct[idx][1][0][0][0][0].text
+    pos_row = [float(s) for s in pos_list.split(' ')]
+    pos_arr = np.array(pos_row).reshape((int(len(pos_row) / pos_dim), pos_dim))
+    return pos_arr, det_num
+
+def get_msk_dim_from_gml(gml_struct):
+    # find dimensions of array through its map extent in metadata
+    lower_corner = np.fromstring(gml_struct[1][0][0].text, sep=' ')
+    upper_corner = np.fromstring(gml_struct[1][0][1].text, sep=' ')
+    lower_x, lower_y = map2pix(geoTransform, lower_corner[0], lower_corner[1])
+    upper_x, upper_y = map2pix(geoTransform, upper_corner[0], upper_corner[1])
+
+    msk_dim = (np.maximum(lower_x, upper_x).astype(int),
+               np.maximum(lower_y, upper_y).astype(int))
+    return msk_dim
 
 def read_detector_mask(path_meta, boi, geoTransform):
     """ create array of with detector identification
@@ -633,6 +704,8 @@ def read_detector_mask(path_meta, boi, geoTransform):
     if len(geoTransform)>6: # also image size is given
         msk_dim = (geoTransform[-2], geoTransform[-1], len(boi))
         det_stack = np.zeros(msk_dim, dtype='int8')  # create stack
+    else:
+        msk_dim = None
 
     for i in range(len(boi)):
         im_id = boi.index[i] # 'B01' | 'B8A'
@@ -644,38 +717,21 @@ def read_detector_mask(path_meta, boi, geoTransform):
         dom = ElementTree.parse(glob.glob(f_meta)[0])
         root = dom.getroot()
 
-        if 'msk_dim' not in locals():
-            # find dimensions of array through its map extent in metadata
-            lower_corner = np.fromstring(root[1][0][0].text, sep=' ')
-            upper_corner = np.fromstring(root[1][0][1].text, sep=' ')
-            lower_x, lower_y = map2pix(geoTransform, lower_corner[0], lower_corner[1])
-            upper_x, upper_y = map2pix(geoTransform, upper_corner[0], upper_corner[1])
-
-            msk_dim = (np.maximum(lower_x,upper_x).astype(int),
-                       np.maximum(lower_y,upper_y).astype(int),
-                       len(boi))
+        if msk_dim is None:
+            msk_dim = get_msk_dim_from_gml(gml_struct)
+            msk_dim = msk_dim + (len(boi),)
             det_stack = np.zeros(msk_dim, dtype='int8') # create stack
 
         mask_members = root[2]
         for k in range(len(mask_members)):
-            # get detector number from meta-data
-            det_id = mask_members[k].attrib
-            det_id = list(det_id.items())[0][1].split('-')[2]
-            det_num = int(det_id)
-
-            # get footprint
-            pos_dim = mask_members[k][1][0][0][0][0].attrib
-            pos_dim = int(list(pos_dim.items())[0][1])
-            pos_list = mask_members[k][1][0][0][0][0].text
-            pos_row = [float(s) for s in pos_list.split(' ')]
-            pos_arr = np.array(pos_row).reshape((int(len(pos_row)/pos_dim), pos_dim))
+            pos_arr, det_num = get_xy_poly_from_gml(mask_members, k)
 
             # transform to image coordinates
             i_arr, j_arr = map2pix(geoTransform, pos_arr[:,0], pos_arr[:,1])
             ij_arr = np.hstack((j_arr[:,np.newaxis], i_arr[:,np.newaxis]))
             # make mask
             msk = Image.new("L", [np.size(det_stack,0), np.size(det_stack,1)], 0)
-            ImageDraw.Draw(msk).polygon(tuple(map(tuple, ij_arr[:,0:2])), \
+            ImageDraw.Draw(msk).polygon(tuple(map(tuple, ij_arr[:,0:2])),
                                         outline=det_num, fill=det_num)
             msk = np.array(msk)
             det_stack[:,:,i] = np.maximum(det_stack[:,:,i], msk)
@@ -687,34 +743,22 @@ def read_cloud_mask(path_meta, geoTransform):
     dom = ElementTree.parse(glob.glob(f_meta)[0])
     root = dom.getroot()
 
-#    # find dimensions of array through its map extent in metadata
-#    lower_corner = np.fromstring(root[1][0][0].text, sep=' ')
-#    upper_corner = np.fromstring(root[1][0][1].text, sep=' ')
-#    lower_x, lower_y = map2pix(geoTransform, lower_corner[0], lower_corner[1])
-#    upper_x, upper_y = map2pix(geoTransform, upper_corner[0], upper_corner[1])
-#    msk_dim = (np.maximum(lower_y, upper_y).astype(int),
-#               np.maximum(lower_x, upper_x).astype(int))
-
     if len(geoTransform)>6: # also image size is given
         msk_dim = (geoTransform[-2], geoTransform[-1])
         msk_clouds = np.zeros(msk_dim, dtype='int8')
     else:
-        msk_dim = (10980,10980)
+        msk_dim = get_msk_dim_from_gml(root)
         msk_clouds = np.zeros(msk_dim, dtype='int8')  # create stack
 
     if len(root)>2: # look into meta-data for cloud polygons
         mask_members = root[2]
         for k in range(len(mask_members)):
-            # get footprint
-            pos_dim = mask_members[k][1][0][0][0][0].attrib
-            pos_dim = int(list(pos_dim.items())[0][1])
-            pos_list = mask_members[k][1][0][0][0][0].text
-            pos_row = [float(s) for s in pos_list.split(' ')]
-            pos_arr = np.array(pos_row).reshape((int(len(pos_row)/pos_dim), pos_dim))
+            pos_arr = get_xy_poly_from_gml(mask_members, k)[0]
 
             # transform to image coordinates
-            i_arr, j_arr = map2pix(geoTransform, pos_arr[:,0], pos_arr[:,1])
-            ij_arr = np.hstack((j_arr[:,np.newaxis], i_arr[:,np.newaxis]))
+            i_arr, j_arr = map2pix(geoTransform, pos_arr[:, 0], pos_arr[:, 1])
+            ij_arr = np.hstack((j_arr[:, np.newaxis], i_arr[:, np.newaxis]))
+
             # make mask
             msk = Image.new("L", [msk_dim[1], msk_dim[0]], 0) # in [width, height] format
             ImageDraw.Draw(msk).polygon(tuple(map(tuple, ij_arr[:,0:2])),
@@ -758,6 +802,27 @@ def read_detector_time_s2(path, fname='MTD_DS.xml'): #todo: make description of 
         det_meta[bnd,2] = float(meta[1][1].text) # max
         det_meta[bnd,3] = float(meta[1][2].text) # mean
     return det_time, det_name, det_meta, line_period
+
+def get_flight_direction_s2(Det):
+    if Det.ndim==3:
+        D = Det[:, :, 0]
+    else:
+        D = Det
+
+    D_x = convolve2d(D, np.outer([+1., +2., +1.], [-1., 0., +1.]),
+                     boundary='fill', mode='same')
+    D_x[0, :], D_x[-1, :], D_x[:, 0], D_x[:, -1] = 0, 0, 0, 0
+    D_tr = np.abs(D_x) >= 2
+
+    L, Lab_num = label(D_tr, structure=[[1, 1, 1], [1, 1, 1], [1, 1, 1]])
+
+    psi = np.zeros(Lab_num)
+    for i in range(Lab_num):
+        [i_x, j_x] = np.where(L == i + 1)
+        psi[i] = np.rad2deg(np.arctan2(np.min(j_x) - np.max(j_x),
+                                       np.min(i_x) - np.max(i_x)))
+    psi = np.median(psi)
+    return psi
 
 def get_flight_orientation_s2(path, fname='MTD_DS.xml'):
     """ get the flight path and orientations of the Sentinel-2 satellite during

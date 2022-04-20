@@ -32,8 +32,8 @@ def list_central_wavelength_vssc():
                            "B5": 40, "B6" : 40, "B7" : 30, "B8" : 24,
                            "B9": 16, "B10": 16, "B11": 40, "B12": 20,
                           }
-    gsd = {"B1" : 5, "B2" : 5, "B3" : 5, "B4" : 5, "B5": 5, "B6" : 5, "B7" : 5,
-           "B8" : 5, "B9": 5, "B10": 5, "B11": 5, "B12": 5,
+    gsd = {"B1" : 5., "B2" : 5., "B3" : 5., "B4" : 5., "B5": 5., "B6" : 5.,
+           "B7" : 5., "B8" : 5., "B9": 5., "B10": 5., "B11": 5., "B12": 5.,
            }
     bandid = {"B1": 'B1', "B2" : 'B2', "B3" : 'B3', "B4" : 'B4',
               "B5": 'B5', "B6" : 'B6', "B7" : 'B7', "B8" : 'B8',
@@ -45,7 +45,7 @@ def list_central_wavelength_vssc():
                    "B5" : 'stereo',    "B6" : 'stereo',
                    "B7" : 'red',       "B8" : 'rededge',
                    "B9" : 'rededge',   "B10": 'rededge',
-                   "B11":'nir08',      "B12":'nir09',
+                   "B11": 'nir08',     "B12": 'nir09',
                   }
     d = {
          "center_wavelength": pd.Series(center_wavelength),

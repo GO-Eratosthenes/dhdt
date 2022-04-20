@@ -67,15 +67,14 @@ def list_central_wavelength_re():
         metadata and general multispectral information about the MSI
         instrument that is onboard Sentinel-2, having the following collumns:
 
-            * wavelength : central wavelength of the band
-            * bandwidth : extent of the spectral sensativity
+            * wavelength, unit=µm : central wavelength of the band
+            * bandwidth, unit=µm : extent of the spectral sensativity
             * bandid : number for identification in the meta data
-            * resolution : spatial resolution of a pixel
+            * resolution, unit=m : spatial resolution of a pixel
             * name : general name of the band, if applicable
-            * irradiance : exo-atmospheric radiance
-                unit=W/m**2 μm
-            * detectortime : relative sampling time difference
-                unit=np.timedelta64(XX, 'ns')
+            * irradiance, unit=W m-2 μm-1 : exo-atmospheric radiance
+            * relative_timing, unit=ms : relative sampling time difference
+
 
     References
     ----------
@@ -136,7 +135,7 @@ def list_central_wavelength_re():
                  }
     bandid = {"B01": 0, "B02": 1, "B03": 2, "B04": 3, "B05": 4,
                   }
-    resolution = {"B01": 5, "B02": 5, "B03": 5, "B04": 5, "B05": 5,
+    resolution = {"B01": 5., "B02": 5., "B03": 5., "B04": 5., "B05": 5.,
                   }
     name = {"B01" : 'blue',         "B02" : 'green',
             "B03" : 'red',          "B04" : 'red edge',
@@ -146,12 +145,12 @@ def list_central_wavelength_re():
                   "B03": 1560.4, "B04": 1395.0,
                   "B05": 1124.4,
                   }
-    detectortime = {"B01": np.timedelta64(000, 'ms'),
-                    "B02": np.timedelta64(410, 'ms'),
-                    "B03": np.timedelta64(820, 'ms'),
-                    "B04": np.timedelta64(2650, 'ms'),
-                    "B05": np.timedelta64(3060, 'ms'),
-                    } # estimates, see [1]
+    relative_timing = {"B01": np.timedelta64(000, 'ms'),
+                       "B02": np.timedelta64(410, 'ms'),
+                       "B03": np.timedelta64(820, 'ms'),
+                       "B04": np.timedelta64(2650, 'ms'),
+                       "B05": np.timedelta64(3060, 'ms'),
+                       } # estimates, see [1]
     d = {
          "wavelength": pd.Series(wavelength),
          "bandwidth": pd.Series(bandwidth),
@@ -159,7 +158,7 @@ def list_central_wavelength_re():
          "name": pd.Series(name),
          "bandid": pd.Series(bandid),
          "irradiance": pd.Series(irradiance),
-         "detectortime": pd.Series(detectortime)
+         "relative_timing": pd.Series(relative_timing)
          }
     df = pd.DataFrame(d)
     return df
