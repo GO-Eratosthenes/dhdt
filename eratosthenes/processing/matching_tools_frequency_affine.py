@@ -83,7 +83,7 @@ def compute_E(cirus, theta):
     a_2 = (1/8)*np.sum(cirus**4 * np.cos(2*theta))
     b_2 = (1/8)*np.sum(cirus**4 * np.sin(2*theta))              # (25)
     
-    ab_dist = np.sqrt( a_2**2 + b_2**2)
+    ab_dist = np.hypot( a_2, b_2)
     cos_omega = np.divide( a_2, ab_dist)
     sin_omega = np.divide( a_2, ab_dist)      # (26)
     omega = np.arctan2(cos_omega, sin_omega)
@@ -175,9 +175,8 @@ def affine_binairy_center(B1, B2):
 
 def compute_K_R(G, theta):
     # following Kadyrov '06
-    K = np.sqrt( (G[0,0]*np.cos(theta) + G[0,1]*np.sin(theta))**2 + \
-                (G[1,0]*np.cos(theta) + G[1,1]*np.sin(theta))**2
-                )
+    K = np.hypot( G[0,0]*np.cos(theta) + G[0,1]*np.sin(theta),
+                  G[1,0]*np.cos(theta) + G[1,1]*np.sin(theta))
     cos_R = np.divide( G[0,0]*np.cos(theta) + G[0,1]*np.sin(theta), K)
     sin_R = np.divide( G[1,0]*np.cos(theta) + G[1,1]*np.sin(theta), K)
     R = np.arctan2(cos_R, sin_R)

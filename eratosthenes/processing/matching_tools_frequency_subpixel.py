@@ -223,6 +223,7 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
        application to ground deformation measurements", IEEE Transactions on
        geoscience and remote sensing vol.45(6) pp.1529-1558, 2007.
     """
+    m = np.squeeze(m)
     s = 1.#1.25#.5#1.#.5#2.
 
     Q = normalize_power_spectrum(Q)
@@ -231,12 +232,13 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
     Fx,Fy = make_fourier_grid(Q)
 
     # initialize
-    m_min = m + np.array([-.1, -.1])
+    m_min = m.copy().ravel()
+    m_min += np.array([-.1, -.1])
 
     J_min = phase_jac(Q, m_min, W=W)
     g_min = np.sum(J_min, axis=0)
 
-    print('di:{:+.4f}'.format(m[0])+' dj:{:+.4f}'.format(m[1]))
+    #print('di:{:+.4f}'.format(m[0])+' dj:{:+.4f}'.format(m[1]))
     for i in range(l):
         k = 1
         while True:

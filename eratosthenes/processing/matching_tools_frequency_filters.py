@@ -243,7 +243,7 @@ def raised_cosine(I, beta=0.35):
     (m, n) = I.shape
    
     Fx,Fy = make_fourier_grid(I, indexing='xy', system='normalized')
-    R = np.sqrt(Fx**2 + Fy**2) # radius
+    R = np.hypot(Fx, Fy) # radius
     # filter formulation 
     Hamm = np.cos( (np.pi/(2*beta)) * (R - (.5-beta)))**2
     selec = np.logical_and((.5 - beta) <= R , R<=.5)
@@ -480,7 +480,7 @@ def low_pass_circle(I, r=0.50):
     """   
     assert type(I)==np.ndarray, ("please provide an array")
     Fx,Fy = make_fourier_grid(I, indexing='xy', system='normalized')
-    R = np.sqrt(Fx**2 + Fy**2) # radius
+    R = np.hypot(Fx, Fy) # radius
     # filter formulation 
     W = R<=r
     return W
@@ -510,7 +510,7 @@ def low_pass_ellipse(I, r1=0.50, r2=0.50):
     sc = r1/r2
     assert type(I) == np.ndarray, ("please provide an array")
     Fx, Fy = make_fourier_grid(I, indexing='xy', system='normalized')
-    R = np.sqrt((sc*Fx) ** 2 + Fy ** 2)  # radius
+    R = np.hypot(sc*Fx, Fy)  # radius
     # filter formulation
     W = R <= r1
     return W
@@ -536,7 +536,7 @@ def high_pass_circle(I, r=0.50):
     """
     assert type(I)==np.ndarray, ("please provide an array")
     Fx,Fy = make_fourier_grid(I, indexing='xy', system='normalized')
-    R = np.sqrt(Fx**2 + Fy**2) # radius
+    R = np.hypot(Fx, Fy) # radius
     # filter formulation 
     W = R>=r
     return W
@@ -560,7 +560,7 @@ def cosine_bell(I):
     """
     assert type(I)==np.ndarray, ("please provide an array")
     Fx,Fy = make_fourier_grid(I, indexing='xy', system='normalized')
-    R = np.sqrt(Fx**2 + Fy**2) # radius
+    R = np.hypot(Fx, Fy) # radius
     
     # filter formulation 
     W = .5*np.cos(2*R*np.pi) + .5

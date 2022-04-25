@@ -20,28 +20,8 @@ from scipy.ndimage import label
 from scipy.signal import convolve2d
 
 from ..generic.handler_sentinel2 import get_array_from_xml
-from ..generic.mapping_tools import map2pix, ecef2map, get_bbox
+from ..generic.mapping_tools import map2pix, ecef2map, ecef2llh, get_bbox
 from ..generic.mapping_io import read_geo_image, read_geo_info
-
-def list_platform_metadata_s2a():
-    s2a_dict = {
-        'COSPAR': '2015-028A',
-        'NORAD': 40697,
-        'instruments': {'MSI'},
-        'constellation': 'sentinel',
-        'launch': '2015-06-23',
-        'orbit': 'sso'}
-    return s2a_dict
-
-def list_platform_metadata_s2b():
-    s2b_dict = {
-        'COSPAR': '2017-013A',
-        'NORAD': 42063,
-        'instruments': {'MSI'},
-        'constellation': 'sentinel',
-        'launch': '2017-03-07',
-        'orbit': 'sso'}
-    return s2b_dict
 
 def list_central_wavelength_msi():
     """ create dataframe with metadata about Sentinel-2
@@ -148,7 +128,7 @@ def list_central_wavelength_msi():
          "field_of_view" : pd.Series(field_of_view),
          "solar_illumination": pd.Series(solar_illumination),
          "crossdetector_parallax": pd.Series(crossdetector_parallax)
-         }
+    }
     df = pd.DataFrame(d)
     return df
 
@@ -189,7 +169,8 @@ def read_band_s2(path, band=None):
 
     See Also
     --------
-    list_central_wavelength_s2
+    list_central_wavelength_msi : creates a dataframe for the MSI instrument
+    read_stack_s2 : reading several Sentinel-2 bands at once into a stack
 
     Example
     -------
@@ -227,8 +208,34 @@ def read_band_s2(path, band=None):
         read_geo_image(glob.glob(fname)[0])
     return data, spatialRef, geoTransform, targetprj
 
-def read_stack_s2(path, s2_df):
+def read_stack_s2(s2_df):
+    """
+    read imagery data of interest into an three dimensional np.array
 
+    Parameters
+    ----------
+    s2_df : pd.dataframe
+        metadata and general multispectral information about the MSI
+        instrument that is onboard Sentinel-2
+
+    Returns
+    -------
+    im_stack : np.array, size=(_,_,_)
+        array of the band image
+    spatialRef : string
+        projection
+    geoTransform : tuple, size=(8,1)
+        affine transformation coefficients
+    targetprj : osr.SpatialReference object
+        spatial reference
+
+    See Also
+    --------
+    list_central_wavelength_msi : creates a dataframe for the MSI instrument
+    get_S2_image_locations : provides dataframe with specific file locations
+    read_band_s2 : reading a single Sentinel-2 band
+    """
+    assert isinstance(s2_df, pd.DataFrame), ('please provide a dataframe')
     assert 'filepath' in s2_df, ('please first run "get_S2_image_locations"'+
                                 ' to find the proper file locations')
 
@@ -597,70 +604,6 @@ def read_mean_sun_angles_s2(path, fname='MTD_TL.xml'):
         Az = float(att[1].text)
     return Zn, Az
 
-def read_sensing_time_s2(path, fname='MTD_TL.xml'):
-    """
-
-    Parameters
-    ----------
-    path : string
-        path where the meta-data is situated
-    fname : string
-        file name of the metadata.
-
-    Returns
-    -------
-    rec_time :
-        asd
-
-    Example
-    -------
-    demonstrate the code when in a Scihub data structure
-
-    >>> import os
-    >>> fpath = '/Users/Data/'
-    >>> sname = 'S2A_MSIL1C_20200923T163311_N0209_R140_T15MXV_20200923T200821.SAFE'
-    >>> fname = 'MTD_MSIL1C.xml'
-    >>> s2_path = os.path.join(fpath, sname, fname)
-    >>> s2_df,_ = get_S2_image_locations(fname, s2_df)
-    >>> s2_df['filepath']
-    B02 'GRANULE/L1C_T15MXV_A027450_20200923T163313/IMG_DATA/T115MXV...'
-    B03 'GRANULE/L1C_T15MXV_A027450_20200923T163313/IMG_DATA/T15MXV...'
-    >>> full_path = '/'.join(s2_df['filepath'][0].split('/')[:-2])
-    'GRANULE/L1C_T15MXV_A027450_20200923T163313'
-    >>> rec_time = read_sensing_time_s2(path, fname='MTD_TL.xml')
-    >>> rec_time
-
-    """
-    root = get_root_of_table(path, fname)
-    for att in root.iter('Sensing_Time'.upper()):
-        rec_time = np.datetime64(att.text, 'ns')
-    return rec_time
-
-def get_xy_poly_from_gml(gml_struct,idx):
-    # get detector number from meta-data
-    det_id = gml_struct[idx].attrib
-    det_id = list(det_id.items())[0][1].split('-')[2]
-    det_num = int(det_id)
-
-    # get footprint
-    pos_dim = gml_struct[idx][1][0][0][0][0].attrib
-    pos_dim = int(list(pos_dim.items())[0][1])
-    pos_list = gml_struct[idx][1][0][0][0][0].text
-    pos_row = [float(s) for s in pos_list.split(' ')]
-    pos_arr = np.array(pos_row).reshape((int(len(pos_row) / pos_dim), pos_dim))
-    return pos_arr, det_num
-
-def get_msk_dim_from_gml(gml_struct):
-    # find dimensions of array through its map extent in metadata
-    lower_corner = np.fromstring(gml_struct[1][0][0].text, sep=' ')
-    upper_corner = np.fromstring(gml_struct[1][0][1].text, sep=' ')
-    lower_x, lower_y = map2pix(geoTransform, lower_corner[0], lower_corner[1])
-    upper_x, upper_y = map2pix(geoTransform, upper_corner[0], upper_corner[1])
-
-    msk_dim = (np.maximum(lower_x, upper_x).astype(int),
-               np.maximum(lower_y, upper_y).astype(int))
-    return msk_dim
-
 def read_detector_mask(path_meta, boi, geoTransform):
     """ create array of with detector identification
 
@@ -688,7 +631,8 @@ def read_detector_mask(path_meta, boi, geoTransform):
 
     See Also
     --------
-    read_view_angles_s2
+    list_central_wavelength_msi : creates a dataframe for the MSI instrument
+    read_view_angles_s2 : read grid of Sentinel-2 observation angles
 
     Example
     -------
@@ -700,6 +644,7 @@ def read_detector_mask(path_meta, boi, geoTransform):
     >>>
     >>> det_stack = read_detector_mask(path_meta, boi_df, geoTransform)
     """
+    assert isinstance(boi, pd.DataFrame), ('please provide a dataframe')
 
     if len(geoTransform)>6: # also image size is given
         msk_dim = (geoTransform[-2], geoTransform[-1], len(boi))
@@ -737,7 +682,151 @@ def read_detector_mask(path_meta, boi, geoTransform):
             det_stack[:,:,i] = np.maximum(det_stack[:,:,i], msk)
     return det_stack
 
+def read_sensing_time_s2(path, fname='MTD_TL.xml'):
+    """
+
+    Parameters
+    ----------
+    path : string
+        path where the meta-data is situated
+    fname : string
+        file name of the metadata.
+
+    Returns
+    -------
+    rec_time : np.datetime64
+        time of image acquisition
+
+    Example
+    -------
+    demonstrate the code when in a Scihub data structure
+
+    >>> import os
+    >>> fpath = '/Users/Data/'
+    >>> sname = 'S2A_MSIL1C_20200923T163311_N0209_R140_T15MXV_20200923T200821.SAFE'
+    >>> fname = 'MTD_MSIL1C.xml'
+    >>> s2_path = os.path.join(fpath, sname, fname)
+    >>> s2_df,_ = get_S2_image_locations(fname, s2_df)
+    >>> s2_df['filepath']
+    B02 'GRANULE/L1C_T15MXV_A027450_20200923T163313/IMG_DATA/T115MXV...'
+    B03 'GRANULE/L1C_T15MXV_A027450_20200923T163313/IMG_DATA/T15MXV...'
+    >>> full_path = '/'.join(s2_df['filepath'][0].split('/')[:-2])
+    'GRANULE/L1C_T15MXV_A027450_20200923T163313'
+    >>> rec_time = read_sensing_time_s2(path, fname='MTD_TL.xml')
+    >>> rec_time
+
+    """
+    root = get_root_of_table(path, fname)
+    for att in root.iter('Sensing_Time'.upper()):
+        rec_time = np.datetime64(att.text, 'ns')
+    return rec_time
+
+def get_timing_stack_s2(s2_df, det_stack,
+                        spac=10, sat_height=750E3, sat_velo=7.5):
+    """
+    Using the parallax angles, geometric and positioning info to get the time
+    configuration of the acquisition by the instrument onboard Sentinel-2
+
+    Parameters
+    ----------
+    s2_df : pd.dataframe
+        metadata and general multispectral information about the MSI
+        instrument that is onboard Sentinel-2
+    det_stack : np.array, size=(m,n,b), ndim={2,3}, dtype=int
+        numbers of the different detectors for different bands, given by s2_df
+    path_det: str
+        asd
+    spac : float, unit=meter, default=10
+        pixel spacing
+
+    Returns
+    -------
+    tim_stack : np.array, size=(m,n,b), ndim={2,3}, unit=seconds
+        relative timing of acquisition for different bands
+    cross_grd : np.array, size=(m,n), ndim=2, unit=meter
+        cross orbit reference frame
+
+    See Also
+    --------
+    list_central_wavelength_msi : creates a dataframe for the MSI instrument
+    read_detector_mask : get ids of the different sensors that make up an image
+    """
+    assert isinstance(s2_df, pd.DataFrame), ('please provide a dataframe')
+
+    # get_bearing_from_detector_mask
+    psi = get_flight_bearing_from_detector_mask_s2(det_stack[:, :, 0])
+
+    # construct grid
+    x_grd, y_grd = np.meshgrid(np.linspace(1, det_stack.shape[1],
+                                           det_stack.shape[1]),
+                               np.linspace(1, det_stack.shape[0],
+                                           det_stack.shape[0]),
+                               indexing='xy')
+    t_grd = -np.sin(np.deg2rad(psi)) * x_grd + np.cos(np.deg2rad(psi)) * y_grd
+    t_grd *= line_period.astype('float')
+
+    cross_grd = -np.cos(np.deg2rad(psi))*x_grd - np.sin(np.deg2rad(psi))*y_grd
+    cross_grd *= spac # convert from pixels to meters
+
+    cross_parallax_timing = (1E9 * s2_df.crossdetector_parallax * height /
+                             sat_velo).to_numpy().astype('timedelta64[ns]')
+
+    # odd detector numbers are forward, thus earlier
+    band_timing = cross_parallax_timing / 2
+
+    tim_stack = np.zeros_like(det_stack, dtype=float)
+    # run through stack, band per band
+    for band_id in range(tim_stack.shape[2]):
+        tim_band = 1 - 2 * ((det_stack[:, :, band_id] % 2) == 0).astype('float')
+        tim_band *= band_timing[band_id].astype('float')
+        tim_band += t_grd
+        tim_band /= np.timedelta64(int(1E9), 'ns').astype('float')
+        tim_stack[:, :, band_id] = tim_band
+    return tim_stack, cross_grd
+
+def get_xy_poly_from_gml(gml_struct,idx):
+    # get detector number from meta-data
+    det_id = gml_struct[idx].attrib
+    det_id = list(det_id.items())[0][1].split('-')[2]
+    det_num = int(det_id)
+
+    # get footprint
+    pos_dim = gml_struct[idx][1][0][0][0][0].attrib
+    pos_dim = int(list(pos_dim.items())[0][1])
+    pos_list = gml_struct[idx][1][0][0][0][0].text
+    pos_row = [float(s) for s in pos_list.split(' ')]
+    pos_arr = np.array(pos_row).reshape((int(len(pos_row) / pos_dim), pos_dim))
+    return pos_arr, det_num
+
+def get_msk_dim_from_gml(gml_struct):
+    # find dimensions of array through its map extent in metadata
+    lower_corner = np.fromstring(gml_struct[1][0][0].text, sep=' ')
+    upper_corner = np.fromstring(gml_struct[1][0][1].text, sep=' ')
+    lower_x, lower_y = map2pix(geoTransform, lower_corner[0], lower_corner[1])
+    upper_x, upper_y = map2pix(geoTransform, upper_corner[0], upper_corner[1])
+
+    msk_dim = (np.maximum(lower_x, upper_x).astype(int),
+               np.maximum(lower_y, upper_y).astype(int))
+    return msk_dim
+
+
+
 def read_cloud_mask(path_meta, geoTransform):
+    """
+
+    Parameters
+    ----------
+    path_meta : str
+        directory where meta data is situated, 'MSK_CLOUDS_B00.gml' is typically
+        the file of interest
+    geoTransform : tuple
+        affine transformation coefficients
+
+    Returns
+    -------
+    msk_clouds : np.array, size=(m,n), dtype=int
+        array which highlights where clouds could be
+    """
 
     f_meta = os.path.join(path_meta, 'MSK_CLOUDS_B00.gml')
     dom = ElementTree.parse(glob.glob(f_meta)[0])
@@ -803,7 +892,19 @@ def read_detector_time_s2(path, fname='MTD_DS.xml'): #todo: make description of 
         det_meta[bnd,3] = float(meta[1][2].text) # mean
     return det_time, det_name, det_meta, line_period
 
-def get_flight_direction_s2(Det):
+def get_flight_bearing_from_detector_mask_s2(Det):
+    """
+
+    Parameters
+    ----------
+    Det : np.array, size=(m,n), ndim={2,3}, dtype=integer
+        array with numbers of the different detectors in Sentinel-2
+
+    Returns
+    -------
+    psi : float, unit=degrees
+        general bearing of the satellite
+    """
     if Det.ndim==3:
         D = Det[:, :, 0]
     else:
@@ -824,116 +925,8 @@ def get_flight_direction_s2(Det):
     psi = np.median(psi)
     return psi
 
-def get_flight_orientation_s2(path, fname='MTD_DS.xml'):
-    """ get the flight path and orientations of the Sentinel-2 satellite during
-    acquisition.
-
-    Parameters
-    ----------
-    path : string
-        directory where the meta-data is located
-    fname : string
-        filename of the meta-data file
-
-    Returns
-    -------
-    sat_time : np.array, size=(m,1), unit=nanosec
-        satellite timestamps
-    sat_angles : np.array, size=(m,3)
-        satellite orientation angles, given in ECEF
-
-    See Also
-    --------
-    get_flight_path_s2
-    """
-    root = get_root_of_table(path, fname)
-
-    for att in root.iter('Corrected_Attitudes'):
-        sat_time = np.empty((len(att)), dtype='datetime64[ns]')
-        sat_angles = np.zeros((len(att),4))
-        counter = 0
-        for idx, val in enumerate(att):
-            # 'QUATERNION_VALUES'
-            qang =  np.fromstring(val[0].text, dtype=float, sep=' ')
-            # 'GPS_TIME'
-            gps_tim = np.datetime64(val[2].text, 'ns')
-            sat_time[idx] = gps_tim
-            sat_angles[idx,:] = qang
-    return sat_time, sat_angles
-
-def get_flight_path_s2(path, fname='MTD_DS.xml'):
-    """
-
-    Parameters
-    ----------
-    path : string
-        location of the metadata file
-    fname : string
-        name of the xml-file that has the metadata
-
-    Returns
-    -------
-    sat_time : np.array, size=(m,1), dtype=np.datetime64, unit=
-        time stamp of the satellite positions
-    sat_xyz : np.array, size=(m,3), dtype=float, unit=meter
-        3D coordinates of the satellite within an Earth centered Earth fixed
-        (ECEF) frame.
-    sat_err : np.array, size=(m,3), dtype=float, unit=meter
-        error estimate of the 3D coordinates given by "sat_xyz"
-    sat_uvw : np.array, size=(m,3), dtype=float, unit=meter
-        3D velocity vectors of the satellite within an Earth centered Earth
-        fixed (ECEF) frame.
-
-    Examples
-    --------
-    Following the file and metadata structure of scihub:
-
-    >>> import os
-    >>> import numpy as np
-
-    >>> S2_dir = '/data-dump/examples/
-    >>> S2_name = 'S2A_MSIL1C_20200923T163311_N0209_R140_T15MXV_20200923T200821.SAFE'
-    >>> fname = os.path.join(S2_dir, S2_name, 'MTD_MSIL1C.xml')
-    >>> s2_df = list_central_wavelength_s2()
-
-    >>> s2_df, datastrip_id = get_S2_image_locations(fname, s2_df)
-    >>> path_det = os.path.join(S2_dir, S2_name, 'DATASTRIP', datastrip_id[17:-7])
-
-    >>> sat_tim, sat_xyz, sat_err, sat_uvw = get_flight_path_s2(path_det)
-
-    See Also
-    --------
-    get_flight_orientation_s2
-    """
-    root = get_root_of_table(path, fname)
-
-    for att in root.iter('GPS_Points_List'):
-        sat_time = np.empty((len(att)), dtype='datetime64[ns]')
-        sat_xyz = np.zeros((len(att), 3), dtype=float)
-        sat_err = np.zeros((len(att), 3), dtype=float)
-        sat_uvw = np.zeros((len(att), 3), dtype=float)
-        counter = 0
-        for idx, point in enumerate(att):
-            # 'POSITION_VALUES' : tag
-            xyz = np.fromstring(point[0].text, dtype=float, sep=' ')
-            if point[0].attrib['unit'] == 'mm': xyz *= 1E-3 # convert to meters
-            # 'POSITION_ERRORS'
-            err = np.fromstring(point[1].text, dtype=float, sep=' ')
-            if point[1].attrib['unit'] == 'mm': err *= 1E-3 # convert to meters
-            # 'VELOCITY_VALUES'
-            uvw = np.fromstring(point[2].text, dtype=float, sep=' ')
-            if point[2].attrib['unit'] == 'mm': uvw *= 1E-3 # convert to meters
-
-            # 'GPS_TIME'
-            gps_tim = np.datetime64(point[4].text, 'ns')
-
-            # fill in the arrays
-            sat_time[idx] = gps_tim
-            sat_xyz[idx, :], sat_err[idx, :], sat_uvw[idx, :] = xyz, err, uvw
-    return sat_time, sat_xyz, sat_err, sat_uvw
-
 # use the detector start and finish to make a selection for the flight line
-def get_flight_heading_s2(path, spatialRef, rec_tim, fname='MTD_DS.xml'): #todo: make independent of rec_time, add documentation
+def get_flight_bearing_from_gnss_s2(path, spatialRef, rec_tim, fname='MTD_DS.xml'):
     """ get the direction/argument/heading of the Sentinel-2 acquisition
 
     Parameters
@@ -962,6 +955,139 @@ def get_flight_heading_s2(path, spatialRef, rec_tim, fname='MTD_DS.xml'): #todo:
 
     az = np.arctan2(dif_xy[0], dif_xy[1]) * 180 / np.pi
     return az
+
+def get_flight_path_s2(path, fname='MTD_DS.xml', s2_dict=None):
+    """
+
+    Parameters
+    ----------
+    path : string
+        location of the metadata file
+    fname : string, default='MTD_DS.xml'
+        name of the xml-file that has the metadata
+    s2_dict : dictonary
+        metadata of the Sentinel-2 platform
+
+    Returns
+    -------
+    sat_time : np.array, size=(m,1), dtype=np.datetime64, unit=ns
+        time stamp of the satellite positions
+    sat_xyz : np.array, size=(m,3), dtype=float, unit=meter
+        3D coordinates of the satellite within an Earth centered Earth fixed
+        (ECEF) frame.
+    sat_err : np.array, size=(m,3), dtype=float, unit=meter
+        error estimate of the 3D coordinates given by "sat_xyz"
+    sat_uvw : np.array, size=(m,3), dtype=float, unit=meter sec-1
+        3D velocity vectors of the satellite within an Earth centered Earth
+        fixed (ECEF) frame.
+    s2_dict : dictonary
+        updated with keys: "xyz", "uvw", "time", "error", "altitude", "speed"
+
+    Examples
+    --------
+    Following the file and metadata structure of scihub:
+
+    >>> import os
+    >>> import numpy as np
+
+    >>> S2_dir = '/data-dump/examples/
+    >>> S2_name = 'S2A_MSIL1C_20200923T163311_N0209_R140_T15MXV_20200923T200821.SAFE'
+    >>> fname = os.path.join(S2_dir, S2_name, 'MTD_MSIL1C.xml')
+    >>> s2_df = list_central_wavelength_s2()
+
+    >>> s2_df, datastrip_id = get_S2_image_locations(fname, s2_df)
+    >>> path_det = os.path.join(S2_dir, S2_name, 'DATASTRIP', datastrip_id[17:-7])
+
+    >>> sat_tim, sat_xyz, sat_err, sat_uvw = get_flight_path_s2(path_det)
+
+    See Also
+    --------
+    get_flight_orientation_s2 : get the quaternions of the flight path
+    """
+    root = get_root_of_table(path, fname)
+
+    for att in root.iter('GPS_Points_List'):
+        sat_time = np.empty((len(att)), dtype='datetime64[ns]')
+        sat_xyz = np.zeros((len(att), 3), dtype=float)
+        sat_err = np.zeros((len(att), 3), dtype=float)
+        sat_uvw = np.zeros((len(att), 3), dtype=float)
+        counter = 0
+        for idx, point in enumerate(att):
+            # 'POSITION_VALUES' : tag
+            xyz = np.fromstring(point[0].text, dtype=float, sep=' ')
+            if point[0].attrib['unit'] == 'mm': xyz *= 1E-3 # convert to meters
+            # 'POSITION_ERRORS'
+            err = np.fromstring(point[1].text, dtype=float, sep=' ')
+            if point[1].attrib['unit'] == 'mm': err *= 1E-3 # convert to meters
+            # 'VELOCITY_VALUES'
+            uvw = np.fromstring(point[2].text, dtype=float, sep=' ')
+            if point[2].attrib['unit'] == 'mm/s': uvw *= 1E-3
+            # convert to meters per second
+
+            # 'GPS_TIME'
+            gps_tim = np.datetime64(point[4].text, 'ns')
+
+            # fill in the arrays
+            sat_time[idx] = gps_tim
+            sat_xyz[idx, :], sat_err[idx, :], sat_uvw[idx, :] = xyz, err, uvw
+    if s2_dict is None:
+        return sat_time, sat_xyz, sat_err, sat_uvw
+    else: # include into dictonary
+        s2_dict.update({'xyz': sat_xyz, 'uvw': sat_uvw, 'error': sat_error})
+        if 'time' not in s2_dict:
+            s2_dict.update({'time': sat_time})
+        # estimate the altitude above the ellipsoid, and platform speed
+        llh = ecef2llh(sat_xyz)
+        velo = np.sqrt(np.sum(sat_uvw**2, axis=1))
+        s2_dict.update({'altitude': np.squeeze(llh[:,-1]),
+                        'velocity': np.squeeze(velo)})
+        return s2_dict
+
+def get_flight_orientation_s2(path, fname='MTD_DS.xml', s2_dict=None):
+    """ get the flight path and orientations of the Sentinel-2 satellite during
+    acquisition.
+
+    Parameters
+    ----------
+    path : string
+        directory where the meta-data is located
+    fname : string, default='MTD_DS.xml'
+        filename of the meta-data file
+    s2_dict : dictonary, default=None
+        metadata of the Sentinel-2 platform
+    Returns
+    -------
+    sat_time : np.array, size=(m,1), unit=nanosec
+        satellite timestamps
+    sat_angles : np.array, size=(m,3)
+        satellite orientation angles, given in ECEF
+    s2_dict : dictonary
+        updated with keys: "time", "quat"
+
+    See Also
+    --------
+    get_flight_path_s2 : get positions of the flight path
+    """
+    root = get_root_of_table(path, fname)
+
+    for att in root.iter('Corrected_Attitudes'):
+        sat_time = np.empty((len(att)), dtype='datetime64[ns]')
+        sat_angles = np.zeros((len(att),4))
+        counter = 0
+        for idx, val in enumerate(att):
+            # 'QUATERNION_VALUES'
+            qang =  np.fromstring(val[0].text, dtype=float, sep=' ')
+            # 'GPS_TIME'
+            gps_tim = np.datetime64(val[2].text, 'ns')
+            sat_time[idx] = gps_tim
+            sat_angles[idx,:] = qang
+    if s2_dict is None:
+        return sat_time, sat_angles
+    else: # include into dictonary
+        s2_dict.update({'quat': sat_angles})
+        if 'time' not in s2_dict:
+            s2_dict.update({'time': sat_time})
+        return s2_dict
 
 def get_integration_and_sampling_time_s2(path, fname='MTD_DS.xml'):
 

@@ -473,7 +473,7 @@ def hough_optical_flow(I1, I2, param_resol=100, sample_fraction=1,
     I_di, I_dj, I_dt = create_differential_data(I1, I2)
 
     # create data
-    abs_G = np.sqrt(I_di**2 + I_dj**2)
+    abs_G = np.hypot(I_di, I_dj)
     theta_G = np.arctan2(I_dj,I_di)
 
     rho = np.divide(I_dt, abs_G, out=np.zeros_like(abs_G), where=abs_G!=0)

@@ -472,8 +472,7 @@ def label_occluder_and_casted(labeling, sunAz):
 
             if len(castedI) > 1:
                 # do selection of the closest casted
-                dist = np.sqrt( (castedI - ridgeI[x]) ** 2
-                                + (castedJ - ridgeJ[x]) ** 2)
+                dist = np.hypot(castedI-ridgeI[x], castedJ-ridgeJ[x])
                 idx = np.where(dist == np.amin(dist))
                 castedI = castedI[idx[0]]
                 castedJ = castedJ[idx[0]]

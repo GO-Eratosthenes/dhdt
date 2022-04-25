@@ -218,7 +218,7 @@ def rgb2hsi(Red, Green, Blue):
     RGB = np.dstack((Red, Green, Blue))
     HSI = np.einsum('ij,klj->kli', Tsai, RGB)
     Int = HSI[:,:,0]
-    Sat = np.sqrt(HSI[:,:,1] ** 2 + HSI[:,:,2] ** 2)
+    Sat = np.hypot(HSI[:,:,1], HSI[:,:,2])
     Hue = np.arctan2(HSI[:,:,1], HSI[:,:,2])/np.pi
     Hue = np.remainder(Hue, 1) # bring to from -.5...+.5 to 0...1 range
     return Hue, Sat, Int
@@ -464,7 +464,7 @@ def lab2lch(L, a, b):
        motion imagery application" ISPRS journal of photogrammetry and remote
        sensing, vol.140 pp.104--121, 2018.
     """
-    C = np.sqrt( a**2 + b**2)
+    C = np.hypot( a, b)
 
     # calculate angle, and let it range from 0...1
     h = ((np.arctan2(b, a) + 2*np.pi)% 2*np.pi) / 2*np.pi

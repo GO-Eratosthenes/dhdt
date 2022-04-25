@@ -1,6 +1,8 @@
 import numpy as np
 
 from ..generic.filtering_statistical import make_2D_Gaussian
+from ..generic.handler_im import bilinear_interpolation
+from ..generic.mapping_tools import create_offset_grid, vel2pix
 from ..processing.matching_tools import pad_radius
 from .shadow_geometry import estimate_surface_normals
 
@@ -32,6 +34,92 @@ def slope_along_perp(Z, Az, spac=10):
     Slp_para = np.degrees(np.arctan(Slp_para))
     Slp_perp = np.degrees(np.arctan(Slp_perp))
     return Slp_perp, Slp_para
+
+def get_ortho_offset(Z, dx, dy, obs_az, obs_zn, geoTransform):
+    """ get terrain displacement due to miss-registration
+
+    Parameters
+    ----------
+    Z : np.array, size=(m,n), unit=meter
+        elevation model
+    dx, dy : float, unit=meter
+        mis-registration
+    obs_az : np.array, size=(m,n), unit=degrees
+        azimuth angle of observation
+    obs_zn : np.array, size=(m,n), unit=degrees
+        zenith angle of observation
+    geoTransform1 : tuple
+        affine transformation coefficients of array Z
+
+    Returns
+    -------
+    dI, dJ : np.array, size=(m,n), unit=pixels
+        terrain displacements
+
+    Notes
+    -----
+    It is important to know what type of coordinate systems exist, hence:
+
+        .. code-block:: text
+
+          coordinate |           coordinate  ^ y
+          system 'ij'|           system 'xy' |
+                     |                       |
+                     |       j               |       x
+             --------+-------->      --------+-------->
+                     |                       |
+                     |                       |
+                     | i                     |
+                     v                       |
+    The azimuth angle is declared in the following coordinate frame:
+
+        .. code-block:: text
+
+                 ^ North & y
+                 |
+            - <--|--> +
+                 |
+                 +----> East & x
+
+    The angles related to the satellite are as follows:
+
+        .. code-block:: text
+
+               #*#                   #*# satellite
+          ^    /                ^    /|
+          |   /                 |   / | nadir
+          |-- zenith angle      |  /  v
+          | /                   | /|
+          |/                    |/ | elevation angle
+          +----- surface        +------
+    """
+    I_grd, J_grd = create_offset_grid(Z, dx, dy, geoTransform)
+    Z_dij = bilinear_interpolation(Z, I_grd, J_grd)
+
+    # estimate elevation change due to miss-registration
+    dZ = Z-Z_dij
+
+    # estimate orthorectification compensation
+    ortho_rho = np.tan(np.deg2rad(obs_zn))*dZ
+
+    dI = -np.cos(np.deg2rad(obs_az[0,0]))*ortho_rho
+    dJ = +np.sin(np.deg2rad(obs_az))*ortho_rho
+    return dI, dJ
+
+def compensate_ortho_offset(I, Z, dx, dy, obs_az, obs_zn, geoTransform):
+    # warp
+    dI,dJ = get_ortho_offset(Z, dx, dy, obs_az, obs_zn, geoTransform)
+
+    mI, nI = Z.shape[0], Z.shape[1]
+    I_grd, J_grd = np.meshgrid(np.linspace(0, mI-1, mI),
+                               np.linspace(0, nI-1, nI), indexing='ij')
+
+    I_warp = bilinear_interpolation(I, I_grd+dI, J_grd+dJ)
+    del I # sometime the files are very big, so memory is emptied
+    # remove registration mismatch
+    dI, dJ = vel2pix(geoTransform, dx, dy)
+    I_cor = bilinear_interpolation(I_warp, dI, dJ)
+    return I_cor
 
 def get_template_aspect_slope(Z,i_samp,j_samp,t_size,spac=10.):
     """

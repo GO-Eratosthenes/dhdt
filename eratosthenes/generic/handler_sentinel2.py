@@ -9,6 +9,26 @@ import pandas as pd
 
 import geopandas
 
+def list_platform_metadata_s2a():
+    s2a_dict = {
+        'COSPAR': '2015-028A',
+        'NORAD': 40697,
+        'instruments': {'MSI'},
+        'constellation': 'sentinel',
+        'launch': '2015-06-23',
+        'orbit': 'sso'}
+    return s2a_dict
+
+def list_platform_metadata_s2b():
+    s2b_dict = {
+        'COSPAR': '2017-013A',
+        'NORAD': 42063,
+        'instruments': {'MSI'},
+        'constellation': 'sentinel',
+        'launch': '2017-03-07',
+        'orbit': 'sso'}
+    return s2b_dict
+
 def get_parallax_msi():
     """ create dataframe with metadata about Sentinel-2
 
@@ -147,6 +167,19 @@ def get_S2_image_locations(fname,s2_df):
     band_path = pd.Series(data=im_paths, index=band_id, name="filepath")
     s2_df_new = pd.concat([s2_df, band_path], axis=1, join="inner")
     return s2_df_new, datastrip_id
+
+def get_s2_dict(s2_df):
+    assert isinstance(s2_df, pd.DataFrame), ('please provide a dataframe')
+    assert 'filepath' in s2_df, ('please first run "get_S2_image_locations"'+
+                                ' to find the proper file locations')
+
+    s2_folder = list(filter(lambda x: '.SAFE' in x,
+                            s2_df.filepath[0].split('/')))[0]
+    if s2_folder[:3] in 'S2A':
+        s2_dict = list_platform_metadata_s2a()
+    else:
+        s2_dict = list_platform_metadata_s2b()
+    return s2_dict
 
 def meta_S2string(S2str):
     """ get meta information of the Sentinel-2 file name

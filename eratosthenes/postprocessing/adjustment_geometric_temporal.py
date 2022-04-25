@@ -112,7 +112,7 @@ def helmholtz_hodge(dX, dY):
 
     dX_F, dY_F = np.fft.fftn(dX), np.fft.fftn(dX)
     F1, F2 = make_fourier_grid(dX, indexing='ij', system='unit')
-    K = np.sqrt(F1**2 + F2**2)
+    K = np.hypot(F1, F2)
     K[0,0] = 1
 
     div_dXY_F = np.divide(dX_F*F2 + dY_F*F1, K,

@@ -20,8 +20,8 @@ def read_geo_info(fname):
     -------
     spatialRef : string
         osr.SpatialReference in well known text
-    geoTransform : tuple, size=(6,1)
-        affine transformation coefficients.
+    geoTransform : tuple, size=(8,1)
+        affine transformation coefficients, but also giving the image dimensions
     targetprj : osgeo.osr.SpatialReference() object
         coordinate reference system (CRS)
     rows : integer
@@ -40,6 +40,8 @@ def read_geo_info(fname):
     rows = img.RasterYSize    
     cols = img.RasterXSize
     bands = img.RasterCount
+
+    geoTransform += (rows, cols,)
     return spatialRef, geoTransform, targetprj, rows, cols, bands
 
 def read_geo_image(fname, boi=np.array([])):
@@ -147,6 +149,9 @@ def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes',
     if I.dtype == 'float64':
         ds = drv.Create(fName,xsize=I.shape[1], ysize=I.shape[0],bands=bands,
                         eType=gdal.GDT_Float64)
+    elif I.dtype == 'float32':
+        ds = drv.Create(fName,xsize=I.shape[1], ysize=I.shape[0],bands=bands,
+                        eType=gdal.GDT_Float32)
     elif I.dtype == 'bool':
         ds = drv.Create(fName, xsize=I.shape[1], ysize=I.shape[0], bands=bands,
                         eType=gdal.GDT_Byte)

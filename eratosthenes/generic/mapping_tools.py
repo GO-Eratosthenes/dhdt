@@ -14,7 +14,7 @@ from .handler_im import get_grad_filters
 def cart2pol(x, y):
     if isinstance(x, np.ndarray):
         assert x.shape==y.shape, ('arrays should be of the same size')
-    rho = np.sqrt(x**2 + y**2)
+    rho = np.hypot(x, y)
     phi = np.arctan2(y, x)
     return rho, phi
 
@@ -602,16 +602,16 @@ def rot_trans_template_coord(theta, t_radius):
     Y_r = -np.sin(np.deg2rad(theta)) * X + np.cos(np.deg2rad(theta)) * Y
     return X_r, Y_r
 
-def pix_centers(geoTransform, rows, cols, make_grid=True):
+def pix_centers(geoTransform, rows=None, cols=None, make_grid=True):
     """ provide the pixel coordinate from the axis, or the whole grid
 
     Parameters
     ----------
-    geoTransform : tuple, size=(6,1)
+    geoTransform : tuple, size={(6,1), (8,1)}
         georeference transform of an image.
-    rows : integer
+    rows : integer, default=None
         amount of rows in an image.
-    cols : integer
+    cols : integer, default=None
         amount of collumns in an image.
     make_grid : bool, optional
         Should a grid be made. The default is True.
@@ -646,10 +646,16 @@ def pix_centers(geoTransform, rows, cols, make_grid=True):
           based      v           based       |
 
     """
-    i = np.linspace(1, rows, rows)
-    j = np.linspace(1, cols, cols)
+    if rows is None:
+        assert len(geoTransform)==8, ('please provide the dimensions of the ' +
+                                      'imagery, or have this included in the ' +
+                                      'geoTransform.')
+        i = np.linspace(1, geoTransform[-2], geoTransform[-2])
+        j = np.linspace(1, geoTransform[-1], geoTransform[-1])
+    else:
+        i,j = np.linspace(1, rows, rows), np.linspace(1, cols, cols)
     if make_grid:
-        J, I = np.meshgrid(j, i)
+        J,I = np.meshgrid(j, i)
         X,Y = pix2map(geoTransform, I, J)
         return X, Y
     else:
@@ -840,10 +846,10 @@ def get_shape_extent(bbox, geoTransform):
     bbox_swap = bbox.reshape((2,2)).T.ravel()
     """
     rows = np.divide(bbox[3]-bbox[2],
-                      np.sqrt(geoTransform[4]**2+geoTransform[5]**2)
+                      np.hypot(geoTransform[4], geoTransform[5])
                      ).astype(int)
     cols = np.divide(bbox[1]-bbox[0],
-                      np.sqrt(geoTransform[1]**2+geoTransform[2]**2)
+                      np.hypot(geoTransform[1], geoTransform[2])
                      ).astype(int)
     return (rows, cols)
 
@@ -996,3 +1002,13 @@ def make_same_size(Old,geoTransform_old, geoTransform_new, rows_new, cols_new):
 
     New = Old
     return New
+
+def create_offset_grid(I, dx, dy, geoTransform):
+    di, dj = vel2pix(geoTransform, dx, dy)
+    if len(geoTransform)==8: # sometimes the image dimensions are also included
+        mI, nI = geoTransform[-2], geoTransform[-1]
+    else:
+        mI, nI = I.shape[0], I.shape[1]
+    dI_grd, dJ_grd = np.meshgrid(np.linspace(0, mI-1, mI)+di,
+                                 np.linspace(0, nI-1, nI)+dj, indexing='ij')
+    return dI_grd, dJ_grd

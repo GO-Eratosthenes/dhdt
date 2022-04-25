@@ -95,7 +95,7 @@ def helmert_point_error(sig_xx, sig_yy):
        computing vol.11. pp.366, 2016.
     """
 
-    sig_H = np.sqrt(sig_xx + sig_yy)
+    sig_H = np.hypot(sig_xx, sig_yy)
     return sig_H
 
 def geom_mean(sig_xx, sig_yy):

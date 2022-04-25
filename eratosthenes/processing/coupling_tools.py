@@ -1056,8 +1056,8 @@ def get_elevation_difference(sun_1, sun_2, xy_1, xy_2, xy_t):
         elevation difference between coordinates in "xy_1" & "xy_2"
     """
     # get planar distance between
-    dist_1 = np.sqrt((xy_1[:,0]-xy_t[:,0])**2 + (xy_1[:,1]-xy_t[:,1])**2)
-    dist_2 = np.sqrt((xy_2[:,0]-xy_t[:,0])**2 + (xy_2[:,1]-xy_t[:,1])**2)
+    dist_1 = np.hypot(xy_1[:,0]-xy_t[:,0], xy_1[:,1]-xy_t[:,1])
+    dist_2 = np.hypot(xy_2[:,0]-xy_t[:,0], xy_2[:,1]-xy_t[:,1])
 
     # get elevation difference
     dh = np.tan(np.radians(sun_1[:,1]))*dist_1 - \
@@ -1117,10 +1117,8 @@ def get_shadow_rectification(casters, post_1, post_2, az_1, az_2):
         relative shear between instance 1 & 2
     """
     # get planar distance between
-    dist_1 = np.sqrt((post_1[:, 0] - casters[:, 0]) ** 2 + \
-                     (post_1[:, 1] - casters[:, 1]) ** 2)
-    dist_2 = np.sqrt((post_2[:, 0] - casters[:, 0]) ** 2 + \
-                     (post_2[:, 1] - casters[:, 1]) ** 2)
+    dist_1 = np.hypot(post_1[:,0] - casters[:,0], post_1[:,1] - casters[:,1])
+    dist_2 = np.hypot(post_2[:,0] - casters[:,0], post_2[:,1] - casters[:,1])
     scale_12 = np.divide(dist_2, dist_1)
 
     # sometimes caster and casted are on the same location,
