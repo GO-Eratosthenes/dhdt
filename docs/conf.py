@@ -104,6 +104,11 @@ html_context = {
         '_static/theme_overrides.css',  # override wide tables in RTD theme
         ],
      }
+html_logo = "_static/dhdt-white.png"
+html_theme_options = {
+    'logo_only': True,
+    'display_version': False,
+}
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
