@@ -104,7 +104,7 @@ html_context = {
         '_static/theme_overrides.css',  # override wide tables in RTD theme
         ],
      }
-html_logo = "_static/dhdt-white.png"
+html_logo = "dhdt-white.png"
 html_theme_options = {
     'logo_only': True,
     'display_version': False,
