@@ -4,42 +4,42 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from eratosthenes.generic.handler_im import \
+from dhdt.generic.handler_im import \
     nan_resistant_conv2, nan_resistant_diff2
-from eratosthenes.generic.filtering_statistical import mad_filtering
-from eratosthenes.generic.test_tools import create_sample_image_pair, \
+from dhdt.generic.filtering_statistical import mad_filtering
+from dhdt.generic.test_tools import create_sample_image_pair, \
     construct_phase_plane, signal_to_noise, test_phase_plane_localization, \
     test_normalize_power_spectrum, test_subpixel_localization, \
     construct_correlation_peak, \
     create_sheared_image_pair, create_scaled_image_pair
-from eratosthenes.preprocessing.image_transforms import \
+from dhdt.preprocessing.image_transforms import \
     histogram_equalization
-from eratosthenes.processing.matching_tools import \
+from dhdt.processing.matching_tools import \
     get_integer_peak_location
-from eratosthenes.processing.matching_tools_frequency_affine import \
+from dhdt.processing.matching_tools_frequency_affine import \
     scaling_through_power_summation
-from eratosthenes.processing.matching_tools_frequency_correlators import \
+from dhdt.processing.matching_tools_frequency_correlators import \
     phase_corr, phase_only_corr, robust_corr, \
     orientation_corr, windrose_corr, binary_orientation_corr, \
     cosi_corr, sign_only_corr, cosine_corr, cross_corr, \
     symmetric_phase_corr, amplitude_comp_corr, upsampled_cross_corr, \
     projected_phase_corr
-from eratosthenes.processing.matching_tools_frequency_subpixel import \
+from dhdt.processing.matching_tools_frequency_subpixel import \
     phase_svd, phase_pca, phase_tpss, phase_difference, phase_ransac, \
     phase_lsq, phase_radon, phase_hough, phase_gradient_descend,\
     phase_weighted_pca, phase_secant #, phase_jac # jac:mag er later wel uit
-from eratosthenes.processing.matching_tools_frequency_filters import \
+from dhdt.processing.matching_tools_frequency_filters import \
     normalize_power_spectrum, perdecomp, low_pass_circle, raised_cosine, \
     local_coherence, thresh_masking, adaptive_masking, gaussian_mask, \
     low_pass_ellipse
 
-from eratosthenes.processing.matching_tools_differential import \
+from dhdt.processing.matching_tools_differential import \
     simple_optical_flow, hough_optical_flow, affine_optical_flow
 
-from eratosthenes.processing.matching_tools_spatial_correlators import \
+from dhdt.processing.matching_tools_spatial_correlators import \
     normalized_cross_corr, cumulative_cross_corr, sum_sq_diff, \
     sum_sad_diff, weighted_normalized_cross_correlation
-from eratosthenes.processing.matching_tools_spatial_subpixel import \
+from dhdt.processing.matching_tools_spatial_subpixel import \
     get_top_moment, get_top_gaussian, get_top_parabolic, \
     get_top_birchfield, get_top_2d_gaussian, get_top_paraboloid, \
     get_top_blue
@@ -64,9 +64,9 @@ C_tilde = construct_correlation_peak(np.zeros((2**7,2**7)), di, dj)
 ddi,ddj,ii,jj = get_top_blue(C_tilde, ds=1)
 
 
-from eratosthenes.presentation.image_io import make_image
+from dhdt.presentation.image_io import make_image
 
-from eratosthenes.preprocessing.shadow_filters import anistropic_diffusion_scalar
+from dhdt.preprocessing.shadow_filters import anistropic_diffusion_scalar
 
 im1_ani = anistropic_diffusion_scalar(im1_big)
 
@@ -103,7 +103,7 @@ C_cos = cosine_corr(im1,im2)
 
 
 
-from eratosthenes.preprocessing.shadow_filters import anistropic_diffusion_scalar
+from dhdt.preprocessing.shadow_filters import anistropic_diffusion_scalar
 
 im1_ani = anistropic_diffusion_scalar(im1_big)
 wncc = weighted_normalized_cross_correlation(im2,im1_big[200:-200,200:-200])

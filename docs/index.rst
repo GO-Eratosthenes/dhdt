@@ -1,16 +1,37 @@
-.. eratosthenes documentation master file, created by
-   sphinx-quickstart on Thu Jun 21 11:07:11 2018.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+Minimal documentation for dhdt, a photohypsometric Python library
+=================================================================
 
-Welcome to eratosthenes's documentation!
-==========================================================
+**dhdt** is a modular geodetic imaging framework written in Python.
+
+
+Application domains
+-------------------
+
+* glacier elevation change
+* glacier velocity
+* ocean circulation
+* natural mass movements
+
+Methodology
+-----------
+
+* photohypsometry
+* photogrammetry
+
+
+
+Guide
+^^^^^
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 4
 
-
+   getting_started
+   tutorials
+   modules
+   theory
+   help
+   contribute
 
 Indices and tables
 ==================

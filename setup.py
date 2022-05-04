@@ -6,9 +6,9 @@ from setuptools import setup, find_packages
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-# To update the package version number, edit eratosthenes/__version__.py
+# To update the package version number, edit dhdt/__version__.py
 version = {}
-with open(os.path.join(here, 'eratosthenes', '__version__.py')) as f:
+with open(os.path.join(here, 'dhdt', '__version__.py')) as f:
     exec(f.read(), version)
 
 with open('README.rst') as readme_file:
@@ -18,7 +18,7 @@ with open('requirements.txt') as requirements_file:
     requirements = [line.strip("\n") for line in requirements_file.readlines()]
 
 setup(
-    name='eratosthenes',
+    name='dhdt',
     version=version['__version__'],
     description="extracting topography from mountain glaciers, through the use of shadow casted by surrounding mountains. imagery from optical satellite systems are used, over all mountain ranges on Earth.",
     long_description=readme + '\n\n',
@@ -29,7 +29,7 @@ setup(
     include_package_data=True,
     license="Apache Software License 2.0",
     zip_safe=False,
-    keywords='eratosthenes',
+    keywords='dhdt',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',

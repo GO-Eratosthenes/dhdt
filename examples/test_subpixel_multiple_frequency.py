@@ -3,23 +3,23 @@ import time
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from eratosthenes.generic.test_tools import create_sample_image_pair, \
+from dhdt.generic.test_tools import create_sample_image_pair, \
     construct_phase_plane, signal_to_noise, test_phase_plane_localization, \
     test_normalize_power_spectrum, test_subpixel_localization, \
     construct_correlation_peak
-from eratosthenes.preprocessing.image_transforms import mat_to_gray
-from eratosthenes.processing.matching_tools import get_integer_peak_location
-from eratosthenes.processing.matching_tools_spatial_subpixel import \
+from dhdt.preprocessing.image_transforms import mat_to_gray
+from dhdt.processing.matching_tools import get_integer_peak_location
+from dhdt.processing.matching_tools_spatial_subpixel import \
     get_top_moment
-from eratosthenes.processing.matching_tools_frequency_correlators import \
+from dhdt.processing.matching_tools_frequency_correlators import \
     phase_corr, phase_only_corr, robust_corr, \
     orientation_corr, windrose_corr, binary_orientation_corr, \
     cosi_corr, sign_only_corr, cosine_corr, cross_corr, \
     symmetric_phase_corr, amplitude_comp_corr
-from eratosthenes.processing.matching_tools_frequency_subpixel import \
+from dhdt.processing.matching_tools_frequency_subpixel import \
     phase_svd, phase_pca, phase_tpss, phase_difference, phase_ransac, \
     phase_lsq, phase_radon, phase_hough, phase_secant
-from eratosthenes.processing.matching_tools_frequency_filters import \
+from dhdt.processing.matching_tools_frequency_filters import \
     normalize_power_spectrum, perdecomp, low_pass_circle, raised_cosine, \
     local_coherence, thresh_masking
 

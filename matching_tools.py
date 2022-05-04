@@ -10,10 +10,10 @@ from skimage.transform import radon
 from skimage.measure import ransac
 from sklearn.cluster import KMeans
 
-from eratosthenes.generic.filtering_statistical import make_2D_Gaussian, \
+from dhdt.generic.filtering_statistical import make_2D_Gaussian, \
     mad_filtering
-from eratosthenes.generic.handler_im import get_grad_filters
-from eratosthenes.preprocessing.shadow_transforms import pca
+from dhdt.generic.handler_im import get_grad_filters
+from dhdt.preprocessing.shadow_transforms import pca
 
 
 
