@@ -414,9 +414,9 @@ def get_coordinates_of_template_centers(Grid, temp_size):
 
     Returns
     -------
-    Iidx : np.array, size=(k,l)
+    I_idx : numpy.array, size=(k,l)
         array with row coordinates
-    Jidx : np.array, size=(k,l)
+    J_idx : numpy.array, size=(k,l)
         array with collumn coordinates
 
     See Also
@@ -445,10 +445,9 @@ def get_coordinates_of_template_centers(Grid, temp_size):
     assert type(temp_size)==int, ("please provide an integer")
 
     radius = np.floor(temp_size / 2).astype('int')
-    Iidx = np.arange(radius, Grid.shape[0] - radius, temp_size)
-    Jidx = np.arange(radius, Grid.shape[1] - radius, temp_size)
-    Iidx, Jidx = np.meshgrid(Iidx, Jidx, indexing='ij')
-    return Iidx, Jidx
+    I_idx,J_idx = np.mgrid[radius:(Grid.shape[0]-radius):temp_size,
+                  radius:(Grid.shape[1]-radius):temp_size]
+    return I_idx, J_idx
 
 def get_grid_at_template_centers(grid, temp_size):
     """ When tiling an array into small templates, this function gives the

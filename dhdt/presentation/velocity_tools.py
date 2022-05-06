@@ -1,10 +1,14 @@
+import os
 import numpy as np
+import matplotlib.pyplot as plt
 
 from PIL import Image
+from osgeo import ogr
 
 from ..generic.handler_im import bilinear_interpolation
 from ..generic.mapping_tools import vel2pix
 from ..generic.test_tools import construct_correlation_peak
+from ..generic.gis_tools import polylines2shapefile
 
 def make_seeds(Msk, n=1e2):
     idx_1,idx_2 = np.where(Msk)
@@ -58,4 +62,58 @@ def flow_anim(V_x, V_y, geoTransform, M=np.array([]),
             outputname = prefix + str(im_count).zfill(4) + '.png'
             img.save(outputname)
             im_count += 1
+    return
+
+def streamplot2list(X,Y, U,V, density=[1, 1]):
+    """
+
+    Parameters
+    ----------
+    X,Y : numpy.array, size=(m,n)
+        map coordinates
+    U,V : numpy.array, size=(m,n)
+        displacement in X and Y direction
+    density: {float, list}
+        density of streamlines
+
+    Returns
+    -------
+    stream_stack : list
+        list with arrays with coordinates of the streamlines
+    """
+    # admin
+    if not np.all(np.diff(X) > 0):
+        X,U,V = np.fliplr(X), np.fliplr(U), np.fliplr(V)
+    if not np.all(np.diff(Y) > 0):
+        Y,U,V = np.flipud(Y), np.flipud(U), np.flipud(V)
+
+    # generate streamplot
+    stream = plt.streamplot(X, Y, U, V, density=density)
+
+    # get data from container
+    paths = stream.lines.get_paths()
+    previous = None
+    stream_stack = []
+    for i in range(len(paths)):
+        vert = paths[i].vertices
+        if not isinstance(previous, np.ndarray):
+            previous, trace = vert.copy(), vert.copy()
+            continue
+
+        if np.all((vert[0, :] - previous[-1, :]) == 0):  # connected
+            trace = np.vstack((trace, vert[1, :]))
+        else:
+            stream_stack.append(trace)
+            trace = vert.copy()
+        previous = vert.copy()
+    plt.close()
+    return stream_stack
+
+def streamplot2shapefile(X,Y,U,V,spatialRef,
+                         out_path,out_file='streamplot.shp',
+                         density=[1, 1]):
+
+    stream_stack = streamplot2list(X, Y, U, V, density=density)
+    # write shapefile
+    polylines2shapefile(stream_stack, spatialRef, out_path, out_file)
     return

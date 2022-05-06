@@ -11,6 +11,8 @@ functions of use for the extraction of information of displacement fields, or fi
 
 solar tools
 ~~~~~~~~~~~
+functions of use for illumination calculations
+
 .. automodule:: eratosthenes.postprocessing.solar_tools
     :members:
 

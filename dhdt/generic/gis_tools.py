@@ -254,3 +254,54 @@ def get_geom_for_utm_zone(utm_zone, d_buff=0):
     # it seems it generates a 3D polygon, which is not needed
     utm_poly.FlattenTo2D()
     return utm_poly
+
+def polylines2shapefile(strokes,spatialRef, path, out_file='strokes.shp'):
+    """ create a shapefile with polylines, as they are provided within a list
+
+    Parameters
+    ----------
+    strokes : list
+        list with arrays that describe polylines
+    spatialRef : string
+        osr.SpatialReference in well known text
+    path : string
+        location where the shapefile can be placed
+    out_file : string
+        filename of the shapefile
+
+    """
+    def create_line(coords):
+        line = ogr.Geometry(type=ogr.wkbLineString)
+        for xy in coords:
+            line.AddPoint_2D(xy[0], xy[1])
+        return line
+
+    DriverName = "ESRI Shapefile"
+    driver = ogr.GetDriverByName(DriverName)
+
+    # look at destination
+    out_full = os.path.join(path, out_file)
+    if os.path.exists(out_full):
+        driver.DeleteDataSource(out_full)
+
+    # create files
+    datasource = driver.CreateDataSource(out_full)
+    srs = ogr.osr.SpatialReference(wkt=spatialRef)
+    layer = datasource.CreateLayer('streamplot', srs,
+                                   geom_type=ogr.wkbLineString)
+    namedef = ogr.FieldDefn("ID", ogr.OFTString)
+    namedef.SetWidth(32)
+    layer.CreateField(namedef)
+
+    # fill data
+    counter = 1
+    for stroke in strokes:
+        feature = ogr.Feature(layer.GetLayerDefn())
+        line = create_line(stroke)
+        feature.SetGeometry(line)
+        feature.SetField("ID", str(counter).zfill(4))
+        layer.CreateFeature(feature)
+        counter += 1
+
+    datasource, layer = None, None # close dataset to write to disk
+    return
