@@ -11,6 +11,13 @@ in recent years many space agencies have adopted an open data policy.
 Consequently, functions for the Sentinel-2 satellites of the Copernicus system
 are closest to completion.
 
+Methodology
+-----------
+This library has two aspects
+
+* photohypsometry : extracting elevation change from changing shadow cast
+* photogrammetry : extracting displacement or disparity through changes in observation time and of angle
+
 Application domains
 -------------------
 This library can be used for a multitude of purposes, though the main focused
@@ -21,14 +28,6 @@ lies towards the following products:
 * ocean circulation
 * natural mass movements
 * earthquake displacements
-
-Methodology
------------
-This library has two aspects
-
-* photohypsometry
-* photogrammetry
-
 
 
 Guide
