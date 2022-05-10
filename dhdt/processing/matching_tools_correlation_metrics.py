@@ -383,7 +383,7 @@ def hessian_spread(C, intI, intJ):
         first diagonal element of the co-variance matrix
     cov_jj : float, real
         second diagonal element of the co-variance matrix
-    cov_jj : float, real
+    cov_ij : float, real
         off-diagonal element of the co-variance matrix
 
     Notes
@@ -451,10 +451,8 @@ def gauss_spread(C, intI, intJ, dI, dJ, est='dist'):
 
     Returns
     -------
-    cov_ii : float
-        standard deviation of the vertical axis
-    cov_jj : float
-        standard deviation of the horizontal axis
+    cov_ii, cov_jj : float
+        standard deviation of the vertical and horizontal axis
     rho : float
         orientation of the Gaussian
     hess : numpy.array, size=(4)
@@ -462,8 +460,8 @@ def gauss_spread(C, intI, intJ, dI, dJ, est='dist'):
     frac :
         scaling of the correlation peak
 
-    Notes
-    -----
+    References
+    ----------
     .. [1] Altena et al. "Correlation dispersion as a measure to better estimate
        uncertainty of remotely sensed glacier displacements" The cryosphere
        discussions, 2021.
@@ -494,43 +492,42 @@ def gauss_spread(C, intI, intJ, dI, dJ, est='dist'):
     IN = P_sub > 0
     # normalize correlation score to probability function
     frac = np.sum(P_sub[IN])
-    P_sub = P_sub / frac
+    if frac != 0: P_sub /= frac
 
-    if np.sum(IN) > 4:
-        A = np.vstack((I[IN] ** 2,
-                       2 * I[IN] * J[IN],
-                       J[IN] ** 2,
-                       np.ones((1, np.sum(IN)))
-                       )).transpose()
-        y = P_sub[IN]
+    if np.sum(IN) <=4:  # not enough data points
+        return 0, 0, 0, np.zeros((4)), 0
 
-        # least squares estimation
-        if est == 'dist':
-            dub = float(dub)
-            W = (dub ** 2 - np.sqrt(A[:, 0] + A[:, 2])) / dub ** 2  # distance from top
-            Aw = A * np.sqrt(W[:, np.newaxis])
-            yw = y * np.sqrt(W)
-            try:
-                hess = np.linalg.lstsq(Aw, yw, rcond=None)[0]
-            except:
-                hess = np.zeros(4)
-        else:
-            try:
-                hess = np.linalg.lstsq(A, y, rcond=None)[0]
-            except:
-                hess = np.zeros(4)
+    A = np.vstack((I[IN] ** 2,
+                   2 * I[IN] * J[IN],
+                   J[IN] ** 2,
+                   np.ones((1, np.sum(IN)))
+                   )).transpose()
+    y = P_sub[IN]
 
-        # convert to parameters
-        rho = (0.5 * hess[1]) / np.sqrt(hess[0] * hess[2])
-        cov_ii = 1 / (-2 * (1 - rho) * hess[0])
-        cov_jj = 1 / (-2 * (1 - rho) * hess[2])
+    # least squares estimation
+    if est == 'dist':
+        dub = float(dub)
+        W = np.abs(dub ** 2 - np.sqrt(A[:, 0] + A[:, 2])) / dub ** 2  # distance from top
+        Aw = A * np.sqrt(W[:, np.newaxis])
+        yw = y * np.sqrt(W)
+        try:
+            hess = np.linalg.lstsq(Aw, yw, rcond=None)[0]
+        except:
+            hess = np.zeros(4)
+    else:
+        try:
+            hess = np.linalg.lstsq(A, y, rcond=None)[0]
+        except:
+            hess = np.zeros(4)
 
-        # deviations can be negative
-        if np.iscomplex(rho) or np.iscomplex(cov_ii) or np.iscomplex(cov_jj):
-            cov_ii, cov_jj, rho = 0, 0, 0
-    else:  # not enough data points
+    # convert to parameters
+    rho = (0.5 * hess[1]) / np.sqrt(np.abs(hess[0] * hess[2]))
+    cov_ii = 1 / (-2 * (1 - rho) * hess[0])
+    cov_jj = 1 / (-2 * (1 - rho) * hess[2])
+
+    # deviations can be negative
+    if np.iscomplex(rho) or np.iscomplex(cov_ii) or np.iscomplex(cov_jj):
         cov_ii, cov_jj, rho = 0, 0, 0
-        hess, frac = np.zeros((4)), 0
     return cov_ii, cov_jj, rho, hess, frac
 
 def intensity_disparity(I1,I2):

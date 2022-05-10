@@ -37,6 +37,36 @@ def local_infilling_filter(I, tsize=5):
     I_new = ndimage.generic_filter(I, infill_func, size=(tsize, tsize))
     return I_new
 
+def nan_resistant(buffer, filter):
+    OUT = np.isnan(buffer)
+    filter = filter.ravel()
+    if np.all(OUT):
+        return np.nan
+
+    surplus = np.sum(filter[OUT]) # energy to distribute
+    grouping = np.sign(filter)
+    grouping[OUT] = 0
+
+    if np.sign(surplus)==-1 and np.any(grouping==+1):
+        idx = grouping==+1
+        filter[idx] += surplus/np.sum(idx)
+        central_pix = np.sum(buffer[~OUT]*filter[~OUT])
+    elif np.sign(surplus)==+1 and np.any(grouping==-1):
+        idx = grouping == -1
+        filter[idx] += surplus /np.sum(idx)
+        central_pix = np.sum(buffer[~OUT] * filter[~OUT])
+    elif surplus == 0:
+        central_pix = np.sum(buffer[~OUT] * filter[~OUT])
+    else:
+        central_pix = np.nan
+
+    return central_pix
+
+def nan_resistant_filter(I, filter, tsize=3):
+    I_new = ndimage.generic_filter(I, nan_resistant, size=(tsize, tsize),
+                                   extra_arguments=(filter,))
+    return I_new
+
 def var_func(buffer):
     central_pix = buffer[buffer.size//2]
     if ~np.isnan(central_pix):

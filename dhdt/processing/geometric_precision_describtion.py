@@ -104,9 +104,9 @@ def geom_mean(sig_xx, sig_yy):
     Parameters
     ----------
     sig_xx : np.array, size=(m,n), dtype=float
-        estimated standard deviation of the displavement estimates
+        estimated standard deviation of the displacement estimates
     sig_yy : np.array, size=(m,n), dtype=float
-        estimated standard deviation of the displavement estimates
+        estimated standard deviation of the displacement estimates
 
     Returns
     -------

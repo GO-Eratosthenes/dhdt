@@ -20,9 +20,9 @@ from ..input.read_sentinel2 import \
 from .matching_tools import \
     pad_images_and_filter_coord_list, pad_radius, get_integer_peak_location
 from .matching_tools_organization import \
-    match_translation_of_two_subsets, estimate_subpixel, \
-    estimate_translation_of_two_subsets, list_frequency_correlators, \
-    list_spatial_correlators, list_peak_estimators, list_phase_estimators
+    list_spatial_correlators, list_peak_estimators, list_phase_estimators, \
+    match_translation_of_two_subsets, estimate_subpixel, estimate_precision, \
+    estimate_translation_of_two_subsets, list_frequency_correlators
 from .matching_tools_differential import \
     affine_optical_flow, simple_optical_flow
 from .matching_tools_binairy_boundaries import \
@@ -34,7 +34,7 @@ from ..postprocessing.mapping_io import casting_pairs_mat2shp
 def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
                temp_radius=7, search_radius=22,
                correlator='robu_corr', subpix='moment',
-               processing='simple', boi=np.array([]),
+               processing='simple', boi=np.array([]), precision_estimate=False,
                metric='peak_abs', **kwargs):
     """
     simple image matching routine
@@ -79,6 +79,9 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
     metric : {'peak_abs' (default), 'peak_ratio', 'peak_rms', 'peak_ener',
               'peak_nois', 'peak_conf', 'peak_entr'}
         Metric to be used to describe the matching score.
+    precision_estimate : boolean, default=False
+        estimate the precision of the match, by modelling the correlation
+        function through a Gaussian, see also [1] for more details.
     processing : {'simple' (default), 'refine', 'stacking'}
         Specifies which procssing strategy to apply to the imagery:
 
@@ -102,6 +105,12 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
     .matching_tools_organization.list_frequency_correlators,
     .matching_tools_organization.list_peak_estimators,
     .matching_tools_organization.list_phase_estimators
+
+    References
+    ----------
+    .. [1] Altena et al. "Correlation dispersion as a measure to better estimate
+       uncertainty of remotely sensed glacier displacements", The Crysophere,
+       vol.XX pp.XXX, 2022.
     """
     # combating import loops
     from .matching_tools_organization import \
@@ -147,7 +156,10 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
 
     (m,n) = X_grd.shape
     X2_grd,Y2_grd = np.zeros((m,n,b)), np.zeros((m,n,b))
-    match_metric = np.zeros((m,n))
+    if precision_estimate: # also include error estimate
+        match_metric = np.zeros((m,n,4))
+    else:
+        match_metric = np.zeros((m,n))
     grd_new = np.where(IN)
 
     # processing
@@ -174,57 +186,48 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
 
         if np.all(L1_sub==0) or np.all(L2_sub==0):
             di, dj, score = np.nan*np.zeros(b), np.nan*np.zeros(b), 0
+            continue
+
+        if correlator in differential_based:
+            di,dj,rms = estimate_translation_of_two_subsets(I1_sub, I2_sub,
+                 L1_sub, L2_sub, correlator, **kwargs)
+            score = np.sqrt(np.nansum(rms**2)) # euclidean distance of rms
         else:
-            if correlator in differential_based:
-                di,dj,rms = estimate_translation_of_two_subsets(I1_sub, I2_sub,
-                                                                L1_sub, L2_sub,
-                                                                correlator,
-                                                                **kwargs)
-                score = np.sqrt(np.nansum(rms**2))# euclidean distance of rms
+            QC = match_translation_of_two_subsets(I1_sub,I2_sub,
+                 correlator, subpix, L1_sub,L2_sub)
+            if (subpix in peak_based) or (subpix is None):
+                di,dj,score,_ = get_integer_peak_location(QC, metric=metric)
             else:
-                QC = match_translation_of_two_subsets(I1_sub,I2_sub,
-                                                      correlator, subpix,
-                                                      L1_sub,L2_sub)
-                if (subpix in peak_based) or (subpix is None):
-                    di,dj,score,_ = get_integer_peak_location(QC, metric=metric)
+                di, dj, score = np.zeros(b), np.zeros(b), np.zeros(b)
+            m0 = np.array([di, dj])
+
+            if processing in ['refine']: # reposition second template
+                if correlator in frequency_based:
+                    I2_new = create_template_off_center(I2,
+                        i2[counter]-di, j2[counter]-dj, 2*temp_radius)
+                    L2_new = create_template_off_center(L2,
+                        i2[counter]-di, j2[counter]-dj, 2*temp_radius)
                 else:
-                    di, dj, score = np.zeros(b), np.zeros(b), np.zeros(b)
-                m0 = np.array([di, dj])
+                    I2_new = create_template_at_center(I2,
+                        i2[counter]-di, j2[counter]-dj, temp_radius)
+                    L2_new = create_template_at_center(L2,
+                        i2[counter]-di, j2[counter]-dj, temp_radius)
 
-                if processing in ['refine']: # reposition second template
-                    if correlator in frequency_based:
-                        I2_new = create_template_off_center(I2,
-                                                            i2[counter]-di,
-                                                            j2[counter]-dj,
-                                                            2*temp_radius)
-                        L2_new = create_template_off_center(L2,
-                                                            i2[counter]-di,
-                                                            j2[counter]-dj,
-                                                            2*temp_radius)
-                    else:
-                        I2_new = create_template_at_center(I2, \
-                                                           i2[counter]-di,
-                                                           j2[counter]-dj,
-                                                           temp_radius)
+                QC = match_translation_of_two_subsets(I1_sub, I2_new,
+                        correlator,subpix, L1_sub,L2_new)
+            if subpix is None:
+                ddi,ddj = 0, 0
+            else:
+                ddi,ddj = estimate_subpixel(QC, subpix, m0=m0)
 
-                        L2_new = create_template_at_center(L2,
-                                                           i2[counter]-di,
-                                                           j2[counter]-dj,
-                                                           temp_radius)
-                    QC = match_translation_of_two_subsets(I1_sub, I2_new,
-                                                          correlator,subpix,
-                                                          L1_sub,L2_new)
-                if subpix is None:
-                    ddi,ddj = 0, 0
-                else:
-                    ddi,ddj = estimate_subpixel(QC, subpix, m0=m0)
+            if precision_estimate:
+                si,sj,rho = estimate_precision(QC, di+ddi,dj+ddj)
 
-                if abs(ddi)<2: di += ddi
-                if abs(ddj)<2: dj += ddj
+            if abs(ddi)<2: di += ddi
+            if abs(ddj)<2: dj += ddj
         # transform from local image to metric map system
         x2_new,y2_new = pix2map(geoTransformPad2,
-                                i2[counter] + di,
-                                j2[counter] + dj)
+                                i2[counter] + di, j2[counter] + dj)
 
         # write results in arrays
         idx_grd = np.unravel_index(grd_new[0][counter], (m,n), 'C')
@@ -235,7 +238,11 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
         else:
             X2_grd[idx_grd[0],idx_grd[1]] = x2_new
             Y2_grd[idx_grd[0],idx_grd[1]] = y2_new
-        match_metric[idx_grd[0],idx_grd[1]] = score
+        if precision_estimate:
+            match_metric[idx_grd[0], idx_grd[1],:] = np.array(\
+                [[[score,si,sj,rho]]])
+        else:
+            match_metric[idx_grd[0],idx_grd[1]] = score
 
     if X2_grd.shape[2]==1:
         X2_grd,Y2_grd = np.squeeze(X2_grd), np.squeeze(Y2_grd)

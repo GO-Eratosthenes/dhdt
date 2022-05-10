@@ -754,7 +754,7 @@ def bbox_boolean(img):
     c_min, c_max = np.where(cols)[0][[0, -1]]
     return r_min, r_max, c_min, c_max
 
-def get_bbox(geoTransform, rows, cols):
+def get_bbox(geoTransform, rows=None, cols=None):
     """ given array meta data, calculate the bounding box
 
     Parameters
@@ -792,6 +792,10 @@ def get_bbox(geoTransform, rows, cols):
           based      v           based       |
 
     """
+    if rows==None:
+        assert len(geoTransform)>=8, ('please provide raster information')
+        rows, cols = geoTransform[6], geoTransform[7]
+
     X = geoTransform[0] + \
         np.array([0, cols])*geoTransform[1] + np.array([0, rows])*geoTransform[2]
 

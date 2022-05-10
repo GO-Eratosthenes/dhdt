@@ -21,6 +21,8 @@ from .matching_tools_spatial_subpixel import \
     get_top_mass, get_top_centroid, get_top_blais, get_top_ren, \
     get_top_birchfield, get_top_equiangular, get_top_triangular, \
     get_top_esinc, get_top_paraboloid, get_top_2d_gaussian
+from .matching_tools_correlation_metrics import \
+    hessian_spread, gauss_spread
 from .matching_tools_differential import \
     affine_optical_flow, hough_optical_flow
 
@@ -289,3 +291,14 @@ def estimate_subpixel(QC, subpix, m0=np.zeros((1,2))):
             ddi,ddj = phase_difference(QC)
 
     return ddi, ddj
+
+def estimate_precision(C, di, dj, method='gaussian'):
+
+    if method in ['hessian']:
+        cov_ii,cov_jj,cov_ij = hessian_spread(C, np.round(di), np.round(dj))
+    else:
+        cov_ii,cov_jj,cov_ij,_,_ = gauss_spread(C,
+                                                np.round(di).astype(int),
+                                                np.round(dj).astype(int),
+                                                di%1, dj%1, est='dist')
+    return cov_ii, cov_jj, cov_ij
