@@ -19,11 +19,15 @@
 import os
 import sys
 
-#import dhdt
-
 here = os.path.dirname(__file__)
 sys.path.insert(0, os.path.abspath(os.path.join(here, '..')))
 
+if os.environ.get('READTHEDOCS', None):
+    from unittest.mock import Mock
+    sys.modules.update((mod_name, Mock()) for mod_name in ('gdal',
+                                                           'osgeo'))
+
+import dhdt
 
 # -- General configuration ------------------------------------------------
 
