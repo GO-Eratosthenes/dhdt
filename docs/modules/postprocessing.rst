@@ -6,17 +6,17 @@ displacement filters
 ~~~~~~~~~~~~~~~~~~~~
 functions of use for the extraction of information of displacement fields, or filtering thereof.
 
-.. automodule:: eratosthenes.postprocessing.displacement_filters
+.. automodule:: dhdt.postprocessing.displacement_filters
     :members:
 
 solar tools
 ~~~~~~~~~~~
 functions of use for illumination calculations
 
-.. automodule:: eratosthenes.postprocessing.solar_tools
+.. automodule:: dhdt.postprocessing.solar_tools
     :members:
 
 terrain tools
 ~~~~~~~~~~~~~
-.. automodule:: eratosthenes.postprocessing.terrain_tools
+.. automodule:: dhdt.postprocessing.terrain_tools
     :members:
