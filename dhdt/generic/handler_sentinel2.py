@@ -57,40 +57,40 @@ def get_s2_dict(s2_df):
 
         .. code-block:: text
 
-        * S2X_MSIL1C_20XX...   <- path is given in s2_dict["full_path"]
-        ├ AUX_DATA
-        ├ DATASTRIP
-        │  └ DS_XXX_XXXX...    <- path is given in s2_dict["MTD_DS_path"]
-        │     └ QI_DATA
-        │        └ MTD_DS.xml  <- metadata about the data-strip
-        ├ GRANULE
-        │  └ L1C_TXXXX_XXXX... <- path is given in s2_dict["MTD_TL_path"]
-        │     ├ AUX_DATA
-        │     ├ IMG_DATA
-        │     │  ├ TXXX_X..XXX.jp2
-        │     │  └ TXXX_X..XXX.jp2
-        │     ├ QI_DATA
-        │     └ MTD_TL.xml     <- metadata about the tile
-        ├ HTML
-        ├ rep_info
-        ├ manifest.safe
-        ├ INSPIRE.xml
-        └ MTD_MSIL1C.xml       <- metadata about the product
+            * S2X_MSIL1C_20XX...   <- path is given in s2_dict["full_path"]
+            ├ AUX_DATA
+            ├ DATASTRIP
+            │  └ DS_XXX_XXXX...    <- path is given in s2_dict["MTD_DS_path"]
+            │     └ QI_DATA
+            │        └ MTD_DS.xml  <- metadata about the data-strip
+            ├ GRANULE
+            │  └ L1C_TXXXX_XXXX... <- path is given in s2_dict["MTD_TL_path"]
+            │     ├ AUX_DATA
+            │     ├ IMG_DATA
+            │     │  ├ TXXX_X..XXX.jp2
+            │     │  └ TXXX_X..XXX.jp2
+            │     ├ QI_DATA
+            │     └ MTD_TL.xml     <- metadata about the tile
+            ├ HTML
+            ├ rep_info
+            ├ manifest.safe
+            ├ INSPIRE.xml
+            └ MTD_MSIL1C.xml       <- metadata about the product
 
     Nomenclature
     ------------
-    AUX : auxiliary
-    COSPAR : committee on space research international designator
-    DS : datastrip
-    IMG : imagery
-    L1C : product specification,i.e.: level 1, processing step C
-    MGRS : military grid reference system
-    MTD : metadata
-    MSI : multi spectral instrument
-    NORAD : north american aerospace defense satellite catalog number
-    TL : tile
-    QI : quality information
-    s2 : Sentinel-2
+    - AUX : auxiliary
+    - COSPAR : committee on space research international designator
+    - DS : datastrip
+    - IMG : imagery
+    - L1C : product specification,i.e.: level 1, processing step C
+    - MGRS : military grid reference system
+    - MTD : metadata
+    - MSI : multi spectral instrument
+    - NORAD : north american aerospace defense satellite catalog number
+    - TL : tile
+    - QI : quality information
+    - s2 : Sentinel-2
 
     """
     assert isinstance(s2_df, pd.DataFrame), ('please provide a dataframe')
