@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib as plt
 
 from scipy import ndimage
 
@@ -99,10 +98,25 @@ def get_d8_offsets(shape, order='C'):
             0])     # no data value - stationary
     return d8_offset
 
-def d8_flow(Class, V_x, V_y, iter=4, analysis=True): #todo: create colored polygon outputs
+def d8_flow(Class, V_x, V_y, iter=20, analysis=True): #todo: create colored polygon outputs
+    """ re-organize labelled dataset by steering towards convergent zones
 
-    # analysis : boolean
-    #    create intermediate results, to see the evolution of the algorithm
+    Parameters
+    ----------
+    Class : numpy.array, size=(m,n)
+        labelled array
+    V_x, V_y :  numpy.array, size=(m,n)
+        grids with horizontal and vertical directions
+    iter : integer, default=20
+        number of iterations to be executed
+    analysis : boolean
+        keeps intermediate results, to see the evolution of the algorithm
+
+    Returns
+    -------
+    Class_new : numpy.array, size=(m,n)
+        newly evolved labelled array
+    """
 
     # admin
     (m, n) = Class.shape
