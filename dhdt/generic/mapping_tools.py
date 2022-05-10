@@ -492,13 +492,26 @@ def cast_orientation(I, Az, indexing='ij'):
     return Ican
 
 def GDAL_transform_to_affine(GDALtransform):
-    '''
+    """
+
+    Parameters
+    ----------
+    GDALtransform : tuple, size={(1,6),(1,8)}
+        tuple with transformation parameters
+
+    Returns
+    -------
+    new_transform : Affine module
+        transformation parameters in different order, see Notes below
+
+    Notes
+    -----
     the GDAL-style geotransform is like:
         (c, a, b, f, d, e)
-    but should be an Affine structre to work wit rasterio:
+    but should be an Affine structre to work with rasterio:
         affine.Affine(a, b, c,
                       d, e, f)
-    '''
+    """
     new_transform = Affine(GDALtransform[1], GDALtransform[2], GDALtransform[0], \
                            GDALtransform[4], GDALtransform[5], GDALtransform[3])
     return new_transform
@@ -526,7 +539,7 @@ def ref_trans(Transform, dI, dJ):
 
     Notes
     -----
-        Two different coordinate system are used here:
+    Two different coordinate system are used here:
 
         .. code-block:: text
 
@@ -544,6 +557,8 @@ def ref_trans(Transform, dI, dJ):
                     Transform[1], Transform[2],
                     Transform[3]+ dJ*Transform[4] + dI*Transform[5],
                     Transform[4], Transform[5])
+    if len(Transform) == 8: # also include info of image extent
+        newTransform = newTransform + (Transform[6], Transform[7])
     return newTransform
 
 def ref_scale(geoTransform, scaling):
@@ -563,7 +578,7 @@ def ref_scale(geoTransform, scaling):
 
     See Also
     --------
-    ref_trans
+    ref_trans, ref_update
     """
 
     if len(geoTransform)==8: # sometimes the image dimensions are also included
@@ -575,10 +590,14 @@ def ref_scale(geoTransform, scaling):
     # not using center of pixel
     R = np.asarray(geoTransform).reshape((2,3)).T
     R[0,:] += np.diag(R[1:,:]*scaling/2)
-    R[1:,:] = R[1:,:]*scaling/2
+    R[1:,:] = R[1:,:]*float(scaling)
     newTransform = tuple(map(tuple, np.transpose(R).reshape((1,6))))
 
     return newTransform[0]
+
+def ref_update(geoTransform, rows, cols):
+    geoTransform = geoTransform + (rows, cols,)
+    return geoTransform
 
 def aff_trans_template_coord(A, t_radius):
     x = np.arange(-t_radius, t_radius + 1)
