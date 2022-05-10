@@ -9,4 +9,3 @@ scipy
 Pillow
 shapely
 statsmodels
-morphsnakes @ git+https://github.com/GO-Eratosthenes/morphsnakes@albedo-included
