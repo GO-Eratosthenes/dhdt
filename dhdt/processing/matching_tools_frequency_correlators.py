@@ -253,7 +253,7 @@ def phase_only_corr(I1, I2):
     Returns
     -------
     Q : numpy.array, size=(m,n), dtype=complex
-        cross-spectrum
+        cross-power spectrum
 
     See Also
     --------
@@ -263,11 +263,13 @@ def phase_only_corr(I1, I2):
     -----
     The matching equations are as follows:
 
-    .. math:: \mathbf{S}_1, \mathbf{S}_2 = \mathcal{F}[\mathbf{I}_1], \mathcal{F}[\mathbf{I}_2]
+    .. math:: \mathbf{S}_1, \mathbf{S}_2 = \mathcal{F}[\mathbf{I}_1],\quad
+              \mathcal{F}[\mathbf{I}_2]
     .. math:: \mathbf{W} = 1 / \mathbf{S}_2
     .. math:: \mathbf{Q}_{12} = \mathbf{S}_1 [\mathbf{W}\mathbf{S}_2]^{\star}
 
-    where :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star` a complex conjugate operation
+    where :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star`
+    a complex conjugate operation
 
     References
     ----------
@@ -462,17 +464,19 @@ def symmetric_phase_corr(I1, I2):
     Returns
     -------
     Q : numpy.array, size=(m,n), dtype=complex
-        cross-spectrum
+        cross-power spectrum
 
     Notes
     -----
     The matching equations are as follows:
 
-    .. math:: \mathbf{S}_1, \mathbf{S}_2 = \mathcal{F}[\mathbf{I}_1], \mathcal{F}[\mathbf{I}_2]
+    .. math:: \mathbf{S}_1, \mathbf{S}_2 = \mathcal{F}[\mathbf{I}_1], \quad
+              \mathcal{F}[\mathbf{I}_2]
     .. math:: \mathbf{W} = 1 / \sqrt{||\mathbf{S}_1||||\mathbf{S}_2||}
     .. math:: \mathbf{Q}_{12} = \mathbf{S}_1 [\mathbf{W}\mathbf{S}_2]^{\star}
 
-    where :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star` a complex conjugate operation
+    where :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star`
+    a complex conjugate operation
 
     References
     ----------
@@ -538,7 +542,7 @@ def amplitude_comp_corr(I1, I2, F_0=0.04):
     Returns
     -------
     Q : numpy.array, size=(m,n), dtype=complex
-        cross-spectrum
+        cross-power spectrum
 
     References
     ----------
@@ -611,7 +615,7 @@ def robust_corr(I1, I2):
     Returns
     -------
     Q : numpy.array, size=(m,n), dtype=complex
-        cross-spectrum
+        cross-power spectrum
 
     References
     ----------
@@ -664,11 +668,27 @@ def gradient_corr(I1, I2):
     Returns
     -------
     Q : numpy.array, size=(m,n), dtype=complex
-        cross-spectrum
+        cross-power spectrum
 
     See Also
     --------
-    phase_corr, orientation_corr
+    normalized_gradient_corr, phase_corr, orientation_corr
+
+    Notes
+    -----
+    The matching equations are as follows:
+
+    .. math:: \mathbf{G}_1, \mathbf{G}_2 =
+              \partial_{x}\mathbf{I}_1 + i \partial_{y}\mathbf{I}_1, \quad
+              \partial_{x}\mathbf{I}_2 + i \partial_{y}\mathbf{I}_2
+    .. math:: \mathbf{S}_1, \mathbf{S}_2 =
+              \mathcal{F}[\mathbf{G}_1], \quad
+              \mathcal{F}[\mathbf{G}_2]
+    .. math:: \mathbf{Q}_{12} = \mathbf{S}_1 \mathbf{S}_2^{\star}
+
+    where :math:`\partial_{x}` is the spatial derivate in horizontal direction,
+    :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star` a
+    complex conjugate operation.
 
     References
     ----------
@@ -740,11 +760,28 @@ def normalized_gradient_corr(I1, I2):
     Returns
     -------
     Q : numpy.array, size=(m,n), dtype=complex
-        cross-spectrum
+        cross-power spectrum
 
     See Also
     --------
-    phase_corr, windrose_corr
+    gradient_corr, phase_corr, windrose_corr
+
+    Notes
+    -----
+    The matching equations are as follows:
+
+    .. math:: \mathbf{G}_1, \mathbf{G}_2 =
+              \partial_{x}\mathbf{I}_1 + i \partial_{y}\mathbf{I}_1, \quad
+              \partial_{x}\mathbf{I}_2 + i \partial_{y}\mathbf{I}_2
+    .. math:: \mathbf{S}_1, \mathbf{S}_2 =
+              \mathcal{F}[\dot{\mathbf{G}}_1], \quad
+              \mathcal{F}[\dot{\mathbf{G}}_2]
+    .. math:: \mathbf{Q}_{12} = \mathbf{S}_1 \mathbf{S}_2^{\star}
+
+    where :math:`\partial_{x}` is the spatial derivate in horizontal direction,
+    :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star` a
+    complex conjugate operation and :math:`\dot{x}` represents a statistical
+    normalization through the sampled mean and standard deviation.
 
     References
     ----------
@@ -823,11 +860,30 @@ def orientation_corr(I1, I2):
     Returns
     -------
     Q : numpy.array, size=(m,n), dtype=complex
-        cross-spectrum
+        cross-power spectrum
 
     See Also
     --------
     phase_corr, windrose_corr
+
+    Notes
+    -----
+    The matching equations are as follows:
+
+    .. math:: \mathbf{G}_1, \mathbf{G}_2 =
+              \partial_{x}\mathbf{I}_1 + i \partial_{y}\mathbf{I}_1,\quad
+              \partial_{x}\mathbf{I}_2 + i \partial_{y}\mathbf{I}_2
+    .. math:: \hat{\mathbf{G}_1}, \hat{\mathbf{G}_2} =
+              \mathbf{G}_1 / \| \mathbf{G}_1\|,\quad
+              \mathbf{G}_2 / \| \mathbf{G}_2\|
+    .. math:: \mathbf{S}_1, \mathbf{S}_2 =
+              \mathcal{F}[\hat{\mathbf{G}_1}],\quad
+              \mathcal{F}[\hat{\mathbf{G}_2}]
+    .. math:: \mathbf{Q}_{12} = \mathbf{S}_1 \mathbf{S}_2^{\star}
+
+    where :math:`\partial_{x}` is the spatial derivate in horizontal direction,
+    :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star` a
+    complex conjugate operation and :math:`\hat{x}` is a normalizing operator.
 
     References
     ----------
@@ -899,11 +955,23 @@ def windrose_corr(I1, I2):
     Returns
     -------
     Q : numpy.array, size=(m,n), dtype=complex
-        cross-spectrum
+        cross-power spectrum
 
     See Also
     --------
     binary_orientation_corr, orientation_corr, phase_only_corr
+
+    Notes
+    -----
+    The matching equations are as follows:
+
+    .. math:: \mathbf{S}_1, \mathbf{S}_2 = \mathcal{F}[\mathbf{I}_1],\quad
+              \mathcal{F}[\mathbf{I}_2]
+    .. math:: \mathbf{Q}_{12} = sign(\mathbf{S}_1) sign(\mathbf{S}_2)^{\star}
+
+    where :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star`
+    a complex conjugate operation
+
 
     References
     ----------
@@ -962,11 +1030,25 @@ def phase_corr(I1, I2):
     Returns
     -------
     Q : numpy.array, size=(m,n), dtype=complex
-        cross-spectrum
+        cross-power spectrum
 
     See Also
     --------
     orientation_corr, cross_corr
+
+    Notes
+    -----
+    The matching equations are as follows:
+
+    .. math:: \mathbf{S}_1, \mathbf{S}_2 = \mathcal{F}[\mathbf{I}_1],\quad
+              \mathcal{F}[\mathbf{I}_2]
+    .. math:: \hat{\mathbf{S}}_1, \hat{\mathbf{S}}_2 =
+              \mathbf{S}_1 / \| \mathbf{S}_1\|, \quad
+              \mathbf{S}_2 / \| \mathbf{S}_2\|
+    .. math:: \mathbf{Q}_{12} = \hat{\mathbf{S}}_1 {\hat{\mathbf{S}}_2}^{\star}
+
+    where :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star` a
+    complex conjugate operation and :math:`\hat{x}` is a normalizing operator.
 
     References
     ----------
@@ -1030,7 +1112,7 @@ def gaussian_transformed_phase_corr(I1, I2):
     Returns
     -------
     Q : numpy.array, size=(m,n), dtype=complex
-        cross-spectrum
+        cross-power spectrum
 
     See Also
     --------
@@ -1178,11 +1260,22 @@ def cross_corr(I1, I2):
     Returns
     -------
     Q : numpy.array, size=(m,n), dtype=complex
-        cross-spectrum
+        cross-power spectrum
 
     See Also
     --------
     phase_corr
+
+    Notes
+    -----
+    The matching equations are as follows:
+
+    .. math:: \mathbf{S}_1, \mathbf{S}_2 = \mathcal{F}[\mathbf{I}_1],\quad
+              \mathcal{F}[\mathbf{I}_2]
+    .. math:: \mathbf{Q}_{12} = \mathbf{S}_1 {\mathbf{S}_2}^{\star}
+
+    where :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star` a
+    complex conjugate operation.
 
     References
     ----------
@@ -1242,11 +1335,23 @@ def binary_orientation_corr(I1, I2):
     Returns
     -------
     Q : numpy.array, size=(m,n), dtype=complex
-        cross-spectrum
+        cross-power spectrum
 
     See Also
     --------
     orientation_corr, phase_only_corr
+
+    Notes
+    -----
+    The matching equations are as follows:
+
+    .. math:: \mathbf{S}_1, \mathbf{S}_2 = \mathcal{F}[\mathbf{I}_1],\quad
+              \mathcal{F}[\mathbf{I}_2]
+    .. math:: \mathbf{W} = sign(\mathfrak{Re} [ \mathbf{S}_2 ] )
+    .. math:: \mathbf{Q}_{12} = \mathbf{S}_1 [\mathbf{W}\mathbf{S}_2]^{\star}
+
+    where :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star`
+    a complex conjugate operation
 
     References
     ----------

@@ -28,7 +28,7 @@ def list_central_wavelength_msi():
 
     Returns
     -------
-    df : datafram
+    df : pandas.dataframe
         metadata and general multispectral information about the MSI
         instrument that is onboard Sentinel-2, having the following collumns:
 
@@ -54,14 +54,14 @@ def list_central_wavelength_msi():
     respectively. The dimensions of the Silicon CMOS detector are given in [2].
     While the SWIR detector is based on a MCT sensor.
 
-    Nomenclature
-    ------------
-    MSI : multi-spectral instrument
-    MCT : mercury cadmium telluride, HgCdTe
-    TMA : trim mirror anastigmat
-    VNIR : very near infra-red
-    SWIR : short wave infra-red
-    CMOS : silicon complementary metal oxide semiconductor, Si
+    The following acronyms are used:
+
+    - MSI : multi-spectral instrument
+    - MCT : mercury cadmium telluride, HgCdTe
+    - TMA : trim mirror anastigmat
+    - VNIR : very near infra-red
+    - SWIR : short wave infra-red
+    - CMOS : silicon complementary metal oxide semiconductor, Si
 
     Example
     -------
@@ -325,7 +325,8 @@ def read_geotransform_s2(path, fname='MTD_TL.xml', resolution=10):
     -----
     The metadata is scattered over the file structure of Sentinel-2, L1C
 
-        .. code-block:: text
+    .. code-block:: text
+
         * S2X_MSIL1C_20XX...
         ├ AUX_DATA
         ├ DATASTRIP
@@ -344,15 +345,15 @@ def read_geotransform_s2(path, fname='MTD_TL.xml', resolution=10):
         ├ INSPIRE.xml
         └ MTD_MSIL1C.xml <- metadata about the product
 
-    Nomenclature
-    ------------
-    DS : datastrip
-    TL : tile
-    QI : quality information
-    AUX : auxiliary
-    MTD : metadata
-    MSI : multi spectral instrument
-    L1C : product specification,i.e.: level 1, processing step C
+    The following acronyms are used:
+
+    - DS : datastrip
+    - TL : tile
+    - QI : quality information
+    - AUX : auxiliary
+    - MTD : metadata
+    - MSI : multi spectral instrument
+    - L1C : product specification,i.e.: level 1, processing step C
     """
     root = get_root_of_table(path, fname)
 
@@ -396,16 +397,17 @@ def read_sun_angles_s2(path, fname='MTD_TL.xml'):
     the solar angles in J2000; 2) Transformation of the vector to the mapping
     frame.
 
-    .. 1) The outputs of the first step is the solar direction normalized vector
-    with the Earth-Sun distance, considering that the direction of the sun is
-    the same at the centre of the Earth and at the centre of the Sentinel-2
-    satellite.
-    .. 2) Attitude of the satellite platform are used to rotate the solar vector to
-    the mapping frame. Also Ground Image Calibration Parameters (GICP Diffuser
-    Model) are used to transform from the satellite to the diffuser, as
-    Sentinel-2 has a forward and backward looking sensor configuration. The
-    diffuser model also has stray-light correction and a Bi-Directional
-    Reflection Function model.
+    - 1) The outputs of the first step is the solar direction normalized vector
+         with the Earth-Sun distance, considering that the direction of the sun
+         is the same at the centre of the Earth and at the centre of the
+         Sentinel-2 satellite.
+
+    - 2) Attitude of the satellite platform are used to rotate the solar vector
+         to the mapping frame. Also Ground Image Calibration Parameters (GICP
+         Diffuser Model) are used to transform from the satellite to the
+         diffuser, as Sentinel-2 has a forward and backward looking sensor
+         configuration. The diffuser model also has stray-light correction and
+         a Bi-Directional Reflection Function model.
 
     The angle(s) are declared in the following coordinate frame:
 
@@ -447,34 +449,34 @@ def read_sun_angles_s2(path, fname='MTD_TL.xml'):
 
         .. code-block:: text
 
-        * S2X_MSIL1C_20XX...
-        ├ AUX_DATA
-        ├ DATASTRIP
-        │  └ DS_XXX_XXXX...
-        │     └ QI_DATA
-        │        └ MTD_DS.xml <- metadata about the data-strip
-        ├ GRANULE
-        │  └ L1C_TXXXX_XXXX...
-        │     ├ AUX_DATA
-        │     ├ IMG_DATA
-        │     ├ QI_DATA
-        │     └ MTD_TL.xml <- metadata about the tile
-        ├ HTML
-        ├ rep_info
-        ├ manifest.safe
-        ├ INSPIRE.xml
-        └ MTD_MSIL1C.xml <- metadata about the product
+            * S2X_MSIL1C_20XX...
+            ├ AUX_DATA
+            ├ DATASTRIP
+            │  └ DS_XXX_XXXX...
+            │     └ QI_DATA
+            │        └ MTD_DS.xml <- metadata about the data-strip
+            ├ GRANULE
+            │  └ L1C_TXXXX_XXXX...
+            │     ├ AUX_DATA
+            │     ├ IMG_DATA
+            │     ├ QI_DATA
+            │     └ MTD_TL.xml <- metadata about the tile
+            ├ HTML
+            ├ rep_info
+            ├ manifest.safe
+            ├ INSPIRE.xml
+            └ MTD_MSIL1C.xml <- metadata about the product
 
-    Nomenclature
-    ------------
-    s2 : Sentinel-2
-    DS : datastrip
-    TL : tile
-    QI : quality information
-    AUX : auxiliary
-    MTD : metadata
-    MSI : multi spectral instrument
-    L1C : product specification,i.e.: level 1, processing step C
+    The following acronyms are used:
+
+    - s2 : Sentinel-2
+    - DS : datastrip
+    - TL : tile
+    - QI : quality information
+    - AUX : auxiliary
+    - MTD : metadata
+    - MSI : multi spectral instrument
+    - L1C : product specification,i.e.: level 1, processing step C
     """
     root = get_root_of_table(path, fname)
 
@@ -521,7 +523,7 @@ def read_sun_angles_s2(path, fname='MTD_TL.xml'):
     return Zn, Az
 
 def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
-                        boi=list_central_wavelength_msi()):
+                        boi=None):
     """ This function reads the xml-file of the Sentinel-2 scene and extracts
     an array with viewing angles of the MSI instrument.
 
@@ -573,36 +575,38 @@ def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
 
         .. code-block:: text
 
-        * S2X_MSIL1C_20XX...
-        ├ AUX_DATA
-        ├ DATASTRIP
-        │  └ DS_XXX_XXXX...
-        │     └ QI_DATA
-        │        └ MTD_DS.xml <- metadata about the data-strip
-        ├ GRANULE
-        │  └ L1C_TXXXX_XXXX...
-        │     ├ AUX_DATA
-        │     ├ IMG_DATA
-        │     ├ QI_DATA
-        │     └ MTD_TL.xml <- metadata about the tile
-        ├ HTML
-        ├ rep_info
-        ├ manifest.safe
-        ├ INSPIRE.xml
-        └ MTD_MSIL1C.xml <- metadata about the product
+            * S2X_MSIL1C_20XX...
+            ├ AUX_DATA
+            ├ DATASTRIP
+            │  └ DS_XXX_XXXX...
+            │     └ QI_DATA
+            │        └ MTD_DS.xml <- metadata about the data-strip
+            ├ GRANULE
+            │  └ L1C_TXXXX_XXXX...
+            │     ├ AUX_DATA
+            │     ├ IMG_DATA
+            │     ├ QI_DATA
+            │     └ MTD_TL.xml <- metadata about the tile
+            ├ HTML
+            ├ rep_info
+            ├ manifest.safe
+            ├ INSPIRE.xml
+            └ MTD_MSIL1C.xml <- metadata about the product
 
-    Nomenclature
-    ------------
-    s2 : Sentinel-2
-    DS : datastrip
-    TL : tile
-    QI : quality information
-    AUX : auxiliary
-    MTD : metadata
-    MSI : multi spectral instrument
-    L1C : product specification,i.e.: level 1, processing step C
+    The following acronyms are used:
+
+    - s2 : Sentinel-2
+    - DS : datastrip
+    - TL : tile
+    - QI : quality information
+    - AUX : auxiliary
+    - MTD : metadata
+    - MSI : multi spectral instrument
+    - L1C : product specification,i.e.: level 1, processing step C
 
     """
+    if boi is None:
+        boi = list_central_wavelength_msi()
     assert boi['gsd'].var()==0, \
         ('make sure all bands are the same resolution')
     root = get_root_of_table(path, fname)
@@ -736,40 +740,38 @@ def read_mean_sun_angles_s2(path, fname='MTD_TL.xml'):
           |/                    |/ | elevation angle
           +----                 +------
 
-    Notes
-    -----
     The metadata is scattered over the file structure of Sentinel-2, L1C
 
         .. code-block:: text
 
-        * S2X_MSIL1C_20XX...
-        ├ AUX_DATA
-        ├ DATASTRIP
-        │  └ DS_XXX_XXXX...
-        │     └ QI_DATA
-        │        └ MTD_DS.xml <- metadata about the data-strip
-        ├ GRANULE
-        │  └ L1C_TXXXX_XXXX...
-        │     ├ AUX_DATA
-        │     ├ IMG_DATA
-        │     ├ QI_DATA
-        │     └ MTD_TL.xml <- metadata about the tile
-        ├ HTML
-        ├ rep_info
-        ├ manifest.safe
-        ├ INSPIRE.xml
-        └ MTD_MSIL1C.xml <- metadata about the product
+            * S2X_MSIL1C_20XX...
+            ├ AUX_DATA
+            ├ DATASTRIP
+            │  └ DS_XXX_XXXX...
+            │     └ QI_DATA
+            │        └ MTD_DS.xml <- metadata about the data-strip
+            ├ GRANULE
+            │  └ L1C_TXXXX_XXXX...
+            │     ├ AUX_DATA
+            │     ├ IMG_DATA
+            │     ├ QI_DATA
+            │     └ MTD_TL.xml <- metadata about the tile
+            ├ HTML
+            ├ rep_info
+            ├ manifest.safe
+            ├ INSPIRE.xml
+            └ MTD_MSIL1C.xml <- metadata about the product
 
-    Nomenclature
-    ------------
-    s2 : Sentinel-2
-    DS : datastrip
-    TL : tile
-    QI : quality information
-    AUX : auxiliary
-    MTD : metadata
-    MSI : multi spectral instrument
-    L1C : product specification,i.e.: level 1, processing step C
+    The following acronyms are used:
+
+    - s2 : Sentinel-2
+    - DS : datastrip
+    - TL : tile
+    - QI : quality information
+    - AUX : auxiliary
+    - MTD : metadata
+    - MSI : multi spectral instrument
+    - L1C : product specification,i.e.: level 1, processing step C
     """
     root = get_root_of_table(path, fname)
     Zn, Az = [], []
@@ -812,7 +814,8 @@ def read_detector_mask(path_meta, boi, geoTransform):
     -----
     The metadata is scattered over the file structure of Sentinel-2, L1C
 
-        .. code-block:: text
+    .. code-block:: text
+
         * S2X_MSIL1C_20XX...
         ├ AUX_DATA
         ├ DATASTRIP
@@ -831,15 +834,15 @@ def read_detector_mask(path_meta, boi, geoTransform):
         ├ INSPIRE.xml
         └ MTD_MSIL1C.xml <- metadata about the product
 
-    Nomenclature
-    ------------
-    DS : datastrip
-    TL : tile
-    QI : quality information
-    AUX : auxiliary
-    MTD : metadata
-    MSI : multi spectral instrument
-    L1C : product specification,i.e.: level 1, processing step C
+    The following acronyms are used:
+
+    - DS : datastrip
+    - TL : tile
+    - QI : quality information
+    - AUX : auxiliary
+    - MTD : metadata
+    - MSI : multi spectral instrument
+    - L1C : product specification,i.e.: level 1, processing step C
 
     Example
     -------
@@ -1336,7 +1339,8 @@ def get_integration_and_sampling_time_s2(ds_path, fname='MTD_DS.xml',
     -----
     The metadata is scattered over the file structure of Sentinel-2, L1C
 
-        .. code-block:: text
+    .. code-block:: text
+
         * S2X_MSIL1C_20XX...
         ├ AUX_DATA
         │  └ DS_XXX_XXXX...
@@ -1354,15 +1358,15 @@ def get_integration_and_sampling_time_s2(ds_path, fname='MTD_DS.xml',
         ├ INSPIRE.xml
         └ MTD_MSIL1C.xml <- metadata about the product
 
-    Nomenclature
-    ------------
-    DS : datastrip
-    TL : tile
-    QI : quality information
-    AUX : auxiliary
-    MTD : metadata
-    MSI : multi spectral instrument
-    L1C : product specification,i.e.: level 1, processing step C
+    The following acronyms are used:
+
+    - DS : datastrip
+    - TL : tile
+    - QI : quality information
+    - AUX : auxiliary
+    - MTD : metadata
+    - MSI : multi spectral instrument
+    - L1C : product specification,i.e.: level 1, processing step C
 
     """
     if isinstance(ds_path,dict):
@@ -1429,13 +1433,12 @@ def get_intrinsic_camera_mat_s2(s2_df, det, boi):
 
         .. code-block:: text
 
-                              nadir
-        det1                    |
-        ====#   #===#   #===#   #===#   #===#   #===#
+                               nadir
+         det1                    |
+         ====#   #===#   #===#   #===#   #===#   #===#
             #===#   #===#   #===#   #===#   #===#   #====
-                                |                   det12
-
-        ===== : 2592 pixels for 10 meter, 1296 pixels for 20-60 meter
+                                 |                   det12
+         ===== : 2592 pixels for 10 meter, 1296 pixels for 20-60 meter
             # : 98 pixels overlap for 20 meter data
 
     References

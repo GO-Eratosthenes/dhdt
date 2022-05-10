@@ -47,7 +47,7 @@ def list_central_wavelength_oli():
 
     Returns
     -------
-    df : datafram
+    df : pandas.DataFrame
         metadata and general multispectral information about the OLI
         instrument that is onboard Landsat8, having the following collumns:
 
@@ -58,12 +58,6 @@ def list_central_wavelength_oli():
             * field_of_view, unit=degrees : angle of swath of instrument
             * name : general name of the band, if applicable
 
-    References
-    ----------
-    .. [1] de Michele, et al. "Volcanic plume elevation model and its velocity
-       derived from Landsat 8" Remote sensing of environment, vol.176
-       pp.219-224, 2016.
-
     Notes
     -----
     The time lag between panchromatic and red is 0.52 seconds, while the time
@@ -73,7 +67,8 @@ def list_central_wavelength_oli():
     configured as follows:
 
         .. code-block:: text
-        a forward looking SCA, while bandorder is reverse for aft looking
+
+          a forward looking SCA, while bandorder is reverse for aft looking
           <--494 pixels-->
           +--------------+    #*# satellite
           |    green     |     |
@@ -89,6 +84,12 @@ def list_central_wavelength_oli():
           | panchromatic |
           +--------------+
           <--988 pixels-->
+
+    References
+    ----------
+    .. [1] de Michele, et al. "Volcanic plume elevation model and its velocity
+       derived from Landsat 8" Remote sensing of environment, vol.176
+       pp.219-224, 2016.
 
     Example
     -------
@@ -217,7 +218,6 @@ def read_band_l8(path, band='B8'):
     (626385.0, 30.0, 0.0, 115815.0, 0.0, -30.0)
     >>> targetprj
     <osgeo.osr.SpatialReference; proxy of <Swig Object of type 'OSRSpatial ...
-
     """
     if band!='0':
         if len(band)==2: #when band : 'BX'
@@ -284,12 +284,13 @@ def get_sca_numbering_l8(ang, boi='BAND04'):
     The sensor blocks are arranged as follows, with ~28 pixels overlap:
 
         .. code-block:: text
-            +-----+   +-----+   +-----+   +-----+   +-----+   +-----+   +-----+
-            |SCA02|   |SCA04|   |SCA06|   |SCA08|   |SCA10|   |SCA12|   |SCA14|
-            +-----+   +-----+   +-----+   +-----+   +-----+   +-----+   +-----+
-        +-----+   +-----+   +-----+   +-----+   +-----+   +-----+   +-----+
-        |SCA01|   |SCA03|   |SCA05|   |SCA07|   |SCA09|   |SCA11|   |SCA13|
-        +-----+   +-----+   +-----+   +-----+   +-----+   +-----+   +-----+
+
+             +-----+   +-----+   +-----+   +-----+   +-----+   +-----+   +-----+
+             |SCA02|   |SCA04|   |SCA06|   |SCA08|   |SCA10|   |SCA12|   |SCA14|
+             +-----+   +-----+   +-----+   +-----+   +-----+   +-----+   +-----+
+         +-----+   +-----+   +-----+   +-----+   +-----+   +-----+   +-----+
+         |SCA01|   |SCA03|   |SCA05|   |SCA07|   |SCA09|   |SCA11|   |SCA13|
+         +-----+   +-----+   +-----+   +-----+   +-----+   +-----+   +-----+
 
     See Also
     --------
