@@ -509,6 +509,8 @@ def shadow_enhancement_index(Blue,Green,Red,Near):
 
     .. math:: SEI = [(B_{1}+B_{9})-(B_{3}+B_{8})]/[(B_{1}+B_{9})+(B_{3}+B_{8})]
 
+
+
     References
     ----------
     .. [1] Sun et al. "Combinational shadow index for building shadow
@@ -832,7 +834,7 @@ def specthem_ratio(Blue, Green, Red):
 
     Notes
     -----
-    In the paper the logarithmic is also used further enhance the shadows,
+    In the paper the logarithmic is also used further to enhance the shadows,
 
     .. math:: Sr = log{[Sr+1]}
 
@@ -1172,6 +1174,26 @@ def normalized_range_shadow_index(*args):
     SI : numpy.array, size=(m,n)
         shadow enhanced band
 
+    Notes
+    -----
+    Schematically this looks like:
+
+        .. code-block:: text
+
+          I1    ┌-----┐
+           -┬---┤     |
+          I2|┌--┤     | Imin
+           -┼┼┬-┤ min ├------┐
+            |||┌┤     |      |┌-------┐
+            ||||└-----┘      └┤(a-b)/ |   SI
+          I3||||┌-----┐      ┌┤  (a+b)├------
+           -┼┴┼┼┤     | Imax |└-------┘
+          I4└-┼┼┤     ├------┘
+          ----┼┴┤ max |
+              └-┤     |
+                └-----┘
+
+
     """
 
     im_stack = np.stack(args, axis=2)
@@ -1194,6 +1216,24 @@ def fractional_range_shadow_index(*args):
     SI : numpy.array, size=(m,n)
         shadow enhanced band
 
+    Notes
+    -----
+    Schematically this looks like:
+
+        .. code-block:: text
+
+          I1    ┌-----┐
+           -┬---┤     |
+          I2|┌--┤     | Imin
+           -┼┼┬-┤ min ├------┐
+            |||┌┤     |      |┌-------┐
+            ||||└-----┘      └┤ a / b |   SI
+          I3||||┌-----┐      ┌┤       ├------
+           -┼┴┼┼┤     | Imax |└-------┘
+          I4└-┼┼┤     ├------┘
+          ----┼┴┤ max |
+              └-┤     |
+                └-----┘
     """
 
     im_stack = np.stack(args, axis=2)

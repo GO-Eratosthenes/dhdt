@@ -1,5 +1,5 @@
-Minimal documentation for dhdt, a photohypsometric Python library
-=================================================================
+documentation for dhdt, a photohypsometric Python library
+=========================================================
 
 **dhdt** is a modular geodetic imaging framework written in Python.
 It uses data from imaging satellites to extract (above) surface kinematics and
@@ -35,13 +35,26 @@ Guide
 
 .. toctree::
    :maxdepth: 2
+   :caption: Getting started
 
    getting_started
    tutorials
-   modules
-   theory
-   help
-   contribute
+
+
+
+.. toctree::
+  :maxdepth: 3
+  :caption: Library
+
+  modules
+
+
+
+.. toctree::
+ :maxdepth: 1
+ :caption: Background
+
+ theory
 
 Indices and tables
 ==================

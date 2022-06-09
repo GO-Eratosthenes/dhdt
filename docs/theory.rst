@@ -5,7 +5,7 @@ theory
 Elevation change from shadow cast
 
 
-Nomenclature
+nomenclature
 ------------
 
 The nomenclature listed below is used here
@@ -13,7 +13,7 @@ The nomenclature listed below is used here
 ============================= ============ ====================
 Symbol                        Unit         Interpretation
 ============================= ============ ====================
-..math::'h'                   *m*          height
+..math::'h'                   **m**        height
 Symbol                        Unit         Interpretation
 Symbol                        Unit         Interpretation
 ============================= ============ ====================

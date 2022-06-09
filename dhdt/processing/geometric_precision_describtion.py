@@ -58,18 +58,17 @@ def fast_noise_estimation(I, t_size, grd_i, grd_j, Gaussian=True):
 
     (m,n) = grd_i.shape
     grd_i,grd_j = grd_i.flatten(), grd_j.flatten()
-    L = np.zeros_like(grd_i)
+    L = np.zeros_like(grd_i, dtype=float)
     if np.any(np.mod(t_size,2)): # central template
         for idx, i_coord in enumerate(grd_i):
             S_sub = create_template_at_center(S, i_coord, grd_j[idx], t_rad)
-            L[idx] = np.sum(S_sub)
+            L[idx] = np.sum(S_sub)*preamble
     else: # off-center template
         for idx, i_coord in enumerate(grd_i):
             S_sub = create_template_off_center(S, i_coord, grd_j[idx], t_rad)
-            L[idx] = np.sum(S_sub)
+            L[idx] = np.sum(S_sub)*preamble
 
-    L *= preamble
-    return L
+    return L.reshape(m,n)
 
 # foerstner & Haralick Shapiro, color
 
@@ -118,5 +117,8 @@ def geom_mean(sig_xx, sig_yy):
        geometry, orientation and reconstruction", Series on geometry and
        computing vol.11. pp.367, 2016.
     """
-    L = np.sqrt(np.multiply(sig_xx , sig_yy), 4)
+    sig_xxyy = np.multiply(sig_xx , sig_yy)
+    L = np.power(sig_xxyy, .25,
+                 out=np.zeros_like(sig_xxyy),
+                 where=sig_xxyy>0)
     return L

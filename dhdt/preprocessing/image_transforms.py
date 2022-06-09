@@ -306,14 +306,35 @@ def histogram_equalization(img, img_ref):
     return new_img.reshape(mn)
 
 def high_pass_im(Im, radius=10):
-    (m, n) = Im.shape
-    If = np.fft.fft2(Im)
+    """
+
+    Parameters
+    ----------
+    Im : numpy.array, ndim={2,3}, size=(m,n,_)
+        data array with intensities
+    radius : float, unit=pixels
+        hard threshold of the sphere in Fourier space
+    Returns
+    -------
+    Inew : numpy.array, ndim={2,3}, size=(m,n,_)
+        data array with high-frequency signal
+
+    """
+    m, n = Im.shape[0],Im.shape[1]
 
     # fourier coordinate system
     (I, J) = np.mgrid[:m, :n]
     Hi = np.fft.fftshift(np.divide(1 - np.exp(-((I - m/2)**2 + (J - n/2)**2)),
                                    (2 * radius)**2)
                          )
-    Inew = np.real(np.fft.ifft2(If * Hi))
-    return Inew
 
+    if Im.ndim==2:
+        If = np.fft.fft2(Im)
+        Inew = np.real(np.fft.ifft2(If * Hi))
+        return Inew
+    else:
+        Inew = np.zeros_like(Im)
+        for i in range(Im.ndim):
+            If = np.fft.fft2(Im[:,:,i])
+            Inew[:,:,i] = np.real(np.fft.ifft2(If * Hi))
+        return Inew

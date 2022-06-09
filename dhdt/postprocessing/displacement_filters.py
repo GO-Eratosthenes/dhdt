@@ -34,36 +34,85 @@ def infill_func(buffer):
     return interp_pix
 
 def local_infilling_filter(I, tsize=5):
+    """ apply local inverse distance weighting, on no-data values in an array
+
+    Parameters
+    ----------
+    I : numpy.array, size=(m,n), dtype=float
+        intensity array with no-data values
+    tsize : integer, unit=pixel
+        size of the neighborhood
+
+    Returns
+    -------
+    I_new : numpy.array, size=(m,n), dtype=float
+        intensity array with interpolated values at the data gap locations
+
+    References
+    ----------
+    .. [1] Joughin "Ice-sheet velocity mapping: a combined interferometric and
+       speckle-tracking approach", Annuals of glaciology vol.34 pp.195-201.
+    .. [2] Joughin et al. "Greenland ice mapping project 2 (GIMP-2) algorithm
+       theoretical basis document", Making earth system data records for use in
+       research environment (MEaSUREs) documentation.
+    """
+
     I_new = ndimage.generic_filter(I, infill_func, size=(tsize, tsize))
     return I_new
 
-def nan_resistant(buffer, filter):
+def nan_resistant(buffer, kernel):
     OUT = np.isnan(buffer)
-    filter = filter.ravel()
+    filter = kernel.copy().ravel()
     if np.all(OUT):
         return np.nan
+    elif np.all(~OUT):
+        return np.nansum(buffer[~OUT] * filter[~OUT])
 
     surplus = np.sum(filter[OUT]) # energy to distribute
-    grouping = np.sign(filter)
-    grouping[OUT] = 0
+    grouping = np.sign(filter).astype(int)
+    np.putmask(grouping, OUT, 0) # do not include no-data location in re-organ
 
-    if np.sign(surplus)==-1 and np.any(grouping==+1):
+    if np.sign(surplus)==-1 and np.any(grouping==-1):
         idx = grouping==+1
         filter[idx] += surplus/np.sum(idx)
-        central_pix = np.sum(buffer[~OUT]*filter[~OUT])
-    elif np.sign(surplus)==+1 and np.any(grouping==-1):
+        central_pix = np.nansum(buffer[~OUT]*filter[~OUT])
+    elif np.sign(surplus)==+1 and np.any(grouping==+1):
         idx = grouping == -1
         filter[idx] += surplus /np.sum(idx)
-        central_pix = np.sum(buffer[~OUT] * filter[~OUT])
+        central_pix = np.nansum(buffer[~OUT] * filter[~OUT])
     elif surplus == 0:
-        central_pix = np.sum(buffer[~OUT] * filter[~OUT])
+        central_pix = np.nansum(buffer[~OUT] * filter[~OUT])
     else:
         central_pix = np.nan
 
     return central_pix
 
-def nan_resistant_filter(I, filter, tsize=3):
-    I_new = ndimage.generic_filter(I, nan_resistant, size=(tsize, tsize),
+def nan_resistant_filter(I, filter):
+    """ apply convolution over array with no-data values. If no data gaps are
+    present, the kernel is adjusted and more weights are given to the other
+    neighbors. If to much data is missing, this results in no estimation
+
+    Parameters
+    ----------
+    I : numpy.array, size=(m,n), dtype=float
+        intensity array with no-data values
+    filter : numpy.array, size=(k,l), dtype=float
+        filter to be applied to the image
+
+    Returns
+    -------
+    I_new : numpy.array, size=(m,n), dtype=float
+        intensity array convolved through the filter
+
+    References
+    ----------
+    .. [1] Altena et al. “Correlation dispersion as a measure to better estimate
+       uncertainty of remotely sensed glacier displacements” The cryosphere
+       discussions, 2021.
+    """
+    #todo if all entities have the same sign
+    I_new = ndimage.generic_filter(I, nan_resistant,
+                                   size=(filter.shape[0], filter.shape[1]),
                                    extra_arguments=(filter,))
     return I_new
 
@@ -109,7 +158,7 @@ def local_variance(V, tsize=5):
        speckle-tracking approach", Annuals of glaciology vol.34 pp.195-201.
     .. [2] Joughin et al. "Greenland ice mapping project 2 (GIMP-2) algorithm
        theoretical basis document", Making earth system data records for use in
-       research environment (MEaSUREs) documentation, .
+       research environment (MEaSUREs) documentation.
     """
     V_class = local_mad_filter(V, tsize=tsize)
     V[V_class] = np.nan

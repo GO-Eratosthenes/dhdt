@@ -3,6 +3,7 @@ import glob
 import math
 import warnings
 warnings.filterwarnings('once')
+from tqdm import tqdm
 
 import numpy as np
 
@@ -18,7 +19,8 @@ from ..input.read_sentinel2 import \
     read_sun_angles_s2, get_local_bbox_in_s2_tile
 
 from .matching_tools import \
-    pad_images_and_filter_coord_list, pad_radius, get_integer_peak_location
+    pad_images_and_filter_coord_list, pad_radius, get_integer_peak_location, \
+    get_data_and_mask
 from .matching_tools_organization import \
     list_spatial_correlators, list_peak_estimators, list_phase_estimators, \
     match_translation_of_two_subsets, estimate_subpixel, estimate_precision, \
@@ -36,26 +38,25 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
                correlator='robu_corr', subpix='moment',
                processing='simple', boi=np.array([]), precision_estimate=False,
                metric='peak_abs', **kwargs):
-    """
-    simple image matching routine
+    """ simple high level image matching routine
 
     Parameters
     ----------
-    I1 : np.array, size=(m,n,b), dtype=float, ndim={2,3}
+    I1 : {numpy.array, numpy.ma}, size=(m,n,b), dtype=float, ndim={2,3}
         first image array, can be complex.
-    I2 : np.array, size=(m,n,b), dtype=float, ndim={2,3}
+    I2 : {numpy.array, numpy.ma}, size=(m,n,b), dtype=float, ndim={2,3}
         second image array, can be complex.
-    L1 : np.array, size=(m,n), dtype=bool
+    L1 : numpy.array, size=(m,n), dtype=bool
         labelled image of the first image (M1).
-    L2 : np.array, size=(m,n), dtype=bool
+    L2 : numpy.array, size=(m,n), dtype=bool
         labelled image of the second image (M2).
     geoTransform1 : tuple
         affine transformation coefficients of array M1
     geoTransform2 : tuple
         affine transformation coefficients of array M2
-    X_grd : np.array, size=(k,l), type=float
+    X_grd : numpy.array, size=(k,l), type=float
         horizontal map coordinates of matching centers of array M1
-    Y_grd : np.array, size=(k,l), type=float
+    Y_grd : numpy.array, size=(k,l), type=float
         vertical map coordinates of matching centers of array M2
     temp_radius: integer
         amount of pixels from the center
@@ -93,9 +94,9 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
 
     Returns
     -------
-    X2_grd : np.array, size=(k,l), type=float
+    X2_grd : numpy.array, size=(k,l), type=float
         horizontal map coordinates of the refined matching centers of array M2
-    Y2_grd : np.array, size=(k,l), type=float
+    Y2_grd : numpy.array, size=(k,l), type=float
         vertical map coordinates of the refined matching centers of array M2
 
     See Also
@@ -119,14 +120,18 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
         list_phase_estimators
 
     # init
-    assert type(I1)==np.ndarray, ("please provide an array")
-    assert type(I2)==np.ndarray, ("please provide an array")
+    assert type(I1) in (np.ma.core.MaskedArray, np.array), \
+        ("please provide an array")
+    assert type(I2) in (np.ma.core.MaskedArray, np.array), \
+        ("please provide an array")
     assert type(L1)==np.ndarray, ("please provide an array")
     assert type(L2)==np.ndarray, ("please provide an array")
     assert isinstance(geoTransform1, tuple), ('geoTransform should be a tuple')
     assert isinstance(geoTransform2, tuple), ('geoTransform should be a tuple')
     assert(X_grd.shape == Y_grd.shape) # should be of the same size
     assert (temp_radius<=search_radius), ('given search radius is too small')
+
+    I1, L1, I2, L2 = get_data_and_mask(I1, L1), get_data_and_mask(I2, L2)
 
     correlator = correlator.lower()
     if (subpix is not None): subpix=subpix.lower()
@@ -163,7 +168,7 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
     grd_new = np.where(IN)
 
     # processing
-    for counter in range(len(i1)): # loop through all posts
+    for counter in tqdm(range(len(i1))): # loop through all posts
         # create templates
         if correlator in frequency_based:
             I1_sub = create_template_off_center(I1,i1[counter],j1[counter],
@@ -221,7 +226,8 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
                 ddi,ddj = estimate_subpixel(QC, subpix, m0=m0)
 
             if precision_estimate:
-                si,sj,rho = estimate_precision(QC, di+ddi,dj+ddj)
+                si,sj,rho = estimate_precision(QC, di+ddi,dj+ddj,
+                                               method='gaussian')
 
             if abs(ddi)<2: di += ddi
             if abs(ddj)<2: dj += ddj
@@ -468,6 +474,7 @@ def create_template_at_center(I, i,j, radius, filling='random'):
           based      v           based       |
 
     """
+    i,j = i.astype(int), j.astype(int)
     if not type(radius) is tuple: radius = (radius, radius)
     if I.ndim==3:
         I_sub = I[i-radius[0]:i+radius[1]+1, j-radius[0]:j+radius[1]+1, :]

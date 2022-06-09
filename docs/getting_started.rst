@@ -1,8 +1,15 @@
 getting started
 ===============
 
-dependencies
-------------
+about
+-----
+The naming is a reference to a shortening of a technical term, that changed into jargon.
+Anyways, here *h* is elevation and *t* denotes time and *d* is a differential operator.
+Hence it should be read as elevation change over time.
+Which is the information of interest, since elevation or kinematics causes geometric change that can be observed via satellite imagery.
+
+prerequisites
+-------------
 **dhdt** has the following dependencies and requirements:
 
 * `Python <https://www.python.org/>`_ 3.6 or later

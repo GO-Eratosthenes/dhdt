@@ -7,13 +7,19 @@ from ..preprocessing.image_transforms import high_pass_im
 def list_matching_metrics():
     """ list the abbreviations of the different implemented correlation metrices
     there are:
-        'peak_abs' : the absolute score
-        'peak_ratio' : the primary peak ratio i.r.t. the second peak
-        'peak_rms' : the peak ratio i.r.t. the root mean square error
-        'peak_ener' : the peaks' energy
-        'peak_noise' : the peak score i.r.t. to the noise level
-        'peak_conf' : the peak confidence
-        'peak_entr' : the peaks' entropy
+        * 'peak_abs' : the absolute score
+        * 'peak_ratio' : the primary peak ratio i.r.t. the second peak
+        * 'peak_rms' : the peak ratio i.r.t. the root mean square error
+        * 'peak_ener' : the peaks' energy
+        * 'peak_noise' : the peak score i.r.t. to the noise level
+        * 'peak_conf' : the peak confidence
+        * 'peak_entr' : the peaks' entropy
+
+    See Also
+    --------
+    get_correlation_metric, entropy_corr, peak_confidence, peak_to_noise,
+    peak_corr_energy, peak_rms_ratio, num_of_peaks, peak_winner_margin,
+    primary_peak_margin, primary_peak_ratio
     """
     metrics_list = ['peak_ratio', 'peak_rms', 'peak_ener', 'peak_nois',
                     'peak_conf', 'peak_entr', 'peak_abs', 'peak_marg',
@@ -37,7 +43,9 @@ def get_correlation_metric(C, metric='peak_abs'):
 
     See Also
     --------
-    list_matching_metrics
+    list_matching_metrics, entropy_corr, peak_confidence, peak_to_noise,
+    peak_corr_energy, peak_rms_ratio, num_of_peaks, peak_winner_margin,
+    primary_peak_margin, primary_peak_ratio
     """
     # admin
     assert type(C) == np.ndarray, ('please provide an array')
@@ -80,6 +88,11 @@ def primary_peak_ratio(C):
     ppr : float, range={0..1}
         peak ratio between primary and secondary peak
 
+    See Also
+    --------
+    entropy_corr, peak_confidence, peak_to_noise, peak_corr_energy,
+    peak_rms_ratio, num_of_peaks, peak_winner_margin, primary_peak_margin,
+
     References
     ----------
     .. [1] Keane & Adrian, "Optimization of particle image velocimeters. I.
@@ -117,7 +130,8 @@ def primary_peak_margin(C):
 
     See Also
     --------
-    peak_winner_margin
+    entropy_corr, peak_confidence, peak_to_noise, peak_corr_energy,
+    peak_rms_ratio, num_of_peaks, peak_winner_margin, primary_peak_ratio
 
     References
     ----------
@@ -149,7 +163,8 @@ def peak_winner_margin(C):
 
     See Also
     --------
-    primary_peak_margin
+    entropy_corr, peak_confidence, peak_to_noise, peak_corr_energy,
+    peak_rms_ratio, num_of_peaks, primary_peak_margin, primary_peak_ratio
 
     References
     ----------
@@ -176,6 +191,11 @@ def num_of_peaks(C, filtering=True):
     --------
     ppm : float
         margin between primary and secondary peak
+
+    See Also
+    --------
+    entropy_corr, peak_confidence, peak_to_noise, peak_corr_energy,
+    peak_rms_ratio, peak_winner_margin, primary_peak_margin, primary_peak_ratio
 
     References
     ----------
@@ -208,6 +228,11 @@ def peak_rms_ratio(C):
     --------
     prmsr : float
         peak to root mean square ratio
+
+    See Also
+    --------
+    entropy_corr, peak_confidence, peak_to_noise, peak_corr_energy,
+    num_of_peaks, peak_winner_margin, primary_peak_margin, primary_peak_ratio
 
     References
     ----------
@@ -243,7 +268,8 @@ def peak_corr_energy(C):
 
     See Also
     --------
-    peak_to_noise
+    entropy_corr, peak_confidence, peak_to_noise, peak_rms_ratio, num_of_peaks,
+    peak_winner_margin, primary_peak_margin, primary_peak_ratio
 
     References
     ----------
@@ -270,6 +296,11 @@ def peak_to_noise(C):
     --------
     snr : float
         signal to noise ratio
+
+    See Also
+    --------
+    entropy_corr, peak_confidence, peak_corr_energy, peak_rms_ratio,
+    num_of_peaks, peak_winner_margin, primary_peak_margin, primary_peak_ratio
 
     References
     ----------
@@ -306,6 +337,11 @@ def peak_confidence(C, radius=1):
     q : float
         confidence measure
 
+    See Also
+    --------
+    entropy_corr, peak_to_noise, peak_corr_energy, peak_rms_ratio, num_of_peaks,
+    peak_winner_margin, primary_peak_margin, primary_peak_ratio
+
     References
     ----------
     .. [1] Erten et al. "Glacier velocity monitoring by maximum likelihood
@@ -341,6 +377,11 @@ def entropy_corr(C):
     --------
     disorder : float
         entropy of the correlation surface
+
+    See Also
+    --------
+    peak_confidence, peak_to_noise, peak_corr_energy, peak_rms_ratio,
+    num_of_peaks, peak_winner_margin, primary_peak_margin, primary_peak_ratio
 
     References
     ----------
@@ -379,15 +420,31 @@ def hessian_spread(C, intI, intJ):
 
     Returns
     -------
-    cov_ii : float, real
+    cov_ii : float, real, unit=pixel
         first diagonal element of the co-variance matrix
-    cov_jj : float, real
+    cov_jj : float, real, unit=pixel
         second diagonal element of the co-variance matrix
-    cov_ij : float, real
+    cov_ij : float, real, unit=pixel
         off-diagonal element of the co-variance matrix
 
     Notes
     -----
+    The image frame is used in this function, hence the difference is:
+
+        .. code-block:: text
+
+          coordinate |              +--------> collumns
+          system 'ij'|              |
+                     |              |
+                     |       j      |  image frame
+             --------+-------->     |
+                     |              |
+                     |              v
+                     | i            rows
+                     v
+
+    References
+    ----------
     .. [1] Rosen et al. "Updated repeat orbit interferometry package released"
        EOS, vol.85(5) pp.47, 2004.
     .. [2] Casu et al. "Deformation time-series generation in areas
@@ -418,14 +475,13 @@ def hessian_spread(C, intI, intJ):
     denom = psi**2
     cov_ii = np.divide(-C_noise * psi * dC_ii +
                        C_noise**2 * (dC_ii**2 + dC_ij**2),
-                       denom)
+                       denom, out=np.zeros_like(denom), where=denom!=0)
     cov_jj = np.divide(-C_noise * psi * dC_jj +
                        C_noise**2 * (dC_jj**2 + dC_ij**2),
-                       denom)
+                       denom, out=np.zeros_like(denom), where=denom!=0)
     cov_ij = np.divide((C_noise * psi -
                        C_noise**2 * (dC_ii + dC_jj)) * dC_ij,
-                       denom)
-    #V = np.array([[cov_ii, cov_ij],[cov_ij, cov_jj]])
+                       denom, out=np.zeros_like(denom), where=denom!=0)
     return cov_ii, cov_jj, cov_ij
 
 def gauss_spread(C, intI, intJ, dI, dJ, est='dist'):
@@ -459,6 +515,22 @@ def gauss_spread(C, intI, intJ, dI, dJ, est='dist'):
         estimate of the least squares computation
     frac :
         scaling of the correlation peak
+
+    Notes
+    -----
+    The image frame is used in this function, hence the difference is:
+
+        .. code-block:: text
+
+          coordinate |              +--------> collumns
+          system 'ij'|              |
+                     |              |
+                     |       j      |  image frame
+             --------+-------->     |
+                     |              |
+                     |              v
+                     | i            rows
+                     v
 
     References
     ----------

@@ -16,6 +16,11 @@ def get_network_indices(n):
     -------
     grid_idxs : numpy.array, size=(2,k)
         list of couples
+
+    See Also
+    --------
+    get_network_by_sunangle_s2 : same version, but with constrain on sun angle
+    get_adjacency_matrix_from_netwrok : construct design matrix from edge list
     """
     if isinstance(n,int):
         grids = np.indices((n, n))
@@ -28,15 +33,65 @@ def get_network_indices(n):
     grid_idxs = np.vstack((grid_1, grid_2))
     return grid_idxs
 
-def getNetworkBySunangles(datPath, sceneList, n):  # processing
+def get_network_indices_constrained(idx,d,d_max,n_max):
+    """ Generate a list with all matchable combinations within a certain range
+
+    Parameters
+    ----------
+    idx : numpy.array, size=(m,_)
+        list with indices
+    d : numpy.array, size=(m,l)
+        property to use for estimating closeness
+    d_max : float,
+        threshold for the maximum difference to still include
+    n_max : integer
+        maximum amount of nodes
+
+    Returns
+    -------
+    grid_idxs : numpy.array, size=(2,k)
+        list of couples
+
+    See Also
+    --------
+    get_network_indices : same version, but more generic
+    get_adjacency_matrix_from_netwrok : construct design matrix from edge list
     """
-    Construct network, connecting elements with closest sun angle with each
-    other.
-    input:   datPath        string            location of the imagery
-             scenceList     list              list with strings of the images
-                                              of interest
-             n              integer           connectivity
-    output:  GridIdxs       array (2 x k)     list of couples
+    n_max = min(len(idx) - 1, n_max)
+
+    if d.ndim==1: d = d.reshape(-1, 1)
+    nbrs = NearestNeighbors(n_neighbors=n_max+1, algorithm='auto').fit(d)
+    distances, indices = nbrs.kneighbors(d)
+
+    IN = distances[:, 1:]<=d_max
+
+    grid2 = indices[:, 1:]
+    grid1,_ = np.indices((len(idx), n_max))
+    grid_idxs = np.vstack((grid1[IN], grid2[IN]))
+    return grid_idxs
+
+def get_network_by_sunangle_s2(datPath, sceneList, n):
+    """ construct a network, connecting elements with closest sun angle with
+    each other.
+
+    Parameters
+    ----------
+    datPath : string
+        location of the imagery
+    scenceList : list
+        list with strings of the Sentinel-2 imagery of interest
+    n : integer
+        amount of connectivity of the network
+
+    Returns
+    -------
+    grid_idxs : numpy.array, size=(2,k), dtype=integer
+        list indices giving couples
+
+    See Also
+    --------
+    get_network_indices : simple version, without constrains
+    get_adjacency_matrix_from_netwrok : construct design matrix from edge list
     """
     # can not be more connected than the amount of entries
     n = min(len(sceneList) - 1, n)
@@ -47,23 +102,34 @@ def getNetworkBySunangles(datPath, sceneList, n):  # processing
         sen2Path = datPath + sceneList[i]
         (sunZn, sunAz) = read_mean_sun_angles_s2(sen2Path)
         L[i, :] = [sunZn, sunAz]
-    # find nearest
-    nbrs = NearestNeighbors(n_neighbors=n+1, algorithm='auto').fit(L)
-    distances, indices = nbrs.kneighbors(L)
-    Grid2 = indices[:, 1:]
-    Grid1, dummy = np.indices((len(sceneList), n))
-    GridIdxs = np.vstack((Grid1.flatten(), Grid2.flatten()))
-    return GridIdxs
+    d_max = np.inf
+    grid_idxs = get_network_indices_constrained(np.arange(len(sceneList)),
+                                                L, d_max, n)
+    return grid_idxs
 
-def getAdjacencyMatrixFromNetwork(GridIdxs, number_of_nodes):
+def get_adjacency_matrix_from_network(GridIdxs, number_of_nodes):
+    """ transforms an edge list into an adjacency matrix, this is a general
+    co-registration adjustment matrix
+
+    Parameters
+    ----------
+    grd_ids : numpy.array, size=(2,k), dtype=integer
+        array with list of couples
+    number_of_nodes integer: integer
+        amount of nodes in the network
+
+    Returns
+    -------
+    A : numpy.array, size=(m,l)
+        design matrix
+
+    References
+    ----------
+    .. [1] Altena & Kääb. "Elevation change and improved velocity retrieval
+       using orthorectified optical satellite data from different orbits"
+       Remote sensing vol.9(3) pp.300 2017.
     """
-    Transforms an edge list into an Adjacency matrix
-    input:   GridIdxs        array (2 x k)    list of couples
-             number_of_nodes integer          amount of nodes in the network
-    output:  Astack          array (m x l)    design matrix
-    """
-    # General coregistration adjustment matrix
-    Astack = np.zeros([GridIdxs.shape[1], number_of_nodes])
-    Astack[np.arange(GridIdxs.shape[1]), GridIdxs[0, :]] = +1
-    Astack[np.arange(GridIdxs.shape[1]), GridIdxs[1, :]] = -1
-    return Astack
+    A = np.zeros([GridIdxs.shape[1], number_of_nodes])
+    A[np.arange(GridIdxs.shape[1]), GridIdxs[0, :]] = +1
+    A[np.arange(GridIdxs.shape[1]), GridIdxs[1, :]] = -1
+    return A

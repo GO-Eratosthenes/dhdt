@@ -39,8 +39,9 @@ def get_d8_dir(V_x, V_y):
     d8_dir = np.mod(d8_dir,8,
                     where=np.invert(np.isnan(d8_dir)))
 
-    if np.any(np.isnan(d8_dir)):
-        d8_dir[np.isnan(d8_dir)] = 8
+    # assign no direction to non-moving velocities and no-data values
+    np.putmask(d8_dir, np.isnan(d8_dir), 8)
+    np.putmask(d8_dir, np.hypot(V_x,V_y)==0, 8)
 
     d8_dir = d8_dir.astype(int)
     return d8_dir

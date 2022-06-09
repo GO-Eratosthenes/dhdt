@@ -476,3 +476,30 @@ def get_grid_at_template_centers(grid, temp_size):
     grid_centers_values = grid[Iidx, Jidx]
 
     return grid_centers_values
+
+def get_data_and_mask(I,M):
+    """ sometimes data is given in masked array form (numpy.ma), then this is
+    separated into regular numpy.arrays
+
+    Parameters
+    ----------
+    I : {numpy.array, numpy.ma}
+        data array
+    M : numpy.array
+        masking array
+
+    Returns
+    -------
+    I : numpy.array
+        data array
+    M : numpy.array
+        masking array
+    """
+    # make compatible with masekd array
+    if type(I)==np.ma.core.MaskedArray:
+        M, I = np.ma.getmaskarray(I), np.ma.getdata(I)
+    else:
+        if M is None: M = np.ones_like(I)
+        if M.size==0: M = np.ones_like(I)
+        M = M.astype(dtype=bool)
+    return I, M

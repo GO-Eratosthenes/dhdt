@@ -1,22 +1,27 @@
 generic
 -------
 
-mapping input-output
-~~~~~~~~~~~~~~~~~~~~
+input-output of mapdata
+~~~~~~~~~~~~~~~~~~~~~~~
 .. automodule:: dhdt.generic.mapping_io
     :members:
 
-handler Sentinel-2
-~~~~~~~~~~~~~~~~~~
+handle Sentinel-2 imagery
+~~~~~~~~~~~~~~~~~~~~~~~~~
 .. automodule:: dhdt.generic.handler_sentinel2
     :members:
 
-handler Landsat
-~~~~~~~~~~~~~~~
+handle Landsat imagery
+~~~~~~~~~~~~~~~~~~~~~~
 .. automodule:: dhdt.generic.handler_landsat
     :members:
 
-handler RapidEye
-~~~~~~~~~~~~~~~~
+handle RapidEye imagery
+~~~~~~~~~~~~~~~~~~~~~~~
 .. automodule:: dhdt.generic.handler_rapideye
+    :members:
+
+handle CopernicusDEM
+~~~~~~~~~~~~~~~~~~~~
+.. automodule:: dhdt.generic.handler_cop
     :members:

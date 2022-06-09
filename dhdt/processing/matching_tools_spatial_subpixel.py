@@ -340,7 +340,7 @@ def get_top_blais(C, top=np.array([])):
 
     return ddi,ddj, i_int,j_int
 
-def get_top_parabolic(C, top=np.array([])):
+def get_top_parabolic(C, top=np.array([]), ds=1):
     """ find location of highest score through 1D parabolic fit
 
     Parameters
@@ -367,6 +367,8 @@ def get_top_parabolic(C, top=np.array([])):
        phase correlation" Proceeding of the British machine vision conference,
        pp. 387-396), 2006.
     .. [2] Raffel et al. "Particle Image Velocimetry" Ch.6 pp.184 2018.
+    .. [3] Bradley, "Sub-pixel registration for low cost, low dosage, X-ray
+       phase contrast imaging", 2021.
     """
 
     if top.size==0: # find highest score
@@ -378,15 +380,28 @@ def get_top_parabolic(C, top=np.array([])):
     di += C.shape[0]//2 # using a central coordinate system
     dj += C.shape[1]//2
 
-    if not is_estimate_away_from_border:
+    if not is_estimate_away_from_border(C, i_int, j_int, ds=ds):
         return 0,0, i_int,j_int
 
     # estimate sub-pixel along each axis
-    ddi = (C[di+1,dj] - C[di-1,dj]) / \
-        2*( (2*C[di,dj]) -C[di-1,dj] -C[di+1,dj])
-    ddj = (C[di,dj+1] - C[di,dj-1]) / \
-        2*( (2*C[di,dj]) -C[di,dj-1] -C[di,dj+1])
-
+    if ds==1: # use direct neighbours
+        ddi = (C[di+1,dj] - C[di-1,dj]) / \
+            2*( (2*C[di,dj]) -C[di-1,dj] -C[di+1,dj])
+        ddj = (C[di,dj+1] - C[di,dj-1]) / \
+            2*( (2*C[di,dj]) -C[di,dj-1] -C[di,dj+1])
+    else: # use five points, from [3]
+        ddi = np.divide( 7*( (2*C[di+2,dj]) +C[di+1,dj]
+                            -C[di-1,dj] -(2*C[di-2,dj])),
+                         5*( +(2*C[di-2,dj]) -C[di-1,dj]
+                             -(2*C[di,dj]) -C[di+1, dj]
+                             +(2*C[di+2,dj]))
+                         )
+        ddj = np.divide( 7*( (2*C[di,dj+2]) +C[di,dj+1]
+                            -C[di,dj-1] -(2*C[di,dj-2])),
+                         5*( +(2*C[di,dj-2]) -C[di,dj-1]
+                             -(2*C[di,dj]) -C[di, dj+1]
+                             +(2*C[di,dj+2]))
+                         )
     return ddi,ddj, i_int,j_int
 
 def get_top_equiangular(C, top=np.array([])):

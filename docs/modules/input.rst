@@ -1,8 +1,8 @@
 input
 -----
 
-read Sentinel-2
-~~~~~~~~~~~~~~~
+read Sentinel-2 (meta)data
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 Sentinel-2 is a high-resolution (10-60 m) multi-spectral satellite constellation
 from European Spavce Agency and the European Union. The following functions make
 is easier to read such data.
@@ -10,11 +10,28 @@ is easier to read such data.
 .. automodule:: dhdt.input.read_sentinel2
     :members:
 
-read Landsat8
-~~~~~~~~~~~~~
+read Landsat8 (meta)data
+~~~~~~~~~~~~~~~~~~~~~~~~
 Landsat 8 & 9 are the latest fleet of satellites that are part of a legacy. Both
 satellites are build by NASA and data provision is done through USGS. The
 following function makes reading such data easier.
 
 .. automodule:: dhdt.input.read_landsat8
+    :members:
+
+read RapidEye data
+~~~~~~~~~~~~~~~~~~~~~
+The RapidEye constellation composed of five commercial mini-satellites,
+image collection started in 2008 and halted in 2020. The following functions
+make reading such data easier.
+
+.. automodule:: dhdt.input.read_rapideye
+    :members:
+
+read PlanetScope data
+~~~~~~~~~~~~~~~~~~~~~
+The PlanetScope constellation is a commercial fleet of micro-satellites. The
+following function makes reading such data easier.
+
+.. automodule:: dhdt.input.read_planetscope
     :members:

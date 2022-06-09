@@ -17,20 +17,24 @@ def enhance_shadows(Shw, method, **kwargs):
     ----------
     Shw : np.array, size=(m,n), dtype={float,integer}
         array with intensities of shading and shadowing
-    method : {‘siz’,’ isi’,’ sei’,’ fcsdi’, ‘nsvi’, ‘nsvdi’, ‘sil’, ‘sr’,\
-              ‘sdi’, ‘sisdi’, ‘mixed’, ‘c3’, ‘entropy’, ‘shi’,’ sp’}
+    method : {‘mean’,’kuwahara’,’median’,’otsu’,'anistropic'}
         method name to be implemented,can be one of the following:
 
-        * 'mean' : mean shift filter
-        * 'kuwahara' : kuwahara filter
-        * 'median' : iterative median filter
-        * 'otsu' : buffered Otsu filter
-        * 'anistropic' : anistropic diffusion filter
+            * 'mean' : mean shift filter
+            * 'kuwahara' : kuwahara filter
+            * 'median' : iterative median filter
+            * 'otsu' : buffered Otsu filter
+            * 'anistropic' : anistropic diffusion filter
 
     Returns
     -------
     M : np.array, size=(m,n), dtype={float,integer}
         shadow enhanced image, done through the given method
+
+    See Also
+    --------
+    mean_shift_filter, kuwahara_filter, iterative_median_filter, otsu_filter,
+    anistropic_diffusion_scalar
     """
     if method in ('mean'):
         quantile=0.1 if kwargs.get('quantile')==None else kwargs.get('quantile')
@@ -120,6 +124,22 @@ def kuwahara_filter(I, tsize=5):
     Returns
     -------
     I_new : np.array, size=(m,n), dtype=float
+
+    Notes
+    -----
+    The template is subdivided into four blocks, where the sampled mean and
+    standard deviation are calculated. Then mean of the block with the lowest
+    variance is assigned to the central pixel. The configuration of the blocks
+    look like:
+
+        .. code-block:: text
+
+          ┌-----┬-┬-----┐ ^
+          |  A  | |  B  | |
+          ├-----┼-┼-----┤ | tsize
+          ├-----┼-┼-----┤ |
+          |  C  | |  D  | |
+          └-----┴-┴-----┘ v
 
     See Also
     --------

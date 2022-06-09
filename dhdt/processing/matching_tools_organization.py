@@ -293,12 +293,48 @@ def estimate_subpixel(QC, subpix, m0=np.zeros((1,2))):
     return ddi, ddj
 
 def estimate_precision(C, di, dj, method='gaussian'):
+    """ given a similarity surface, estimate its matching dispersion
 
+    Parameters
+    ----------
+    C : numpy.array, size=(m,n)
+        cross correlation function
+    di,dj : float
+        locational estimate of the cross-correlation peak, this can also be
+        negative, see Notes below
+    method : {'gaussian', 'hessian'}
+
+    Returns
+    -------
+    cov_ii, cov_jj : float
+        co-variance estimate
+    cov_ij : float
+        off-diagonal co-variance estimate
+
+    Notes
+    -----
+    It is important to know what type of coordinate systems exist, hence:
+
+        .. code-block:: text
+
+          coordinate |              +--------> collumns
+          system 'ij'|              |
+                     |              |
+                     |       j      |  image frame
+             --------+-------->     |
+                     |              |
+                     |              v
+                     | i            rows
+                     v
+
+    """
     if method in ['hessian']:
-        cov_ii,cov_jj,cov_ij = hessian_spread(C, np.round(di), np.round(dj))
+        cov_ii,cov_jj,cov_ij = hessian_spread(C,
+           C.shape[0] // 2 + np.round(di).astype(int),
+           C.shape[1] // 2 + np.round(dj).astype(int))
     else:
         cov_ii,cov_jj,cov_ij,_,_ = gauss_spread(C,
-                                                np.round(di).astype(int),
-                                                np.round(dj).astype(int),
-                                                di%1, dj%1, est='dist')
+            C.shape[0]//2 + np.round(di).astype(int),
+            C.shape[1]//2 + np.round(dj).astype(int),
+            di-np.round(di), dj-np.round(dj), est='dist')
     return cov_ii, cov_jj, cov_ij

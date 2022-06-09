@@ -24,9 +24,9 @@ from ..input.read_sentinel2 import read_sun_angles_s2, read_mean_sun_angles_s2
 
 def vector_arr_2_unit(vec_arr):
     n = np.linalg.norm(vec_arr, axis=2)
-    vec_arr[:, :, 0] /= n
-    vec_arr[:, :, 1] /= n
-    vec_arr[:, :, 2] /= n
+    vec_arr[..., 0] /= n
+    vec_arr[..., 1] /= n
+    vec_arr[..., 2] /= n
     return vec_arr
 
 def estimate_surface_normals(Z, spac=10.):

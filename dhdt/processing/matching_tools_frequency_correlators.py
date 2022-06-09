@@ -5,7 +5,7 @@ from scipy import fftpack, ndimage
 from ..generic.handler_im import get_grad_filters
 from .matching_tools import \
     reposition_templates_from_center, make_templates_same_size, \
-    get_integer_peak_location
+    get_integer_peak_location, get_data_and_mask
 from .matching_tools_frequency_filters import \
     raised_cosine, thresh_masking, normalize_power_spectrum, gaussian_mask
 from .matching_tools_harmonic_functions import create_complex_fftpack_DCT
@@ -171,9 +171,9 @@ def masked_cosine_corr(I1, I2, M1, M2): #todo
 
     Parameters
     ----------
-    I1 : numpy.array, size=(m,n), ndim=2
+    I1 : {numpy.array, numpy.ma}, size=(m,n), ndim=2
         array with intensities
-    I2 : numpy.array, size=(m,n), ndim=2
+    I2 : {numpy.array, numpy.ma}, size=(m,n), ndim=2
         array with intensities
     M1 : numpy.array, size=(m,n), ndim=2, dtype={bool,float}
         array with mask
@@ -182,12 +182,15 @@ def masked_cosine_corr(I1, I2, M1, M2): #todo
 
 
     """
-    assert type(I1)==np.ndarray, ('please provide an array')
-    assert type(I2)==np.ndarray, ('please provide an array')
+    assert type(I1) in (np.ma.core.MaskedArray, np.array), \
+        ("please provide an array")
+    assert type(I2) in (np.ma.core.MaskedArray, np.array), \
+        ("please provide an array")
     assert type(M1)==np.ndarray, ('please provide an array')
     assert type(M2)==np.ndarray, ('please provide an array')
 
-    M1, M2 = M1.astype(dtype=bool), M2.astype(dtype=bool)
+    # make compatible with masekd array
+    I1,M1, I2,M2 = get_data_and_mask(I1, M1), get_data_and_mask(I2, M2)
 
     # construct cosine and sine basis matrices
     Cc, Cs = get_cosine_matrix(I1), get_sine_matrix(I1)
@@ -265,11 +268,26 @@ def phase_only_corr(I1, I2):
 
     .. math:: \mathbf{S}_1, \mathbf{S}_2 = \mathcal{F}[\mathbf{I}_1],\quad
               \mathcal{F}[\mathbf{I}_2]
-    .. math:: \mathbf{W} = 1 / \mathbf{S}_2
+    .. math:: \mathbf{W} = 1 / \|\mathbf{S}_2 \|
     .. math:: \mathbf{Q}_{12} = \mathbf{S}_1 [\mathbf{W}\mathbf{S}_2]^{\star}
 
     where :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star`
     a complex conjugate operation
+
+    Schematically this looks like:
+
+        .. code-block:: text
+
+          I2  ┌----┐ S2
+           ---┤ F  ├--┬------------┐
+              └----┘  | ┌-------┐W |
+                      └-┤ 1/|x| ├--×
+                        └-------┘  | Q12 ┌------┐  C12
+                                   ×-----┤ F^-1 ├---
+          I1  ┌----┐ S1            |     └------┘
+           ---┤ F  ├---------------┘
+              └----┘
+
 
     References
     ----------
@@ -342,6 +360,29 @@ def projected_phase_corr(I1, I2, M1=np.array(()), M2=np.array(())):
     C : numpy.array, size=(m,n), dtype=real
         displacement surface
 
+    Notes
+    -----
+    Schematically this looks like:
+
+        .. code-block:: text
+
+          I1  ┌----┐ I1x  ┌----┐ S1x
+           -┬-┤ Σx ├------┤ F  ├------┐ Q12x ┌------┐ C12x
+            | └----┘      └----┘      ×------┤ F^-1 ├------┐
+            | ┌----┐ I2x  ┌----┐ S2x  |      └------┘      |
+            |┌┤ Σx ├------┤ F  ├------┘                    |  ┌---┐ C12
+            ||└----┘      └----┘                           ×--┤ √ ├----
+            ||┌----┐ I1y  ┌----┐ S1y                       |  └---┘
+            └┼┤ Σy ├------┤ F  ├------┐ Q12y ┌------┐ C12y |
+             |└----┘      └----┘      ×------┤ F^-1 ├------┘
+          I2 |┌----┐ I2y  ┌----┐ S2y  |      └------┘
+           --┴┤ Σy ├------┤ F  ├------┘
+              └----┘      └----┘
+
+    See Also
+    --------
+    phase_corr
+
     References
     ----------
     .. [1] Zhang et al. "An efficient subpixel image registration based on the
@@ -349,13 +390,18 @@ def projected_phase_corr(I1, I2, M1=np.array(()), M2=np.array(())):
        10th international symposium on communications and information
        technologies, 2010.
     """
-    assert type(I1)==np.ndarray, ('please provide an array')
-    assert type(I2)==np.ndarray, ('please provide an array')
+    assert type(I1) in (np.ma.core.MaskedArray, np.array), \
+        ("please provide an array")
+    assert type(I2) in (np.ma.core.MaskedArray, np.array), \
+        ("please provide an array")
+    assert type(M1)==np.ndarray, ('please provide an array')
+    assert type(M2)==np.ndarray, ('please provide an array')
+
+    # make compatible with masekd array
+    I1,M1, I2,M2 = get_data_and_mask(I1, M1), get_data_and_mask(I2, M2)
 
     I1sub,I2sub = make_templates_same_size(I1,I2)
-
-    if M1.size==0 : M1 = np.ones_like(I1sub)
-    if M2.size==0 : M2 = np.ones_like(I1sub)
+    M1sub,M2sub = make_templates_same_size(M1,M2)
 
     def project_spectrum(I, M, axis=0):
         if axis==1 : I,M = I.T, M.T
@@ -374,13 +420,13 @@ def projected_phase_corr(I1, I2, M1=np.array(()), M2=np.array(())):
         Q12 = S1*np.conj(S2)
         return Q12
 
-    S1_m = project_spectrum(I1sub, M1, axis=0)
-    S2_m = project_spectrum(I2sub, M2, axis=0)
+    S1_m = project_spectrum(I1sub, M1sub, axis=0)
+    S2_m = project_spectrum(I2sub, M2sub, axis=0)
     Q12_m = phase_corr_1d(S1_m, S2_m)
     C_m = np.fft.fftshift(np.real(np.fft.ifft(Q12_m)))
 
-    S1_n = project_spectrum(I1sub, M1, axis=1)
-    S2_n = project_spectrum(I2sub, M2, axis=1)
+    S1_n = project_spectrum(I1sub, M1sub, axis=1)
+    S2_n = project_spectrum(I2sub, M2sub, axis=1)
     Q12_n = phase_corr_1d(S1_n, S2_n)
     C_n = np.fft.fftshift(np.real(np.fft.ifft(Q12_n)))
 
@@ -477,6 +523,21 @@ def symmetric_phase_corr(I1, I2):
 
     where :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star`
     a complex conjugate operation
+
+    Schematically this looks like:
+
+        .. code-block:: text
+
+          I2  ┌----┐ S2
+           ---┤ F  ├---┬-------------------┐
+              └----┘   | ┌--------------┐W |
+                       ├-┤ 1/(|x||x|)^½ ├--×
+                       | └--------------┘  | Q12 ┌------┐  C12
+                       |                   ×-----┤ F^-1 ├---
+          I1  ┌----┐ S1|                   |     └------┘
+           ---┤ F  ├---┴-------------------┘
+              └----┘
+
 
     References
     ----------
@@ -690,6 +751,22 @@ def gradient_corr(I1, I2):
     :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star` a
     complex conjugate operation.
 
+    Schematically this looks like:
+
+        .. code-block:: text
+
+                    ∂x I1
+          I1  ┌----┬-----┬----┐ S1
+           ---┤ ∂  |     | F  ├------┐
+              └----┴-----┴----┘      |
+                    ∂y I1            |
+                                     | Q12 ┌------┐  C12
+                    ∂x I2            ×-----┤ F^-1 ├---
+          I2  ┌----┬-----┬----┐ S2   |     └------┘
+           ---┤ ∂  |     | F  ├------┘
+              └----┴-----┴----┘
+                    ∂y I2
+
     References
     ----------
     .. [1] Argyriou & Vlachos. "Estimation of sub-pixel motion using gradient
@@ -702,8 +779,8 @@ def gradient_corr(I1, I2):
     Example
     -------
     >>> import numpy as np
-    >>> from .matching_tools import get_integer_peak_location
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.processing.matching_tools import get_integer_peak_location
+    >>> from dhdt.generic.test_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> Q = gradient_corr(im1, im2)
@@ -782,6 +859,22 @@ def normalized_gradient_corr(I1, I2):
     :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star` a
     complex conjugate operation and :math:`\dot{x}` represents a statistical
     normalization through the sampled mean and standard deviation.
+
+    Schematically this looks like:
+
+        .. code-block:: text
+
+                    ∂x I1
+          I1  ┌----┬-----┬----┐ S1 ┌------┐
+           ---┤ ∂  |     | F  ├----┤ norm ├--┐
+              └----┴-----┴----┘    └------┘  |
+                    ∂y I1                    |
+                                             | Q12 ┌------┐  C12
+                    ∂x I2                    ×-----┤ F^-1 ├---
+          I2  ┌----┬-----┬----┐ S2 ┌------┐  |     └------┘
+           ---┤ ∂  |     | F  ├----┤ norm ├--┘
+              └----┴-----┴----┘    └------┘
+                    ∂y I2
 
     References
     ----------
@@ -884,6 +977,23 @@ def orientation_corr(I1, I2):
     where :math:`\partial_{x}` is the spatial derivate in horizontal direction,
     :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star` a
     complex conjugate operation and :math:`\hat{x}` is a normalizing operator.
+
+    Schematically this looks like:
+
+        .. code-block:: text
+
+                 ∂x I1┌-------┐
+          I1  ┌----┬--┤ 1/|x| ├--┬----┐ S1
+           →--┤ ∂  |  ├-------┤  | F  ├--→-┐
+              └----┴--┤ 1/|x| ├--┴----┘    |
+                 ∂y I1└-------┘            |
+                                           | Q12 ┌------┐  C12
+                                           ×--→--┤ F^-1 ├---
+                 ∂x I2┌-------┐            |     └------┘
+          I2  ┌----┬--┤ 1/|x| ├--┬----┐ S2 |
+           →--┤ ∂  |  ├-------┤  | F  ├--→-┘
+              └----┴--┤ 1/|x| ├--┴----┘
+                 ∂y I2└-------┘
 
     References
     ----------
@@ -1050,6 +1160,18 @@ def phase_corr(I1, I2):
     where :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star` a
     complex conjugate operation and :math:`\hat{x}` is a normalizing operator.
 
+    Schematically this looks like:
+
+        .. code-block:: text
+
+          I1  ┌----┐ S1 ┌-------┐
+           ---┤ F  ├----┤ 1/|x| ├--┐
+              └----┘    └-------┘  | Q12 ┌------┐  C12
+                                   ×-----┤ F^-1 ├---
+          I2  ┌----┐ S2 ┌-------┐  |     └------┘
+           ---┤ F  ├----┤ 1/|x| ├--┘
+              └----┘    └-------┘
+
     References
     ----------
     .. [1] Kuglin & Hines. "The phase correlation image alignment method",
@@ -1118,6 +1240,32 @@ def gaussian_transformed_phase_corr(I1, I2):
     --------
     phase_corr
 
+    Notes
+    -----
+    The matching equations are as follows:
+
+    .. math:: \mathbf{S}_1, \mathbf{S}_2 = \mathcal{F}[\mathbf{I}_1],\quad
+              \mathcal{F}[\mathbf{I}_2]
+    .. math:: \mathbf{Q}_{12} = \mathbf{S}_1 {\mathbf{S}_2}^{\star}
+    .. math:: \mathbf{Q}_{12} / \| \mathbf{Q}_{12}\|
+    .. math:: \mathbf{Q}_{12} = \mathbf{W} \mathbf{Q}_{12}
+
+    where :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star` a
+    complex conjugate operation.
+
+    Schematically this looks like:
+
+        .. code-block:: text
+
+          I1  ┌----┐ S1                  ┌----┐
+           ---┤ F  ├-----┐               | W  |
+              └----┘     | Q12 ┌-------┐ └-┬--┘ ┌------┐ C12
+                         ×-----┤ 1/|x| ├---┴----┤ F^-1 ├----
+          I2  ┌----┐ S2  |     └-------┘        └------┘
+           ---┤ F  ├-----┘
+              └----┘
+
+
     References
     ----------
     .. [1] Eckstein et al. "Phase correlation processing for DPIV
@@ -1126,8 +1274,8 @@ def gaussian_transformed_phase_corr(I1, I2):
     Example
     -------
     >>> import numpy as np
-    >>> from .matching_tools import get_integer_peak_location
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.processing.matching_tools import get_integer_peak_location
+    >>> from dhdt.generic.test_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> Q = gaussian_transformed_phase_corr(im1, im2)
@@ -1199,8 +1347,8 @@ def upsampled_cross_corr(S1, S2, upsampling=2):
     Example
     -------
     >>> import numpy as np
-    >>> from .matching_tools import get_integer_peak_location
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.processing.matching_tools import get_integer_peak_location
+    >>> from dhdt.generic.test_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> di,dj = upsampled_cross_corr(im1, im2)
@@ -1264,7 +1412,7 @@ def cross_corr(I1, I2):
 
     See Also
     --------
-    phase_corr
+    phase_corr, upsampled_cross_corr
 
     Notes
     -----
@@ -1277,6 +1425,18 @@ def cross_corr(I1, I2):
     where :math:`\mathcal{F}` denotes the Fourier transform and :math:`\star` a
     complex conjugate operation.
 
+    Schematically this looks like:
+
+        .. code-block:: text
+
+          I1  ┌----┐ S1
+           ---┤ F  ├-----┐
+              └----┘     | Q12 ┌------┐  C12
+                         ×-----┤ F^-1 ├---
+          I2  ┌----┐ S2  |     └------┘
+           ---┤ F  ├-----┘
+              └----┘
+
     References
     ----------
     .. [1] Heid & Kääb. "Evaluation of existing image matching methods for
@@ -1286,8 +1446,8 @@ def cross_corr(I1, I2):
     Example
     -------
     >>> import numpy as np
-    >>> from .matching_tools import get_integer_peak_location
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.processing.matching_tools import get_integer_peak_location
+    >>> from dhdt.generic.test_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> Q = cross_corr(im1, im2)
@@ -1362,8 +1522,8 @@ def binary_orientation_corr(I1, I2):
     Example
     -------
     >>> import numpy as np
-    >>> from .matching_tools import get_integer_peak_location
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.processing.matching_tools import get_integer_peak_location
+    >>> from dhdt.generic.test_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> Q = binary_orientation_corr(im1, im2)
@@ -1406,9 +1566,9 @@ def masked_corr(I1, I2, M1=np.array(()), M2=np.array(())):
 
     Parameters
     ----------
-    I1 : numpy.array, size=(m,n), ndim=2
+    I1 : {numpy.array, numpy.ma}, size=(m,n), ndim=2
         array with intensities
-    I2 : numpy.array, size=(m,n), ndim=2
+    I2 : {numpy.array, numpy.ma}, size=(m,n), ndim=2
         array with intensities
     M1 : numpy.array, size=(m,n)
         array with mask
@@ -1428,8 +1588,8 @@ def masked_corr(I1, I2, M1=np.array(()), M2=np.array(())):
     Example
     -------
     >>> import numpy as np
-    >>> from .matching_tools import get_integer_peak_location
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.processing.matching_tools import get_integer_peak_location
+    >>> from dhdt.generic.test_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> msk1,msk2 = np.ones_like(im1), np.ones_like(im2)
@@ -1440,15 +1600,17 @@ def masked_corr(I1, I2, M1=np.array(()), M2=np.array(())):
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
     """
-    assert type(I1)==np.ndarray, ('please provide an array')
-    assert type(I2)==np.ndarray, ('please provide an array')
+    assert type(I1) in (np.ma.core.MaskedArray, np.array), \
+        ("please provide an array")
+    assert type(I2) in (np.ma.core.MaskedArray, np.array), \
+        ("please provide an array")
     assert type(M1)==np.ndarray, ('please provide an array')
     assert type(M2)==np.ndarray, ('please provide an array')
 
     # init
+    I1,M1, I2,M2 = get_data_and_mask(I1, M1), get_data_and_mask(I2, M2)
+
     I1sub,I2sub = make_templates_same_size(I1,I2)
-    if M1.size==0 : M1 = np.ones_like(I1sub)
-    if M2.size==0 : M2 = np.ones_like(I2sub)
     M1sub,M2sub = make_templates_same_size(M1,M2)
 
     # preparation

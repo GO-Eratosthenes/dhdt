@@ -100,7 +100,7 @@ def normalize_power_spectrum(Q):
     Example
     -------
     >>> import numpy as np
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.generic.test_tools import create_sample_image_pair
     
     >>> im1,im2,_,_,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> spec1,spec2 = np.fft.fft2(im1), np.fft.fft2(im2)
@@ -144,14 +144,14 @@ def make_fourier_grid(Q, indexing='ij', system='radians'):
         .. code-block:: text
 
           metric system:         Fourier-based flip
-                 y               +------><------+
+                 y               ┼------><------┼
                  ^               |              |
                  |               |              |
                  |               v              v
-          <------+-------> x
+          <------┼-------> x
                  |               ^              ^
                  |               |              |
-                 v               +------><------+
+                 v               ┼------><------┼
 
     It is important to know what type of coordinate systems exist, hence:
        
@@ -161,7 +161,7 @@ def make_fourier_grid(Q, indexing='ij', system='radians'):
           system 'ij'|           system 'xy' |
                      |                       |
                      |       j               |       x 
-             --------+-------->      --------+-------->
+             --------┼-------->      --------┼-------->
                      |                       |
                      |                       |
                      | i                     |
@@ -176,7 +176,7 @@ def make_fourier_grid(Q, indexing='ij', system='radians'):
         F_1, F_2 = I_grd/m, J_grd/n
     else:
         fy = np.flip((np.arange(0,m)-(m/2)) /m)
-        fx = (np.arange(0,n)-(n/2)) /n
+        fx = (np.arange(0,n,n)-(n/2)) /n
             
         F_1 = np.repeat(fx[np.newaxis,:],m,axis=0)
         F_2 = np.repeat(fy[:,np.newaxis],n,axis=1)
@@ -255,7 +255,7 @@ def raised_cosine(I, beta=0.35):
     return W 
 
 def hamming_window(I):
-    """ create hanning filter
+    """ create two-dimensional Hamming filter
     
     Parameters
     ----------    
@@ -280,7 +280,7 @@ def hamming_window(I):
     return W 
 
 def hanning_window(I):
-    """ create hanning filter
+    """ create two-dimensional Hanning filter, also known as Cosine Bell
     
     Parameters
     ----------    
@@ -305,7 +305,7 @@ def hanning_window(I):
     return W 
 
 def blackman_window(I):
-    """ create blackman filter
+    """ create two-dimensional Blackman filter
     
     Parameters
     ----------    
@@ -330,7 +330,7 @@ def blackman_window(I):
     return W 
 
 def kaiser_window(I, beta=14.):
-    """ create kaiser filter
+    """ create two dimensional Kaiser filter
     
     Parameters
     ----------    
@@ -360,7 +360,7 @@ def kaiser_window(I, beta=14.):
     return W 
 
 def low_pass_rectancle(I, r=0.50):
-    """ create hard low-pass filter
+    """ create hard two dimensional low-pass filter
     
     Parameters
     ----------    
@@ -393,7 +393,7 @@ def low_pass_rectancle(I, r=0.50):
     return W 
 
 def low_pass_pyramid(I, r=0.50):
-    """ create low-pass filter with pyramid shape
+    """ create low-pass two-dimensional filter with pyramid shape
     
     Parameters
     ----------    
@@ -426,7 +426,7 @@ def low_pass_pyramid(I, r=0.50):
     return W
 
 def low_pass_bell(I, r=0.50):
-    """ create low-pass filter with a bell shape
+    """ create low-pass two-dimensional filter with a bell shape
     
     Parameters
     ----------    
@@ -460,7 +460,7 @@ def low_pass_bell(I, r=0.50):
     return W
 
 def low_pass_circle(I, r=0.50):
-    """ create hard low-pass filter
+    """ create hard two-dimensional low-pass filter
     
     Parameters
     ----------    
@@ -567,7 +567,7 @@ def cosine_bell(I):
     W[R>.5] = 0
     return W
 
-def cross_shading_filter(Q): #, az_1, az_2): # wip
+def cross_shading_filter(Q): #, az_1, az_2): #todo
     assert type(Q)==np.ndarray, ("please provide an array")
     (m,n) = Q.shape    
     Coh = local_coherence(np.fft.fftshift(Q))
@@ -701,7 +701,7 @@ def gaussian_mask(S):
     Example
     --------
     >>> import numpy as np
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.generic.test_tools import create_sample_image_pair
     
     >>> im1,im2,_,_,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> spec1,spec2 = np.fft.fft2(im1), np.fft.fft2(im2)      

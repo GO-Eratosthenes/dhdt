@@ -1,5 +1,6 @@
 import glob
 import os
+import time
 
 from xml.etree import ElementTree
 from osgeo import ogr, osr
@@ -168,11 +169,49 @@ def get_geom_for_tile_code(tile_code, shp_dir=None, shp_name=None):
     shp = ogr.Open(shp_path)
     lyr = shp.GetLayer()
 
+    geom = None
     for feature in lyr:
-        if feature.GetField('Name')== tile_code:
+        if feature.GetField('Name') == tile_code:
             geom = feature.GetGeometryRef()
+            time.sleep(0.3)
+    time.sleep(1)
     lyr = None
+
+    if geom is None:
+        print('MGRS tile code does not seem to exist')
     return geom
+
+def get_generic_s2_raster(tile_code, spac=10):
+    geom = get_geom_for_tile_code(tile_code)
+
+    points = geom.Boundary().GetPointCount()
+    bnd = geom.Boundary()
+    lon, lat = np.zeros(points), np.zeros(points)
+    for p in np.arange(points):
+        lon[p],lat[p],_ = bnd.GetPoint(int(p))
+    del geom, bnd
+    # specify coordinate system
+    spatRef = osr.SpatialReference()
+    spatRef.ImportFromEPSG(4326) # WGS84
+
+    utm_zone = get_utmzone_from_mgrs_tile(tile_code)
+    northernHemisphere = True if np.sign(np.mean(lat)) == 1 else False
+    proj = osr.SpatialReference()
+    proj.SetWellKnownGeogCS('WGS84')
+    proj.SetUTM(utm_zone, northernHemisphere)
+
+    coordTrans = osr.CoordinateTransformation(spatRef, proj)
+    x,y = np.zeros(points), np.zeros(points)
+    for p in np.arange(points):
+        x[p],y[p],_ = coordTrans.TransformPoint(lat[p], lon[p])
+    # bounding box in projected coordinate system
+    x,y = np.round(x/spac)*spac, np.round(y/spac)*spac
+
+    geoTransform = (np.min(x), +spac, 0.,
+                    np.max(y), 0., -spac,
+                    np.round(np.ptp(y)/spac), np.round(np.ptp(x)/spac))
+    crs = get_crs_from_mgrs_tile(tile_code)
+    return geoTransform, crs
 
 def get_array_from_xml(treeStruc):
     """

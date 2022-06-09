@@ -63,7 +63,7 @@ def list_central_wavelength_re():
 
     Returns
     -------
-    df : datafram
+    df : pandas.dataframe
         metadata and general multispectral information about the MSI
         instrument that is onboard Sentinel-2, having the following collumns:
 
@@ -75,37 +75,37 @@ def list_central_wavelength_re():
             * irradiance, unit=W m-2 μm-1 : exo-atmospheric radiance
             * relative_timing, unit=ms : relative sampling time difference
 
-
-    References
-    ----------
-    .. [1] Krauß, et al. "Traffic flow estimation from single
-       satellite images." Archives of the ISPRS, vol.XL-1/WL3, 2013.
-
     Notes
     -----
     The detector arrays of the satellite are configured as follows:
 
         .. code-block:: text
+
                 78 mm
           <-------------->
-          +--------------+    #*# satellite
+          ┌--------------┐    #*# satellite
           |      red     |     |
-          +--------------+     | flight
+          ├--------------┤     | flight
           |   red edge   |     | direction
-          +--------------+     |
+          ├--------------┤     |
           |near infrared |     v
-          +--------------+
+          ├--------------┤
           |              |
           |              |
           |              |
           |              |
-          +--------------+  ^
+          ├--------------┤  ^
           |  not in use  |  | 6.5 μm
-          +--------------+  v
+          ├--------------┤  v
           |   green      |
-          +--------------+
+          ├--------------┤
           |   blue       |
-          +--------------+
+          └--------------┘
+
+    References
+    ----------
+    .. [1] Krauß, et al. "Traffic flow estimation from single
+       satellite images." Archives of the ISPRS, vol.XL-1/WL3, 2013.
 
     Example
     -------
@@ -113,7 +113,7 @@ def list_central_wavelength_re():
 
     >>> boi = ['red', 'green', 'blue']
     >>> re_df = list_central_wavelength_re()
-    >>> re_df = re_df[re_df['name'].isin(boi)]
+    >>> re_df = re_df[re_df['common_name'].isin(boi)]
     >>> re_df
          wavelength  bandwidth  resolution   name  bandid  irradiance
     B01         475         70           5   blue       0      1997.8
@@ -155,7 +155,7 @@ def list_central_wavelength_re():
          "wavelength": pd.Series(wavelength),
          "bandwidth": pd.Series(bandwidth),
          "resolution": pd.Series(resolution),
-         "name": pd.Series(name),
+         "common_name": pd.Series(name),
          "bandid": pd.Series(bandid),
          "irradiance": pd.Series(irradiance),
          "relative_timing": pd.Series(relative_timing)
@@ -217,7 +217,7 @@ def read_sun_angles_re(path):
 
                  ^ North & y
                  |
-            - <--|--> +
+            - <--┼--> +
                  |
                  +----> East & x
 
@@ -228,10 +228,10 @@ def read_sun_angles_re(path):
           surface normal              * sun
           ^                     ^    /
           |                     |   /
-          |-- zenith angle      |  /
+          ├-- zenith angle      |  /
           | /                   | /|
           |/                    |/ | elevation angle
-          +---- surface         +------
+          +---- surface         +--┴---
 
 
     """

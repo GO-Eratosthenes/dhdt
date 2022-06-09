@@ -2,9 +2,12 @@
 import os
 import numpy as np
 
-from osgeo import ogr
+from osgeo import ogr, osr, gdal
 
+from dhdt.generic.unit_conversion import deg2arg
 from dhdt.generic.handler_www import url_exist, get_zip_file
+from dhdt.generic.handler_sentinel2 import get_utmzone_from_mgrs_tile, \
+    get_generic_s2_raster
 
 def rgi_code2url(rgi_num):
     """
@@ -20,10 +23,12 @@ def rgi_code2url(rgi_num):
     rgi_url : string
         location on a server where data is situated
 
-    Nomenclature
-    ------------
-    RGI : Randolph glacier inventory
+    Notes
+    -----
+    The following nomenclature is used:
 
+    RGI : Randolph glacier inventory
+    UTM : universal transverse Mercator
     """
     urls = (
         'rgi60_files/01_rgi60_Alaska.zip',
@@ -51,43 +56,48 @@ def rgi_code2url(rgi_num):
         rgi_url += ('https://www.glims.org/RGI/' + urls[rgi_num[i]-1],)
     return rgi_url
 
-def which_rgi_region(rgi_path,poi):
+def which_rgi_region(rgi_path, poi, rgi_file='00_rgi60_O1Regions.shp'):
     """
     Discover which Randolph Glacier Inventory (RGI) region is used
-    for a given coordinate
+    for a given coordinate, and if not present in directory, download this data
 
     Parameters
     ----------
     rgi_path : string
         location where the geospatial files of the RGI are situated
     poi : numpy.array, unit=degrees
-        location of intest, given in lat lon
+        location of interest, given in lat lon
+    rgi_file : string
+        file name of the shapefile that describes the RGI regions
 
     Returns
     -------
     rgi_file : list
         list with strings of filenames
 
-    Nomenclature
-    ------------
-    lon : longitude, range=-180...+180, unit=degrees
-    lat : latitude, range=-90...+90, unit=degrees
-    RGI : Randolph glacier inventory
+    Notes
+    -----
+    The following nomenclature is used:
 
+    - lon : longitude, range=-180...+180, unit=degrees
+    - lat : latitude, range=-90...+90, unit=degrees
+    - RGI : Randolph glacier inventory
+    - POI : point of interest
     """
-    rgi_file = '00_rgi60_O1Regions.shp'
-    
+
     if np.ndim(poi)==1:
         # lon in range -180:180
-        poi[1] = (poi[1] % 360)-360
+        poi[1] = deg2arg(poi[1])
         poi = np.flip(poi) # given in lon lat....
         
         point = ogr.Geometry(ogr.wkbPoint)
         point.AddPoint(poi[0], poi[1])
-        
 
         # Get the RGI gegions
-        rgiShp = ogr.Open(os.path.join(rgi_path, rgi_file))
+        rgi_full = os.path.join(rgi_path, rgi_file)
+        assert os.path.exists(rgi_full), ('please make sure ' + rgi_file +
+                                          ' is present')
+        rgiShp = ogr.Open(rgi_full)
         rgiLayer = rgiShp.GetLayer()
 
         rgi_list = ()
@@ -133,3 +143,191 @@ def which_rgi_region(rgi_path,poi):
                 rgi_file += (rgi_shp, )
             
     return rgi_file
+
+def create_projected_rgi_shp(rgi_path, rgi_name, utm_zone, northernHemisphere,
+                             rgi_out):
+    """ convert general RGI shapfile to projected shapefile
+
+    Parameters
+    ----------
+    rgi_path : string
+        directory where the shapefiles are located
+    rgi_name : string
+        name of the shapefile of the region of interest
+    utm_zone : integer
+        specific utm zone, to project towards
+    northernHemisphere : bool
+        is zone in the northern hemisphere
+    rgi_out : string
+        location where the shapefile should be positioned
+
+    Notes
+    -----
+    The following nomenclature is used:
+
+    - RGI : Randolph glacier inventory
+    - UTM : universal transverse Mercator
+    - GIS : geographic information system
+    """
+
+    # open the shapefile of RGI
+    shp = ogr.Open(os.path.join(rgi_path, rgi_name))
+    lyr = shp.GetLayer()
+
+    # transform from lat-lon to UTM
+    spatRef = lyr.GetSpatialRef()
+    driver = ogr.GetDriverByName('ESRI Shapefile')
+
+    proj = osr.SpatialReference()
+    proj.SetWellKnownGeogCS('WGS84')
+    proj.SetUTM(utm_zone, northernHemisphere)
+
+    coordTrans = osr.CoordinateTransformation(spatRef, proj)
+
+    # create the output layer
+    if os.path.exists(os.path.join(rgi_path, rgi_out)):
+        driver.DeleteDataSource(os.path.join(rgi_path, rgi_out))
+    outDataSet = driver.CreateDataSource(os.path.join(rgi_path, rgi_out))
+    outLyr = outDataSet.CreateLayer("", None, geom_type=ogr.wkbMultiPolygon)
+
+    # add field with RGI-id
+    outLyr.CreateField(ogr.FieldDefn("RGIId", ogr.OFTInteger))
+    outLyr.CreateField(ogr.FieldDefn("RGIReg", ogr.OFTInteger))
+    outLyr.CreateField(ogr.FieldDefn("RGIVer", ogr.OFTInteger))
+    defn = outLyr.GetLayerDefn()
+
+    rgi_reg = int(rgi_name.split('_')[0])
+    rgi_ver = int(rgi_name.split('_')[1][-2:])
+    for feat in lyr:
+        geom = feat.GetGeometryRef()  # get the input geometry
+        geom.Transform(coordTrans)    # reproject the geometry from ll to UTM
+        rgi_num = int(feat.GetField('RGIId').split('.')[1])
+
+        outFeat = ogr.Feature(defn)   # create a new feature
+        outFeat.SetGeometry(geom)  # set the geometry and attribute
+        outFeat.SetField('RGIId', rgi_num) # assign RGIid, but removing regionID
+        outFeat.SetField('RGIReg', rgi_reg)
+        outFeat.SetField('RGIVer', rgi_ver)
+
+        outLyr.CreateFeature(outFeat)  # add the feature to the shapefile
+
+        outFeat = None # dereference the features and get the next input feature
+    outLyr = None
+    outDataSet = None
+    shp = None
+
+    proj.MorphToESRI()  # provide correct prj-file for GIS
+    file = open(os.path.join(rgi_path, rgi_out[:-4]+'.prj'), 'w')
+    file.write(proj.ExportToWkt())
+    file.close()
+    return
+
+def create_rgi_raster(rgi_path, rgi_name, toi, rgi_out=None):
+    """
+    Creates a raster file in the location given by "rgi_out", the content of
+    this raster are the RGI glaciers
+
+    Parameters
+    ----------
+    rgi_path : string
+        directory where the shapefiles are located
+    rgi_name : string
+        name of the shapefile of the region of interest
+    toi : string
+        MGRS tile code of the Sentinel-2 scene
+    rgi_out : string
+        location where the shapefile should be positioned
+
+    Notes
+    -----
+    The following nomenclature is used:
+
+    RGI : Randolph glacier inventory
+    S2 : Sentinel-2
+    TOI : tile of interest
+    """
+    if rgi_out is None:
+        rgi_out = rgi_path
+
+    geoTransform,crs = get_generic_s2_raster(toi)
+
+    # read shapefile
+    shp = ogr.Open(os.path.join(rgi_path, rgi_name))
+    lyr = shp.GetLayer()
+
+    # create raster environment
+    driver = gdal.GetDriverByName('GTiff')
+    target = driver.Create(os.path.join(rgi_out, toi + '-RGI.tif'),
+                           int(geoTransform[6]), int(geoTransform[7]), 1,
+                           gdal.GDT_UInt16)
+
+    target.SetGeoTransform(geoTransform[:6])
+    target.SetProjection(crs.ExportToWkt())
+
+    # convert polygon to raster
+    gdal.RasterizeLayer(target, [1], lyr, None, options=["ATTRIBUTE=RGIId"])
+    gdal.RasterizeLayer(target, [1], lyr, None, burn_values=[1])
+    lyr = shp = None
+    return
+
+def create_rgi_tile_s2(rgi_path, poi, toi, rgi_out=None):
+    """
+    Creates a raster file with the extent of a generic Sentinel-2 tile, that is
+    situated at a specific location
+
+    Parameters
+    ----------
+    rgi_path : string
+        directory where the RGI shapefiles are located
+    poi : numpy.array, unit=degrees
+        location of interest, given in lat lon
+    toi : string
+        MGRS tile code of the Sentinel-2 scene
+    rgi_out : string
+        location where the shapefile should be positioned
+
+    Returns
+    -------
+    rgi_outpath : string
+        location and filename of the RGI raster
+
+    See Also
+    --------
+    which_rgi_region, create_rgi_raster
+
+    Notes
+    -----
+    The following nomenclature is used:
+
+    - lon : longitude, range=-180...+180, unit=degrees
+    - lat : latitude, range=-90...+90, unit=degrees
+    - RGI : Randolph glacier inventory
+    - POI : point of interest
+    - S2 : Sentinel-2
+    - TOI : tile of interest
+    """
+    if rgi_out is None:
+        rgi_out = rgi_path
+
+    rgi_regions = which_rgi_region(rgi_path, poi)
+
+    utm_zone = get_utmzone_from_mgrs_tile(toi)
+    northernHemisphere = True if np.sign(poi[1]) == 1 else False
+
+
+    for rgi_name in rgi_regions:
+        fname_shp_utm = rgi_name[:-4] + '_utm' + str(utm_zone).zfill(2) + '.shp'
+        if not os.path.exists(os.path.join(rgi_path, fname_shp_utm)):
+        # project shapefile RGI to map projection
+            create_projected_rgi_shp(rgi_path, rgi_name,
+                                     utm_zone, northernHemisphere,
+                                     fname_shp_utm)
+
+    #todo: merge shapefiles of different regions, if neccessary
+
+    rgi_out_full = os.path.join(rgi_path, toi+'-RGI.tif')
+    if not os.path.exists(rgi_out_full):
+        create_rgi_raster(rgi_path, fname_shp_utm, toi, rgi_out)
+
+    return rgi_out_full
+

@@ -2,9 +2,11 @@ import os
 import glob
 
 import numpy as np
+import pandas as pd
 
 # geospatial libaries
 from osgeo import gdal, osr
+from xml.etree import ElementTree
 
 def read_geo_info(fname):
     """ This function takes as input the geotiff name and the path of the
@@ -30,6 +32,10 @@ def read_geo_info(fname):
         number of collumns in the image, that is its width
     bands : integer
         number of bands in the image, that is its depth
+
+    See Also
+    --------
+    read_geo_image : basic function to import geographic imagery data
     """
     assert len(glob.glob(fname)) != 0, ('file does not seem to be present')
 
@@ -70,7 +76,8 @@ def read_geo_image(fname, boi=np.array([])):
 
     See Also
     --------
-    make_geo_im, read_geo_info
+    make_geo_im : basic function to write out geographic data
+    read_geo_info : basic function to get meta data of geographic imagery
 
     Example
     -------
@@ -105,7 +112,7 @@ def read_geo_image(fname, boi=np.array([])):
     targetprj = osr.SpatialReference(wkt=img.GetProjection())
     return data, spatialRef, geoTransform, targetprj
 
-# I/O functions
+# output functions
 def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes',
               no_dat=np.nan, sun_angles='az:360-zn:90', date_created='-0276-00-00'):
     """ Create georeferenced tiff file (a GeoTIFF)
@@ -186,3 +193,42 @@ def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes',
         ds.GetRasterBand(1).SetNoDataValue(no_dat)
     ds = None
     del ds
+
+def make_multispectral_vrt(df, fpath=None, fname='multispec.vrt'):
+    """ virtual raster tile (VRT) is a description of datasets written in an XML
+    format, it eases the display of multi-spectral data or other means.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        organization of the different spectral bands
+    fpath : string
+        path of the directory of interest
+    fname : string
+        file name of the virtual raster tile
+
+    """
+    assert isinstance(df, pd.DataFrame), ('please provide a dataframe')
+    assert 'filepath' in df, ('please first run "get_S2_image_locations"'+
+                                ' to find the proper file locations')
+
+    if fpath is None:
+        fpath = os.path.commonpath(df.filepath.tolist())
+
+    ffull = os.path.join(fpath, fname)
+    vrt_options = gdal.BuildVRTOptions(resampleAlg=gdal.GRA_NearestNeighbour,
+                                       addAlpha=False,
+                                       separate=True,
+                                       srcNodata=0)
+    my_vrt = gdal.BuildVRT(ffull, [f+'.jp2' for f in df['filepath']],
+                           options=vrt_options)
+    my_vrt = None
+
+    # modify the vrt-file to include band names
+    tree = ElementTree.parse(ffull)
+    root = tree.getroot()
+    for idx, band in enumerate(root.iter("VRTRasterBand")):
+        description = ElementTree.SubElement(band, "Description")
+        description.text = df.common_name[idx]
+    tree.write(ffull) # update the file on disk
+    return

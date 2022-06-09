@@ -15,3 +15,8 @@ frequency metrics
 ~~~~~~~~~~~~~~~~~
 .. automodule:: dhdt.processing.matching_tools_frequency_metrics
     :members:
+
+matching metrics
+~~~~~~~~~~~~~~~~
+.. automodule:: dhdt.processing.matching_tools_correlation_metrics
+    :members:

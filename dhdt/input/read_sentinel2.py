@@ -56,12 +56,12 @@ def list_central_wavelength_msi():
 
     The following acronyms are used:
 
-    - MSI : multi-spectral instrument
-    - MCT : mercury cadmium telluride, HgCdTe
-    - TMA : trim mirror anastigmat
-    - VNIR : very near infra-red
-    - SWIR : short wave infra-red
-    - CMOS : silicon complementary metal oxide semiconductor, Si
+        - MSI : multi-spectral instrument
+        - MCT : mercury cadmium telluride, HgCdTe
+        - TMA : trim mirror anastigmat
+        - VNIR : very near infra-red
+        - SWIR : short wave infra-red
+        - CMOS : silicon complementary metal oxide semiconductor, Si
 
     Example
     -------
@@ -206,6 +206,7 @@ def read_band_s2(path, band=None):
     --------
     list_central_wavelength_msi : creates a dataframe for the MSI instrument
     read_stack_s2 : reading several Sentinel-2 bands at once into a stack
+    dhdt.generic.read_geo_image : basic function to import geographic imagery data
 
     Example
     -------
@@ -907,8 +908,39 @@ def read_sensing_time_s2(path, fname='MTD_TL.xml'):
     rec_time : numpy.datetime64
         time of image acquisition
 
-    Example
-    -------
+    Notes
+    -----
+    The recording time is the average sensing within the tile, which is a
+    combination of forward and backward looking datastrips. Schematically, this
+    might look like:
+
+        .. code-block:: text
+
+             x recording time of datastrip, i.e.: the start of the strip
+             × recording time of tile, i.e.: the weighted average
+                                        _________  datastrip
+                              ____x____/        /_________
+                             /        /        /        /
+                            /        /        /        /
+                           /        /        /        /
+                          /        /        /        /
+                         /        /        /        /
+                        /        /        /        /
+                       /    ┌---/------┐ /        /
+                      /     |  /       |/        /
+                     /      | /  ×     /        /
+                    /       |/        /|       /
+                   /        /--------/-┘      /
+                  /        /  tile  /        /
+                 /        /        /        /
+                /        /        /        /
+               /        /        /        /
+              /        /        /        /
+             /        _________/        /
+             _________        /________/
+
+    Examples
+    --------
     demonstrate the code when in a Scihub data structure
 
     >>> import os
@@ -1196,6 +1228,10 @@ def get_flight_path_s2(ds_path, fname='MTD_DS.xml', s2_dict=None):
     s2_dict : dictonary
         updated with keys: "xyz", "uvw", "time", "error", "altitude", "speed"
 
+    See Also
+    --------
+    get_flight_orientation_s2 : get the quaternions of the flight path
+
     Examples
     --------
     Following the file and metadata structure of scihub:
@@ -1212,10 +1248,6 @@ def get_flight_path_s2(ds_path, fname='MTD_DS.xml', s2_dict=None):
     >>> path_det = os.path.join(S2_dir, S2_name, 'DATASTRIP', datastrip_id[17:-7])
 
     >>> sat_tim, sat_xyz, sat_err, sat_uvw = get_flight_path_s2(path_det)
-
-    See Also
-    --------
-    get_flight_orientation_s2 : get the quaternions of the flight path
     """
     if isinstance(ds_path,dict):
         # only dictionary is given, which already has all metadata within
@@ -1470,3 +1502,5 @@ def get_intrinsic_camera_mat_s2(s2_df, det, boi):
     det_in = (det_out - det_step) - (98*2)
     det_out +=  98*2
     return F
+
+

@@ -1,8 +1,12 @@
 import numpy as np
 
+from scipy import ndimage
+
 # local functions
+from ..generic.mapping_tools import rot_mat
 from ..processing.matching_tools_frequency_filters import \
     make_fourier_grid
+
 
 def project_along_flow(dX_raw,dY_raw,dX_prio,dY_prio,e_perp):
     """
@@ -68,6 +72,52 @@ def project_along_flow(dX_raw,dY_raw,dX_prio,dY_prio,e_perp):
     dY_proj = d_proj * dY_raw 
     return dX_proj,dY_proj 
 
+def rot_covar(V, R):
+    V_r = R @ V @ np.transpose(R)
+    return V_r
+
+def rotate_variance(Theta, qii, qjj, rho):
+    """ rotate the elements of the covariance into a direction of interest
+
+    Parameters
+    ----------
+    Theta : numpy.array, size=(m,n), unit=degrees
+        direction of interest
+    qii : numpy.array, size=(m,n), unit={meters, pixels}
+        variance in vertical direction
+    qjj : numpy.array, size=(m,n), unit={meters, pixels}
+        variance in horizontal direction
+    rho : numpy.array, size=(m,n), unit=degrees
+        orientation of the ellipse
+
+    Returns
+    -------
+    qii_r : numpy.array, size=(m,n), unit={meters, pixels}
+        variance in given direction
+    qii_r : numpy.array, size=(m,n), unit={meters, pixels}
+        variance in right angle direction
+
+    See Also
+    --------
+    rotate_disp_field : generic function, using a constant rotation
+    """
+    qii_r, qjj_r = np.zeros_like(qii), np.zeros_like(qjj)
+    for iy, ix in np.ndindex(Theta.shape):
+        if ~np.isnan(Theta[iy,ix]) and ~np.isnan(rho[iy,ix]):
+            # construct co-variance matrix
+            try:
+                qij = rho[iy,ix]*np.sqrt(qii[iy,ix])*np.sqrt(qjj[iy,ix])
+            except:
+                breakpoint
+            V = np.array([[qjj[iy,ix], qij],
+                          [qij, qii[iy,ix]]])
+            R = rot_mat(Theta[iy,ix])
+            V_r = rot_covar(V, R)
+            qii_r[iy, ix], qjj_r[iy, ix] = V_r[1][1], V_r[0][0]
+        else:
+            qii_r[iy,ix], qjj_r[iy,ix] = np.nan, np.nan
+    return qii_r, qjj_r
+
 def rotate_disp_field(UV, theta):
     """ rotate a complex number through an angle
 
@@ -75,7 +125,7 @@ def rotate_disp_field(UV, theta):
     ----------
     UV : numpy.array, size=(m,n), dtype=complex
         grid with displacements in complex form
-    theta : angle, unit=degrees
+    theta : {numpy.array, float}, angle, unit=degrees
         rotation angle
 
     UV_r :  numpy.array, size=(m,n), dtype=complex
@@ -87,7 +137,7 @@ def rotate_disp_field(UV, theta):
     return UV_r
 
 def helmholtz_hodge(dX, dY):
-    """
+    """ apply Helmholtz-Hodge decomposition
 
     Parameters
     ----------
@@ -124,6 +174,39 @@ def helmholtz_hodge(dX, dY):
 
     if np.any(Msk): dX_irrot[Msk], dY_irrot[Msk] = np.nan, np.nan
     return dX_divfre, dY_divfre, dX_irrot, dY_irrot
+
+def nan_resistant(buffer, kernel):
+    OUT = np.isnan(buffer)
+    filter = kernel.copy().ravel()
+    if np.all(OUT):
+        return np.nan
+    elif np.all(~OUT):
+        return np.nansum(buffer[~OUT] * filter[~OUT])
+
+    surplus = np.sum(filter[OUT]) # energy to distribute
+    grouping = np.sign(filter).astype(int)
+    np.putmask(grouping, OUT, 0) # do not include no-data location in re-organ
+
+    if np.sign(surplus)==-1 and np.any(grouping==-1):
+        idx = grouping==+1
+        filter[idx] += surplus/np.sum(idx)
+        central_pix = np.nansum(buffer[~OUT]*filter[~OUT])
+    elif np.sign(surplus)==+1 and np.any(grouping==+1):
+        idx = grouping == -1
+        filter[idx] += surplus /np.sum(idx)
+        central_pix = np.nansum(buffer[~OUT] * filter[~OUT])
+    elif surplus == 0:
+        central_pix = np.nansum(buffer[~OUT] * filter[~OUT])
+    else:
+        central_pix = np.nan
+
+    return central_pix
+
+def relaxation_labelling(I, tsize=3, magnitude=False):
+    I_new = ndimage.generic_filter(I, nan_resistant, size=(tsize, tsize),
+                                   extra_arguments=(magnitude,))
+    return I_new
+
 
 # geometric_configuration
 # temporal_configuration  

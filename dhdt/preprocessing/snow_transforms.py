@@ -18,9 +18,14 @@ def snow_cover_fraction(Near, Short):
     Notes
     -----
     Based on the bands of Sentinel-2:
-    
-    .. math:: \text{SCF}=\frac{B_{8}}{B_{11}} 
-    
+
+        .. math:: SCF= B_{8} / B_{11}
+
+    The bands of Sentinel-2 correspond to the following spectral range:
+
+        - :math:`B_{8}` : near infrared
+        - :math:`B_{11}` : shortwave infrared
+
     References
     ----------
     .. [1] Paul et al. "The new remote-sensing-derived Swiss glacier inventory: 
@@ -47,9 +52,14 @@ def snow_fraction(Red, Short):
     Notes
     -----
     Based on the bands of Sentinel-2:
-    
-    .. math:: \text{SF}=\frac{B_{4}}{B_{11}} 
-    
+
+        .. math:: SF = B_{4} / B_{11}
+
+    The bands of Sentinel-2 correspond to the following spectral range:
+
+        - :math:`B_{4}` : red
+        - :math:`B_{11}` : shortwave infrared
+
     References
     ----------
     .. [1] Paul & Kääb "Perspectives on the production of a glacier inventory 
@@ -75,16 +85,19 @@ def normalized_difference_snow_index(Green, Short):
     NDSI : numpy.array, size=(m,n)
         array with NDSI transform
 
-    See also
-    --------
-    normalized_difference_snow_ice_index
-    
     Notes
     -----
     Based on the bands of Sentinel-2:
-    
-    .. math:: \text{NDSII}=\frac{B_{3}-B_{8}}{B_{3}+B_{8}} 
-    
+        .. math:: NDSI = (B_{3}-B_{8}) / (B_{3}+B_{8})
+
+    The bands of Sentinel-2 correspond to the following spectral range:
+        - :math:`B_{3}` : green
+        - :math:`B_{8}` : near infrared
+
+    See also
+    --------
+    normalized_difference_snow_ice_index
+
     References
     ----------
     .. [1] Dozier. "Spectral signature of alpine snow cover from the Landsat
@@ -108,16 +121,21 @@ def normalized_difference_snow_ice_index(Red, Short):
     NDSII : numpy.array, size=(m,n)
         array with NDSII transform
 
-    See also
-    --------
-    normalized_difference_snow_index
-    
     Notes
     -----
     Based on the bands of Sentinel-2:
     
-    .. math:: \text{NDSII}=\frac{B_{3}-B_{8}}{B_{3}+B_{8}} 
-    
+        .. math:: NDSII = (B_{4}-B_{11}) / (B_{4}+B_{11})
+
+    The bands of Sentinel-2 correspond to the following spectral range:
+
+        - :math:`B_{4}` : red
+        - :math:`B_{11}` : shortwave infrared
+
+    See also
+    --------
+    normalized_difference_snow_index, snow_fraction
+
     References
     ----------
     .. [1] Xiao et al. "Assessing the potential of Vegetation sensor data for 
@@ -152,8 +170,18 @@ def s3(Red, Near, Short):
     -----
     Based on the bands of Sentinel-2:
     
-    .. math:: \text{NDSII}=\frac{B_{3}-B_{8}}{B_{3}+B_{8}} 
-    
+        .. math:: S3 = B_{8}(B_{4}-B_{11}) / ((B_{4} + B_{8})(B_{4} + B_{11}))
+
+    The bands of Sentinel-2 correspond to the following spectral range:
+
+        - :math:`B_{4}` : red
+        - :math:`B_{8}` : near infrared
+        - :math:`B_{11}` : shortwave infrared
+
+    See Also
+    --------
+    snow_water_index
+
     References
     ----------
     .. [1] Saito & Yamazaki. "Characteristics of spectral reflectance for 
@@ -188,9 +216,15 @@ def snow_water_index(Green, Near, Short):
     Notes
     -----
     Based on the bands of Sentinel-2:
-    
-    .. math:: \text{NDSII}=\frac{B_{3}-B_{8}}{B_{3}+B_{8}} 
-    
+
+        .. math:: SWI = B_{8}(B_{3}-B_{11}) / ((B_{3} + B_{8})(B_{3} + B_{11}))
+
+    The bands of Sentinel-2 correspond to the following spectral range:
+
+        - :math:`B_{3}` : green
+        - :math:`B_{8}` : near infrared
+        - :math:`B_{11}` : shortwave infrared
+
     References
     ----------
     .. [1] Dixit et al. "Development and evaluation of a new snow water index 
@@ -226,7 +260,7 @@ def automated_glacier_extraction_index(Red, Near, Short, alpha=0.5):
     -----
     Based on the bands of Sentinel-2:
     
-    .. math:: \text{AGEI}=\frac{B_{3}-B_{8}}{B_{3}+B_{8}} 
+    .. math:: AGEI = (B_{3}-B_{8}) / (B_{3}+B_{8})
     
     References
     ----------

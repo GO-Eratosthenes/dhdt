@@ -3,42 +3,11 @@ import numpy as np
 from ..generic.unit_conversion import datetime2doy, \
     celsius2kelvin, kelvin2celsius
 
-def reflective_index_visible_vapour(df, Rh, T=15):
-    sigma = 1/df['center_wavelength'].to_numpy() # wavenumber
-    # Saturation Properties for Steam - Temperature Table in Pascal
-    TP = np.array([[0.01, 0.00061E6],
-                   [5.,   0.00087E6],
-                   [10.,  0.00123E6],
-                   [15.,  0.00171E6],
-                   [20.,  0.00234E6],
-                   [25.,  0.00317E6],
-                   [30.,  0.00425E6],
-                   [35.,  0.00563E6],
-                   [40.,  0.00739E6],
-                   [45.,  0.00960E6],
-                   [50.,  0.01235E6],
-                   [55.,  0.01576E6],
-                   [60.,  0.01995E6],
-                   [65.,  0.02504E6],
-                   [70.,  0.03120E6],
-                   [75.,  0.03860E6],
-                   [80.,  0.04741E6],
-                   [85.,  0.05787E6],
-                   [90.,  0.07018E6],
-                   [95.,  0.08461E6],
-                   [100., 0.10142E6],
-                   [110., 0.14338E6],
-                   [120,  0.19867E6]])
-
-    f = Rh*np.interp(T, TP[:,0], TP[:,1])
-    dn_0 = -f*(3.7345 -(0.0401*sigma))*1E-10
-    return dn_0
-
 def get_CO2_level(lat, date, m=3, nb=3):
     """
-    Rough estimation of CO2, based upon measurements of global 'Station data'_
+    Rough estimation of CO₂, based upon measurements of global 'Station data'_
 
-    The annual trend is based upon the 'Global trend'_ in CO2 while the seasonal
+    The annual trend is based upon the 'Global trend'_ in CO₂ while the seasonal
     trend is based upon relations as shown in Figure 1 in [1]. Where a latitudal
     component is present in the ampltitude, as well as, an asymmetric triangular
     wave.
@@ -61,7 +30,7 @@ def get_CO2_level(lat, date, m=3, nb=3):
     Returns
     -------
     total_co2 : float
-        estimate of spatial temporal CO2 value
+        estimate of spatial temporal CO₂ value
 
     Notes
     -----
@@ -80,6 +49,7 @@ def get_CO2_level(lat, date, m=3, nb=3):
     >>> plt.plot(t, co2)
 
     Plot seasonal signal
+
     >>> t = np.arange("2018-01-01","2022-01-01",dtype="M8[D]")
     >>> co2 = get_CO2_level(60, t)
     >>> plt.plot(t, co2)
@@ -87,12 +57,12 @@ def get_CO2_level(lat, date, m=3, nb=3):
     References
     ----------
     .. [1] Barnes et al. "Isentropic transport and the seasonal cycle amplitude
-       of CO2" Journal of geophysical research: atmosphere, vol.121
+       of CO₂" Journal of geophysical research: atmosphere, vol.121
        pp.8106-8124, 2016.
     """
 
     # global trend:
-    # using a polynomial upwards trend, unofortunately
+    # using a polynomial upwards trend, unfortunately
     decadal_co2 = np.poly1d(np.array([0.012786034930234986,
                                       -49.31617858270089,
                                       47857.733173381115]))
@@ -140,15 +110,15 @@ def get_height_tropopause(lat):
         .. code-block:: text
                               z_s
             Mesosphere       /
-          +-----------------/-+  ^ 80 km    |   *       T_s  |*
+          ┌-----------------/-┐  ↑ 80 km    |   *       T_s  |*
           |                /  |  |          |   *            |*
           | Stratosphere  /   |  |          |  *             |*
           |              /    |  |          |  *             |*
-          +--Tropopause-/-----+  |  ^ 11 km |_*_________T_t  |*________
+          ├--Tropopause-/-----┤  |  ↑ 11 km |_*_________T_t  |*________
           |            |      |  |  |       | **             | *
           |  Tropo     |      |  |  |       |    **          |  **
           |  sphere    | z_h  |  |  |       |       **  T_h  |     ****
-          +------------#------+  v  v       +-----------T_0  +---------
+          └------------#------┘  ↓  ↓       └-----------T_0  └---------
            Earth surface                    Temperature      Pressure
 
     References
@@ -305,8 +275,10 @@ def get_density_fraction(lat, h_0, alpha=0.0065, R=8314.36, M_t=28.825):
     rho_frac : float
         fraction of density in relation to density as sea-level
 
-    Nomenclature
-    ------------
+    Notes
+    -----
+    The following parameters are used
+
     T_sl : unit=Kelvin, temperature at sea level
     T_t : unit=Kelvin, temperature at the Tropopause
     h_t : unit=meters, altitude of the Tropopause
@@ -400,8 +372,10 @@ def water_vapor_frac(p,T,fH):
     x_w : float
         molar fraction of water vapor in moist air
 
-    Nomenclature
-    ------------
+    Notes
+    -----
+    The following parameters are used in this function:
+
     svp : unit=Pascal, saturation vapor pressure
     t : unit=Celcius, temperature
 
@@ -487,8 +461,8 @@ def get_density_air(T,P,fH, moist=True, CO2=450, M_w=0.018015, R=8.314510):
         fractional humidity
     moist : bool
         estimate moist (True) or dry air (False)
-    CO2 : float, unit=ppm of CO2
-        parts per million of CO2 in the atmosphere
+    CO2 : float, unit=ppm of CO₂
+        parts per million of CO₂ in the atmosphere
     M_w : float, unit=kg mol-1
         molar mass of water vapor
     R : float, unit=J mol-1 K-1
@@ -499,8 +473,10 @@ def get_density_air(T,P,fH, moist=True, CO2=450, M_w=0.018015, R=8.314510):
     rho : float, unit=kg m3
         density of moist air
 
-    Nomenclature
-    ------------
+    Notes
+    -----
+    The following parameters are used in this function:
+
     M_a : unit=kg mol-1, molar mass of dry air
     x_w : molecular fraction of water vapor
     Z : compressibility of moist air
@@ -608,6 +584,10 @@ def refractive_index_visible(df, T):
     n_0 : {float, numpy.array}
         index of refraction
 
+    See Also
+    --------
+    refractive_index_broadband
+
     References
     ----------
     .. [1] Birch and Jones, "Correction to the updated Edlen equation for the
@@ -634,8 +614,8 @@ def refractive_index_broadband(df, T_0, P_0, fH_0, h_0, CO2=450.,
     ----------
     df : dataframe, unit=µm
         central wavelengths of the spectral bands
-    CO2 : float, unit=ppm of CO2, default=450.
-        parts per million of CO2
+    CO2 : float, unit=ppm of CO₂, default=450.
+        parts per million of CO₂
     T_0 : float, unit=Celsius
         temperature at location
     P_0 : float, unit=Pascal
@@ -655,8 +635,8 @@ def refractive_index_broadband(df, T_0, P_0, fH_0, h_0, CO2=450.,
     LorentzLorenz : bool
         Two ways are possible to calculate the proportional refraction index,
         when
-        - True : the Lorentz-Lorenz relationship is used.
-        - False : component wise addition is used
+            - True : the Lorentz-Lorenz relationship is used.
+            - False : component wise addition is used
 
     Returns
     -------
@@ -668,10 +648,16 @@ def refractive_index_broadband(df, T_0, P_0, fH_0, h_0, CO2=450.,
     Standard air [2] is defined to be dry air at a temperature of 15 degrees
     Celsius and a total pressure of 1013.25 mb, having the following composition
     by molar percentage:
-    - 78.09% nitrogen (N2)
-    - 20.95% oxygen (O2)
-    -  0.93% argon (Ar)
-    -  0.03% carbon dioxide (C02)
+        - 78.09% nitrogen (N₂)
+        - 20.95% oxygen (O₂)
+        -  0.93% argon (Ar)
+        -  0.03% carbon dioxide (C0₂)
+
+    See Also
+    --------
+    ciddor_eq5 : calculation used for the Lorentz-Lorenz relationship
+    ciddor_eq6 : calculation used for component wise addition
+    refractive_index_visible
 
     References
     ----------
@@ -737,9 +723,19 @@ def refraction_angle_analytical(zn_0, n_0):
 
 def refraction_spherical_symmetric(zn_0, lat=None, h_0=None):
     """
+    Parameters
+    ----------
+    zn_0, float
+        observation angle, when atmosphere is not taken into account
+    lat : float, unit=degrees, range=-90...+90
+        latitude of point of interest
+    h_0 : float, unit=meters
+        initial altitude above geoid
 
     Returns
     -------
+    zn_hat : float
+        analytical refraction angle
 
     Notes
     -----
@@ -748,7 +744,7 @@ def refraction_spherical_symmetric(zn_0, lat=None, h_0=None):
         .. code-block:: text
 
           surface normal              * sun
-          ^                     ^    /
+          ↑                     ↑    /
           |                     |   /
           |-- zenith angle      |  /
           | /                   | /|
@@ -788,8 +784,10 @@ def refraction_spherical_symmetric(zn_0, lat=None, h_0=None):
 #    Returns
 #    -------
 #
-#    Nomenclature
-#    ------------
+#    Notes
+#    -----
+#    The following parameters are used:
+#
 #    i : unit=degrees
 #        incidence angle
 #    R : unit=meters

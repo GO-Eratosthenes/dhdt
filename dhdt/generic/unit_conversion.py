@@ -123,9 +123,95 @@ def dms2deg(deg,min,sec):
     return ang
 
 def deg2gon(ang):
+    """ convert from gon to degrees
+
+    Parameters
+    ----------
+    ang : unit=degrees, range=0...360
+
+    Returns
+    -------
+    ang : unit=gon, range=0...400
+
+    See Also
+    --------
+    gon2deg, deg2compass
+    """
     ang *= 400/360
     return ang
 
 def gon2deg(ang):
+    """ convert from gon to degrees
+
+    Parameters
+    ----------
+    ang : unit=gon, range=0...400
+
+    Returns
+    -------
+    ang : unit=degrees, range=0...360
+
+    See Also
+    --------
+    deg2gon, deg2compass
+    """
     ang *= 360/400
     return ang
+
+def deg2compass(theta):
+    """ adjust angle to be in bounds of a positive argument angle,like a compass
+
+    Parameters
+    ----------
+    theta : unit=degrees
+
+    Returns
+    -------
+    theta : unit=degrees, range=0...+360
+
+    See Also
+    --------
+    deg2arg
+
+    Notes
+    -----
+    The angle is declared in the following coordinate frame:
+
+        .. code-block:: text
+
+                 ^ North & y
+                 |
+            - <--|--> +
+                 |
+                 +----> East & x
+    """
+    return theta % 360
+
+def deg2arg(theta):
+    """ adjust angle to be in bounds of an argument angle
+
+    Parameters
+    ----------
+    theta : unit=degrees
+
+    Returns
+    -------
+    theta : unit=degrees, range=-180...+180
+
+    See Also
+    --------
+    deg2compass
+
+    Notes
+    -----
+    The angle is declared in the following coordinate frame:
+
+        .. code-block:: text
+
+                 ^ North & y
+                 |
+            - <--|--> +
+                 |
+                 +----> East & x
+    """
+    return ((theta + 180) % 360) -180
