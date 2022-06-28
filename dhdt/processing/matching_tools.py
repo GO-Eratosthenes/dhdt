@@ -243,11 +243,7 @@ def pad_images_and_filter_coord_list(M1, M2, geoTransform1, geoTransform2,
 
     i2,j2 = I2_grd.flatten(), J2_grd.flatten()
 
-    # remove posts outside image
-    IN = np.logical_and.reduce((i1>=0, i1<=M1.shape[0], j1>=0, j1<=M1.shape[1],
-                                i2>=0, i2<=M2.shape[0], j2>=0, j2<=M2.shape[1]))
-
-    i1, j1, i2, j2 = i1[IN], j1[IN], i2[IN], j2[IN]
+    i1,j1,i2,j2 = remove_posts_pairs_outside_image(I1, i1, j1, I2, i2, j2)
 
     # extend image size, so search regions at the border can be used as well
     M1_new = pad_radius(M1, ds1)
@@ -363,6 +359,30 @@ def make_templates_same_size(I1,I2):
         else:
             I2sub = I2[+md:-md, +nd:-nd]
     return I1, I2sub
+
+def remove_posts_pairs_outside_image(I1, i1, j1, I2, i2, j2):
+    """
+
+    Parameters
+    ----------
+    I1 : numpy.array, size=(m,n)
+        raster array of interest, where point pairs are located
+    i1,j1 : numpy.array, size=(k,)
+        post locations of first pair, given in image coordinates
+    I2 : numpy.array, size=(m,n)
+        raster array of interest, where point pairs are located
+    i2,j2 : numpy.array, size=(k,)
+        post locations of second pair, given in image coordinates
+
+    Returns
+    -------
+    i1,j1,i2,j2 : numpy.array, size=(l,)
+        filtered locations within the data array "I1" or "I2"
+    """
+    IN = np.logical_and.reduce((i1>=0, i1<I1.shape[0], j1>=0, j1<I1.shape[1],
+                                i2>=0, i2<I2.shape[0], j2>=0, j2<I2.shape[1]))
+    i1, j1, i2, j2 = i1[IN], j1[IN], i2[IN], j2[IN]
+    return i1, j1, i2, j2
 
 def test_bounds_reposition(d, temp_size, search_size):
     """

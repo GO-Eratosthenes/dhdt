@@ -119,3 +119,43 @@ def secant(A, y, J, params, n_iters=5, print_diagnostics=False):
     if (history[0]<history[-1]) and print_diagnostics:
         print('no convergence')
     return params, history    
+
+def estimate_sinus(phi, rho, bias=True):
+    """ least squares estimation of a sinus function
+
+    Parameters
+    ----------
+    phi : numpy.array, size=(m,), unit=degrees
+        angle
+    rho : numpy.array, size=(m,)
+        amplitude
+    bias : boolean
+        estimate offset as well
+
+    Returns
+    -------
+    phase_hat : float
+        least squares estimate of the phase
+    amp_hat : float
+        least squares estimate of the amplitude
+    bias : float
+        offset of the curve
+    """
+    assert phi.size>=2, 'please provide enough data points'
+    assert rho.size>=2, 'please provide enough data points'
+
+    # design matrix
+    if bias==True:
+        A = np.vstack([np.sin(np.deg2rad(phi)),
+                       np.cos(np.deg2rad(phi)),
+                       np.ones(len(phi))]).T
+    else:
+        A = np.vstack([np.sin(np.deg2rad(phi)),
+                       np.cos(np.deg2rad(phi))]).T
+
+    x_hat = np.linalg.lstsq(A, rho, rcond=None)[0]
+
+    phase_hat = np.rad2deg(np.arctan2(x_hat[0], x_hat[1]))
+    amp_hat = np.hypot(x_hat[0], x_hat[1])
+    bias = x_hat[-1]
+    return phase_hat, amp_hat, bias

@@ -1,5 +1,7 @@
 import numpy as np
 
+from datetime import datetime, timedelta
+
 # time conversions
 def datetime2doy(dt):
     """ Convert array of datetime64 to a day of year.
@@ -20,6 +22,39 @@ def datetime2doy(dt):
     doy = (dt.astype('datetime64[D]') -
           dt.astype('datetime64[Y]') + 1).astype('float64')
     return year, doy
+
+def doy2dmy(doy,year):
+    """ given day of years, calculate the day and month
+
+    Parameters
+    ----------
+    year : integer
+        calender year
+    doy : integer
+        day of year
+
+    Returns
+    -------
+    day, month, year
+    """
+
+    if year.size < doy.size:
+        year = year*np.ones_like(doy)
+
+    # sometimes the doy is longer than 365, than put this to the year counter
+    xtra_years = np.floor(doy / 365).astype(int)
+    year += xtra_years
+
+    doy = doy % 365
+
+    dates = (year-1970).astype('datetime64[Y]') + doy.astype('timedelta64[D]')
+    month = dates.astype('datetime64[M]').astype(int) % 12 + 1
+    day = dates - dates.astype('datetime64[M]') + 1
+    day = day.astype(int)
+    if day.size==1:
+        return day[0], month[0], year[0]
+    else:
+        return day, month, year
 
 def datetime2calender(dt):
     """ Convert array of datetime64 to a calendar year, month, day.

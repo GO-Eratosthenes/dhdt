@@ -194,7 +194,36 @@ def make_fourier_grid(Q, indexing='ij', system='radians'):
     F_1 = np.fft.fftshift(F_1)
     F_2 = np.fft.fftshift(F_2)
     return F_1, F_2
-    
+
+def gradient_fourier(I):
+    """ spectral derivative estimation
+
+    Parameters
+    ----------
+    I : numpy.array, size=(m,n), dtype=float
+        intensity array
+
+    Returns
+    -------
+    dIdx_1, dIdx_2 : numpy.array, size=(m,n), dtype=float
+        first order derivative along both axis
+    """
+    m, n = I.shape[0], I.shape[1]
+
+    x_1 = np.linspace(0, 2*np.pi, m, endpoint=False)
+    dx = x_1[1] - x_1[0]
+
+    k_1, k_2 = 2*np.pi*np.fft.fftfreq(m, dx), 2*np.pi*np.fft.fftfreq(n, dx)
+    K_1, K_2 = np.meshgrid(k_1, k_2, indexing='ij')
+
+    # make sure Gibbs phenomena are reduced
+    I_g = perdecomp(I)[0]
+    W_1, W_2 = hanning_window(K_1), hanning_window(K_2)
+
+    dIdx_1 = np.fft.ifftn(W_1*K_1*1j * np.fft.fftn(I)).real
+    dIdx_2 = np.fft.ifftn(W_2*K_2*1j * np.fft.fftn(I)).real
+    return dIdx_1, dIdx_2
+
 # frequency matching filters
 def raised_cosine(I, beta=0.35):
     """ raised cosine filter

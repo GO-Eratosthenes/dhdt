@@ -8,6 +8,7 @@ from tqdm import tqdm
 import numpy as np
 
 from sklearn.neighbors import NearestNeighbors
+from scipy.spatial.distance import cdist
 from skimage import measure
 
 from ..generic.mapping_tools import pix2map, cast_orientation, ref_trans, \
@@ -605,6 +606,40 @@ def pair_images(conn_1, conn_2, thres=20):
     idxConn = np.transpose(np.vstack((np.where(IN)[0], indices[IN])))
     return idxConn
 
+def pair_posts(xy_1, xy_2, thres=20.):
+    """ find unique closest pair of two point sets
+
+    Parameters
+    ----------
+    xy_1 : np.array, size=(m,_), dtype=float
+        array with coordinates
+    xy_2 : np.array, size=(m,_), dtype=float
+        array with coordinates
+    thres : float
+        upper limit to still include a pairing
+
+    Returns
+    -------
+    idx_conn : np.array, size=(k,2)
+        array with connectivity, based upon the index of xy_1 and xy_2
+    """
+    def closest_post_index(node, nodes):
+        D = cdist([node], nodes, 'sqeuclidean').squeeze()
+        idx = np.argmin(D)
+        dist = D[idx]
+        return idx, dist
+
+    idx_conn = []
+    for idx,arr in enumerate(xy_2):
+        if xy_1.size==0:
+            break
+        i,d = closest_post_index(arr, xy_1)
+        if d <= thres:
+            idx_conn.append([i, idx])
+            xy_1[i, ...] = np.inf
+    idx_conn = np.array(idx_conn)
+    return idx_conn
+
 def match_shadow_ridge(M1, M2, Az1, Az2, geoTransform1, geoTransform2,
                         xy1, xy2, describ='BAS', K=5):
 
@@ -910,44 +945,6 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
     xy2_corr[:,0], xy2_corr[:,1] = pix2map(geoTransformPad2,
                                            ij2_corr[:,0], ij2_corr[:,1])
     return xy2_corr, snr_score
-
-def get_stack_out_of_dir(im_dir,boi,bbox): #todo I donot think this is a very robust function
-    """
-    Create a stack of images from different bands, with at specific bounding box
-
-    :param im_dir:        STRING
-        path to the directory of interest
-    :param boi:           NP.ARRAY
-        list of bands of interest
-    :param bbox:          NP.ARRAY  [1,4]
-        list with outer coordinates
-
-    :return M:            NP.ARRAY [_,_,boi]
-        array with data from images in folder
-    :return geoTransform: NP.ARRAY [1,6]
-        coordinate metadata of array
-    """
-    # create empty stack
-    M = np.zeros((bbox[1]-bbox[0], bbox[3]-bbox[2], len(boi)))
-
-    for i in range(len(boi)):
-        # find image
-        find_str = os.path.join(im_dir, f'*{boi[i]:02d}.jp2')
-        im_file = glob.glob(find_str)
-        if len(im_file)==0: # imagery might be tiff instead
-            find_str = os.path.join(im_dir, f'*{boi[i]:02d}.tif')
-            im_file = glob.glob(find_str)
-
-        # read image
-        if len(im_file)!=0:
-            (im_bnd,crs, geoTransform, targetprj) = read_geo_image(
-                im_file[0])
-
-        # stack image
-        M[:,:,i] = im_bnd[bbox[0]:bbox[1], bbox[2]:bbox[3]]
-
-    geoTransform = ref_trans(geoTransform,bbox[0],bbox[2])
-    return M, geoTransform
 
 def angles2unit(azimuth):
     """ Transforms arguments in degrees to unit vector, in planar coordinates

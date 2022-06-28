@@ -238,7 +238,7 @@ def read_band_s2(path, band=None):
             fname = os.path.join(path, '*' + band + '.jp2')
     else:
         fname = path
-    assert len(glob.glob(fname))!=0, ('file does not seem to be present')
+    assert os.path.exists(fname), ('file does not seem to be present')
 
     data, spatialRef, geoTransform, targetprj = \
         read_geo_image(glob.glob(fname)[0])

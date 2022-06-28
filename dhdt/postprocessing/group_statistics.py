@@ -117,9 +117,9 @@ def get_general_hypsometry(Z, dZ, interval=100, quant=.5):
     """
     L = np.round(Z/interval)
     f =  lambda x: np.quantile(x, quant)
-    label, hypsometry = get_stats_from_labelled_array(L, dZ, f)
+    label, hypsometry, counts = get_stats_from_labelled_array(L, dZ, f)
     label *= interval
-    return label, hypsometry
+    return label, hypsometry, counts
 
 def get_stats_from_labelled_array(L,I,func): #todo is tuple: multiple functions?
     """ get properties of a labelled array
@@ -158,7 +158,7 @@ def get_stats_from_labelled_array(L,I,func): #todo is tuple: multiple functions?
     arr_split = np.split(I[indices.argsort()], counts.cumsum()[:-1])
 
     result = np.array(list(map(func, arr_split)))
-    return labels, result
+    return labels, result, counts
 
 def hypsometeric_void_interpolation(z,dz,Z,deg=3):
     """

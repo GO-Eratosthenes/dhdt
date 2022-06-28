@@ -878,9 +878,6 @@ def get_shape_extent(bbox, geoTransform):
 
 def get_map_extent(bbox):
     """ generate coordinate list in counterclockwise direction from boundingbox
-    input:   bbox           array (1 x 4)     min max X, min max Y
-    output:  xB             array (5 x 1)     coordinate list for x
-             yB             array (5 x 1)     coordinate list for y
 
     Parameters
     ----------

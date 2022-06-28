@@ -78,26 +78,35 @@ def read_geo_image(fname, boi=np.array([])):
     --------
     make_geo_im : basic function to write out geographic data
     read_geo_info : basic function to get meta data of geographic imagery
+    read_nc_im : basic function to read geographic raster out of nc-file
 
     Example
     -------
     >>> import os
+    >>> from dhdt.generic.mapping_io import read_geo_image
     >>> fpath = os.path.join(os.getcwd(), "data.jp2" )
     
-    >>> (I, spatialRef, geoTransform, targetPrj) = read_geo_image(fpath)
+    >>> I, spatialRef, geoTransform, targetPrj = read_geo_image(fpath)
     
     >>> I_ones = np.zeros(I.shape, dtype=bool)
     >>> make_geo_im(I_ones, geoTransformM, spatialRefM, "ones.tif")
     assert os.path.exists(fname), ('file must exist')
 
     """
-    assert len(glob.glob(fname)) != 0, ('file does not seem to be present')
+    assert os.path.exists(fname), ('file does not seem to be present')
 
     img = gdal.Open(fname)
+    assert img is not None, ('could not open dataset ' + fname)
+
     # imagery can consist of multiple bands
     if len(boi) == 0:
         for counter in range(img.RasterCount):
             band = np.array(img.GetRasterBand(counter+1).ReadAsArray())
+            no_dat = img.GetRasterBand(counter+1).GetNoDataValue()
+            try:
+                np.putmask(band, band==no_dat, np.nan)
+            except:
+                print('something went wrong')
             data = band if counter == 0 else np.dstack((data,
                                                         band[:,:,np.newaxis]))
     else:
@@ -105,11 +114,27 @@ def read_geo_image(fname, boi=np.array([])):
         assert (np.max(boi)+1)<=num_bands, 'bands of interest is out of range'
         for band_id, counter in enumerate(boi):
             band = np.array(img.GetRasterBand(band_id+1).ReadAsArray())
+            no_dat = img.GetRasterBand(counter+1).GetNoDataValue()
+            np.putmask(band, band==no_dat, np.nan)
             data = band if counter==0 else np.dstack((data,
                                                       band[:, :, np.newaxis]))
     spatialRef = img.GetProjection()
-    geoTransform = img.GetGeoTransform()
+    geoTransform = img.GetGeoTransform() + data.shape[:2]
     targetprj = osr.SpatialReference(wkt=img.GetProjection())
+    return data, spatialRef, geoTransform, targetprj
+
+def read_nc_image(fname, layer_name):
+    assert os.path.exists(fname), ('file does not seem to be present')
+
+    ds = gdal.Open("NETCDF:{0}:{1}".format(fname, layer_name))
+    assert ds is not None, ('could not open dataset ' + fname)
+
+    data = np.array(ds.ReadAsArray())
+    np.putmask(data, data==ds.GetRasterBand(1).GetNoDataValue(), np.nan)
+
+    spatialRef = ds.GetProjection()
+    geoTransform = ds.GetGeoTransform() + data.shape
+    targetprj = osr.SpatialReference(wkt=ds.GetProjection())
     return data, spatialRef, geoTransform, targetprj
 
 # output functions

@@ -22,7 +22,7 @@ def get_network_indices(n):
     get_network_by_sunangle_s2 : same version, but with constrain on sun angle
     get_adjacency_matrix_from_netwrok : construct design matrix from edge list
     """
-    if isinstance(n,int):
+    if type(n) in (int, np.int64, np.int32, np.int16):
         grids = np.indices((n, n))
     else:
         grids = np.meshgrid(n,n)

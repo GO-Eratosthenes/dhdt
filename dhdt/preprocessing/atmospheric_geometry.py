@@ -1,7 +1,32 @@
 import numpy as np
 
+from ..generic.mapping_tools import map2ll
 from ..generic.unit_conversion import datetime2doy, \
     celsius2kelvin, kelvin2celsius
+
+def get_mean_lat(Z, geoTransform, spatialRef):
+    """ calculate the mean latitude of the array
+
+    Parameters
+    ----------
+    Z: numpy.array, size=(m,n), unit=m
+        array with elevation values
+    geoTransform : tuple, size={(1,6), (1,8)}
+        georeference transform of the array 'Z'
+    spatialRef : osgeo.osr.SpatialReference() object
+        coordinate reference system
+
+    Returns
+    -------
+    lat : float, unit=degrees, range=-90...+90
+        mean latitude of the array
+    """
+    x_mean = geoTransform[0] + geoTransform[1]*(Z.shape[1]/2)
+    y_mean = geoTransform[3] + geoTransform[5]*(Z.shape[0]/2)
+
+    ll = map2ll(np.array([[x_mean, y_mean]]), spatialRef)
+    lat, lon = ll[0][0], ll[0][1]
+    return lat, lon
 
 def get_CO2_level(lat, date, m=3, nb=3):
     """
@@ -101,6 +126,10 @@ def get_height_tropopause(lat):
     h_t : {float, numpy.array}, unit=meters
         estimate of tropopause, that is the layer between the troposphere and
         the stratosphere
+
+    See Also
+    --------
+    get_mean_lat
 
     Notes
     -----
@@ -319,6 +348,10 @@ def get_simple_density_fraction(lat):
     -------
     densFrac : {float, numpy.array}
         estimate of the density fraction
+
+    See Also
+    --------
+    get_mean_lat
 
     References
     ----------
@@ -736,6 +769,10 @@ def refraction_spherical_symmetric(zn_0, lat=None, h_0=None):
     -------
     zn_hat : float
         analytical refraction angle
+
+    See Also
+    --------
+    get_mean_lat
 
     Notes
     -----

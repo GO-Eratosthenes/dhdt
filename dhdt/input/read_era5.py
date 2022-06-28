@@ -13,7 +13,7 @@ from ..generic.unit_conversion import datetime2calender, hpa2pascal
 
 # https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-pressure-levels
 
-def get_space_time_id(date, lat, lon):
+def get_space_time_id(date, lat, lon, full=True):
     """
 
     Parameters
@@ -24,6 +24,8 @@ def get_space_time_id(date, lat, lon):
         central latitude of interest
     lon : float, unit=degrees, range=-180...+180
         central longitude of interest
+    full : boolean
+        give the whole date, otherwise only the year will be given
 
     Returns
     -------
@@ -42,9 +44,10 @@ def get_space_time_id(date, lat, lon):
 
     # construct part of string about the date
     year, month, day = datetime2calender(date)
-    fname += '-' + str(year) + '-' + str(month).zfill(2) + \
-             '-' + str(day).zfill(2)
-
+    fname += '-' + str(year)
+    if not full:
+        return fname
+    fname += '-' + str(month).zfill(2) + '-' + str(day).zfill(2)
     return fname
 
 # "General Regularly distributed Information in Binary form"
@@ -76,6 +79,31 @@ def get_pressure_from_grib_file(fname='download.grib'):
             T[idx,:] = grb['values']
     grbs.close()
     return lat, lon, G, Rh, T
+
+def get_wind_from_grib_file(fname='download.grib', pres_level=1000):
+    U, V, Rh, T = None, None, None, None
+
+    grbs = pygrib.open(fname)
+    for i in np.linspace(1,grbs.messages,grbs.messages, dtype=int):
+        grb = grbs.message(i)
+        idx = np.where(pres_level==grb['level'])[0][0]
+
+        # initial admin
+        if T is None:
+            T = np.zeros((37, grb['numberOfDataPoints']))
+            Rh, U, V = np.zeros_like(T), np.zeros_like(T), np.zeros_like(T)
+            lat, lon = grb['latitudes'], grb['longitudes']
+
+        if grb['parameterName']=='Geopotential':
+            U[idx,:] = grb['values']
+        elif grb['parameterName']=='Geopotential':
+            V[idx,:] = grb['values']
+        elif grb['parameterName']=='Relative humidity':
+            Rh[idx,:] = grb['values']
+        elif grb['parameterName']=='Temperature':
+            T[idx,:] = grb['values']
+    grbs.close()
+    return lat, lon, U, V, Rh, T
 
 def get_era5_atmos_profile(date, x, y, spatialRef,
                            z=10**np.linspace(0,5,100)):
@@ -168,3 +196,39 @@ def get_era5_atmos_profile(date, x, y, spatialRef,
     Pres = hpa2pascal(Pres)
     fracHum = RelHum/100
     return lat, lon, z, Temp, Pres, fracHum
+
+def get_era5_monthly_surface_wind(lat,lon,year):
+
+    fname = get_space_time_id(np.array([year-1970]).astype('datetime64[Y]')[0],
+                              lat, lon, full=False)
+    fname += '.grib' # using grib-data format
+
+    # era5 reanalysis grid is in .25[deg]
+    deg_xtr = .5
+    lat_min, lat_max = lat-deg_xtr, lat+deg_xtr
+    lon_min, lon_max = lon-deg_xtr, lon+deg_xtr
+
+    # retrieve data
+    c = cdsapi.Client()
+    c.retrieve(
+        'reanalysis-era5-pressure-levels-monthly-means',
+        {
+            'product_type': 'monthly_averaged_reanalysis',
+            'format': 'grib',
+            'variable': [
+                'u_component_of_wind', 'v_component_of_wind',
+                'relative_humidity', 'temperature',
+            ],
+            'pressure_level': '1000',
+            'year': str(year),
+            'month': ['01', '02', '03', '04', '05', '06',
+                      '07', '08', '09', '10', '11', '12', ],
+            'area': [
+                lat_max, lon_min, lat_min, lon_max,
+            ],
+        },
+        fname)
+    lat, lon, U, V, Rh, T = get_wind_from_grib_file(fname=fname)
+    os.remove(fname)
+
+    return U,V, Rh, T
