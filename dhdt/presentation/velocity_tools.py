@@ -10,8 +10,12 @@ from ..generic.mapping_tools import vel2pix
 from ..generic.test_tools import construct_correlation_peak
 from ..generic.gis_tools import polylines2shapefile
 
-def make_seeds(Msk, n=1e2):
-    idx_1,idx_2 = np.where(Msk)
+def make_seeds(Msk, n=1E2):
+    if not np.any(Msk):
+        idx_1,idx_2 = np.mgrid[0:Msk.shape[0], 0:Msk.shape[1]]
+        idx_1,idx_2 = idx_1.flatten(), idx_2.flatten()
+    else:
+        idx_1,idx_2 = np.where(Msk)
     idx_rnd = np.random.randint(0, high=idx_1.size, size=int(n), dtype=int)
     # create random seed points
     i_samp, j_samp = idx_1[idx_rnd].astype(float), idx_2[idx_rnd].astype(float)

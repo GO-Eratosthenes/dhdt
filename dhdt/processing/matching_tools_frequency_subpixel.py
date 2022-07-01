@@ -7,13 +7,11 @@ from scipy import ndimage
 from skimage.transform import radon
 from skimage.measure.fit import _dynamic_max_trials
 
-from ..generic.test_tools import \
-    construct_phase_plane, cross_spectrum_to_coordinate_list
 from ..generic.data_tools import gradient_descent, secant
 from ..preprocessing.shadow_transforms import pca
 from .matching_tools_frequency_filters import \
     raised_cosine, thresh_masking, normalize_power_spectrum, \
-    make_fourier_grid
+    make_fourier_grid, construct_phase_plane, cross_spectrum_to_coordinate_list
 from .matching_tools_frequency_metrics import local_coherence
 
 def phase_jac(Q, m, W=np.array([]),

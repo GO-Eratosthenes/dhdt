@@ -265,10 +265,8 @@ def couple_pair(file_1, file_2, bbox=None, rgi_id=None,
 
     Parameters
     ----------
-    file_1 : string
-        path to first image(ry)
-    file_2 : string
-        path to second image(ry)
+    file_1, file_2 : string
+        path to first and second image(ry)
     bbox : {list, np.array}, size=(4,1)
         bounding box of region of interest
     rgi_id : string
@@ -318,23 +316,33 @@ def couple_pair(file_1, file_2, bbox=None, rgi_id=None,
         elevation differences between "post_1" and "post_2_corr"
     """
     # admin
+    assert os.path.exists(file_1), ('file does not seem to exist')
+    assert os.path.exists(file_2), ('file does not seem to exist')
     dir_im1, name_im1 = os.path.split(file_1)
     dir_im2, name_im2 = os.path.split(file_2)
 
     crs,geoTransform1,_,rows1,cols1,_ = read_geo_info(file_1)
     _,geoTransform2,_,rows2,cols2,_ = read_geo_info(file_2)
 
-    if bbox is None:  bbox = get_local_bbox_in_s2_tile(fname_1, dir_im1)
+    if bbox is None:  bbox = get_local_bbox_in_s2_tile(file_1, dir_im1)
 
     # naming of the files
     shw_fname = "shadow.tif"           # image with shadow transform / enhancement
     label_fname = "labelPolygons.tif"  # numbered image with all the shadow polygons
-    if rgi_id == None:
-        conn_fname = "conn.txt"        # text file listing coordinates of shadow casting and casted points
+
+    # text file listing coordinates of shadow casting and casted points
+    if os.path.exists(file_1[:-4]+'.tif'): # testing dataset is created
+        conn_fname1 = name_im1[:-4]+'.txt'
+        conn_fname2 = name_im2[:-4]+'.txt'
+    elif rgi_id is not None:
+        conn_fname1 = f"conn-rgi{rgi_id[0]:08d}.txt"
+        conn_fname2 = conn_fname1
     else:
-        conn_fname = f"conn-rgi{rgi_id[0]:08d}.txt"
-    conn_1 = np.loadtxt(fname = os.path.join(dir_im1, conn_fname))
-    conn_2 = np.loadtxt(fname = os.path.join(dir_im2, conn_fname))
+        conn_fname1 = "conn.txt"
+        conn_fname2 = conn_fname1
+
+    conn_1 = np.loadtxt(fname=os.path.join(dir_im1, conn_fname1))
+    conn_2 = np.loadtxt(fname=os.path.join(dir_im2, conn_fname2))
 
     idxConn = pair_images(conn_1, conn_2) # connected list
     caster = conn_1[idxConn[:,1],0:2]
@@ -412,19 +420,13 @@ def couple_pair(file_1, file_2, bbox=None, rgi_id=None,
                                                    correlator=match,
                                                    subpix=subpix,
                                                    metric='peak_abs')
-    post_1 = conn_1[idxConn[:,1],2:4] # cast location in xy-coordinates for t1
+    post_1 = conn_1[idxConn[:,1],2:4] # cast location in xy-coordinates for t_1
     post_2 = conn_2[idxConn[:,0],2:4]
     # extract elevation change
     sun_1 = conn_1[idxConn[:,1],4:6]
     sun_2 = conn_2[idxConn[:,0],4:6]
 
     score = euc_score if match in ['feature'] else corr_score
-    #IN = euc_score<0.7 if match in ['feature'] else corr_score>0.8
-    #IN = IN.flatten()
-
-    #post_1, post_2_new = post_1[IN,:], post_2_new[IN,:]
-    #sun_1, sun_2 = sun_1[IN,:], sun_2[IN,:]
-    #caster = caster[IN,:]
 
     caster_new = get_caster(sun_1[:,0], sun_2[:,0], post_1, post_2_new)
 

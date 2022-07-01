@@ -356,6 +356,8 @@ def read_geotransform_s2(path, fname='MTD_TL.xml', resolution=10):
     - MSI : multi spectral instrument
     - L1C : product specification,i.e.: level 1, processing step C
     """
+    if not os.path.exists(os.path.join(path, fname)):
+        return None
     root = get_root_of_table(path, fname)
 
     # image dimensions
@@ -372,6 +374,9 @@ def get_local_bbox_in_s2_tile(fname_1, s2dir):
     bbox_xy = get_bbox(geoTransform, rows, cols)
 
     s2Transform = read_geotransform_s2(s2dir)
+    if s2Transform is None:
+        return None
+
     bbox_i, bbox_j = map2pix(s2Transform, bbox_xy[0:2], bbox_xy[2::])
     bbox_ij = np.concatenate((np.flip(bbox_i), bbox_j)).astype(int)
     return bbox_ij
@@ -479,6 +484,8 @@ def read_sun_angles_s2(path, fname='MTD_TL.xml'):
     - MSI : multi spectral instrument
     - L1C : product specification,i.e.: level 1, processing step C
     """
+    if not os.path.exists(os.path.join(path, fname)):
+        return None, None
     root = get_root_of_table(path, fname)
 
     # image dimensions

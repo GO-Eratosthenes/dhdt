@@ -17,9 +17,9 @@ def read_conn_files_to_stack(folder_list, conn_file="conn.txt",
 
     Parameters
     ----------
-    folder_list : list of strings
+    folder_list : tuple of strings
         locations where connectivity files are located
-    conn_file : string
+    conn_file : {string, tuple of strings}
         name of the connectivity file
     folder_path : string
         root location where all processing folders of the imagery are situated
@@ -34,18 +34,34 @@ def read_conn_files_to_stack(folder_list, conn_file="conn.txt",
             - azimuth : sun orientation, unit=degrees
             - zenith : overhead angle of the sun, unit=degrees
     """
+    if isinstance(conn_file, tuple):
+        conn_counter = len(conn_file)
+    else:
+        conn_counter = len(folder_list)
 
     dh_stack = None
-    for im_folder in folder_list:
-        if folder_path is None:
-            conn_path = os.path.join(im_folder, conn_file)
+    for i in range(conn_counter):
+        if isinstance(conn_file, tuple):
+            c_file = conn_file[i]
         else:
-            conn_path = os.path.join(folder_path, im_folder, conn_file)
+            c_file = conn_file
+
+        if folder_path is None:
+            conn_path = os.path.join(folder_list[i], c_file)
+        elif folder_list is None:
+            conn_path = os.path.join(folder_path, c_file)
+        else:
+            conn_path = os.path.join(folder_path, folder_list[i], c_file)
 
         if not os.path.exists(conn_path):
             continue
 
-        im_date = np.datetime64(im_folder[3:])
+        if isinstance(conn_file, tuple):
+            im_date = np.datetime64('2018-05-16')
+            print('OBS: taking arbitrary date')
+        else:
+            im_date = np.datetime64(folder_list[i][3:])
+
         C = np.loadtxt(conn_path)
         desc = np.dtype([('timestamp', '<M8[D]'),
                          ('caster_X', np.float64), ('caster_Y', np.float64),

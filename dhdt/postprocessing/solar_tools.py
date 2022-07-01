@@ -213,7 +213,7 @@ def make_shadowing(Z, az, zn, spac=10, weights=None, radiation=False):
                         cval=False, order=0, prefilter=False)
 
     if not isinstance(zn, np.ndarray):
-        zn, weights = np.array([zn]), np.array([0])
+        zn, weights = np.array([zn]), np.array([1])
     if weights is None:
         weights = np.ones_like(zn)
 
@@ -240,6 +240,8 @@ def make_shadowing(Z, az, zn, spac=10, weights=None, radiation=False):
     j_max = int(np.floor((Ms.shape[1] + Z.shape[1]) / 2))
 
     Sw = Ms[i_min:i_max, j_min:j_max]
+    # remove edge cases
+    Sw[:,0], Sw[:,-1], Sw[0,:], Sw[-1,:] = 0, 0, 0, 0
     return Sw
 
 def make_shading(Z, az, zn, spac=10):

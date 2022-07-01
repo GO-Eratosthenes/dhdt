@@ -89,7 +89,7 @@ def map2pix(geoTransform, x, y):
 
     Parameters
     ----------
-    geoTransform : tuple, size=(6,1)
+    geoTransform : tuple, size={(6,1), (8,1)}
         georeference transform of an image.
     x : np.array, size=(m), ndim={1,2,3}, dtype=float
         horizontal map coordinate.
@@ -128,6 +128,9 @@ def map2pix(geoTransform, x, y):
         assert x.shape==y.shape, ('arrays should be of the same size')
     assert isinstance(geoTransform, tuple), ('geoTransform should be a tuple')
 
+    def _zero_div(a, b):
+        return a/b if b else 0
+
     # # offset the center of the pixel
     # x -= geoTransform[1] / 2.0
     # y -= geoTransform[5] / 2.0
@@ -136,18 +139,17 @@ def map2pix(geoTransform, x, y):
     i = y - geoTransform[3]
 
     if geoTransform[2] == 0:
-        j = j / geoTransform[1]
+        j = _zero_div(j, geoTransform[1])
     else:
-        j = (j / geoTransform[1]
-             + i / geoTransform[2])
+        j = (_zero_div(j, geoTransform[1]) +
+             _zero_div(i, geoTransform[2]) )
 
     if geoTransform[4] == 0:
-        i = i / geoTransform[5]
+        i = _zero_div(i, geoTransform[5])
     else:
-        i = (j / geoTransform[4]
-             + i / geoTransform[5])
-
-    return i, j
+        i = (_zero_div(j, geoTransform[4]) +
+             _zero_div(i, geoTransform[5]) )
+    return i,j
 
 def vel2pix(geoTransform, dx, dy):
     """ transform map displacements to local image displacements
@@ -875,6 +877,11 @@ def get_shape_extent(bbox, geoTransform):
                       np.hypot(geoTransform[1], geoTransform[2])
                      ).astype(int)
     return (rows, cols)
+
+def get_max_pixel_spacing(geoTransform):
+    spac = np.maximum(np.sqrt(geoTransform[1]**2 + geoTransform[2]**2),
+                      np.sqrt(geoTransform[4] ** 2 + geoTransform[5]**2))
+    return spac
 
 def get_map_extent(bbox):
     """ generate coordinate list in counterclockwise direction from boundingbox

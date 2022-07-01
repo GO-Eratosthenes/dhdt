@@ -191,9 +191,133 @@ def make_fourier_grid(Q, indexing='ij', system='radians'):
         F_1 *= 2
         F_2 *= 2
         
-    F_1 = np.fft.fftshift(F_1)
-    F_2 = np.fft.fftshift(F_2)
+    F_1, F_2 = np.fft.fftshift(F_1), np.fft.fftshift(F_2)
     return F_1, F_2
+
+def construct_phase_plane(I, di, dj, indexing='ij'):
+    """given a displacement, create what its phase plane in Fourier space
+
+    Parameters
+    ----------
+    I : np.array, size=(m,n)
+        image domain
+    di : float
+        displacment along the vertical axis
+    dj : float
+        displacment along the horizantal axis
+    indexing : {‘xy’, ‘ij’}
+         * "xy" : using map coordinates
+         * "ij" : using local image  coordinates
+
+    Returns
+    -------
+    Q : np.array, size=(m,n), complex
+        array with phase angles
+
+    Notes
+    -----
+    Two different coordinate system are used here:
+
+        .. code-block:: text
+
+          indexing   |           indexing    ^ y
+          system 'ij'|           system 'xy' |
+                     |                       |
+                     |       i               |       x
+             --------+-------->      --------+-------->
+                     |                       |
+                     |                       |
+          image      | j         map         |
+          based      v           based       |
+
+    """
+    (m,n) = I.shape
+
+    (I_grd,J_grd) = np.meshgrid(np.arange(0,n)-(n//2),
+                                np.arange(0,m)-(m//2), \
+                                indexing='ij')
+    I_grd,J_grd = I_grd/m, J_grd/n
+
+    Q_unwrap = ((I_grd*di) + (J_grd*dj) ) * (2*np.pi)   # in radians
+    Q = np.cos(-Q_unwrap) + 1j*np.sin(-Q_unwrap)
+
+    Q = np.fft.fftshift(Q)
+    return Q
+
+def cross_spectrum_to_coordinate_list(data, W=np.array([])):
+    """ if data is given in array for, then transform it to a coordinate list
+
+    Parameters
+    ----------
+    data : np.array, size=(m,n), dtype=complex
+        cross-spectrum
+    W : np.array, size=(m,n), dtype=boolean
+        weigthing matrix of the cross-spectrum
+
+    Returns
+    -------
+    data_list : np.array, size=(m*n,3), dtype=float
+        coordinate list with angles, in normalized ranges, i.e: -1 ... +1
+    """
+    assert type(data)==np.ndarray, ("please provide an array")
+    assert type(W)==np.ndarray, ("please provide an array")
+
+    if data.shape[0]==data.shape[1]:
+        (m,n) = data.shape
+        F1,F2 = make_fourier_grid(np.zeros((m,n)),
+                                  indexing='ij', system='unit')
+
+        # transform from complex to -1...+1
+        Q = np.fft.fftshift(np.angle(data) / np.pi) #(2*np.pi))
+
+        data_list = np.vstack((F1.flatten(),
+                               F2.flatten(),
+                               Q.flatten() )).T
+        if W.size>0: # remove masked data
+            data_list = data_list[W.flatten()==1,:]
+    elif W.size!= 0:
+        data_list = data[W.flatten()==1,:]
+    else:
+        data_list = data
+    return data_list
+
+def construct_phase_values(IJ, di, dj, indexing='ij', system='radians'): #todo implement indexing
+    """given a displacement, create what its phase plane in Fourier space
+
+    Parameters
+    ----------
+    IJ : np.array, size=(_,2), dtype=float
+        locations of phase values
+    di : float
+        displacment along the vertical axis
+    dj : float
+        displacment along the horizantal axis
+    indexing : {‘xy’, ‘ij’}
+         * "xy" : using map coordinates
+         * "ij" : using local image  coordinates
+    indexing : {‘radians’ (default), ‘unit’, 'normalized'}
+        the extent of the cross-spectrum can span different ranges
+
+         * "radians" : -pi..+pi
+         * "unit" : -1...+1
+         * "normalized" : -0.5...+0.5
+
+    Returns
+    -------
+    Q : np.array, size=(_,1), complex
+        array with phase angles
+    """
+
+    if system=='radians': # -pi ... +pi
+        scaling = 1
+    elif system=='unit': # -1 ... +1
+        scaling = np.pi
+    else: # normalized -0.5 ... +0.5
+        scaling = 2*np.pi
+
+    Q_unwrap = ((IJ[:,0]*di) + (IJ[:,1]*dj) )*scaling
+    Q = np.cos(-Q_unwrap) + 1j*np.sin(-Q_unwrap)
+    return Q
 
 def gradient_fourier(I):
     """ spectral derivative estimation

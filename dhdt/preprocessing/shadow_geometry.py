@@ -260,7 +260,7 @@ def find_valley(values, base, neighbors=2):
     quantiles = cumsum_norm[selec]
     return dips, quantiles
 
-def shadow_image_to_list(M, geoTransform, sen2Path,
+def shadow_image_to_list(M, geoTransform, s2_path,
                          Zn=None, Az=None, **kwargs):
     """
     Turns the image towards the sun, and looks along each solar ray, hereafter
@@ -272,7 +272,7 @@ def shadow_image_to_list(M, geoTransform, sen2Path,
         shadow classification
     geoTransform : tuple, size=(1,6)
         affine transformation coefficients
-    sen2Path : string
+    s2_path : string
         working directory path with metadata
     Zn : float, unit=degrees
         elevation angle of the illumination direction
@@ -280,7 +280,11 @@ def shadow_image_to_list(M, geoTransform, sen2Path,
         argument of the illumination
     """
     if (Zn is None) or (Az is None):
-        Zn, Az = read_mean_sun_angles_s2(sen2Path)
+        Zn, Az = read_mean_sun_angles_s2(s2_path)
+    if 'out_name' in kwargs:
+        out_name = kwargs.get('out_name')
+    else:
+        out_name = "conn.txt"
 
     # turn towards the sun
     M_rot = ndimage.rotate(M.astype(float), 180-Az,
@@ -316,11 +320,6 @@ def shadow_image_to_list(M, geoTransform, sen2Path,
             (shade_beg, ) = np.where(shade_node[2::]==+1)
             (shade_end, ) = np.where(shade_node[1::]==-1)
 
-#        (shade_A, ) = np.where(shade_node[2::]==+1)
-#        (shade_B, ) = np.where(shade_node[1::]==-1)
-#        shade_beg = np.minimum(shade_A, shade_B)
-#        shade_end = np.maximum(shade_A, shade_B)
-
         if len(shade_beg)==0: continue
 
         # coordinate transform, not image transform (loss of points)
@@ -339,23 +338,30 @@ def shadow_image_to_list(M, geoTransform, sen2Path,
     OUT = np.any(suntrace_list==-9999, axis=1)
     suntrace_list = suntrace_list[~OUT,:]
     # find azimuth and elevation at cast location
-    (sunZn,sunAz) = read_sun_angles_s2(sen2Path)
-    if kwargs['bbox'] is not None:
-        sunZn = sunZn[kwargs['bbox'][0]:kwargs['bbox'][1],
-                      kwargs['bbox'][2]:kwargs['bbox'][3]]
-        sunAz = sunAz[kwargs['bbox'][0]:kwargs['bbox'][1],
-                      kwargs['bbox'][2]:kwargs['bbox'][3]]
+
+    (sunZn,sunAz) = read_sun_angles_s2(s2_path)
+
+    if (sunZn is None) or (sunAz is None):
+        sunZn, sunAz = Zn*np.ones_like(M), Az*np.ones_like(M)
+    else:
+        if 'bbox' in kwargs:
+            sunZn = sunZn[kwargs['bbox'][0]:kwargs['bbox'][1],
+                          kwargs['bbox'][2]:kwargs['bbox'][3]]
+            sunAz = sunAz[kwargs['bbox'][0]:kwargs['bbox'][1],
+                          kwargs['bbox'][2]:kwargs['bbox'][3]]
+
     (iC,jC) = map2pix(geoTransform,
                       suntrace_list[:,0].copy(), suntrace_list[:,1].copy())
     iC, jC = np.round(iC).astype(int), np.round(jC).astype(int)
-    IN = (0>=iC) & (iC<=sunZn.shape[0]) & (0>=jC) & (jC<=sunZn.shape[1])
-    iC[~IN] = 0
-    jC[~IN] = 0
+    np.putmask(iC, iC<=0, 0) # move into the array range
+    np.putmask(jC, jC<=0, 0)
+    np.putmask(iC, iC<=sunZn.shape[0], sunZn.shape[0]-1)
+    np.putmask(jC, jC<=sunZn.shape[1], sunZn.shape[1]-1)
+
     sun_angles = np.transpose(np.vstack((sunAz[iC,jC], sunZn[iC,jC])))
 
     # write to file
-    f = open(os.path.join(sen2Path, 'conn.txt'), 'w')
-
+    f = open(os.path.join(s2_path, out_name), 'w')
     for k in range(suntrace_list.shape[0]):
         line = '{:+8.2f}'.format(suntrace_list[k,0]) + ' '
         line += '{:+8.2f}'.format(suntrace_list[k,1]) + ' '
@@ -363,7 +369,8 @@ def shadow_image_to_list(M, geoTransform, sen2Path,
         line += '{:+8.2f}'.format(suntrace_list[k,3]) + ' '
         line += '{:+3.4f}'.format(sun_angles[k,0]) + ' '
         line += '{:+3.4f}'.format(sun_angles[k,1])
-        f.write(line + '\n')
+
+        print(line, file=f)
     f.close()
     return
 
@@ -424,8 +431,8 @@ def label_occluder_and_casted(labeling, sunAz):
         cast = subOrient == -1
 
         m, n = subMsk.shape
-        print("For shadowpolygon #%s: Its size is %s by %s, connecting %s pixels in total"
-              % (i, m, n, len(ridgeI)))
+        print("For shadowpolygon #%s: Its size is %s by %s," +
+              " connecting %s pixels in total" % (i, m, n, len(ridgeI)))
 
         for x in range(len(ridgeI)):  # loop through all occluders
             sunDir = subAz[ridgeI[x]][ridgeJ[x]]  # degrees [-180 180]

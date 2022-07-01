@@ -1,10 +1,9 @@
 import numpy as np
 
-from ..generic.test_tools import construct_phase_values,\
-    cross_spectrum_to_coordinate_list
 from ..generic.filtering_statistical import mad_filtering
 
-from .matching_tools_frequency_filters import normalize_power_spectrum
+from .matching_tools_frequency_filters import normalize_power_spectrum, \
+    construct_phase_values, cross_spectrum_to_coordinate_list
 
 def phase_fitness(Q, di, dj, norm=2):
     assert type(Q) == np.ndarray, ('please provide an array')

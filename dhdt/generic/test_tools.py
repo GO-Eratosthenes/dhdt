@@ -1,16 +1,27 @@
+import os
+
 import numpy as np
 import random
+import tempfile
 
+from osgeo import osr
 from skimage import data
 from scipy.interpolate import griddata
 
+from .mapping_io import make_geo_im
+from .mapping_tools import get_max_pixel_spacing
+from .unit_conversion import deg2arg
 from ..preprocessing.image_transforms import mat_to_gray
+from ..preprocessing.shadow_geometry import shadow_image_to_list
 from ..processing.matching_tools_frequency_filters import \
     normalize_power_spectrum
 from ..processing.matching_tools import get_integer_peak_location
-from ..processing.matching_tools_frequency_filters import \
-    make_fourier_grid
-# assert np.isclose()
+from ..processing.network_tools import get_network_indices
+from ..processing.coupling_tools import couple_pair
+from ..postprocessing.solar_tools import make_shadowing
+from ..postprocessing.photohypsometric_tools import \
+    read_conn_files_to_stack, get_casted_elevation_difference, clean_dh, \
+    get_hypsometric_elevation_change
 
 def create_sample_image_pair(d=2**7, max_range=1, integer=False, ndim=1):
     """ create an image pair with random offset
@@ -314,131 +325,6 @@ def construct_correlation_peak(I, di, dj, fwhm=3., origin='center'):
                                               (J_grd-delta_j)**2) / fwhm**2)))
     return C
 
-def construct_phase_plane(I, di, dj, indexing='ij'):
-    """given a displacement, create what its phase plane in Fourier space
-
-    Parameters
-    ----------
-    I : np.array, size=(m,n)
-        image domain
-    di : float
-        displacment along the vertical axis
-    dj : float
-        displacment along the horizantal axis
-    indexing : {‘xy’, ‘ij’}
-         * "xy" : using map coordinates
-         * "ij" : using local image  coordinates
-
-    Returns
-    -------
-    Q : np.array, size=(m,n), complex
-        array with phase angles
-
-    Notes
-    -----
-    Two different coordinate system are used here:
-
-        .. code-block:: text
-
-          indexing   |           indexing    ^ y
-          system 'ij'|           system 'xy' |
-                     |                       |
-                     |       i               |       x
-             --------+-------->      --------+-------->
-                     |                       |
-                     |                       |
-          image      | j         map         |
-          based      v           based       |
-
-    """
-    (m,n) = I.shape
-
-    (I_grd,J_grd) = np.meshgrid(np.arange(0,n)-(n//2),
-                                np.arange(0,m)-(m//2), \
-                                indexing='ij')
-    I_grd,J_grd = I_grd/m, J_grd/n
-
-    Q_unwrap = ((I_grd*di) + (J_grd*dj) ) * (2*np.pi)   # in radians
-    Q = np.cos(-Q_unwrap) + 1j*np.sin(-Q_unwrap)
-
-    Q = np.fft.fftshift(Q)
-    return Q
-
-def construct_phase_values(IJ, di, dj, indexing='ij', system='radians'): #todo implement indexing
-    """given a displacement, create what its phase plane in Fourier space
-
-    Parameters
-    ----------
-    IJ : np.array, size=(_,2), dtype=float
-        locations of phase values
-    di : float
-        displacment along the vertical axis
-    dj : float
-        displacment along the horizantal axis
-    indexing : {‘xy’, ‘ij’}
-         * "xy" : using map coordinates
-         * "ij" : using local image  coordinates
-    indexing : {‘radians’ (default), ‘unit’, 'normalized'}
-        the extent of the cross-spectrum can span different ranges
-
-         * "radians" : -pi..+pi
-         * "unit" : -1...+1
-         * "normalized" : -0.5...+0.5
-
-    Returns
-    -------
-    Q : np.array, size=(_,1), complex
-        array with phase angles
-    """
-
-    if system=='radians': # -pi ... +pi
-        scaling = 1
-    elif system=='unit': # -1 ... +1
-        scaling = np.pi
-    else: # normalized -0.5 ... +0.5
-        scaling = 2*np.pi
-
-    Q_unwrap = ((IJ[:,0]*di) + (IJ[:,1]*dj) )*scaling
-    Q = np.cos(-Q_unwrap) + 1j*np.sin(-Q_unwrap)
-    return Q
-
-def cross_spectrum_to_coordinate_list(data, W=np.array([])):
-    """ if data is given in array for, then transform it to a coordinate list
-
-    Parameters
-    ----------
-    data : np.array, size=(m,n), dtype=complex
-        cross-spectrum
-    W : np.array, size=(m,n), dtype=boolean
-        weigthing matrix of the cross-spectrum
-
-    Returns
-    -------
-    data_list : np.array, size=(m*n,3), dtype=float
-        coordinate list with angles, in normalized ranges, i.e: -1 ... +1
-    """
-    assert type(data)==np.ndarray, ("please provide an array")
-    assert type(W)==np.ndarray, ("please provide an array")
-
-    if data.shape[0]==data.shape[1]:
-        (m,n) = data.shape
-        F1,F2 = make_fourier_grid(np.zeros((m,n)),
-                                  indexing='ij', system='unit')
-
-        # transform from complex to -1...+1
-        Q = np.fft.fftshift(np.angle(data) / np.pi) #(2*np.pi))
-
-        data_list = np.vstack((F1.flatten(),
-                               F2.flatten(),
-                               Q.flatten() )).T
-        if W.size>0: # remove masked data
-            data_list = data_list[W.flatten()==1,:]
-    elif W.size!= 0:
-        data_list = data[W.flatten()==1,:]
-    else:
-        data_list = data
-    return data_list
-
 def test_phase_plane_localization(Q, di, dj, tolerance=1.):
     C = np.fft.fftshift(np.real(np.fft.ifft2(Q)))
     di_hat,dj_hat,_,_ = get_integer_peak_location(C)
@@ -475,4 +361,131 @@ def test_normalize_power_spectrum(Q, tolerance=.001):
     Qd = normalize_power_spectrum(Q)
     assert np.all(np.isclose(Qd,Qn, tolerance))
 
-#todo construct shadowing_caster_casted():
+def create_artificial_terrain(m,n,step_size=.01, multi_res=(2,4)):
+    """ create artificail terrain, based upon Perlin noise, with a flavour of
+    multi-resolution within
+
+    Parameters
+    ----------
+    m,n : integer
+        dimension of the elevation model to be created
+    step_size : float, default=0.01
+        parameter to be used to scale the frequency of the topography
+
+    Returns
+    -------
+    Z : numpy.array, size=(m,n), ndim=2
+        data array with elevation values
+    geoTransform : tuple, size=(8,1)
+        affine transformation coefficients, and dimensions of the array.
+    """
+    def _linreg(a, b, x):
+        return a + x * (b - a)
+
+    def _fade(t):
+        "6t^5 - 15t^4 + 10t^3"
+        return 6 * t ** 5 - 15 * t ** 4 + 10 * t ** 3
+
+    def _gradient(h, x, y):
+        "grad converts h to the right gradient vector and return the dot product with (x,y)"
+        vectors = np.array([[0, 1], [0, -1], [1, 0], [-1, 0]])
+        g = vectors[h % 4]
+        return g[:,:,0]*x + g[:,:,1]*y
+
+    def _perlin(x, y):
+        # permutation table
+        rng = np.random.default_rng()
+        p = np.arange(256, dtype=int)
+        rng.shuffle(p)
+        p = np.stack([p, p]).flatten()
+        # coordinates of the top-left
+        x_i,y_i = x.astype(int), y.astype(int)
+        # internal coordinates
+        x_f,y_f = x-x_i, y-y_i
+        # fade factors
+        u,v = _fade(x_f),_fade(y_f)
+        # noise components
+        n00 = _gradient(p[p[x_i] +y_i], x_f, y_f)
+        n01 = _gradient(p[p[x_i] +y_i+1], x_f, y_f-1)
+        n11 = _gradient(p[p[x_i+1] +y_i+1], x_f-1, y_f-1)
+        n10 = _gradient(p[p[x_i+1] +y_i], x_f-1, y_f)
+        # combine noises
+        x1, x2 = _linreg(n00, n10, u), _linreg(n01, n11, u)
+        return _linreg(x1, x2, v)
+
+    lin_m = np.arange(0, step_size*m, step_size)
+    lin_n = np.arange(0, step_size*n, step_size)
+    x,y = np.meshgrid(lin_n, lin_m)
+    Z = _perlin(x, y)
+    for f in multi_res:
+        Z += mat_to_gray(Z)*(1/f)*_perlin(f*x, f*y)
+    Z += 1
+    Z *= 1E3
+    geoTransform = (0, 0, +10, 0, -10, 0, m, n)
+    return Z, geoTransform
+
+def create_artifical_sun_angles(n):
+    zn = np.random.uniform(low=35, high=85, size=n)
+    az = deg2arg(np.random.uniform(low=160, high=200, size=n))
+    return az, zn
+
+#def create_artificial_glacier_mask(Z, seeds=42):
+#    i,j = make_seeds(S, n=seeds)
+#    R = none
+#    return R
+
+def create_shadow_caster_casted(Z, geoTransform, az, zn, out_path,
+                                out_name="conn-test.txt", incl_image=False,
+                                **kwargs):
+    """
+    Create artificial shadowing, and a connection file, for testing purposes
+
+    Parameters
+    ----------
+    Z : numpy.array, size=(m,n)
+        array with elevation
+    geoTransform : tuple, size={(6,1), (8,1)}
+        georeference transform of an image.
+    az, zn : float, unit=degrees
+        sun angles
+    out_path : string
+        location where to write the connectivity file
+    out_name : string, default="conn-test.txt"
+        name of the file
+    """
+    spac = get_max_pixel_spacing(geoTransform)
+    Shw = make_shadowing(Z, az, zn, spac=spac)
+
+    if incl_image:
+        im_name = out_name.split('.')[0]+".tif"
+        crs = osr.SpatialReference()
+        crs.ImportFromEPSG(3031) # WGS 84 / Antarctic Polar Stereographic
+        make_geo_im(Shw, geoTransform, crs.ExportToWkt(),
+                    os.path.join(out_path, im_name))
+
+    shadow_image_to_list(Shw, geoTransform, out_path,
+                         Zn=zn, Az=az, out_name=out_name, **kwargs)
+    return
+
+def test_photohypsometric_coupling(N, Z_shape, tolerance=0.1):
+    Z, geoTransform = create_artificial_terrain(Z_shape[0],Z_shape[1])
+    az,zn = create_artifical_sun_angles(N)
+
+    # create temperary directory
+    with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmpdir:
+        dump_path = os.path.join(os.getcwd(), tmpdir)
+        for i in range(N):
+            f_name = "conn-"+str(i).zfill(3)+".txt"
+            create_shadow_caster_casted(Z, geoTransform,
+                az[i], zn[i], dump_path, out_name=f_name, incl_image=False)
+
+        conn_list = tuple("conn-"+str(i).zfill(3)+".txt" for i in range(N))
+        dh = read_conn_files_to_stack(None, conn_file=conn_list,
+                                      folder_path=dump_path)
+
+    dh = clean_dh(dh)
+    dxyt = get_casted_elevation_difference(dh)
+    dhdt = get_hypsometric_elevation_change(dxyt, Z, geoTransform)
+
+    assert np.isclose(0, np.quantile(dhdt['dZ_12'], 0.5), atol=tolerance)
+

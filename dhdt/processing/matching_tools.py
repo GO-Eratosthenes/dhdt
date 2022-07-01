@@ -243,7 +243,7 @@ def pad_images_and_filter_coord_list(M1, M2, geoTransform1, geoTransform2,
 
     i2,j2 = I2_grd.flatten(), J2_grd.flatten()
 
-    i1,j1,i2,j2 = remove_posts_pairs_outside_image(I1, i1, j1, I2, i2, j2)
+    i1,j1,i2,j2,IN = remove_posts_pairs_outside_image(M1,i1,j1, M2,i2,j2)
 
     # extend image size, so search regions at the border can be used as well
     M1_new = pad_radius(M1, ds1)
@@ -382,7 +382,7 @@ def remove_posts_pairs_outside_image(I1, i1, j1, I2, i2, j2):
     IN = np.logical_and.reduce((i1>=0, i1<I1.shape[0], j1>=0, j1<I1.shape[1],
                                 i2>=0, i2<I2.shape[0], j2>=0, j2<I2.shape[1]))
     i1, j1, i2, j2 = i1[IN], j1[IN], i2[IN], j2[IN]
-    return i1, j1, i2, j2
+    return i1, j1, i2, j2, IN
 
 def test_bounds_reposition(d, temp_size, search_size):
     """
