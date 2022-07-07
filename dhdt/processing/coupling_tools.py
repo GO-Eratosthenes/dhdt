@@ -257,7 +257,7 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
 
 def couple_pair(file_1, file_2, bbox=None, rgi_id=None,
                 rect='metadata', prepro='bandpass',
-                match='wght_corr', boi=np.array([]),
+                match='norm_corr', boi=np.array([]),
                 temp_radius=7, search_radius = 22,
                 processing=None,
                 subpix='moment', metric='peak_entr'):
@@ -826,15 +826,14 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
          geoTransform1, geoTransform2, np.vstack((xy1[:,0],xy2[:,0])).T,
          np.vstack((xy1[:,1],xy2[:,1])).T, temp_radius, search_radius,
          same=False)
-    L1,L2 = pad_radius(L1, temp_radius), pad_radius(L2, temp_radius)
+    L1,L2 = pad_radius(L1, temp_radius), pad_radius(L2, search_radius)
     geoTransformPad2 = ref_trans(geoTransform2, -search_radius, -search_radius)
 
 
     ij2_corr = np.zeros((i1.shape[0],2)).astype(np.float64)
-    xy2_corr = np.zeros((i1.shape[0],2)).astype(np.float64)
     snr_score = np.zeros((i1.shape[0],1)).astype(np.float16)
 
-    for counter in range(len(i1)): # loop through all posts
+    for counter in tqdm(range(len(i1))): # loop through all posts
 
         # deformation compensation
         if reg in ['binary']:
@@ -878,20 +877,25 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
             A = np.array([[1, simple_sh[counter]],
                           [0, scale_12[counter]]])
             A_inv = np.linalg.inv(A)
-            X_aff,Y_aff = aff_trans_template_coord(A_inv, search_radius)
+            if correlator in frequency_based:
+                X_aff,Y_aff = aff_trans_template_coord(A_inv, search_radius,
+                                                       fourier=True)
+            else:
+                X_aff, Y_aff = aff_trans_template_coord(A_inv, search_radius,
+                                                        fourier=False)
 
         # create templates
         if correlator in frequency_based:
-            M1_sub = create_template_off_center(M1,i1[counter],j1[counter],
-                                                 temp_radius)
-            L1_sub = create_template_off_center(L1, i1[counter], j1[counter],
-                                                temp_radius)
+            X_one, Y_one = aff_trans_template_coord(np.eye(2), temp_radius,
+                                                    fourier=True)
         else:
-            M1_sub = create_template_at_center(M1, i1[counter], j1[counter],
-                                                temp_radius)
-            L1_sub = create_template_at_center(L1, i1[counter], j1[counter],
-                                               temp_radius)
+            X_one, Y_one = aff_trans_template_coord(np.eye(2), temp_radius,
+                                                    fourier=False)
 
+        M1_sub = bilinear_interpolation(M1,
+                                        i1[counter]+Y_one, j1[counter]+X_one)
+        L1_sub = bilinear_interpolation(L1,
+                                        i1[counter]+Y_one, j1[counter]+X_one)
         M2_sub = bilinear_interpolation(M2,
                                         i2[counter]+Y_aff, j2[counter]+X_aff)
         L2_sub = bilinear_interpolation(L2,
@@ -903,8 +907,6 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
             QC = match_translation_of_two_subsets(M1_sub, M2_sub,
                                                   correlator,subpix,
                                                   L1_sub,L2_sub)
-        if counter==6064:
-            breakpoint
         if (subpix in peak_based) or (subpix is None):
             di, dj, score, _ = get_integer_peak_location(QC, metric=metric)
         else:
@@ -914,14 +916,11 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
         if subpix in ['optical_flow']:
             # reposition second template
             M2_new = create_template_at_center(M2,
-                                               i2[counter]-di,
-                                               j1[counter]-dj,temp_radius)
+                   i2[counter]-di, j2[counter]-dj,temp_radius)
             # optical flow refinement
             ddi,ddj = simple_optical_flow(M1_sub, M2_new)
-
             if (abs(ddi)>0.5) or (abs(ddj)>0.5): # divergence
-                ddi = 0
-                ddj = 0
+                ddi,ddj = 0,0
         else:
             ddi,ddj = estimate_subpixel(QC, subpix, m0=m0)
 
@@ -944,8 +943,9 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
         ij2_corr[counter,0] = i2[counter] - di_rig
         ij2_corr[counter,1] = j2[counter] - dj_rig
 
-    xy2_corr[:,0], xy2_corr[:,1] = pix2map(geoTransformPad2,
-                                           ij2_corr[:,0], ij2_corr[:,1])
+    x2_corr,y2_corr = pix2map(geoTransformPad2, ij2_corr[:,0], ij2_corr[:,1])
+    xy2_corr = np.nan * np.ones((IN.shape[0],2))
+    xy2_corr[IN,0], xy2_corr[IN,1] = x2_corr, y2_corr
     return xy2_corr, snr_score
 
 def angles2unit(azimuth):

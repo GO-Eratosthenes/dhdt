@@ -9,8 +9,10 @@ from skimage import data
 from scipy.interpolate import griddata
 
 from .mapping_io import make_geo_im
-from .mapping_tools import get_max_pixel_spacing
+from .mapping_tools import get_max_pixel_spacing, map2pix
 from .unit_conversion import deg2arg
+from .mapping_io import read_geo_info
+from .handler_im import bilinear_interpolation
 from ..preprocessing.image_transforms import mat_to_gray
 from ..preprocessing.shadow_geometry import shadow_image_to_list
 from ..processing.matching_tools_frequency_filters import \
@@ -421,7 +423,7 @@ def create_artificial_terrain(m,n,step_size=.01, multi_res=(2,4)):
         Z += mat_to_gray(Z)*(1/f)*_perlin(f*x, f*y)
     Z += 1
     Z *= 1E3
-    geoTransform = (0, 0, +10, 0, -10, 0, m, n)
+    geoTransform = (0, +10, 0, 0, 0, -10, m, n)
     return Z, geoTransform
 
 def create_artifical_sun_angles(n):
@@ -459,7 +461,7 @@ def create_shadow_caster_casted(Z, geoTransform, az, zn, out_path,
     if incl_image:
         im_name = out_name.split('.')[0]+".tif"
         crs = osr.SpatialReference()
-        crs.ImportFromEPSG(3031) # WGS 84 / Antarctic Polar Stereographic
+        crs.ImportFromEPSG(3411) # Northern Hemisphere Projection Based on Hughes 1980 Ellipsoid
         make_geo_im(Shw, geoTransform, crs.ExportToWkt(),
                     os.path.join(out_path, im_name))
 
@@ -488,4 +490,23 @@ def test_photohypsometric_coupling(N, Z_shape, tolerance=0.1):
     dhdt = get_hypsometric_elevation_change(dxyt, Z, geoTransform)
 
     assert np.isclose(0, np.quantile(dhdt['dZ_12'], 0.5), atol=tolerance)
+
+def test_photohypsometric_refinement_by_same(Z_shape, tolerance=0.5):
+    Z, geoTransform = create_artificial_terrain(Z_shape[0],Z_shape[1])
+    az,zn = create_artifical_sun_angles(1)
+
+    # create temperary directory
+    with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmpdir:
+        dump_path = os.path.join(os.getcwd(), tmpdir)
+        create_shadow_caster_casted(Z, geoTransform,
+            az[0], zn[0], dump_path, out_name="conn.txt", incl_image=True)
+        # read and refine through image matching
+        post_1,post_2_new,caster,dh,score,caster_new,_,_,_ = \
+            couple_pair(os.path.join(dump_path, "conn.tif"), \
+                        os.path.join(dump_path, "conn.tif"),
+                        rect=None)
+    pix_dispersion = np.nanmedian(np.hypot(post_1[:,0]-post_2_new[:,0],
+                                           post_1[:,1]-post_2_new[:,1]))
+    assert np.isclose(0, pix_dispersion, atol=tolerance)
+
 

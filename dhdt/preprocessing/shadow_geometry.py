@@ -379,14 +379,14 @@ def label_occluder_and_casted(labeling, sunAz):
 
     Parameters
     ----------
-    labeling : np.array, size=(m,n), dtype=integer
+    labeling : numpy.array, size=(m,n), dtype=integer
         array with labelled polygons
-    sunAz : np.array, size=(m,n), dtype=integer
+    sunAz : numpy.array, size=(m,n), dtype=integer
         band of azimuth values
 
     Returns
     -------
-    shadowIdx : np.array, size=(m,n), dtype=signed integers
+    shadowIdx : numpy.array, size=(m,n), dtype=signed integers
         array with numbered pairs, where the caster is the positive number the
         casted is the negative number
     """

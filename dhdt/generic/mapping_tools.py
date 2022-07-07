@@ -31,7 +31,7 @@ def pix2map(geoTransform, i, j):
 
     Parameters
     ----------
-    geoTransform : tuple, size=(6,1)
+    geoTransform : tuple, size={(6,1), (8,1)}
         georeference transform of an image.
     i : np.array, ndim={1,2,3}, dtype=float
         row coordinate(s) in local image space
@@ -70,14 +70,11 @@ def pix2map(geoTransform, i, j):
         assert i.shape==j.shape, ('arrays should be of the same size')
     assert isinstance(geoTransform, tuple), ('geoTransform should be a tuple')
 
-    x = (geoTransform[0]
-         + geoTransform[1] * j
-         + geoTransform[2] * i
-         )
-    y = (geoTransform[3]
-         + geoTransform[4] * j
-         + geoTransform[5] * i
-         )
+    x = geoTransform[0] + \
+        np.multiply(geoTransform[1], j) + np.multiply(geoTransform[2], i)
+
+    y = geoTransform[3] + \
+        np.multiply(geoTransform[4], j) + np.multiply(geoTransform[5], i)
 
     # # offset the center of the pixel
     # x += geoTransform[1] / 2.0
@@ -138,17 +135,9 @@ def map2pix(geoTransform, x, y):
     j = x - geoTransform[0]
     i = y - geoTransform[3]
 
-    if geoTransform[2] == 0:
-        j = _zero_div(j, geoTransform[1])
-    else:
-        j = (_zero_div(j, geoTransform[1]) +
-             _zero_div(i, geoTransform[2]) )
+    j = _zero_div(j, geoTransform[1]) + _zero_div(i, geoTransform[2])
+    i = _zero_div(j, geoTransform[4]) + _zero_div(i, geoTransform[5])
 
-    if geoTransform[4] == 0:
-        i = _zero_div(i, geoTransform[5])
-    else:
-        i = (_zero_div(j, geoTransform[4]) +
-             _zero_div(i, geoTransform[5]) )
     return i,j
 
 def vel2pix(geoTransform, dx, dy):
@@ -601,9 +590,13 @@ def ref_update(geoTransform, rows, cols):
     geoTransform = geoTransform + (rows, cols,)
     return geoTransform
 
-def aff_trans_template_coord(A, t_radius):
-    x = np.arange(-t_radius, t_radius + 1)
-    y = np.arange(-t_radius, t_radius + 1)
+def aff_trans_template_coord(A, t_radius, fourier=False):
+    if not fourier:
+        x = np.arange(-t_radius, t_radius+1)
+        y = np.arange(-t_radius, t_radius+1)
+    else:
+        x = np.linspace(-t_radius+.5, t_radius-.5, 2*t_radius)
+        y = np.linspace(-t_radius+.5, t_radius-.5, 2*t_radius)
 
     X = np.repeat(x[np.newaxis, :], y.shape[0], axis=0)
     Y = np.repeat(y[:, np.newaxis], x.shape[0], axis=1)

@@ -50,7 +50,7 @@ def read_geo_info(fname):
     geoTransform += (rows, cols,)
     return spatialRef, geoTransform, targetprj, rows, cols, bands
 
-def read_geo_image(fname, boi=None):
+def read_geo_image(fname, boi=np.array([])):
     """ This function takes as input the geotiff name and the path of the
     folder that the images are stored, reads the image and returns the data as
     an array

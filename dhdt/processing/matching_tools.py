@@ -232,14 +232,14 @@ def pad_images_and_filter_coord_list(M1, M2, geoTransform1, geoTransform2,
 
     # map transformation to pixel domain
     I1_grd,J1_grd = map2pix(geoTransform1, X1_grd, Y1_grd)
-    I1_grd = np.round(I1_grd).astype(np.int64)
-    J1_grd = np.round(J1_grd).astype(np.int64)
+#    I1_grd = np.round(I1_grd).astype(np.int64)
+#    J1_grd = np.round(J1_grd).astype(np.int64)
 
     i1,j1 = I1_grd.flatten(), J1_grd.flatten()
 
     I2_grd,J2_grd = map2pix(geoTransform2, X2_grd, Y2_grd)
-    I2_grd = np.round(I2_grd).astype(np.int64)
-    J2_grd = np.round(J2_grd).astype(np.int64)
+#    I2_grd = np.round(I2_grd).astype(np.int64)
+#    J2_grd = np.round(J2_grd).astype(np.int64)
 
     i2,j2 = I2_grd.flatten(), J2_grd.flatten()
 
