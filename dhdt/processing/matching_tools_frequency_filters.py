@@ -791,6 +791,16 @@ def thresh_masking(S, m=1e-4, s=10):
     M = ndimage.median_filter(M, size=(s,s))
     return M
 
+def perc_masking(S, m=.95, s=10):
+    assert type(S) == np.ndarray, ("please provide an array")
+    S_bar = np.abs(S)
+    th = np.percentile(S_bar, m*100)
+
+    # compose filter
+    M = S_bar > th
+    M = ndimage.median_filter(M, size=(s, s))
+    return M
+
 def adaptive_masking(S, m=.9):
     """ mark significant intensities in spectrum
     

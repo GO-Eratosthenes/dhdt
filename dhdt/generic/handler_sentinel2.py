@@ -46,7 +46,7 @@ def get_s2_dict(s2_df):
             the location where the imagery is present
         * 'date': string, e.g.: '+2019-10-25'
             date of acquisition
-        * 'tile_code': string, e.g.: 'T05VMG'
+        * 'tile_code': string, e.g.: '05VMG'
             MGRS tile coding
         * 'relative_orbit': integer
             orbit from which the imagery were taken
@@ -119,7 +119,7 @@ def get_s2_dict(s2_df):
                     'IMG_DATA_path': os.path.join(tl_path, 'IMG_DATA'),
                     'QI_DATA_path': os.path.join(tl_path, 'QI_DATA'),
                     'date': meta_S2string(s2_folder)[0],
-                    'tile_code': meta_S2string(s2_folder)[2],
+                    'tile_code': meta_S2string(s2_folder)[2][1:],
                     'relative_orbit': int(meta_S2string(s2_folder)[1][1:])})
     return s2_dict
 
@@ -231,7 +231,19 @@ def get_array_from_xml(treeStruc):
             Tn = np.concatenate((Tn, [Trow]), 0)
     return Tn
 
-def get_S2_image_locations(fname,s2_df):
+def get_root_of_table(path, fname=None):
+    if fname is None:
+        full_name = path
+    else:
+        full_name = os.path.join(path, fname)
+    if not '*' in full_name:
+        assert os.path.exists(full_name), \
+            ('please provide correct path and file name')
+    dom = ElementTree.parse(glob.glob(full_name)[0])
+    root = dom.getroot()
+    return root
+
+def get_s2_image_locations(fname,s2_df):
     """
     The Sentinel-2 imagery are placed within a folder structure, where one
     folder has an ever changing name. Fortunately this function finds the path from
@@ -243,6 +255,7 @@ def get_S2_image_locations(fname,s2_df):
         path string to the Sentinel-2 folder
     s2_df : dataframe
         index of the bands of interest
+
     Returns
     -------
     im_paths : series, size=(k,)
@@ -257,19 +270,20 @@ def get_S2_image_locations(fname,s2_df):
     >>> sname = 'S2A_MSIL1C_20200923T163311_N0209_R140_T15MXV_20200923T200821.SAFE'
     >>> fname = 'MTD_MSIL1C.xml'
     >>> full_path = os.path.join(fpath, sname, fname)
-    >>> im_paths,datastrip_id = get_S2_image_locations(full_path)
+    >>> im_paths,datastrip_id = get_s2_image_locations(full_path)
     >>> im_paths
     ['GRANULE/L1C_T15MXV_A027450_20200923T163313/IMG_DATA/T15MXV_20200923T163311_B01',
      'GRANULE/L1C_T15MXV_A027450_20200923T163313/IMG_DATA/T15MXV_20200923T163311_B02']
     >>> datastrip_id
     'S2A_OPER_MSI_L1C_DS_VGS1_20200923T200821_S20200923T163313_N02.09'
     """
-    assert len(glob.glob(fname)) != 0, ('metafile does not seem to be present')
-    #todo see if it is a folder or a file
-    dom = ElementTree.parse(glob.glob(fname)[0])
-    root = dom.getroot()
-    granule_list = root[0][0][11][0][0]
-    datastrip_id = granule_list.get('datastripIdentifier')
+    assert os.path.exists(fname), ('metafile does not seem to be present')
+    root = get_root_of_table(fname)
+
+    for att in root.iter('Granule'):
+        datastrip_full = att.get('datastripIdentifier')
+        datastrip_id = '_'.join(datastrip_full.split('_')[4:-1])
+    assert datastrip_id != None, ('metafile does not have required info')
 
     im_paths, band_id = [], []
     for im_loc in root.iter('IMAGE_FILE'):
@@ -280,6 +294,14 @@ def get_S2_image_locations(fname,s2_df):
     band_path = pd.Series(data=im_paths, index=band_id, name="filepath")
     s2_df_new = pd.concat([s2_df, band_path], axis=1, join="inner")
     return s2_df_new, datastrip_id
+
+def get_s2_granule_id(fname, s2_df):
+    assert os.path.exists(fname), ('metafile does not seem to be present')
+    root = get_root_of_table(fname)
+
+    for im_loc in root.iter('IMAGE_FILE'):
+        granule_id = im_loc.text.split('/')[1]
+    return granule_id
 
 def meta_S2string(S2str):
     """ get meta information of the Sentinel-2 file name

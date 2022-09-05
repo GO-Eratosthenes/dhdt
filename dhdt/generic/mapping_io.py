@@ -187,6 +187,9 @@ def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes',
     elif I.dtype == 'bool':
         ds = drv.Create(fName, xsize=I.shape[1], ysize=I.shape[0], bands=bands,
                         eType=gdal.GDT_Byte)
+    elif I.dtype == 'uint8':
+        ds = drv.Create(fName, xsize=I.shape[1], ysize=I.shape[0], bands=bands,
+                        eType=gdal.GDT_Byte)
     else:
         ds = drv.Create(fName, xsize=I.shape[1], ysize=I.shape[0], bands=bands,
                         eType=gdal.GDT_Int32)
@@ -231,6 +234,10 @@ def make_multispectral_vrt(df, fpath=None, fname='multispec.vrt'):
         path of the directory of interest
     fname : string
         file name of the virtual raster tile
+
+    Examples
+    --------
+
 
     """
     assert isinstance(df, pd.DataFrame), ('please provide a dataframe')

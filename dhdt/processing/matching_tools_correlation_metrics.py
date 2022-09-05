@@ -535,8 +535,8 @@ def gauss_spread(C, intI, intJ, dI, dJ, est='dist'):
     References
     ----------
     .. [1] Altena et al. "Correlation dispersion as a measure to better estimate
-       uncertainty of remotely sensed glacier displacements" The cryosphere
-       discussions, 2021.
+       uncertainty of remotely sensed glacier displacements" The cryosphere,
+       vol.16(6) pp.2285-2300, 2021.
     """
     assert type(C) == np.ndarray, ('please provide an array')
 

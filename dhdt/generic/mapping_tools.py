@@ -12,6 +12,25 @@ from scipy import ndimage
 from .handler_im import get_grad_filters
 
 def cart2pol(x, y):
+    """ transform Cartesian coordinate(s) to polar coordinate(s)
+
+    Parameters
+    ----------
+    x,y : {float, numpy.array}
+        Cartesian coordinates
+
+    Returns
+    -------
+    rho : {float, numpy.array}
+        radius of the vector
+    phi : {float, numpy.array}, unit=radians
+        argument of the vector
+
+    See Also
+    --------
+    pol2xyz : equivalent function, but for three dimensions
+    cart2pol : inverse function
+    """
     if isinstance(x, np.ndarray):
         assert x.shape==y.shape, ('arrays should be of the same size')
     rho = np.hypot(x, y)
@@ -19,12 +38,82 @@ def cart2pol(x, y):
     return rho, phi
 
 def pol2cart(rho, phi):
+    """ transform polar coordinate(s) to Cartesian coordinate(s)
+
+    Parameters
+    ----------
+    rho : {float, numpy.array}
+        radius of the vector
+    phi : {float, numpy.array}, unit=radians
+        argument of the vector
+
+    Returns
+    -------
+    x,y : {float, numpy.array}
+        cartesian coordinates
+
+    See Also
+    --------
+    pol2xyz : equivalent function, but for three dimensions
+    cart2pol : inverse function
+    """
     if isinstance(rho, np.ndarray):
         assert rho.shape==phi.shape, ('arrays should be of the same size')
 
     x = rho * np.cos(phi)
     y = rho * np.sin(phi)
     return x, y
+
+def pol2xyz(Az, Zn):
+    """ transform from angles to unit vector in 3D
+
+    Parameters
+    ----------
+    Az : numpy.array, size=(m,n), unit=degrees
+        array with azimuth angles
+    Zn : numpy.array, size=(m,n), unit=degrees
+        array with zenith angles
+
+    Returns
+    -------
+    X,Y : numpy.array, size=(m,n), unit=degrees
+        array with planar components
+    Z : numpy.array, size=(m,n), unit=degrees
+        array with height component
+
+    See Also
+    --------
+    pol2cart : equivalent function, but for two dimensions
+
+    Notes
+    -----
+    The azimuth angle declared in the following coordinate frame:
+
+        .. code-block:: text
+
+                 ^ North & y
+                 |
+            - <--|--> +
+                 |
+                 +----> East & x
+
+    The angles related to the suns' heading are as follows:
+
+        .. code-block:: text
+
+          surface normal              * sun
+          ^                     ^    /
+          |                     |   /
+          ├-- zenith angle      |  /
+          | /                   | /|
+          |/                    |/ | elevation angle
+          └----                 └--┴---
+
+    """
+    X = np.sin(np.deg2rad(Az))*np.sin(np.deg2rad(Zn))
+    Y = np.cos(np.deg2rad(Az))*np.sin(np.deg2rad(Zn))
+    Z = np.cos(np.deg2rad(Zn))
+    return X, Y, Z
 
 def pix2map(geoTransform, i, j):
     """ transform local image coordinates to map coordinates

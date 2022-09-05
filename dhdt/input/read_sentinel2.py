@@ -19,8 +19,10 @@ from scipy.interpolate import griddata, interp2d
 from scipy.ndimage import label
 from scipy.signal import convolve2d
 
-from ..generic.handler_sentinel2 import get_array_from_xml
-from ..generic.mapping_tools import map2pix, ecef2map, ecef2llh, get_bbox
+from ..generic.handler_sentinel2 import \
+    get_array_from_xml, get_root_of_table, get_s2_dict
+from ..generic.mapping_tools import \
+    map2pix, ecef2map, ecef2llh, get_bbox, pol2xyz
 from ..generic.mapping_io import read_geo_image, read_geo_info
 
 def list_central_wavelength_msi():
@@ -79,7 +81,7 @@ def list_central_wavelength_msi():
 
     similarly you can also select by pixel resolution:
 
-    >>> s2_df = list_central_wavelength_s2()
+    >>> s2_df = list_central_wavelength_msi()
     >>> tw_df = s2_df[s2_df['gsd']==20]
     >>> tw_df.index
     Index(['B05', 'B06', 'B07', 'B8A', 'B11', 'B12'], dtype='object')
@@ -295,15 +297,6 @@ def read_stack_s2(s2_df):
     # it to the geoTransform
     geoTransform = geoTransform + (im_stack.shape[0], im_stack.shape[1])
     return im_stack, spatialRef, geoTransform, targetprj
-
-def get_root_of_table(path, fname):
-    full_name = os.path.join(path, fname)
-    if not '*' in full_name:
-        assert os.path.exists(full_name), \
-            ('please provide correct path and file name')
-    dom = ElementTree.parse(glob.glob(full_name)[0])
-    root = dom.getroot()
-    return root
 
 def read_geotransform_s2(path, fname='MTD_TL.xml', resolution=10):
     """
@@ -531,7 +524,7 @@ def read_sun_angles_s2(path, fname='MTD_TL.xml'):
     return Zn, Az
 
 def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
-                        boi=None):
+                        boi_df=None):
     """ This function reads the xml-file of the Sentinel-2 scene and extracts
     an array with viewing angles of the MSI instrument.
 
@@ -541,15 +534,15 @@ def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
         path where xml-file of Sentinel-2 is situated
     fname : string
         the name of the metadata file, sometimes this is changed
-    band_id : integer, default=4
+    boi_df : pandas.dataframe, default=4
         each band has a somewhat minute but different view angle
 
     Returns
     -------
-    Zn : numpy.array, size=(m,n), dtype=float
-        array of the solar zenith angles, in degrees.
-    Az : numpy.array, size=(m,n), dtype=float
-        array of the solar azimuth angles, in degrees.
+    Zn : numpy.ma.array, size=(m,n), dtype=float
+        masked array of the solar zenith angles, in degrees.
+    Az : numpy.ma.array, size=(m,n), dtype=float
+        masked array of the solar azimuth angles, in degrees.
 
     See Also
     --------
@@ -613,24 +606,36 @@ def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
     - L1C : product specification,i.e.: level 1, processing step C
 
     """
-    if boi is None:
-        boi = list_central_wavelength_msi()
-    assert boi['gsd'].var()==0, \
+    if boi_df is None:
+        boi_df = list_central_wavelength_msi()
+    assert boi_df['gsd'].var()==0, \
         ('make sure all bands are the same resolution')
     root = get_root_of_table(path, fname)
 
+    if det_stack.size == 0: # if no stack is given, just import all metadata
+        roi = boi_df['gsd'].mode()[0]  # resolution of interest
+        # image dimensions
+        for meta in root.iter('Size'):
+            res = float(meta.get('resolution'))
+            if res == roi:
+                mI, nI = int(meta[0].text), int(meta[1].text)
+
+        det_stack = read_detector_mask(os.path.join(path,'QI_DATA'),
+                                       boi_df,
+                                       np.array([0, 0, 0, 0, 0, 0, mI, nI]))
+
     det_list = np.unique(det_stack)
-    bnd_list = np.asarray(boi['bandid'])
+    bnd_list = np.asarray(boi_df['bandid'])
     Zn_grd, Az_grd = None, None
     # get coarse grids
     for grd in root.iter('Viewing_Incidence_Angles_Grids'):
         bid = float(grd.get('bandId'))
-        if not boi['bandid'].isin([bid]).any():
+        if not boi_df['bandid'].isin([bid]).any():
             continue
         grd_idx_3 = np.where(bnd_list==bid)[0][0]
 
         # link to band in detector stack, by finding the integer index
-        det_idx = np.flatnonzero(boi['bandid'].isin([bid]))[0]
+        det_idx = np.flatnonzero(boi_df['bandid'].isin([bid]))[0]
 
         # link to detector id, within this band
         did = float(grd.get('detectorId'))
@@ -640,8 +645,8 @@ def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
 
         col_sep = float(grd[0][0].text) # in meters
         row_sep = float(grd[0][0].text) # in meters
-        col_res = float(boi.loc[boi.index[det_idx],'gsd'])
-        row_res = float(boi.loc[boi.index[det_idx],'gsd'])
+        col_res = float(boi_df.loc[boi_df.index[det_idx],'gsd'])
+        row_res = float(boi_df.loc[boi_df.index[det_idx],'gsd'])
 
         Zarray = get_array_from_xml(grd[0][2])
         if Zn_grd is None:
@@ -654,15 +659,7 @@ def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
                               len(bnd_list), len(det_list)), dtype=np.float64)
         Az_grd[:,:,grd_idx_3,grd_idx_4] = Aarray
 
-    if det_stack.size == 0:
-        roi = boi['gsd'].mode()[0]  # resolution of interest
-        # image dimensions
-        for meta in root.iter('Size'):
-            res = float(meta.get('resolution'))
-            if res == roi:
-                mI, nI = float(meta[0].text), float(meta[1].text)
-    else:
-        mI, nI = det_stack.shape[0], det_stack.shape[1]
+    mI, nI = det_stack.shape[0], det_stack.shape[1]
 
     # create grid coordinate frame
     I_grd, J_grd = np.mgrid[0:Zn_grd.shape[0], 0:Zn_grd.shape[1]]
@@ -707,6 +704,9 @@ def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
             Zn, Az = Zn_bnd.copy(), Az_bnd.copy()
         else:
             Zn, Az = np.dstack((Zn, Zn_bnd)), np.dstack((Az, Az_bnd))
+
+    Zn, Az = np.ma.array(Zn, mask=det_stack.mask), \
+             np.ma.array(Az, mask=det_stack.mask)
     return Zn, Az
 
 def read_mean_sun_angles_s2(path, fname='MTD_TL.xml'):
@@ -810,7 +810,7 @@ def read_detector_mask(path_meta, boi, geoTransform):
 
     Returns
     -------
-    det_stack : numpy.array, size=(msk_dim[0],msk_dim[1],len(boi)), dtype=int8
+    det_stack : numpy.ma.array, size=(msk_dim[0:1],len(boi)), dtype=int8
         array where each pixel has the ID of the detector, of a specific band
 
     See Also
@@ -856,7 +856,7 @@ def read_detector_mask(path_meta, boi, geoTransform):
     -------
     >>> path_meta = '/GRANULE/L1C_T15MXV_A027450_20200923T163313/QI_DATA'
     >>> boi = ['red', 'green', 'blue', 'near infrared']
-    >>> s2_df = list_central_wavelength_s2()
+    >>> s2_df = list_central_wavelength_msi()
     >>> boi_df = s2_df[s2_df['common_name'].isin(boi)]
     >>> geoTransform = (600000.0, 10.0, 0.0, 10000000.0, 0.0, -10.0)
     >>>
@@ -877,27 +877,36 @@ def read_detector_mask(path_meta, boi, geoTransform):
                                   f'{im_id:02.0f}' + '.gml')
         else:
             f_meta = os.path.join(path_meta, 'MSK_DETFOO_'+ im_id +'.gml')
-        dom = ElementTree.parse(glob.glob(f_meta)[0])
-        root = dom.getroot()
 
-        if msk_dim is None:
-            msk_dim = get_msk_dim_from_gml(gml_struct)
-            msk_dim = msk_dim + (len(boi),)
-            det_stack = np.zeros(msk_dim, dtype='int8') # create stack
+        if os.path.exists(f_meta): # old Sentinel-2 files had gml-files
+            dom = ElementTree.parse(glob.glob(f_meta)[0])
+            root = dom.getroot()
 
-        mask_members = root[2]
-        for k in range(len(mask_members)):
-            pos_arr, det_num = get_xy_poly_from_gml(mask_members, k)
+            if msk_dim is None:
+                msk_dim = get_msk_dim_from_gml(gml_struct)
+                msk_dim = msk_dim + (len(boi),)
+                det_stack = np.zeros(msk_dim, dtype='int8') # create stack
 
-            # transform to image coordinates
-            i_arr, j_arr = map2pix(geoTransform, pos_arr[:,0], pos_arr[:,1])
-            ij_arr = np.hstack((j_arr[:,np.newaxis], i_arr[:,np.newaxis]))
-            # make mask
-            msk = Image.new("L", [np.size(det_stack,0), np.size(det_stack,1)], 0)
-            ImageDraw.Draw(msk).polygon(tuple(map(tuple, ij_arr[:,0:2])),
-                                        outline=det_num, fill=det_num)
-            msk = np.array(msk)
-            det_stack[:,:,i] = np.maximum(det_stack[:,:,i], msk)
+            mask_members = root[2]
+            for k in range(len(mask_members)):
+                pos_arr, det_num = get_xy_poly_from_gml(mask_members, k)
+
+                # transform to image coordinates
+                i_arr, j_arr = map2pix(geoTransform, pos_arr[:,0], pos_arr[:,1])
+                ij_arr = np.hstack((j_arr[:,np.newaxis], i_arr[:,np.newaxis]))
+                # make mask
+                msk = Image.new("L", [np.size(det_stack,0), np.size(det_stack,1)], 0)
+                ImageDraw.Draw(msk).polygon(tuple(map(tuple, ij_arr[:,0:2])),
+                                            outline=det_num, fill=det_num)
+                msk = np.array(msk)
+                det_stack[:,:,i] = np.maximum(det_stack[:,:,i], msk)
+        else:
+            im_meta = f_meta[:-3]+'jp2'
+            assert os.path.exists(im_meta), ('gml and jp2 file not present')
+            msk = read_geo_image(im_meta)[0]
+            det_stack[:,:,i] = msk
+
+    det_stack = np.ma.array(det_stack, mask=det_stack==0)
     return det_stack
 
 def read_sensing_time_s2(path, fname='MTD_TL.xml'):
@@ -914,6 +923,10 @@ def read_sensing_time_s2(path, fname='MTD_TL.xml'):
     -------
     rec_time : numpy.datetime64
         time of image acquisition
+
+    See Also
+    --------
+    get_s2_granual_id
 
     Notes
     -----
@@ -965,10 +978,73 @@ def read_sensing_time_s2(path, fname='MTD_TL.xml'):
     >>> rec_time
 
     """
+    assert os.path.exists(os.path.join(path,fname)), \
+        ('file does not seem to exist')
     root = get_root_of_table(path, fname)
     for att in root.iter('Sensing_Time'.upper()):
         rec_time = np.datetime64(att.text, 'ns')
     return rec_time
+
+def get_timing_mask(s2_df, geoTransform, spatialRef):
+    s2_dict = get_s2_dict(s2_df)
+    # get_bearing_from_detector_mask
+    toi = read_sensing_time_s2(s2_dict['MTD_TL_path'])
+    psi = get_flight_bearing_from_gnss_s2(s2_dict['MTD_DS_path'],
+                                          spatialRef, toi)
+    line_period = read_detector_time_s2(s2_dict['MTD_DS_path'], s2_df=s2_df)[3]
+    s2_dict = get_flight_orientation_s2(s2_dict['MTD_DS_path'],
+                                        s2_dict=s2_dict)
+    s2_dict = get_flight_path_s2(s2_dict['MTD_DS_path'],
+                                 s2_dict=s2_dict)
+
+    det_stack = read_detector_mask(os.path.join(s2_dict['MTD_TL_path'],
+                                                'QI_DATA'),
+                                   s2_df, geoTransform)
+    det_time = read_detector_time_s2(s2_dict['MTD_DS_path'], s2_df=s2_df)[0]
+
+    v_bar = np.mean(s2_dict['velocity']) # mean velocity
+    h_bar = np.mean(s2_dict['altitude']) # mean elevation above ellipsoid
+
+    # create spatial grid, in pixel spacing
+    x_grd, y_grd = np.meshgrid(np.linspace(1, det_stack.shape[1],
+                                           det_stack.shape[1]),
+                               np.linspace(1, det_stack.shape[0],
+                                           det_stack.shape[0]),
+                               indexing='xy')
+
+    # create timing grid and orthogonal frame
+    t_grd = -np.sin(np.deg2rad(psi)) * x_grd + np.cos(np.deg2rad(psi)) * y_grd
+    t_grd *= line_period / np.timedelta64(1, 's')
+    o_grd = -np.cos(np.deg2rad(psi)) * x_grd - np.sin(np.deg2rad(psi)) * y_grd
+
+    # get relative timing through detector angles
+    Zn, Az = read_view_angles_s2(s2_dict['MTD_TL_path'],
+                                 boi_df=s2_df, det_stack=det_stack)
+
+    vX,vY,vZ = pol2xyz(Az - (psi + 270), Zn)
+
+    Theta = np.rad2deg(np.arctan2(vX, vZ))  # along-track angles
+    Phi = np.rad2deg(np.arctan2(vX, vZ))  # across-track angles
+
+    dT = (np.tan(np.deg2rad(Theta)) * h_bar) / v_bar
+
+    det_bias = np.pad(np.mean((np.diff(det_time, axis=0) /
+                               np.timedelta64(1, 's'))[:, 0::2], axis=1),
+                      (1, 0), 'constant', constant_values=(0))
+    for b in range(dT.shape[2]):
+        dT[:, :, b] += det_bias[b] + t_grd
+
+    # create across-track reference frame, per detector
+    ds = np.diff(det_stack[0, :, 0])
+    prio = np.pad(ds, (0, 1), 'constant', constant_values=(0)).astype(bool)
+
+    o_brd = o_grd[0, prio]  # border of the transition
+    o_min = np.min(o_brd)
+    o_mod = np.mean(np.diff(o_brd))
+
+    o_grd -= o_min
+    Across = np.mod(o_grd, o_mod)
+    return dT, Across, Phi, s2_dict
 
 def get_timing_stack_s2(s2_df, det_stack,
                         spac=10, sat_height=750E3, sat_velo=7.5):
@@ -1017,7 +1093,7 @@ def get_timing_stack_s2(s2_df, det_stack,
     cross_grd = -np.cos(np.deg2rad(psi))*x_grd - np.sin(np.deg2rad(psi))*y_grd
     cross_grd *= spac # convert from pixels to meters
 
-    cross_parallax_timing = (1E9 * s2_df.crossdetector_parallax * height /
+    cross_parallax_timing = (1E9 * s2_df.crossdetector_parallax * sat_height /
                              sat_velo).to_numpy().astype('timedelta64[ns]')
 
     # odd detector numbers are forward, thus earlier
@@ -1065,7 +1141,7 @@ def read_cloud_mask(path_meta, geoTransform):
 
     Parameters
     ----------
-    path_meta : str
+    path_meta : string
         directory where meta data is situated, 'MSK_CLOUDS_B00.gml' is typically
         the file of interest
     geoTransform : tuple
@@ -1078,8 +1154,7 @@ def read_cloud_mask(path_meta, geoTransform):
     """
 
     f_meta = os.path.join(path_meta, 'MSK_CLOUDS_B00.gml')
-    dom = ElementTree.parse(glob.glob(f_meta)[0])
-    root = dom.getroot()
+    root = get_root_of_table(f_meta)
 
     if len(geoTransform)>6: # also image size is given
         msk_dim = (geoTransform[-2], geoTransform[-1])
@@ -1105,9 +1180,63 @@ def read_cloud_mask(path_meta, geoTransform):
             msk_clouds = np.maximum(msk_clouds, msk)
     return msk_clouds
 
-def read_detector_time_s2(path, fname='MTD_DS.xml'): #todo: make description of function with example
+def read_detector_time_s2(path, fname='MTD_DS.xml', s2_df=None):
+    """ get the detector metadata of the relative detector timing
 
+    Parameters
+    ----------
+    path : string
+        path where the meta-data is situated
+    fname : string
+        file name of the metadata.
+
+    Returns
+    -------
+    det_time : numpy.array, numpy.datetime64
+        detector time
+    det_name : list, size=(13,)
+        list of the different detector codes
+    det_meta : numpy.array, size=(13,4)
+        metadata of the individual detectors, each detector has the following:
+            1) spatial resolution     [m]
+            2) minimal spectral range [nm]
+            3) maximum spectral range [nm]
+            4) mean spectral range    [nm]
+    line_period : float, numpy.timedelta64
+        temporal sampling distance
+
+    Notes
+    -----
+    The sensor blocks are arranged as follows, with ~98 pixels overlap:
+
+        .. code-block:: text
+
+             ┌-----┐   ┌-----┐   ┌-----┐   ┌-----┐   ┌-----┐   ┌-----┐
+             |DET02|   |DET04|   |DET06|   |SCA08|   |SCA10|   |SCA12|
+             └-----┘   └-----┘   └-----┘   └-----┘   └-----┘   └-----┘
+         ┌-----┐   ┌-----┐   ┌-----┐   ┌-----┐   ┌-----┐   ┌-----┐
+         |DET01|   |DET03|   |SCA05|   |SCA07|   |SCA09|   |SCA11|
+         └-----┘   └-----┘   └-----┘   └-----┘   └-----┘   └-----┘
+
+        .. code-block:: text
+
+          a forward looking array, while band order is reverse for aft looking
+          <-2592 10m pixels->
+          ┌-----------------┐    #*# satellite
+          |       B02       |     |
+          ├-----------------┤     | flight
+          |       B08       |     | direction
+          ├-----------------┤     |
+          |       B03       |     v
+          ├-----------------┤
+                 etc.
+          the detector order is B02, B08, B03, B10, B04, B05,
+          B11, B06, B07, B8A, B12, B01 and B09
+    """
 # example : line_period / np.timedelta64(1, 's')
+    if s2_df is None:
+        s2_df = list_central_wavelength_msi()
+
     det_time = np.zeros((13, 12), dtype='datetime64[ns]')
     det_name = [None] * 13
     det_meta = np.zeros((13, 4), dtype='float')
@@ -1139,6 +1268,14 @@ def read_detector_time_s2(path, fname='MTD_DS.xml'): #todo: make description of 
         det_meta[bnd,1] = float(meta[1][0].text) # min
         det_meta[bnd,2] = float(meta[1][1].text) # max
         det_meta[bnd,3] = float(meta[1][2].text) # mean
+
+    # make selection based on the dataframe
+    matchers = s2_df.index.values.tolist()
+    matching = np.array([i for i,s in enumerate(det_name)
+                         if any(xs in s for xs in matchers)])
+    det_name = [det_name[i] for i in matching]
+    det_time = det_time[matching,:]
+    det_meta = det_meta[matching,:]
     return det_time, det_name, det_meta, line_period
 
 def get_flight_bearing_from_detector_mask_s2(Det):
@@ -1162,7 +1299,7 @@ def get_flight_bearing_from_detector_mask_s2(Det):
     D_x = convolve2d(D, np.outer([+1., +2., +1.], [-1., 0., +1.]),
                      boundary='fill', mode='same')
     D_x[0, :], D_x[-1, :], D_x[:, 0], D_x[:, -1] = 0, 0, 0, 0
-    D_tr = np.abs(D_x) >= 2
+    D_tr = np.abs(D_x) >= 4
 
     L, Lab_num = label(D_tr, structure=[[1, 1, 1], [1, 1, 1], [1, 1, 1]])
 
@@ -1171,11 +1308,13 @@ def get_flight_bearing_from_detector_mask_s2(Det):
         [i_x, j_x] = np.where(L == i + 1)
         psi[i] = np.rad2deg(np.arctan2(np.min(j_x) - np.max(j_x),
                                        np.min(i_x) - np.max(i_x)))
-    psi = np.median(psi)
+    psi = np.rad2deg(np.arctan2(np.median(np.sin(np.deg2rad(psi))),
+                                np.median(np.cos(np.deg2rad(psi)))))
     return psi
 
 # use the detector start and finish to make a selection for the flight line
-def get_flight_bearing_from_gnss_s2(path, spatialRef, rec_tim, fname='MTD_DS.xml'):
+def get_flight_bearing_from_gnss_s2(path, spatialRef, rec_tim,
+                                    fname='MTD_DS.xml'):
     """ get the direction/argument/heading of the Sentinel-2 acquisition
 
     Parameters
@@ -1193,6 +1332,44 @@ def get_flight_bearing_from_gnss_s2(path, spatialRef, rec_tim, fname='MTD_DS.xml
     -------
     az : numpy.array, size=(m,1), float
         array with argument values, based upon the map projection given
+
+    See Also
+    --------
+    get_s2_image_locations : to get the datastrip id
+
+    Notes
+    -----
+    The metadata is scattered over the file structure of Sentinel-2, L1C
+
+    .. code-block:: text
+
+        * S2X_MSIL1C_20XX...
+        ├ AUX_DATA
+        ├ DATASTRIP
+        │  └ DS_XXX_XXXX...
+        │     └ QI_DATA
+        │        └ MTD_DS.xml <- metadata about the data-strip
+        ├ GRANULE
+        │  └ L1C_TXXXX_XXXX...
+        │     ├ AUX_DATA
+        │     ├ IMG_DATA
+        │     ├ QI_DATA
+        │     └ MTD_TL.xml <- metadata about the tile
+        ├ HTML
+        ├ rep_info
+        ├ manifest.safe
+        ├ INSPIRE.xml
+        └ MTD_MSIL1C.xml <- metadata about the product
+
+    The following acronyms are used:
+
+    - DS : datastrip
+    - TL : tile
+    - QI : quality information
+    - AUX : auxiliary
+    - MTD : metadata
+    - MSI : multi spectral instrument
+    - L1C : product specification,i.e.: level 1, processing step C
     """
 
     sat_tim,sat_xyz,_,_ = get_flight_path_s2(path, fname=fname)
@@ -1233,7 +1410,8 @@ def get_flight_path_s2(ds_path, fname='MTD_DS.xml', s2_dict=None):
         3D velocity vectors of the satellite within an Earth centered Earth
         fixed (ECEF) frame.
     s2_dict : dictonary
-        updated with keys: "xyz", "uvw", "time", "error", "altitude", "speed"
+        updated with keys: "gps_xyz", "gps_uvw", "gps_tim", "gps_err",
+        "altitude", "speed"
 
     See Also
     --------
@@ -1292,9 +1470,8 @@ def get_flight_path_s2(ds_path, fname='MTD_DS.xml', s2_dict=None):
     if s2_dict is None:
         return sat_time, sat_xyz, sat_err, sat_uvw
     else: # include into dictonary
-        s2_dict.update({'xyz': sat_xyz, 'uvw': sat_uvw, 'error': sat_error})
-        if 'time' not in s2_dict:
-            s2_dict.update({'time': sat_time})
+        s2_dict.update({'gps_xyz': sat_xyz, 'gps_uvw': sat_uvw,
+                        'gps_tim': sat_time, 'gps_err': sat_err})
         # estimate the altitude above the ellipsoid, and platform speed
         llh = ecef2llh(sat_xyz)
         velo = np.sqrt(np.sum(sat_uvw**2, axis=1))
@@ -1353,9 +1530,7 @@ def get_flight_orientation_s2(ds_path, fname='MTD_DS.xml', s2_dict=None):
     if s2_dict is None:
         return sat_time, sat_angles
     else: # include into dictonary
-        s2_dict.update({'quat': sat_angles})
-        if 'time' not in s2_dict:
-            s2_dict.update({'time': sat_time})
+        s2_dict.update({'imu_quat': sat_angles, 'imu_time': sat_time})
         return s2_dict
 
 def get_integration_and_sampling_time_s2(ds_path, fname='MTD_DS.xml',
@@ -1468,7 +1643,7 @@ def get_intrinsic_camera_mat_s2(s2_df, det, boi):
 
     Notes
     -----
-    The pushbroom detector onboard Sentinel-2 has the folowing configuration:
+    The pushbroom detector onboard Sentinel-2 has the following configuration:
 
         .. code-block:: text
 

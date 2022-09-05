@@ -6,7 +6,7 @@ from scipy.interpolate import griddata
 
 def conv_2Dfilter(I, kernel):
 
-    sub_shape = I.shape - kernel.shape + 1
+    sub_shape = tuple(map(lambda i,j: i-j+1, I.shape, kernel.shape))
     view_shape = tuple(np.subtract(I.shape, sub_shape) + 1) + sub_shape
     strides = I.strides + I.strides
 

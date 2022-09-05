@@ -528,38 +528,53 @@ def hough_sinus(phi,rho,
     .. [1] Guo & Lü, "Phase-shifting algorithm by use of Hough transform"
        Optics express vol.20(23) pp.26037-26049, 2012.
     """
-    param_resol = param_resol.astype(int)
+    normalize = True
     phi,rho = phi.flatten(), rho.flatten()
+    if normalize:
+        rho -= np.nanmedian(rho)
+
     sample_size = rho.size
     if sample_fraction==1:
         idx = np.arange(0, sample_size)
     elif sample_fraction>1: # use the amount given by sample_fraction
         idx = np.random.choice(sample_size,
-                               np.round(np.minimum(sample_size, sample_fraction)).astype(np.int32),
-                               replace=False)
+           np.round(np.minimum(sample_size, sample_fraction)).astype(np.int32),
+           replace=False)
     else: # sample random from collection
         idx = np.random.choice(sample_size,
-                               np.round(sample_size*sample_fraction).astype(np.int32),
-                               replace=False)
+           np.round(sample_size*sample_fraction).astype(np.int32),
+           replace=False)
 
     (u,v) = np.meshgrid(np.linspace(-max_amp,+max_amp, param_resol),
                         np.linspace(-max_amp,+max_amp, param_resol))
-    vote = np.zeros((param_resol, param_resol), dtype=np.float32)
+    democracy = np.zeros((param_resol, param_resol), dtype=np.float32)
 
     for counter in idx:
         diff = rho[counter] - \
                (u*+np.sin(phi[counter]) +
                 v*+np.cos(phi[counter]))
         # Gaussian weighting
-        vote += np.exp(-np.abs(diff*param_resol))
+        vote = np.exp(-np.abs(diff*param_resol)/max_amp)
+        #todo: outer product, to speed-up
+        np.putmask(vote, np.isnan(vote), 0)
+        democracy += vote
+
+#todo: histogram goes quicker
+#    H,phi_h,rho_h = np.histogram2d(phi[idx], rho[idx],
+#                                   bins=24, range=[[-180, +180], [-max_amp, +max_amp]])
+
     # import matplotlib.pyplot as plt
+    # plt.figure()
     # plt.imshow(vote, extent=(-max_amp,+max_amp,-max_amp,+max_amp)), plt.show()
+    # plt.figure()
+    # plt.hexbin(phi, rho, gridsize=32, extent=(-180,+180,-max_amp,+max_amp)),
+    # plt.show()
 
     # find multiple peaks if present and wanted
-    ind,score = get_peak_indices(vote, num_estimates=num_estimates)
+    ind,score = get_peak_indices(democracy, num_estimates=num_estimates)
     score /= sample_size # normalize
 
-    if indexing in ('polar'):
+    if indexing in ('polar', 'circular',):
         rho_H, phi_H = np.zeros(num_estimates), np.zeros(num_estimates)
         for cnt,sc in enumerate(score):
             if sc!=0:
@@ -567,8 +582,8 @@ def hough_sinus(phi,rho,
                                  v[ind[cnt,0]][ind[cnt,1]]**2 )
                 phi_H[cnt] = np.arctan2(u[ind[cnt,0]][ind[cnt,1]],
                                    v[ind[cnt,0]][ind[cnt,1]])
-        return phi_H, rho_H
-    elif indexing in ('cartesian'):
+        return phi_H, rho_H, score
+    elif indexing in ('cartesian', 'xy',):
         u_H, v_H = np.zeros(num_estimates), np.zeros(num_estimates)
         for cnt,sc in enumerate(score):
             if sc!=0:

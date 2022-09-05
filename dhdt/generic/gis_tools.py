@@ -101,7 +101,8 @@ def ll2utm(ll_fname,utm_fname,crs,aoi='RGIId'):
         inFeature = inLayer.GetNextFeature()
     outDataSet = None # this creates an error but is needed?????
 
-def shape2raster(shp_fname,im_fname,geoTransform,rows,cols,aoi='RGIId'):
+def shape2raster(shp_fname,im_fname,geoTransform,rows,cols,spatialRef,
+                 aoi='RGIId'):
     """ converts shapefile into raster        
 
     Parameters
@@ -119,24 +120,27 @@ def shape2raster(shp_fname,im_fname,geoTransform,rows,cols,aoi='RGIId'):
     aoi : string
         attribute of interest. The default is 'RGIId'
     """
+    if not shp_fname[-4:] in ('.shp', '.SHP',):
+        shp_fname += '.shp'
+    if not im_fname[-4:] in ('.tif', '.TIF',):
+        im_fname += '.tif'
+    assert os.path.exists(shp_fname), ('make sure the shapefiles exist')
+
     #making the shapefile as an object.
-    rgiShp = ogr.Open(shp_fname)
-    #getting layer information of shapefile.
-    rgiLayer = rgiShp.GetLayer()
-    #get required raster band.
+    rgiShp = ogr.Open(shp_fname)    #getting layer information of shapefile.
+    rgiLayer = rgiShp.GetLayer()    #get required raster band.
     
     driver = gdal.GetDriverByName('GTiff')
-    rgiRaster = driver.Create(im_fname+'.tif', rows, cols, 1, gdal.GDT_Int16)
-    #            rgiRaster = gdal.GetDriverByName('GTiff').Create(dat_path+sat_tile+'.tif', mI, nI, 1, gdal.GDT_Int16)           
-    rgiRaster.SetGeoTransform(geoTransform)
-    band = rgiRaster.GetRasterBand(1)
-    #assign no data value to empty cells.
-    band.SetNoDataValue(0)
-    # band.FlushCache()
+
+    raster = driver.Create(im_fname, cols, rows, 1, gdal.GDT_UInt16)
+    raster.SetGeoTransform(geoTransform[:6])
+    raster.SetProjection(spatialRef)
     
     #main conversion method
-    gdal.RasterizeLayer(rgiRaster, [1], rgiLayer, options=['ATTRIBUTE='+aoi])
-    rgiRaster = None # missing link.....
+    gdal.RasterizeLayer(raster, [1], rgiLayer, None, options=['ATTRIBUTE='+aoi])
+    gdal.RasterizeLayer(raster, [1], rgiLayer, None, burn_values=[1])
+    raster = None # missing link.....
+    return
 
 def get_mask_boundary(Msk):
     inner = ndimage.morphology.binary_erosion(Msk)

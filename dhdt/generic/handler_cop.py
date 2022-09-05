@@ -2,6 +2,7 @@
 
 # generic libraries
 import os
+import re
 import tarfile
 import pathlib
 import tempfile
@@ -17,6 +18,7 @@ from rioxarray.merge import merge_datasets
 from rasterio.enums import Resampling
 from shapely.geometry import Polygon
 from affine import Affine
+import shapely.geometry
 
 # import local functions
 from .handler_www import get_file_from_ftps
@@ -267,6 +269,39 @@ def make_copDEM_mgrs_tile(mgrs_tile, im_path, im_name, tile_path, cop_path,
     cop_dem.rio.to_raster(cop_dem_out, dtype=cop_dem.dtype)
     return cop_dem_out
 
+def get_copDEM_in_raster(geoTransform, crs, cop_path,
+                         cop_file='mapping.csv',
+                         map_file='DGED-30.geojson',
+                         sso='', pw=''):
+    if not isinstance(crs, str): crs = crs.ExportToWkt()
+
+    bbox = get_bbox(geoTransform).reshape((2, 2)).T.ravel()
+    polygon = shapely.geometry.box(*bbox, ccw=True)
+    im_df = geopandas.GeoDataFrame(index=[0], crs=crs, geometry=[polygon])
+
+    # get meta-data of CopDEM if it is not present
+    if not os.path.exists(os.path.join(cop_path,cop_file)):
+        if (len(sso)==0) or (len(pw)==0):
+            raise Exception('No username or password were given')
+        _ = get_copDEM_filestructure(cop_path, sso, pw)
+        make_copDEM_geojson(cop_path, cop_file=cop_file,
+                            out_file=map_file)
+    # read CopDEM meta-data
+    cop_df = geopandas.read_file(os.path.join(cop_path, map_file))
+
+    cop_oi = cop_df[cop_df.intersects(im_df['geometry'].item())]
+
+    tars = list(cop_oi['CPP filename'])
+
+    cds_path, cds_url = get_cds_path_copDEM(), get_cds_url()
+    cop_dem = download_and_mosaic_through_ftps(tars, cop_path,
+                                               cds_url, cds_path[4:],
+                                               sso, pw, bbox, crs, geoTransform)
+    Z_cop = np.squeeze(cop_dem.values)
+    Msk = Z_cop>3.4E38
+    Z_cop = np.ma.array(Z_cop, mask=Msk)
+    return Z_cop
+
 def get_copDEM_s2_tile_intersect_list(s2_path, cop_path, s2_toi,
                                       s2_file='sentinel2_tiles_world.shp',
                                       cop_file='mapping.csv',
@@ -316,10 +351,14 @@ def get_copDEM_s2_tile_intersect_list(s2_path, cop_path, s2_toi,
     - DGED : defence gridded elevation data
     - DTED : digital terrain elevation data
     """
+    assert bool(re.match("[0-9][0-9][A-Z][A-Z][A-Z]", s2_toi)), \
+        ('please provide a correct MGRS tile code')
+
     # get dataframe of Sentinel-2 tiles
     file_path = os.path.join(s2_path, s2_file)
     s2_df = geopandas.read_file(file_path)
     s2_df = s2_df[s2_df['Name'].isin([s2_toi])]
+    assert (s2_df is not None), ('tile not present in shapefile')
 
     # get meta-data of CopDEM if it is not present
     if not os.path.exists(os.path.join(cop_path,cop_file)):
@@ -437,7 +476,7 @@ def mosaic_tiles(dem_tiles_filenames, bbox, crs, geoTransform):
 
 def create_copDEM_tiling(sso,pw, cop_path='Cop-DEM_GLO-30/',
                          cop_file='mapping.csv', out_file='DGED-30.geojson'):
-    """
+    """ create geojson file of the tiling system of the CopernicusDEM
 
     Parameters
     ----------

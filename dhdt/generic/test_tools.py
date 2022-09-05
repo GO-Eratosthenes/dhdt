@@ -509,4 +509,33 @@ def test_photohypsometric_refinement_by_same(Z_shape, tolerance=0.5):
                                            post_1[:,1]-post_2_new[:,1]))
     assert np.isclose(0, pix_dispersion, atol=tolerance)
 
+def test_photohypsometric_refinement(N, Z_shape, tolerance=0.1):
+    Z, geoTransform = create_artificial_terrain(Z_shape[0],Z_shape[1])
+    az,zn = create_artifical_sun_angles(N)
 
+    # create temperary directory
+    with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmpdir:
+        dump_path = os.path.join(os.getcwd(), tmpdir)
+        for i in range(N):
+            f_name = "conn-"+str(i).zfill(3)+".txt"
+            create_shadow_caster_casted(Z, geoTransform,
+                az[i], zn[i], dump_path, out_name=f_name, incl_image=True)
+        # read and refine through image matching
+        print('+')
+        match_idxs = get_network_indices(N)
+        for idx in range(match_idxs.shape[1]):
+            fname_1 = "conn-"+str(match_idxs[0][idx]).zfill(3)+".tif"
+            fname_2 = "conn-"+str(match_idxs[1][idx]).zfill(3)+".tif"
+            file_1 = os.path.join(dump_path,fname_1)
+            file_2 = os.path.join(dump_path,fname_2)
+            post_1,post_2_new,caster,dh,score,caster_new,_,_,_ = \
+                couple_pair(file_1, file_2)
+            geoTransform = read_geo_info(file_1)[1]
+            i_1,j_1 = map2pix(geoTransform, post_1[:,0], post_1[:,1])
+            i_2,j_2 = map2pix(geoTransform, post_2_new[:,0], post_2_new[:,1])
+            h_1 = bilinear_interpolation(Z, i_1, j_1)
+            h_2 = bilinear_interpolation(Z, i_2, j_2)
+            # dh
+
+            print('.')
+    return

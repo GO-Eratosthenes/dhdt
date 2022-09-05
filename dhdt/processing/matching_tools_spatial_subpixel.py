@@ -220,7 +220,7 @@ def get_top_centroid(C, top=np.array([])):
     di += C.shape[0]//2 # using a central coordinate system
     dj += C.shape[1]//2
 
-    if not is_estimate_away_from_border:
+    if not is_estimate_away_from_border(C, i_int, j_int, ds=1):
         return 0,0, i_int,j_int
 
     # estimate sub-pixel along each axis
@@ -644,31 +644,28 @@ def get_top_esinc(C, ds=1, top=np.array([])):
     di += C.shape[0]//2 # using a central coordinate system
     dj += C.shape[1]//2
 
-    if not is_estimate_away_from_border:
+    if not is_estimate_away_from_border(C, i_int, j_int, ds=ds):
         return 0, 0, i_int, j_int
 
     # estimate sub-pixel per axis
     Cj = C[di,dj-ds:dj+ds+1].ravel()
-    def funcJ(x):
-        a, b, c = x
-        return [(Cj[0] - a*np.exp(-(b*(-1-c))**2)* \
-                 ( np.sin(np.pi*(-1-c))/ np.pi*(-1-c)) )**2,
-                (Cj[1] - a*np.exp(-(b*(+0-c))**2)* \
-                 ( np.sin(np.pi*(+0-c))/ np.pi*(+0-c)) )**2,
-                (Cj[2] - a*np.exp(-(b*(+1-c))**2)* \
-                 ( np.sin(np.pi*(+1-c))/ np.pi*(+1-c)) )**2]
-    _,_,jC = fsolve(funcJ, (1.0, 1.0, 0.1))
-
     Ci = C[di-ds:di+ds+1,dj].ravel()
-    def funcI(x):
+
+    def func_esinc(x, y):
         a, b, c = x
-        return [(Ci[0] - a*np.exp(-(b*(-1-c))**2)*
+# todo
+#        coord = np.linspace(1, y.size, y.size) - (y.size//2+1)
+#        return y - a * np.exp(-(b * (coord - c)) ** 2) * \
+#            (np.sin(np.pi * (coord - c)) / np.pi * (coord - c))**2
+        return [(y[0] - a*np.exp(-(b*(-1-c))**2)*
                  ( np.sin(np.pi*(-1-c))/ np.pi*(-1-c)) )**2,
-                (Ci[1] - a*np.exp(-(b*(+0-c))**2)*
+                (y[1] - a*np.exp(-(b*(+0-c))**2)*
                  ( np.sin(np.pi*(+0-c))/ np.pi*(+0-c)) )**2,
-                (Ci[2] - a*np.exp(-(b*(+1-c))**2)*
+                (y[2] - a*np.exp(-(b*(+1-c))**2)*
                  ( np.sin(np.pi*(+1-c))/ np.pi*(+1-c)) )**2]
-    _,_,iC = fsolve(funcI, (1.0, 1.0, 0.1))
+
+    _,_,jC = fsolve(func_esinc, (1.0, 1.0, 0.0), args=Cj)
+    _,_,iC = fsolve(func_esinc, (1.0, 1.0, 0.0), args=Ci)
 
     return iC,jC, i_int,j_int
 
