@@ -1,5 +1,4 @@
 import numpy as np
-from tqdm import tqdm
 
 from pysolar.solar import get_azimuth, get_altitude
 from pysolar.radiation import get_radiation_direct
@@ -7,9 +6,6 @@ from datetime import datetime, timedelta
 from pytz import timezone
 
 from scipy import ndimage
-from scipy.spatial.transform import Rotation
-
-from skimage import transform
 
 from ..generic.unit_conversion import doy2dmy
 from ..generic.data_tools import estimate_sinus
@@ -230,10 +226,9 @@ def make_shadowing(Z, az, zn, spac=10, weights=None, radiation=False):
         else:
             Mrs = weights[idx]*Mr.astype(int).copy()
 
-
-    Ms = ndimage.interpolation.rotate(Mrs, -az, axes=(1, 0),
-                                      cval=0, order=0,
-                                      mode='constant', prefilter=False)
+    Ms = ndimage.rotate(Mrs, -az, axes=(1, 0),
+                        cval=0, order=0,
+                        mode='constant', prefilter=False)
     i_min = int(np.floor((Ms.shape[0] - Z.shape[0]) / 2))
     i_max = int(np.floor((Ms.shape[0] + Z.shape[0]) / 2))
     j_min = int(np.floor((Ms.shape[1] - Z.shape[1]) / 2))
