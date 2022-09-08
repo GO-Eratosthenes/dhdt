@@ -121,16 +121,16 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
         list_phase_estimators
 
     # init
-    assert type(I1) in (np.ma.core.MaskedArray, np.array), \
-        ("please provide an array")
-    assert type(I2) in (np.ma.core.MaskedArray, np.array), \
-        ("please provide an array")
-    assert type(L1)==np.ndarray, ("please provide an array")
-    assert type(L2)==np.ndarray, ("please provide an array")
-    assert isinstance(geoTransform1, tuple), ('geoTransform should be a tuple')
-    assert isinstance(geoTransform2, tuple), ('geoTransform should be a tuple')
-    assert(X_grd.shape == Y_grd.shape) # should be of the same size
-    assert (temp_radius<=search_radius), ('given search radius is too small')
+    assert isinstance(I1, np.ma.core.MaskedArray) or isinstance(I1, np.ndarray), \
+        "please provide an array"
+    assert isinstance(I2, np.ma.core.MaskedArray) or isinstance(I2, np.ndarray), \
+        "please provide an array"
+    assert isinstance(L1, np.ndarray), "please provide an array"
+    assert isinstance(L2, np.ndarray), "please provide an array"
+    assert isinstance(geoTransform1, tuple), 'geoTransform should be a tuple'
+    assert isinstance(geoTransform2, tuple), 'geoTransform should be a tuple'
+    assert X_grd.shape == Y_grd.shape  # should be of the same size
+    assert temp_radius <= search_radius, 'given search radius is too small'
 
     I1, L1, I2, L2 = get_data_and_mask(I1, L1), get_data_and_mask(I2, L2)
 
