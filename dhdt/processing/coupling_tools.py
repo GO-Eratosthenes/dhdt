@@ -116,9 +116,7 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
     """
     # combating import loops
     from .matching_tools_organization import \
-        list_differential_correlators, list_spatial_correlators, \
-        list_peak_estimators, list_frequency_correlators, \
-        list_phase_estimators
+        list_differential_correlators, list_peak_estimators, list_frequency_correlators
 
     # init
     assert isinstance(I1, np.ma.core.MaskedArray) or isinstance(I1, np.ndarray), \
@@ -139,9 +137,7 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
     if (subpix is not None): subpix=subpix.lower()
 
     frequency_based = list_frequency_correlators()
-    spatial_based = list_spatial_correlators()
     differential_based = list_differential_correlators()
-    phase_based = list_phase_estimators()
     peak_based = list_peak_estimators()
 
     # prepare
