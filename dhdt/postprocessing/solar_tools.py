@@ -1,5 +1,4 @@
 import numpy as np
-from tqdm import tqdm
 
 from pysolar.solar import get_azimuth, get_altitude
 from pysolar.radiation import get_radiation_direct
@@ -7,9 +6,6 @@ from datetime import datetime, timedelta
 from pytz import timezone
 
 from scipy import ndimage
-from scipy.spatial.transform import Rotation
-
-from skimage import transform
 
 from ..generic.unit_conversion import doy2dmy
 from ..generic.data_tools import estimate_sinus
