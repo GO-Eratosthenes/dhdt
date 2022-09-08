@@ -235,7 +235,7 @@ def fade_shadow_cast(Shw, az, t_size=9):
         new_dims.append(np.linspace(0, original_length - 1, new_length))
 
     coords = np.meshgrid(*new_dims, indexing='ij')
-    kernel_az = ndimage.interpolation.map_coordinates(kernel_az, coords)
+    kernel_az = ndimage.map_coordinates(kernel_az, coords)
 
     W_f = ndimage.convolve(Shw.astype(np.float64), kernel_az)
     M_f = np.logical_and(W_f > 0.001,
