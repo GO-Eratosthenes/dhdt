@@ -883,7 +883,7 @@ def read_detector_mask(path_meta, boi, geoTransform):
             root = dom.getroot()
 
             if msk_dim is None:
-                msk_dim = get_msk_dim_from_gml(gml_struct)
+                msk_dim = get_msk_dim_from_gml(root, geoTransform)
                 msk_dim = msk_dim + (len(boi),)
                 det_stack = np.zeros(msk_dim, dtype='int8') # create stack
 
@@ -1123,7 +1123,7 @@ def get_xy_poly_from_gml(gml_struct,idx):
     pos_arr = np.array(pos_row).reshape((int(len(pos_row) / pos_dim), pos_dim))
     return pos_arr, det_num
 
-def get_msk_dim_from_gml(gml_struct):
+def get_msk_dim_from_gml(gml_struct, geoTransform):
     # find dimensions of array through its map extent in metadata
     lower_corner = np.fromstring(gml_struct[1][0][0].text, sep=' ')
     upper_corner = np.fromstring(gml_struct[1][0][1].text, sep=' ')

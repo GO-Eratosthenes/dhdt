@@ -91,7 +91,7 @@ for i in range(1,Zr.shape[1]):
     Zr[i,:] = np.maximum(Zr[i,:], Zr[i-1,:]-dZ)
 
 Zs = ndimage.rotate(Zr, -az_oi, cval=-1, order=0)
-Ms = ndimage.interpolation.rotate(Mr, -az_oi, cval=0, order=0)
+Ms = ndimage.rotate(Mr, -az_oi, cval=0, order=0)
 i_ok, j_ok = np.where(np.any(Ms, axis=1)), np.where(np.any(Ms, axis=0))
 Zs = Zs[i_ok[0][0]:i_ok[0][-1]+1, j_ok[0][0]:j_ok[0][-1]+1]
 
