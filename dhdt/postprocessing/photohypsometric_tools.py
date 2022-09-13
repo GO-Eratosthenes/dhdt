@@ -8,7 +8,8 @@ from scipy import sparse
 
 from ..generic.debugging import loggg
 from ..generic.mapping_tools import map2pix, pix2map
-from ..generic.handler_im import bilinear_interpolation
+from ..generic.handler_im import \
+    bilinear_interpolation, simple_nearest_neighbor
 from ..processing.coupling_tools import \
     pair_posts, merge_ids, get_elevation_difference, angles2unit
 from ..processing.matching_tools import remove_posts_pairs_outside_image
@@ -328,13 +329,31 @@ def update_caster_elevation(dh, Z, geoTransform):
 @loggg
 def update_caster_elevation_pd(dh, Z, geoTransform):
     assert np.all([header in dh.columns for header in
-                   ('timestamp', 'zenith')])
+                   ('caster_X', 'caster_Y')])
     # get elevation of the caster locations
     i_im, j_im = map2pix(geoTransform, dh['caster_X'], dh['caster_Y'])
     dh_Z = bilinear_interpolation(Z, i_im, j_im)
     if not 'caster_Z' in dh.columns: dh['caster_Z'] = None
     dh.loc[:,'caster_Z'] = dh_Z
     return dh
+
+def update_glacier_id(dh, R, geoTransform):
+    if type(dh) in (pd.core.frame.DataFrame,):
+        update_glacier_id_pd(dh, R, geoTransform)
+    #todo : make the same function for recordarray
+    return dh
+
+@loggg
+def update_glacier_id_pd(dh, R, geoTransform):
+    assert np.all([header in dh.columns for header in
+                   ('casted_X', 'casted_Y')])
+    # get elevation of the caster locations
+    i_im, j_im = map2pix(geoTransform, dh['caster_X'], dh['caster_Y'])
+    rgi_id = simple_nearest_neighbor(R, i_im, j_im).astype(int)
+    if not 'glacier_id' in dh.columns: dh['glacier_id'] = None
+    dh.loc[:,'glacier_id'] = rgi_id
+    return dh
+
 
 def get_casted_elevation_difference(dh):
     """

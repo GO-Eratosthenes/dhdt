@@ -478,7 +478,7 @@ def create_template_at_center(I, i,j, radius, filling='random'):
           based      v           based       |
 
     """
-    i,j = i.astype(int), j.astype(int)
+    i,j = np.round(i).astype(int), np.round(j).astype(int)
     if not type(radius) is tuple: radius = (radius, radius)
 
     # create sub template
@@ -562,6 +562,9 @@ def create_template_off_center(I, i,j, width, filling='random'):
           based      v           based       |
 
     """
+    # make sure the input are integer loctions
+    i,j = np.round(i).astype(int), np.round(j).astype(int)
+
     if not type(width) is tuple: width = (width, width)
     radius = (width[0] //2, width[1] //2)
     if I.ndim==3:

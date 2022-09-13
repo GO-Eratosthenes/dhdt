@@ -7,7 +7,8 @@ from dhdt.generic.mapping_tools import get_mean_map_location
 from dhdt.input.read_sentinel2 import list_central_wavelength_msi
 from dhdt.preprocessing.atmospheric_geometry import get_refraction_angle
 from dhdt.postprocessing.photohypsometric_tools import \
-    read_conn_files_to_df, clean_dh, update_caster_elevation
+    read_conn_files_to_df, clean_dh, update_caster_elevation, \
+    update_glacier_id
 
 base_dir = '/Users/Alten005/surfdrive/Eratosthenes/RedGlacier/'
 im_dir = os.path.join(base_dir, 'Sentinel-2')
@@ -51,8 +52,10 @@ for im_path in im_paths:
           .pipe(start_pipeline)
           .pipe(clean_dh)
           .pipe(update_caster_elevation, Z, geoTransform)
-          .pipe(get_refraction_angle, x_bar, y_bar, spatialRef, h,
-                                         central_wavelength,
-                                         simple_refraction=simple_refraction)
+          .pipe(update_glacier_id, R, geoTransform)
+#          .pipe(get_refraction_angle, x_bar, y_bar, spatialRef, h,
+#                                         central_wavelength,
+#                                         simple_refraction=simple_refraction)
           )
+    print('.')
 print('.')

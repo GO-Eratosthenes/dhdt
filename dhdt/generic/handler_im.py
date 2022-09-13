@@ -302,6 +302,14 @@ def bilinear_interpolation(I, di, dj):
     I_new = wa*Ia + wb*Ib + wc*Ic + wd*Id
     return I_new
 
+def simple_nearest_neighbor(I, i, j):
+    I_ij = np.zeros((i.size))
+    i,j = np.round(i).astype(int), np.round(j).astype(int)
+    IN = np.logical_and.reduce((i>=0, i<I.shape[0],
+                                j>=0, j<I.shape[1]))
+    I_ij[IN] = I[i[IN],j[IN]]
+    return I_ij
+
 def rescale_image(I, sc, method='cubic'):
     """ generate a zoomed-in version of an image, through isotropic scaling
 
