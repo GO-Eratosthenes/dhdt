@@ -592,16 +592,16 @@ def GDAL_transform_to_affine(GDALtransform):
         affine.Affine(a, b, c,
                       d, e, f)
     """
-    new_transform = Affine(GDALtransform[1], GDALtransform[2], GDALtransform[0], \
+    new_transform = Affine(GDALtransform[1], GDALtransform[2], GDALtransform[0],
                            GDALtransform[4], GDALtransform[5], GDALtransform[3])
     return new_transform
 
-def ref_trans(Transform, dI, dJ):
+def ref_trans(geoTransform, dI, dJ):
     """ translate reference transform
 
     Parameters
     ----------
-    Transform : tuple, size=(1,6)
+    geoTransform : tuple, size=(1,6)
         georeference transform of an image.
     dI : dtype={float,integer}
         translation in rows.
@@ -633,12 +633,12 @@ def ref_trans(Transform, dI, dJ):
           image      | j         map         |
           based      v           based       |
     """
-    newTransform = (Transform[0]+ dJ*Transform[1] + dI*Transform[2],
-                    Transform[1], Transform[2],
-                    Transform[3]+ dJ*Transform[4] + dI*Transform[5],
-                    Transform[4], Transform[5])
-    if len(Transform) == 8: # also include info of image extent
-        newTransform = newTransform + (Transform[6], Transform[7])
+    newTransform = (geoTransform[0]+ dJ*geoTransform[1] + dI*geoTransform[2],
+                    geoTransform[1], geoTransform[2],
+                    geoTransform[3]+ dJ*geoTransform[4] + dI*geoTransform[5],
+                    geoTransform[4], geoTransform[5])
+    if len(geoTransform) == 8: # also include info of image extent
+        newTransform = newTransform + (geoTransform[6], geoTransform[7])
     return newTransform
 
 def ref_scale(geoTransform, scaling):
@@ -918,7 +918,7 @@ def get_shape_extent(bbox, geoTransform):
     ----------
     bbox : np.array, size=(1,4), dtype=float
         bounding box, in the following order: min max X, min max Y
-    geoTransform : tuple, size=(1,6)
+    geoTransform : tuple, size={(1,6), (1,8)}
         georeference transform of an image.
 
     Returns
@@ -1003,6 +1003,51 @@ def get_map_extent(bbox):
     xB = np.array([[ bbox[0], bbox[0], bbox[1], bbox[1], bbox[0] ]]).T
     yB = np.array([[ bbox[3], bbox[2], bbox[2], bbox[3], bbox[3] ]]).T
     return xB, yB
+
+def get_mean_map_location(geoTransform, spatialRef, rows=None, cols=None):
+    """ estimate the central location of a geo-referenced image
+
+    Parameters
+    ----------
+    geoTransform : tuple, size={(6,1), (8,1)}
+        georeference transform of an image.
+    spatialRef : osgeo.osr.SpatialReference
+        target projection system
+    rows, cols : integer, default=None
+        amount of rows/collumns in an image.
+
+    Returns
+    -------
+    x_bar, y_bar : float
+        mean location of the image in the reference system given by spatialRef
+    """
+    bbox = get_bbox(geoTransform, rows=rows, cols=cols)
+    x_bbox,y_bbox = get_map_extent(bbox)
+    x_bar, y_bar = np.mean(x_bbox), np.mean(y_bbox)
+    return x_bar, y_bar
+
+def get_mean_map_lat_lon(geoTransform, spatialRef, rows=None, cols=None):
+    """ estimate the central latitude and longitude of a geo-referenced image
+
+    Parameters
+    ----------
+    geoTransform : tuple, size={(6,1), (8,1)}
+        georeference transform of an image.
+    spatialRef : osgeo.osr.SpatialReference
+        target projection system
+    rows, cols : integer, default=None
+        amount of rows/collumns in an image.
+
+    Returns
+    -------
+    lat_bar, lon_bar : float, unit=degrees, , range=-90...+90, -180...+180
+        latitude and longitude of the scene center
+    """
+    bbox = get_bbox(geoTransform, rows=rows, cols=cols)
+    x_bbox,y_bbox = get_map_extent(bbox)
+    ll = map2ll(np.concatenate((x_bbox, y_bbox), axis=1), spatialRef)
+    lat_bar,lon_bar = np.mean(ll[:,0]), np.mean(ll[:,1])
+    return lat_bar,lon_bar
 
 def get_bbox_polygon(geoTransform, rows, cols):
     """ given array meta data, create bounding polygon

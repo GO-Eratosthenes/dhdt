@@ -13,7 +13,7 @@ from skimage import transform
 
 from ..generic.unit_conversion import doy2dmy
 from ..generic.data_tools import estimate_sinus
-from ..preprocessing.atmospheric_geometry import get_mean_lat
+from ..generic.mapping_tools import get_mean_map_lat_lon
 
 # general location functions
 def az_to_sun_vector(az, indexing='ij'):
@@ -633,7 +633,7 @@ def annual_illumination(Z, geoTransform, spatialRef, deg_sep=[5,1], year=2018):
     if len(deg_sep)==1:
         deg_sep = [deg_sep[0], deg_sep[0]]
 
-    lat,lon = get_mean_lat(Z, geoTransform, spatialRef)
+    lat,lon = get_mean_map_lat_lon(geoTransform, spatialRef)
 
     Sol,az,el = annual_solar_population(latitude=lat,longitude=lon,
                                         deg_sep=deg_sep, year=year, poly=True,

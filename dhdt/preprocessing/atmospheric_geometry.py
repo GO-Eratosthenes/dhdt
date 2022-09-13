@@ -1,32 +1,13 @@
+import pandas
 import numpy as np
 
-from ..generic.mapping_tools import map2ll
+from ..generic.debugging import loggg
+from ..generic.mapping_tools import map2ll, map2pix
+from ..generic.handler_im import bilinear_interpolation
 from ..generic.unit_conversion import datetime2doy, \
     celsius2kelvin, kelvin2celsius
+from ..input.read_era5 import get_era5_atmos_profile
 
-def get_mean_lat(Z, geoTransform, spatialRef):
-    """ calculate the mean latitude of the array
-
-    Parameters
-    ----------
-    Z: numpy.array, size=(m,n), unit=m
-        array with elevation values
-    geoTransform : tuple, size={(1,6), (1,8)}
-        georeference transform of the array 'Z'
-    spatialRef : osgeo.osr.SpatialReference() object
-        coordinate reference system
-
-    Returns
-    -------
-    lat : float, unit=degrees, range=-90...+90
-        mean latitude of the array
-    """
-    x_mean = geoTransform[0] + geoTransform[1]*(Z.shape[1]/2)
-    y_mean = geoTransform[3] + geoTransform[5]*(Z.shape[0]/2)
-
-    ll = map2ll(np.array([[x_mean, y_mean]]), spatialRef)
-    lat, lon = ll[0][0], ll[0][1]
-    return lat, lon
 
 def get_CO2_level(lat, date, m=3, nb=3):
     """
@@ -54,13 +35,20 @@ def get_CO2_level(lat, date, m=3, nb=3):
 
     Returns
     -------
-    total_co2 : float
-        estimate of spatial temporal CO₂ value
+    total_co2 : float, unit=ppm
+        estimate of spatial temporal carbon dioxide (CO₂) value
 
     Notes
     -----
+    Data where this fitting is based on, can be found here:
+
     .. _'Global trend': https://www.eea.europa.eu/data-and-maps/daviz/atmospheric-concentration-of-carbon-dioxide-5
     .. _'Station data': https://gml.noaa.gov/dv/iadv/
+
+    The following acronyms are used:
+
+        - CO2 : carbon dioxide
+        - ppm : parts per million
 
     Examples
     --------
@@ -70,13 +58,13 @@ def get_CO2_level(lat, date, m=3, nb=3):
     Plot the annual trend at 60ºN
 
     >>> t = np.arange("1950-01-01","2022-01-01",dtype="M8[Y]")
-    >>> co2 = get_CO2_level(60, t)
+    >>> co2 = get_CO2_level(60., t)
     >>> plt.plot(t, co2)
 
     Plot seasonal signal
 
     >>> t = np.arange("2018-01-01","2022-01-01",dtype="M8[D]")
-    >>> co2 = get_CO2_level(60, t)
+    >>> co2 = get_CO2_level(60., t)
     >>> plt.plot(t, co2)
 
     References
@@ -96,17 +84,19 @@ def get_CO2_level(lat, date, m=3, nb=3):
     co2_base = decadal_co2(year+frac_yr)
 
     # annual trend:
-    # using an asymmetric triangular wave, with latitudal element
+    # using an asymmetric triangular wave, with latitudinal component
+    if np.sign(lat)==-1: m *= -1
     b = np.zeros(nb) # estimate base
     for n in np.linspace(1,nb,nb):
         b[int(n-1)] = -np.divide(2*(-1**n)*(m**2) ,(n**2)*(m-1)*(np.pi**2)) * \
            np.sin(np.divide(n*(m-1)*np.pi,m))
     annual_co2 = 0
+    austral_offset = np.pi if lat<0  else 0
     for idx,para in enumerate(b):
-        fb = - para * np.sin(np.divide(((idx + 1) * (frac_yr * np.pi)), 0.5))
+        fb = - para * np.sin(np.divide(((idx + 1) * (frac_yr*np.pi)), 0.5))
         annual_co2 += fb
 
-    annual_amp = 18 * np.tanh(lat / 30)
+    annual_amp = 18 * np.tanh(np.abs(lat) / 30)
     annual_co2 *= -annual_amp
 
     total_co2 = co2_base + annual_co2
@@ -206,7 +196,7 @@ def get_T_sealevel(lat, method='noerdlinger'):
                                                             # eq. 19 in [3]
     return T_sl
 
-def get_T_in_troposphere(h, t_0):
+def get_T_in_troposphere(h, T_0):
     """
     Using parameters of the first layer of the eight layer atmospheric model of
     ISO 2533:1970 to estimate the temperature at different altitudes
@@ -215,12 +205,12 @@ def get_T_in_troposphere(h, t_0):
     ----------
     h : {float, numpy.array}, unit=m
         altitude above sea-level
-    t_0 : float, unit=K
+    T_0 : float, unit=Kelvin
         temperature at the surface (reference)
 
     Returns
     -------
-    t_h : {float, numpy.array}, unit=K
+    T_h : {float, numpy.array}, unit=Kelvin
         temperature in the troposphere
 
     References
@@ -230,11 +220,10 @@ def get_T_in_troposphere(h, t_0):
        engineering & remote sensing, vol.82(6) pp.427-435, 2016.
     """
 
-    t_0 = kelvin2celsius(t_0)
-    t_h = t_0 + np.divide((-56.5 - t_0)*h, 11019)
-        # eq. 20 in [1]
-    t_h = celsius2kelvin(t_h)
-    return t_h
+    t_0 = kelvin2celsius(T_0)
+    t_h = t_0 + np.divide((-56.5 - t_0)*h, 11019)           # eq. 20 in [1]
+    T_h = celsius2kelvin(t_h)
+    return T_h
 
 def get_water_vapor_press(T):
     """
@@ -261,7 +250,7 @@ def get_water_vapor_press(T):
     P_w *= 3386.39          # eq. 23 in [1]
     return P_w
 
-def get_water_vapor_press_ice(T):
+def get_sat_vapor_press(T):
     """
 
     Parameters
@@ -273,6 +262,36 @@ def get_water_vapor_press_ice(T):
     P_w : {float, numpy.array}, unit=Pascal
         water vapor pressure
 
+    See Also
+    --------
+    get_water_vapor_press_ice, get_water_vapor_enhancement
+
+    References
+    ----------
+    .. [1] Giacomo, "Equation for the determination of the density of moist air"
+           Metrologica, vol.18, pp.33-40, 1982.
+    """
+    A, B, C, D = 1.2378847E-5, -1.9121316E-2, 33.93711047, -6.3431645E3
+    svp = np.exp(A*T**2 + B*T + C + D/T)        # eq.22 in [1]
+    return svp
+
+def get_water_vapor_press_ice(T):
+    """
+
+    Parameters
+    ----------
+    T : {float, numpy.array}, unit=Kelvin
+        temperature
+
+    Returns
+    -------
+    P_w : {float, numpy.array}, unit=Pascal
+        water vapor pressure
+
+    See Also
+    --------
+    get_sat_vapor_press
+
     References
     ----------
     .. [1] Marti & Mauersberger, "A survey and new measurements of ice vapor
@@ -282,6 +301,34 @@ def get_water_vapor_press_ice(T):
     A, B = -2663.5, 12.537
     P_w = 10**(np.divide(A,T)+B)                            # eq. 1 from [1]
     return P_w
+
+def get_water_vapor_enhancement(t,p):
+    """
+
+    Parameters
+    ----------
+    t : {float, numpy.array}, unit=Celsius
+        temperature
+    p : {float, numpy.array}, unit=Pascal
+        atmospheric pressure
+
+    Returns
+    -------
+    f : {float, numpy.array}
+        enhancement factor
+
+    See Also
+    --------
+    get_water_vapor_press_ice, get_water_vapor_enhancement
+
+    References
+    ----------
+    .. [1] Giacomo, "Equation for the determination of the density of moist air"
+           Metrologica, vol.18, pp.33-40, 1982.
+    """
+    alpha, beta, gamma = 1.00062, 3.14E-8, 5.6E-7
+    f = alpha + beta*p + gamma*t**2                 # eq.23 in [1]
+    return f
 
 def get_density_fraction(lat, h_0, alpha=0.0065, R=8314.36, M_t=28.825):
     """
@@ -379,11 +426,14 @@ def refractive_index_broadband_vapour(sigma):
     ----------
     .. [1] Owens, "Optical refractive index of air: Dependence on pressure,
        temperature and composition", Applied optics, vol.6(1) pp.51-59, 1967.
+    .. [2] Ciddor, "Refractive index of air: new equations for the visible and
+       near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
     """
     cf = 1.022
     w_0, w_1, w_2, w_3 = 295.235, 2.6422, -0.032380, 0.004028
-                                                            # eq. 13 in [1]
-    n_ws = cf*(w_0 + w_2*(sigma**2)+ w_2*(sigma**4)+ w_3*(sigma**6))
+                                                            # eq.13 in [1]
+                                                            # eq.3 in [2]
+    n_ws = cf*(w_0 + w_1*(sigma**2)+ w_2*(sigma**4)+ w_3*(sigma**6))
     n_ws /= 1E8
     n_ws += 1
     return n_ws
@@ -409,6 +459,7 @@ def water_vapor_frac(p,T,fH):
     -----
     The following parameters are used in this function:
 
+    T : unit=Kelvin, temperature
     svp : unit=Pascal, saturation vapor pressure
     t : unit=Celcius, temperature
 
@@ -419,30 +470,29 @@ def water_vapor_frac(p,T,fH):
     .. [2] Marti & Mauersberger, "A survey and new measurements of ice vapor
            pressure at temperatures between 170 and 250K" Geophysical research
            letters, vol.20(5) pp.363-366, 1993.
+    .. [3] Giacomo, "Equation for the determination of the density of moist air"
+           Metrologica, vol.18, pp.33-40, 1982.
     """
-    svp = np.zeros_like(T)
     if isinstance(T, float):
         T,p = np.asarray([T]), np.asarray([p])
+    svp = np.zeros_like(T)
 
     if T.size!=p.size:
         p = p*np.ones_like(T)
 
-    A, B, C, D = 1.2378847E-5, -1.9121316E-2, 33.93711047, -6.3431645E3
     Freeze = T <= 273.15
 
     np.putmask(svp, Freeze, get_water_vapor_press_ice(T[Freeze]))
-    np.putmask(svp, ~Freeze,
-               np.exp(A*(T[~Freeze]**2) + B*T[~Freeze] + C + D/T[~Freeze]))
+    np.putmask(svp, ~Freeze, get_water_vapor_press_ice(T[~Freeze]))
 
     t = kelvin2celsius(T) # transform to Celsius scale
     # enhancement factor of water vapor
     f = np.ones_like(t)
     if np.any(~Freeze):
-        alpha, beta, gamma = 1.00062, 3.14E-8, 5.6E-7
         np.putmask(f, ~Freeze,
-                   alpha + beta*p[~Freeze] + gamma*(t[~Freeze]**2))
+                   get_water_vapor_enhancement(t[~Freeze],p[~Freeze]))
 
-    x_w = np.divide(f*fH*svp, p)
+    x_w = np.divide(f*fH*svp, p)            # eq.19 in [3]
     return x_w
 
 def compressability_moist_air(p, T, x_w):
@@ -460,6 +510,7 @@ def compressability_moist_air(p, T, x_w):
     Returns
     -------
     Z : float
+        compressability factor
 
     See Also
     --------
@@ -469,16 +520,23 @@ def compressability_moist_air(p, T, x_w):
     ----------
     .. [1] Ciddor, "Refractive index of air: new equations for the visible and
            near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
+    .. [2] Davis, "Equation for the determination of the density of moist air
+       (1981/91)" Metrologica, vol.29 pp.67-70.
     """
+    if isinstance(T, float): T = np.array([T])
+
+    # values from Table1 in [2], taking the 1991 version
     a_0, a_1, a_2 = 1.58123E-6, -2.9331E-8, 1.1043E-10
     b_0, b_1 = 5.707E-6, -2.051E-8
     c_0, c_1 = 1.9898E-4, -2.376E-6
     d, e = 1.83E-11, -0.765E-8
 
-    Z = 1 - (p/T)*(a_0 + a_1*T + a_2*(T**2)
-                   + (b_0 + b_1*T)*x_w
-                   + (c_0 + c_1*T)*(x_w**2)) + ((p/T)**2) * (d + e*(x_w**2))
-                                                            # eq. 12 in [1]
+    # there seem to be two temperature scales used in the equation...
+    T_k, t = T.copy(), kelvin2celsius(T.copy())
+
+    Z = 1 - (p/T_k)*(a_0 + a_1*t + a_2*(t**2)         # eq.12 in [1]
+                   + (b_0 + b_1*t)*x_w                # eq.5 in [2]
+                   + (c_0 + c_1*t)*(x_w**2)) + (p**2/T_k**2) * (d + e*(x_w**2))
     return Z
 
 def get_density_air(T,P,fH, moist=True, CO2=450, M_w=0.018015, R=8.314510):
@@ -510,16 +568,21 @@ def get_density_air(T,P,fH, moist=True, CO2=450, M_w=0.018015, R=8.314510):
     -----
     The following parameters are used in this function:
 
-    M_a : unit=kg mol-1, molar mass of dry air
-    x_w : molecular fraction of water vapor
-    Z : compressibility of moist air
+        - M_a : unit=kg mol-1, molar mass of dry air
+        - x_w : molecular fraction of water vapor
+        - Z : compressibility of moist air
+        - CO2 : unit=ppm, carbon dioxide
+        - ppm : parts per million volume
 
     References
     ----------
     .. [1] Ciddor, "Refractive index of air: new equations for the visible and
        near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
+    .. [2] Davis, "Equation for the determination of the density of moist air
+       (1981/91)" Metrologica, vol.29 pp.67-70.
     """
-    M_a = ((CO2-400)*12.011E-6 + 28.9635)*1E-3
+    # molar mass of dry air containing XXX ppm of CO2
+    M_a = ((CO2-400)*12.011E-6 + 28.9635)*1E-3 # eq2 in [2]
 
     if moist is True:
         x_w = water_vapor_frac(P,T,fH)
@@ -559,10 +622,10 @@ def ciddor_eq5(rho_a, rho_w, n_axs, n_ws, rho_axs, rho_ws):
     .. [1] Owens, "Optical refractive index of air: Dependence on pressure,
        temperature and composition", Applied optics, vol.6(1) pp.51-59, 1967.
     """
-
+    # eq. 4 in [1]
     n_prop = 1 + \
              np.multiply.outer(np.divide(rho_a, rho_axs),(n_axs-1)) + \
-             np.multiply.outer(np.divide(rho_w, rho_ws), (n_ws-1))        # eq. 4 in [1]
+             np.multiply.outer(np.divide(rho_w, rho_ws), (n_ws-1))
 
     return n_prop
 
@@ -592,29 +655,39 @@ def ciddor_eq6(rho_a, rho_w, n_axs, n_ws, rho_axs, rho_ws):
     ----------
     .. [1] Owens, "Optical refractive index of air: Dependence on pressure,
        temperature and composition", Applied optics, vol.6(1) pp.51-59, 1967.
+    .. [2] Ciddor, "Refractive index of air: new equations for the visible and
+       near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
     """
-    L_a = np.divide( (n_axs**2) -1, (n_axs**2) +2)
-    L_w = np.divide( (n_ws**2) - 1, (n_ws**2) + 2)
+    L_a = np.divide( n_axs**2 -1, n_axs**2 +2)                  # eq.6 in [2]
+    L_w = np.divide( n_ws**2 - 1, n_ws**2 + 2)                  # eq.6 in [2]
 
     L = np.multiply.outer( np.divide(rho_a, rho_axs), L_a) + \
-        np.multiply.outer( np.divide(rho_w, rho_ws), L_w)
+        np.multiply.outer( np.divide(rho_w, rho_ws), L_w)       # eq.7 in [2]
 
-    n_LL = np.sqrt(np.divide( (1 + 2*L), (1 - L)))              # eq. 1 in [1]
+    n_LL = np.sqrt(np.divide( (1 + 2*L), (1 - L)))              # eq. 8 in [2]
+                                                                # eq. 4 in [1]
     return n_LL
 
-def refractive_index_visible(df, T):
-    """
+def refractive_index_visible(df, T, P, p_w=None, CO2=None):
+    """ calculate refractive index, based on measurement around 633nm, see [1].
+
+    It applies to ambient atmospheric conditions over the range of wavelengths
+    350 nm to 650 nm.
 
     Parameters
     ----------
-    df : dataframe, unit=µm
+    df : {dataframe, float}, unit=µm
         central wavelengths of the spectral bands
-    T : float, unit=Celcius
+    T : {float, numpy.array}, unit=Celcius
         temperature at location
+    P : {float, numpy.array}, unit=Pascal
+        atmospheric pressure at location
+    CO2 : {float, numpy.array}, unit=ppm
+        concentration of carbon dioxide (CO₂) in the atmosphere
 
     Returns
     -------
-    n_0 : {float, numpy.array}
+    n_0 : numpy.array
         index of refraction
 
     See Also
@@ -623,29 +696,99 @@ def refractive_index_visible(df, T):
 
     References
     ----------
-    .. [1] Birch and Jones, "Correction to the updated Edlen equation for the
+    .. [1] Birch and Jones, "Correction to the updated Edlén equation for the
        refractive index of air", Metrologica, vol.31(4) pp.315-316, 1994.
+    .. [2] Edlén, "The refractive index of air", Metrologica, vol.2(2) pp.71-80,
+       1966.
+    .. [3] Birch and Jones, "An updated Edlén equation for the refractive
+       index of air", Metrologica, vol.30 pp.155-162, 1993.
     """
-    sigma = 1/df['center_wavelength'].to_numpy() # (vacuum) wavenumber
+    if isinstance(T, float): T = np.array([T])
+    if isinstance(P, float): P = np.array([P])
+    assert T.size==P.size, \
+        ('please provide Temperature and Pressure array of the same size')
 
-    n_0 = 1 + \
-        np.divide(1, 1+(0.003661*T)) * \
-          (1.05442E-8 * (1 + ((4053*(0.601 - (0.00972*T)))/4E6)) *
-           (8342.54 +
-            (np.divide(15998, 38.9-(sigma**2)) +
-             (np.divide(2406147, 130-(sigma**2))))
-            ))
+    if type(df) in (pandas.core.frame.DataFrame, ):
+        sigma = 1/df['center_wavelength'].to_numpy() # (vacuum) wavenumber
+    else:
+        sigma = np.array([1/df])
+
+    # (n-1)_s : refractivity of standard air
+    n_s = 8342.54 + \
+         np.divide(15998, 38.9-(sigma**2)) + \
+         np.divide(2406147, 130-(sigma**2))    # eq.2 in [1]
+    n_s *= 1E-8
+
+    if CO2 is not None:
+        n_s = refractive_index_CO2(n_s, CO2)
+
+    # (n-1)_tp : refractivity of standard air at a certain temp & pressure
+    D_s = 96095.43 # density factor of standard air,
+    # which should be in the range of 5...30C [2], which gives 720.775 as this
+    # is torr.
+    if n_s.ndim==2: # multiple wavelengths
+        n_tp_1 = np.divide(np.outer(P,n_s), D_s)
+    else:
+        n_tp_1 = np.divide(P*n_s, D_s)[:, None]
+    n_tp_2 = np.divide(1 + 1E-8*(0.601-(0.00972*T))*P,
+                                 1 + (0.0036610*T) )
+
+    # Lorenz-Lorenz equation
+    n_tp = np.squeeze(n_tp_1 * n_tp_2[:, None])  # eq.1 in [1]
+
+    n_0 = n_tp
+    if p_w is not None:
+        dn_tpf = -p_w * \
+                (3.7345 - 0.0401*sigma**2) * 10E-10     # eq.3 in [1]
+        n_0 -= dn_tpf                                   # eq.6 in [3] in torr
+
+    n_0 += 1.
     return n_0
 
-def refractive_index_broadband(df, T_0, P_0, fH_0, h_0, CO2=450.,
-                               T_a=15., P_a=101325.,
-                               T_w=20., P_w=1333.,
-                               LorentzLorenz=False):
-    """ Estimate the refractive index at the surface
+def refractive_index_CO2(n_s, CO2):
+    """ correct standard refractivity for diffferent carbon dioxide
+    concentrations, see [2] for more information.
 
     Parameters
     ----------
-    df : dataframe, unit=µm
+    n_s : {float, numpy.array}
+        refractivity of standard air
+    CO2 : {float, numpy.array}, unit=ppm
+        concentration of carbon dioxide (CO₂) in the atmosphere
+
+    Returns
+    -------
+    n_x : {float, numpy.array}
+        refractivity of standard air at a given CO₂ concentration
+
+    Notes
+    -----
+    The following acronyms are used:
+
+        - CO2 : carbon dioxide
+        - ppm : parts per million
+
+    References
+    ----------
+    .. [1] Birch & Downs, "An updated Edlen equation for the refractive index of
+       air" Metrologica, vol.30(155) pp.155-162, 1993.
+    .. [2] Edlén, "The refractive index of air", Metrologica, vol.2(2) pp.71-80,
+       1966.
+    """
+    CO2 /= 1E6 # bring to unit
+    n_x = np.outer(1+0.540*(CO2-0.0003), n_s)  # eq.7 in [1]
+    return np.squeeze(n_x)
+
+def refractive_index_broadband(df, T_0, P_0, fH_0, CO2=450.,
+                               T_a=15., P_a=101325.,
+                               T_w=20., P_w=1333.,
+                               LorentzLorenz=False):
+    """ Estimate the refractive index in for wavelengths in the range of
+    300...1200nm, see also [1].
+
+    Parameters
+    ----------
+    df : {dataframe, float}, unit=µm
         central wavelengths of the spectral bands
     CO2 : float, unit=ppm of CO₂, default=450.
         parts per million of CO₂
@@ -655,8 +798,6 @@ def refractive_index_broadband(df, T_0, P_0, fH_0, h_0, CO2=450.,
         the total pressure in Pascal
     fH_0 : float, range=0...1
         fractional humidity
-    h_0 : float, unit=meters
-        altitude above sea level at location
     T_a : float, unit=Celcius
         temperature of standard dry air, see Notes
     P_a : float, unit=Pascal
@@ -699,18 +840,22 @@ def refractive_index_broadband(df, T_0, P_0, fH_0, h_0, CO2=450.,
     .. [2] Owens, "Optical refractive index of air: Dependence on pressure,
        temperature and composition", Applied optics, vol.6(1) pp.51-59, 1967.
     """
+    if type(df) in (pandas.core.frame.DataFrame, ):
+        sigma = 1/df['center_wavelength'].to_numpy() # (vacuum) wavenumber
+    else:
+        sigma = np.array([1/df])
+
     # convert to correct unit
     T_0 = celsius2kelvin(T_0)
     T_a, T_w = celsius2kelvin(T_a), celsius2kelvin(T_w)
-    sigma = 1/df['center_wavelength'].to_numpy() # wave number
 
     # refractivities of dry air,
     # amended for changes in temperature and CO2 content
     k_0, k_1, k_2, k_3 = 238.0185, 5792105., 57.362, 167917.
 
     n_as = 1 + \
-           (np.divide(k_1, k_2 - (sigma ** 2)) +
-           np.divide(k_1, k_2 - (sigma ** 2)) )*1E-8            # eq.1 in [1]
+           (np.divide(k_1, k_0 - sigma**2) +
+            np.divide(k_3, k_2 - sigma**2) )*1E-8            # eq.1 in [1]
 
     n_axs = 1 + ((n_as - 1) * (1 + .534E-6 * (CO2 - 450)))      # eq.2 in [1]
     n_ws = refractive_index_broadband_vapour(sigma)             # eq.3 in [1]
@@ -727,6 +872,7 @@ def refractive_index_broadband(df, T_0, P_0, fH_0, h_0, CO2=450.,
     else:
         n = ciddor_eq6(rho_a, rho_w, n_axs, n_ws, rho_axs, rho_ws)
                                                                 # eq.6 in [1]
+    n = np.squeeze(n)
     return n
 
 def refraction_angle_analytical(zn_0, n_0):
@@ -753,6 +899,42 @@ def refraction_angle_analytical(zn_0, n_0):
     zn = np.rad2deg(np.arcsin(np.sin(np.deg2rad(zn_0))/n_0))
                                                                 # eq. 11 in [1]
     return zn
+
+@loggg
+def get_refraction_angle(dh, x_bar, y_bar, spatialRef, h,
+                         central_wavelength, simple_refraction=True):
+    assert type(dh) in (pandas.core.frame.DataFrame, ), \
+        ('please provide a pandas dataframe')
+    assert np.all([header in dh.columns for header in
+                  ('timestamp','zenith', 'caster_X', 'caster_Y', 'caster_Z')])
+
+    lat, lon, z, Temp, Pres, fracHum, t_era = get_era5_atmos_profile(
+        dh['timestamp'].unique(), x_bar, y_bar, spatialRef, z=h)
+
+    # calculate refraction for individual dates
+    for timestamp in dh['timestamp'].unique():
+        IN = dh['timestamp'] == timestamp
+        sub_dh = dh.loc[IN]
+        era_idx = np.where(t_era == timestamp)[0][0]
+
+
+        # get temperature and pressure at location
+        dh_T = np.interp(sub_dh['caster_Z'], z, np.squeeze(Temp[...,era_idx]))
+        dh_P = np.interp(sub_dh['caster_Z'], z, np.squeeze(Pres[...,era_idx]))
+        if simple_refraction:
+            n_0 = refractive_index_visible(central_wavelength, dh_T, dh_P)
+        else:
+            dh_fH= np.interp(sub_dh['caster_Z'], z, np.squeeze(fracHum))
+            dh_T = kelvin2celsius(dh_T)
+            CO2 = get_CO2_level(lat, timestamp, m=3, nb=3)[0]
+            n_0 = refractive_index_broadband(central_wavelength,
+                                         dh_T, dh_P, dh_fH, CO2=CO2)
+
+        zn_new = refraction_angle_analytical(sub_dh['zenith'], n_0)
+
+        if not 'zenith_refrac' in dh.columns: dh['zenith_refrac'] = None
+        dh.loc[IN, 'zenith_refrac'] = zn_new
+    return dh
 
 def refraction_spherical_symmetric(zn_0, lat=None, h_0=None):
     """

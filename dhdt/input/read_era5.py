@@ -9,7 +9,8 @@ import cdsapi
 
 # local libraries
 from ..generic.mapping_tools import map2ll
-from ..generic.unit_conversion import datetime2calender, hpa2pascal
+from ..generic.unit_conversion import \
+    datetime2calender, datenum2datetime, hpa2pascal
 
 # https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-pressure-levels
 
@@ -50,37 +51,101 @@ def get_space_time_id(date, lat, lon, full=True):
     fname += '-' + str(month).zfill(2) + '-' + str(day).zfill(2)
     return fname
 
-# "General Regularly distributed Information in Binary form"
-def get_pressure_from_grib_file(fname='download.grib'):
+def get_amount_of_timestamps(name_str):
+    """ Reanalysis data from ERA5 can have different timestamps. These are given
+    in the name, separtated by an indent. This function counts these indents,
+    so the file does not need to be read.
+
+    Parameters
+    ----------
+    name_str : string
+        name of the grid file
+
+    Returns
+    -------
+    nmbr : integer
+        amount of datapoints
+
+    Examples
+    --------
+    >>> import pygrib
+    >>> fname = 'download.grib'
+    >>> grbs = pygrib.open(fname)
+    >>> get_amount_of_timestamps(grbs.name)
+    2
+    """
+    nmbr = len(name_str.split('-')[2].split(' '))
+    return nmbr
+
+def get_era5_pressure_levels():
     pres_levels = np.array([1, 2, 3, 5, 7, 10, 20, 30, 50,
                             70, 100, 125, 150, 175, 200, 225,
                             250, 300, 350, 400, 450, 500, 550,
                             600, 650, 700, 750, 775, 800, 825,
                             850, 875, 900, 925, 950, 975, 1000])
+    return pres_levels
 
-    G, Rh, T = None, None, None
+# "General Regularly distributed Information in Binary form"
+def get_pressure_from_grib_file(fname='download.grib'):
+    """ extract data from .grib files
+
+    Parameters
+    ----------
+    fname : string
+        filename (and location) of binary ERA5 data
+
+    Returns
+    -------
+    lat, lon: {float, numpy.array}, size={1,k}, unit=degrees
+        location of datapoints
+    G, Rh, T : numpy.array, size={m,k,l}
+        data arrays at a specific place and time
+    t : numpy.array, size={l}
+        timestamp of the data arrays
+    """
+
+    pres_levels = get_era5_pressure_levels()
+    G, Rh, T, t = None, None, None, None
 
     grbs = pygrib.open(fname)
     for i in np.linspace(1,grbs.messages,grbs.messages, dtype=int):
         grb = grbs.message(i)
         idx = np.where(pres_levels==grb['level'])[0][0]
+        toi = grb['dataDate'] # time of interest
 
         # initial admin
         if G is None:
-            G = np.zeros((37, grb['numberOfDataPoints']))
+            m,n = len(pres_levels), grb['numberOfDataPoints']
+            G = np.zeros((m,n,1),
+                         dtype=np.float64)
             Rh, T = np.zeros_like(G), np.zeros_like(G)
             lat, lon = grb['latitudes'], grb['longitudes']
+            t = np.array([toi])
+
+        t_IN = t==toi # is date already visited before
+        if np.any(t_IN):
+            idx_t = np.where(t_IN)[0][0]
+        else: #update with new data entry for a specific time stamp
+            t = np.append(t, toi)
+            idx_t = t.size-1
+            G = np.dstack((G, np.zeros((m, n, 1))))
+            Rh = np.dstack((G, np.zeros((m, n, 1))))
+            T = np.dstack((G, np.zeros((m, n, 1))))
 
         if grb['parameterName']=='Geopotential':
-            G[idx,:] = grb['values']
+            G[idx,:,idx_t] = grb['values']
         elif grb['parameterName']=='Relative humidity':
-            Rh[idx,:] = grb['values']
+            Rh[idx,:,idx_t] = grb['values']
         elif grb['parameterName']=='Temperature':
-            T[idx,:] = grb['values']
+            T[idx,:,idx_t] = grb['values']
     grbs.close()
-    return lat, lon, G, Rh, T
+
+    if t.size==1:
+        G, Rh, T = np.squeeze(G), np.squeeze(Rh), np.squeeze(T)
+    return lat, lon, G, Rh, T, t
 
 def get_wind_from_grib_file(fname='download.grib', pres_level=1000):
+    pres_levels = get_era5_pressure_levels()
     U, V, Rh, T = None, None, None, None
 
     grbs = pygrib.open(fname)
@@ -90,7 +155,7 @@ def get_wind_from_grib_file(fname='download.grib', pres_level=1000):
 
         # initial admin
         if T is None:
-            T = np.zeros((37, grb['numberOfDataPoints']))
+            T = np.zeros((len(pres_levels), grb['numberOfDataPoints']))
             Rh, U, V = np.zeros_like(T), np.zeros_like(T), np.zeros_like(T)
             lat, lon = grb['latitudes'], grb['longitudes']
 
@@ -132,15 +197,42 @@ def get_era5_atmos_profile(date, x, y, spatialRef,
         pressure profile at altitudes given by "z"
     fracHum : unit=percentage,  range=0...1
         fractional humidity profile at altitudes given by "z"
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import matplotlib.pyplot as plt
+
+    >>> from osgeo import osr
+    >>> from dhdt.generic.mapping_tools import ll2map
+
+    >>> proj = osr.SpatialReference()
+    >>> proj.SetWellKnownGeogCS('WGS84')
+    >>> lat, lon = 59.937633, 10.7207376 # Oslo University
+    >>> NH = True if lat > 0 else False
+    >>> proj.SetUTM(33, NH)
+
+    >>> xy = ll2map(np.array([[lat, lon]]), proj)
+    >>> past = np.datetime64('2018-05-16')
+    >>> h = 10**np.linspace(0,5,100)
+    >>> lat, lon, z, Temp, Pres, fracHum = get_era5_atmos_profile(
+            past, xy[0][0], xy[0][1], proj,z=h)
+
+    >>> fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
+    >>> fig.suptitle('Atmospheric profile')
+    >>> ax1.plot(Temp,z,'r'), ax1.set_title('Temperature [K]'), ax1.set_yscale('log')
+    >>> ax2.plot(Pres,z,'g'), ax2.set_title('Pressure [Pa]'), ax2.set_yscale('log')
+    >>> ax3.plot(fracHum,z,'b'), ax3.set_title('Humidity [%]'), ax3.set_yscale('log')
+    >>> plt.show()
     """
-    pres_levels = np.array([1, 2, 3, 5, 7, 10, 20, 30, 50,
-                            70, 100, 125, 150, 175, 200, 225,
-                            250, 300, 350, 400, 450, 500, 550,
-                            600, 650, 700, 750, 775, 800, 825,
-                            850, 875, 900, 925, 950, 975, 1000])
+    if isinstance(x, float): x = np.array([x])
+    if isinstance(y, float): y = np.array([y])
+    pres_levels = get_era5_pressure_levels()
 
     hour = 11
-    year,month,day = datetime2calender(date)
+    #year,month,day = datetime2calender(date)
+    if isinstance(date, np.int64):
+        date = np.array([date])
 
     # convert from mapping coordinates to lat, lon
     ll = map2ll(np.stack((x, y)).T, spatialRef)
@@ -162,9 +254,7 @@ def get_era5_atmos_profile(date, x, y, spatialRef,
                 'geopotential', 'relative_humidity', 'temperature',
             ],
             'pressure_level': np.ndarray.tolist(pres_levels.astype(str)),
-            'year': str(year),
-            'month': str(month).zfill(2),
-            'day': str(day).zfill(2),
+            'date': np.ndarray.tolist(np.datetime_as_string(date, unit='D')),
             'time': [
                 str(hour-1).zfill(2)+':00',
                 str(hour+1).zfill(2)+':00',
@@ -176,7 +266,7 @@ def get_era5_atmos_profile(date, x, y, spatialRef,
         },
         fname)
 
-    lat, lon, G, Rh, T = get_pressure_from_grib_file(fname=fname)
+    lat, lon, G, Rh, T, t = get_pressure_from_grib_file(fname=fname)
     os.remove(fname)
 
     # extract atmospheric profile, see also
@@ -184,18 +274,20 @@ def get_era5_atmos_profile(date, x, y, spatialRef,
     g_wmo = 9.80665 # gravity constant defined by WMO
     z_G = G/g_wmo
 
-    posts = z_G.shape[1]
-    Temp = np.zeros((len(z), posts))
+    posts, stamps = z_G.shape[1], t.size
+    Temp = np.zeros((len(z), posts, stamps), dtype=np.float64)
     Pres, RelHum = np.zeros_like(Temp), np.zeros_like(Temp)
     for i in range(posts):
-        Pres[:,i] = np.interp(z, np.flip(z_G[:, i]),
-                            np.flip(pres_levels.astype(float)))
-        Temp[:, i] = np.interp(z, np.flip(z_G[:, i]), np.flip(T[:, i]))
-        RelHum[:, i] = np.interp(z, np.flip(z_G[:, i]), np.flip(Rh[:, i]))
+        for j in range(stamps):
+            Pres[:,i,j] = np.interp(z, np.flip(z_G[:,i,j]),
+                                np.flip(pres_levels.astype(float)))
+            Temp[:,i,j] = np.interp(z, np.flip(z_G[:,i,j]), np.flip(T[:,i,j]))
+            RelHum[:,i,j] = np.interp(z, np.flip(z_G[:,i,j]), np.flip(Rh[:,i,j]))
 
     Pres = hpa2pascal(Pres)
     fracHum = RelHum/100
-    return lat, lon, z, Temp, Pres, fracHum
+    t = datenum2datetime(t)
+    return lat, lon, z, Temp, Pres, fracHum, t
 
 def get_era5_monthly_surface_wind(lat,lon,year):
 

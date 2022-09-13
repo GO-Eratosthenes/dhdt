@@ -17,7 +17,7 @@ def get_radon_angle(I, num_dir=1, fitting='polynomial'):
 
     Parameters
     ----------
-    I : np.array, size=(m,n)
+    I : numpy.array, size=(m,n)
         image with intensities
     num_dir : positive integer
         amount of directions to estimate
@@ -40,7 +40,8 @@ def get_radon_angle(I, num_dir=1, fitting='polynomial'):
     """
     theta = np.linspace(-90, +90, 36, endpoint=False)
     circle = low_pass_circle(I)
-    sinogram = radon(I, theta, circle=False)
+    np.putmask(I,~circle,0)
+    sinogram = radon(I, theta, circle=True)
 
     if len(np.unique(I))==I.size:
         breakpoint
@@ -82,14 +83,17 @@ def radon_orientation(I, geoTransform, X_grd, Y_grd,
         I_sub = create_template_at_center(I, I_grd[counter], J_grd[counter],
                                           temp_radius)
         idx_grd = np.unravel_index(counter, (m, n), 'C')
-        if np.ptp(I_sub)==0:
-            Theta[idx_grd[0],idx_grd[1]], Score[idx_grd[0],idx_grd[1]] = 0, 0
-            continue
+        try:
+            if np.ptp(I_sub)==0:
+                continue
+        except:
+            print('.')
 
         theta, score = get_radon_angle(I_sub, num_dir=num_dir, fitting=fitting)
         # write results
-        Theta[idx_grd[0], idx_grd[1]] = theta
-        Score[idx_grd[0], idx_grd[1]] = score
+        if theta.size>0:
+            Theta[idx_grd[0], idx_grd[1]] = theta
+            Score[idx_grd[0], idx_grd[1]] = score
     return Theta, Score
 
 # get_orientation_of_two_subsets(I1_sub, I2_sub)

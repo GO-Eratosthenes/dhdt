@@ -112,7 +112,7 @@ def normalize_power_spectrum(Q):
     Qn = np.divide(Q, abs(Q), out=np.zeros_like(Q), where=Q!=0)
     return Qn
 
-def make_fourier_grid(Q, indexing='ij', system='radians'):
+def make_fourier_grid(Q, indexing='ij', system='radians', shift=True):
     """
     The four quadrants of the coordinate system of the discrete Fourier 
     transform are flipped. This function gives its coordinate system as it 
@@ -131,6 +131,8 @@ def make_fourier_grid(Q, indexing='ij', system='radians'):
          * "unit" : -1...+1
          * "normalized" : -0.5...+0.5
          * "pixel" : -m/2...+m/2
+    shift : boolean, default=True
+        the coordinate frame of a Fourier transform is flipped
     
     Returns
     -------
@@ -167,7 +169,8 @@ def make_fourier_grid(Q, indexing='ij', system='radians'):
                      | i                     |
                      v                       |
    """     
-    assert type(Q)==np.ndarray, ("please provide an array")
+    assert type(Q) in (np.ma.core.MaskedArray, np.ndarray), \
+        ("please provide an array")
     (m,n) = Q.shape
     if indexing=='ij':
         (I_grd,J_grd) = np.meshgrid(np.arange(0,m)-(m//2),
@@ -175,8 +178,8 @@ def make_fourier_grid(Q, indexing='ij', system='radians'):
                                     indexing='ij')
         F_1, F_2 = I_grd/m, J_grd/n
     else:
-        fy = np.flip((np.arange(0,m)-(m/2)) /m)
-        fx = (np.arange(0,n,n)-(n/2)) /n
+        fy = np.flip((np.linspace(0,m,m)-(m/2)) /m)
+        fx = (np.linspace(0,n,n)-(n/2)) /n
             
         F_1 = np.repeat(fx[np.newaxis,:],m,axis=0)
         F_2 = np.repeat(fy[:,np.newaxis],n,axis=1)
@@ -190,8 +193,8 @@ def make_fourier_grid(Q, indexing='ij', system='radians'):
     elif system=='unit':
         F_1 *= 2
         F_2 *= 2
-        
-    F_1, F_2 = np.fft.fftshift(F_1), np.fft.fftshift(F_2)
+    if shift:
+        F_1, F_2 = np.fft.fftshift(F_1), np.fft.fftshift(F_2)
     return F_1, F_2
 
 def construct_phase_plane(I, di, dj, indexing='ij'):
@@ -631,9 +634,14 @@ def low_pass_circle(I, r=0.50):
     --------
     raised_cosine, cosine_bell, high_pass_circle       
     """   
-    assert type(I)==np.ndarray, ("please provide an array")
-    Fx,Fy = make_fourier_grid(I, indexing='xy', system='normalized')
-    R = np.hypot(Fx, Fy) # radius
+    assert type(I) in (np.ma.core.MaskedArray, np.ndarray), \
+        ("please provide an array")
+    if type(I) in (np.ma.core.MaskedArray,):
+        I = np.ma.getdata(I)
+
+    Fx, Fy = make_fourier_grid(I, indexing='xy',
+                               system='normalized', shift=False)
+    R = np.hypot(Fx,Fy) # radius
     # filter formulation 
     W = R<=r
     return W

@@ -269,7 +269,8 @@ def bilinear_interpolation(I, di, dj):
           based      v           based       |
 
     """
-    assert type(I)==np.ndarray, ("please provide an array")
+    assert type(I) in (np.ma.core.MaskedArray, np.ndarray), \
+        ("please provide an array")
 
     if isinstance(dj, (float, int)): # integer values: constant displacement
         mI, nI = I.shape[0], I.shape[1]

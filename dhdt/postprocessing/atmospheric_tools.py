@@ -1,7 +1,7 @@
 import numpy as np
 
 from ..input.read_era5 import get_era5_monthly_surface_wind
-from ..preprocessing.atmospheric_geometry import get_mean_lat
+from ..generic.mapping_tools import get_mean_map_lat_lon
 
 def calculate_coriolis(lat):
     return 2 * 7.2921e-5 * np.sin(np.deg2rad(lat))
@@ -93,7 +93,7 @@ def oro_precip(Z, geoTransform, spatialRef, u_wind, v_wind,
     H_w = water_vapour_scale_height(T_0)
 
     # estimate coriolis force
-    lat = get_mean_lat(Z, geoTransform, spatialRef)[0]
+    lat = get_mean_map_lat_lon(geoTransform, spatialRef)[0]
     f_cor = calculate_coriolis(lat)
 
     # pad raster
@@ -141,7 +141,7 @@ def oro_precip(Z, geoTransform, spatialRef, u_wind, v_wind,
     return P
 
 def annual_precip(Z, geoTransform, spatialRef, year=2018):
-    lat,lon = get_mean_lat(Z, geoTransform, spatialRef)
+    lat,lon = get_mean_map_lat_lon(geoTransform, spatialRef)
     U,V,Rh,T = get_era5_monthly_surface_wind(lat, lon, year)
 
     return

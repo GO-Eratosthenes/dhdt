@@ -6,6 +6,8 @@ warnings.filterwarnings('once')
 from tqdm import tqdm
 
 import numpy as np
+import pandas as pd
+from numpy.lib.recfunctions import stack_arrays, merge_arrays
 
 from sklearn.neighbors import NearestNeighbors
 from scipy.spatial.distance import cdist
@@ -121,9 +123,9 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
         list_phase_estimators
 
     # init
-    assert type(I1) in (np.ma.core.MaskedArray, np.array), \
+    assert type(I1) in (np.ma.core.MaskedArray, np.ndarray), \
         ("please provide an array")
-    assert type(I2) in (np.ma.core.MaskedArray, np.array), \
+    assert type(I2) in (np.ma.core.MaskedArray, np.ndarray), \
         ("please provide an array")
     assert type(L1)==np.ndarray, ("please provide an array")
     assert type(L2)==np.ndarray, ("please provide an array")
@@ -132,7 +134,8 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
     assert(X_grd.shape == Y_grd.shape) # should be of the same size
     assert (temp_radius<=search_radius), ('given search radius is too small')
 
-    I1, L1, I2, L2 = get_data_and_mask(I1, L1), get_data_and_mask(I2, L2)
+    I1, L1 = get_data_and_mask(I1, L1)
+    I2, L2 = get_data_and_mask(I2, L2)
 
     correlator = correlator.lower()
     if (subpix is not None): subpix=subpix.lower()
@@ -246,8 +249,8 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
             X2_grd[idx_grd[0],idx_grd[1]] = x2_new
             Y2_grd[idx_grd[0],idx_grd[1]] = y2_new
         if precision_estimate:
-            match_metric[idx_grd[0], idx_grd[1],:] = np.array(\
-                [[[score,si,sj,rho]]])
+            match_metric[idx_grd[0]][idx_grd[1]] = np.array(
+                [score, si, sj, rho])
         else:
             match_metric[idx_grd[0],idx_grd[1]] = score
 
@@ -441,13 +444,11 @@ def create_template_at_center(I, i,j, radius, filling='random'):
     ----------
     I : np.array, size=(m,n) or (m,n,b)
         data array
-    i : integer
-        vertical coordinate of the template center
-    j : integer
-        horizontal coordinate of the template center
+    i,j : integer
+        horizontal, vertical coordinate of the template center
     radius : integer
         radius of the template
-    filling : {'random', 'NaN', 'zero'}
+    filling : {'random', 'NaN', 'zero'}, default='random'
         sometimes the location is outside the domain or to close to the border.
         then the template is filled up with either:
            * 'random' : random numbers, ranging from 0...1, 0...2**bit
@@ -459,6 +460,10 @@ def create_template_at_center(I, i,j, radius, filling='random'):
     -------
     I_sub : np.array, size=(m,n) or (m,n,b)
         template of data array
+
+    See Also
+    --------
+    create_template_off_center : similar function, but creates even template
 
     Notes
     -----
@@ -479,10 +484,39 @@ def create_template_at_center(I, i,j, radius, filling='random'):
     """
     i,j = i.astype(int), j.astype(int)
     if not type(radius) is tuple: radius = (radius, radius)
-    if I.ndim==3:
-        I_sub = I[i-radius[0]:i+radius[1]+1, j-radius[0]:j+radius[1]+1, :]
+
+    # create sub template
+    if filling in ('random', ):
+        if I.dtype.type == np.uint8:
+            I_sub = np.random.randint(2**8,
+                                      size=(2*radius[0]+1, 2*radius[1]+1)\
+                                      ).astype(np.uint8)
+        elif I.dtype.type == np.uint16:
+            I_sub = np.random.randint(2**16, size=(2*radius[0]+1, 2*radius[1]+1)
+                                      ).astype(np.uint16)
+        else:
+            I_sub = np.random.randn(2*radius[0]+1, 2*radius[1]+1)
+    elif filling in ('nan', ):
+        I_sub = np.nan * np.zeros((2*radius[0]+1, 2*radius[1]+1))
     else:
-        I_sub = I[i-radius[0]:i+radius[1]+1, j-radius[0]:j+radius[1]+1]
+        I_sub = np.zeros((2*radius[0]+1, 2*radius[1]+1))
+
+    m,n = I.shape[0], I.shape[1]
+    min_0, max_0 = np.maximum(0, i-radius[0]), np.minimum(m, i+radius[0]+1)
+    min_1, max_1 = np.maximum(0, j-radius[1]), np.minimum(n, j+radius[1]+1)
+
+    if np.logical_or(min_0>=max_0, min_1>=max_1):
+        return I_sub
+    sub_min_0 = np.abs(np.minimum(i-radius[0], 0))
+    sub_max_0 = (2*radius[0]+1) + m-np.maximum(i+radius[0]+1, m)
+    sub_min_1 = np.abs(np.minimum(j-radius[0], 0))
+    sub_max_1 = (2*radius[1]+1) + n-np.maximum(j+radius[1]+1, n)
+    if I.ndim==3:
+        I_sub[sub_min_0:sub_max_0,sub_min_1:sub_max_1,:] = \
+            I[min_0:max_0, min_1:max_1, :]
+    else:
+        I_sub[sub_min_0:sub_max_0,sub_min_1:sub_max_1] = \
+            I[min_0:max_0, min_1:max_1]
     return I_sub
 
 def create_template_off_center(I, i,j, width, filling='random'):
@@ -510,6 +544,10 @@ def create_template_off_center(I, i,j, width, filling='random'):
     -------
     I_sub : np.array, size=(m,n) or (m,n,b)
         template of data array
+
+    See Also
+    --------
+    create_template_at_center : similar function, but creates odd template
 
     Notes
     -----
@@ -613,16 +651,16 @@ def pair_posts(xy_1, xy_2, thres=20.):
 
     Parameters
     ----------
-    xy_1 : np.array, size=(m,_), dtype=float
+    xy_1 : numpy.array, size=(m,_), dtype=float
         array with coordinates
-    xy_2 : np.array, size=(m,_), dtype=float
+    xy_2 : numpy.array, size=(m,_), dtype=float
         array with coordinates
     thres : float
         upper limit to still include a pairing
 
     Returns
     -------
-    idx_conn : np.array, size=(k,2)
+    idx_conn : numpy.array, size=(k,2)
         array with connectivity, based upon the index of xy_1 and xy_2
     """
     def closest_post_index(node, nodes):
@@ -641,6 +679,85 @@ def pair_posts(xy_1, xy_2, thres=20.):
             xy_1[i, ...] = np.inf
     idx_conn = np.array(idx_conn)
     return idx_conn
+
+def merge_ids(dh_mother, dh_child, idx_uni):
+    if type(dh_mother) in (pd.core.frame.DataFrame, ):
+        dh_stack = merge_ids_pd(dh_mother, dh_child, idx_uni)
+    elif type(dh_mother) in (np.recarray, ):
+        dh_stack = merge_ids_rec(dh_mother, dh_child, idx_uni)
+    return dh_stack
+
+def merge_ids_rec(dh_mother, dh_child, idx_uni):
+    id_present = True if 'id' in dh_mother.dtype.names else False
+
+    id_counter = 1
+    if id_present:
+        id_counter = np.max(dh_mother['id']) + 1
+        id_child = np.zeros(dh_child.shape[0], dtype=int)
+
+        # assign to older id's
+        NEW = dh_mother['id'][idx_uni[:, 0]] == 0
+        id_child[idx_uni[np.invert(NEW), 1]] = \
+            dh_mother['id'][idx_uni[np.invert(NEW), 0]]
+        new_ids = id_counter + np.arange(0, np.sum(NEW)).astype(int)
+        # create new ids
+        id_child[idx_uni[NEW, 1]] = new_ids
+        dh_mother['id'][idx_uni[NEW, 0]] = new_ids
+        id_child = np.rec.fromarrays([id_child],
+                                  dtype=np.dtype([('id', int)]))
+        dh_child = merge_arrays((dh_child, id_child),
+                                flatten=True, usemask=False)
+    else:
+        id_mother = np.zeros(dh_mother.shape[0], dtype=int)
+        id_child = np.zeros(dh_child.shape[0], dtype=int)
+        id_mother[idx_uni[:, 0]] = \
+            id_counter + np.arange(0, idx_uni.shape[0]).astype(int)
+        id_child[idx_uni[:, 1]] = \
+            id_counter + np.arange(0, idx_uni.shape[0]).astype(int)
+
+        id_child = np.rec.fromarrays([id_child],
+                                     dtype=np.dtype([('id', int)]))
+        dh_child = merge_arrays((dh_child, id_child),
+                                flatten=True, usemask=False)
+        id_mother = np.rec.fromarrays([id_mother],
+                                      dtype=np.dtype([('id', int)]))
+        dh_mother = merge_arrays((dh_mother, id_mother),
+                                flatten=True, usemask=False)
+    dh_stack = stack_arrays((dh_mother, dh_child),
+                            asrecarray=True, usemask=False)
+    return dh_stack
+
+def merge_ids_pd(dh_mother, dh_child, idx_uni):
+    id_present = True if 'id' in dh_mother else False
+
+    id_counter = 1
+    if id_present:
+        id_counter = np.max(dh_mother['id']) + 1
+        id_child = np.zeros(dh_child.shape[0], dtype=int)
+
+        # assign to older id's
+        NEW = dh_mother['id'].to_numpy()[idx_uni[:, 0]] == 0
+        id_child[idx_uni[np.invert(NEW), 1]] = \
+            dh_mother['id'].to_numpy()[idx_uni[np.invert(NEW), 0]]
+        dh_child.insert(len(dh_child.columns), 'id', id_child)
+        # update mother
+        df_header = list(dh_mother)
+        df_id = [df_header.index(i) for i in df_header if 'id' in i][0]
+        dh_mother.iloc[idx_uni[NEW, 0], [df_id]] = id_counter + \
+                    np.arange(0, np.sum(NEW)).astype(int)
+    else:
+        id_mother = np.zeros(dh_mother.shape[0], dtype=int)
+        id_child = np.zeros(dh_child.shape[0], dtype=int)
+        id_mother[idx_uni[:, 0]] = \
+            id_counter + np.arange(0, idx_uni.shape[0]).astype(int)
+        id_child[idx_uni[:, 1]] = \
+            id_counter + np.arange(0, idx_uni.shape[0]).astype(int)
+
+        dh_mother.insert(len(dh_mother.columns), 'id', id_mother)
+        dh_child.insert(len(dh_child.columns), 'id', id_child)
+
+    dh_stack = pd.concat([dh_mother, dh_child])
+    return dh_stack
 
 def match_shadow_ridge(M1, M2, Az1, Az2, geoTransform1, geoTransform2,
                         xy1, xy2, describ='BAS', K=5):

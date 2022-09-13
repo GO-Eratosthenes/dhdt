@@ -1,19 +1,121 @@
 import os
+import re
 
 import numpy as np
+import pandas as pd
 from numpy.lib.recfunctions import stack_arrays, merge_arrays
 from scipy import sparse
 
+from ..generic.debugging import loggg
 from ..generic.mapping_tools import map2pix, pix2map
 from ..generic.handler_im import bilinear_interpolation
 from ..processing.coupling_tools import \
-    pair_posts, get_elevation_difference, angles2unit
+    pair_posts, merge_ids, get_elevation_difference, angles2unit
 from ..processing.matching_tools import remove_posts_pairs_outside_image
 from ..processing.network_tools import get_network_indices
 
+def get_conn_col_header():
+    """ give the collumn name and datatypes
+
+    photohypsometric connectivity textfiles can have different data collumns
+    adasd be of different types. Such are typically given in the
+
+    Returns
+    -------
+    col_names: list
+        list with names of the collumns
+    col_dtype : numpy.datatype
+        specifies the datatypes of the different collumns
+    """
+    col_names = ['timestamp', 'caster_X', 'caster_Y', 'caster_Z',
+                 'casted_X', 'casted_Y',
+                 'azimuth', 'zenith', 'zenith_refracted','id',
+                 'dh', 'dt']
+    col_dtype = np.dtype([('timestamp', '<M8[D]'),
+                          ('caster_X', np.float64), ('caster_Y', np.float64),
+                          ('caster_Z', np.float64),
+                          ('casted_X', np.float64), ('casted_Y', np.float64),
+                          ('azimuth', np.float64), ('zenith', np.float64),
+                          ('zenith_refracted', np.float64), ('id', np.int),
+                          ('dh', np.float64), 'dt', '<m8[D]'])
+    return col_names, col_dtype
+
+
+def get_timestamp_conn_file(conn_path, no_lines=6):
+    """ looks inside the comments of a .txt for the time stamp
+
+    Parameters
+    ----------
+    conn_path : string
+        path and filename towards the text file
+    no_lines : integer, default=6
+        amount of lines to scan in the text file
+
+    Returns
+    -------
+    timestamp : numpy.datetime64
+
+    See Also
+    --------
+    get_header_conn_file
+    """
+    assert isinstance(conn_path, str), ('please provide a string')
+    assert os.path.exists(conn_path), ('please provide a correct location')
+    timestamp=None
+    with open(conn_path) as file:
+        lines = [next(file) for x in range(no_lines)]
+
+    for line in lines:
+        if line.startswith('#') and bool(re.search('time', line)):
+            timing = line.split(':')[-1]
+            timestamp = np.datetime64(timing.replace('\n', '').strip())
+    return timestamp
+
+def get_header_conn_file(conn_path, no_lines=6):
+    """ looks inside the comments of a .txt for the time stamp
+
+    Parameters
+    ----------
+    conn_path : string
+        path and filename towards the text file
+    no_lines : integer, default=6
+        amount of lines to scan in the text file
+
+    Returns
+    -------
+    header : list
+        a list of strings
+
+    See Also
+    --------
+    get_timestamp_conn_file
+    """
+    assert isinstance(conn_path, str), ('please provide a string')
+    assert os.path.exists(conn_path), ('please provide a correct location')
+    header=None
+    with open(conn_path) as file:
+        lines = [next(file) for x in range(no_lines)]
+
+    for line in lines:
+        if line.startswith('#'):
+            header = [names.strip() for names in line.split(' ')[1:]]
+    return header
+
+def read_conn_to_df(conn_path):
+    col_names = get_header_conn_file(conn_path)
+    dh = pd.read_csv(conn_path, delimiter=' ',
+                     header=None, names=col_names, comment='#')
+
+    if 'timestamp' not in col_names:
+        im_date = get_timestamp_conn_file(conn_path)
+        if im_date is not None:
+            t = np.tile(im_date, dh.shape[0])
+            dh.insert(0, 'timestamp', t)
+    return dh
+
 def read_conn_files_to_stack(folder_list, conn_file="conn.txt",
                              folder_path=None):
-    """
+    """ read shadow line text file(s) into numpy.recordarray
 
     Parameters
     ----------
@@ -115,11 +217,123 @@ def read_conn_files_to_stack(folder_list, conn_file="conn.txt",
         dh_stack = stack_arrays((dh, dh_stack), asrecarray=True, usemask=False)
     return dh_stack
 
-def clean_dh(dh):
-    if type(dh) in (np.recarray,):
-        dh = dh[dh['id']!=0]
+def read_conn_files_to_df(folder_list, conn_file="conn.txt",
+                             folder_path=None, dist_thres=10.):
+    """ read shadow line text file(s) into pandas.DataFrame
+
+    Parameters
+    ----------
+    folder_list : {string, tuple of strings}
+        locations where connectivity files are located
+    conn_file : {string, tuple of strings}
+        name of the connectivity file
+    folder_path : string
+        root location where all processing folders of the imagery are situated
+    dist_thres : float, unit=m
+        when combining caster posts, what is the maximum distance to tolerate a
+        match, and create an id.
+
+    Returns
+    -------
+    dh : pandas.DataFrame
+        DataFrame of coordinates and times, having the following collumns:
+            - timestamp : date stamp
+            - caster_x, caster_y : map coordinate of start of shadow
+            - casted_x, casted_y : map coordinate of end of shadow
+            - azimuth : sun orientation, unit=degrees
+            - zenith : overhead angle of the sun, unit=degrees
+    """
+    assert isinstance(folder_list, tuple)^isinstance(conn_file, tuple), \
+        ('one should be a tuple, while the other should be a string')
+    if isinstance(conn_file, tuple):
+        conn_counter = len(conn_file)
     else:
-        dh = dh[dh[:,-1]!=0]
+        conn_counter = len(folder_list)
+
+    dh_df = None
+    for i in range(conn_counter):
+        c_file = conn_file[i] if isinstance(conn_file, tuple) else conn_file
+
+        if folder_path is None:
+            conn_path = os.path.join(folder_list[i], c_file)
+        elif folder_list is None:
+            conn_path = os.path.join(folder_path, c_file)
+        elif isinstance(folder_list, tuple):
+            conn_path = os.path.join(folder_path, folder_list[i], c_file)
+        else:
+            conn_path = os.path.join(folder_path, folder_list, c_file)
+
+        if not os.path.exists(conn_path):
+            continue
+
+        dh = read_conn_to_df(conn_path)
+
+        if dh_df is None:
+            dh_df = dh.copy()
+            continue
+
+        # pair coordinates of the new list to older entries, through
+        # a unique counter, given by "id"
+        idx_uni = pair_posts(dh_df[['caster_X','caster_Y']].to_numpy(),
+                             dh[['caster_X', 'caster_Y']].to_numpy(),
+                             thres=dist_thres)
+        dh_df = merge_ids(dh_df, dh, idx_uni)
+    return dh_df
+
+def clean_dh(dh):
+    """ multi-temporal photohypsometric data can have common caster locations.
+    An identification number can be given to them. If this is not done, these
+    data are redunant, and can be removed. This function does that.
+
+    Parameters
+    ----------
+    dh : {numpy.array, numpy.recordarray, pandas.DataFrame}
+        array with photohypsometric information
+
+    Returns
+    -------
+    dh : {numpy.array, numpy.recordarray, pandas.DataFrame}
+        reduced array
+
+    See Also
+    --------
+    read_conn_files_to_stack, read_conn_files_to_df
+    """
+    if type(dh) in (np.recarray,):
+        dh = clean_dh_rec(dh)
+    elif type(dh) in (np.ndarray,):
+        dh = clean_dh_np(dh)
+    else:
+        dh = clean_dh_pd(dh)
+    return dh
+
+def clean_dh_rec(dh):
+    return dh[dh['id']!=0]
+
+def clean_dh_np(dh):
+    return dh[dh[:,-1]!=0]
+
+@loggg
+def clean_dh_pd(dh):
+    if 'id' in dh.columns:
+        dh.drop(dh[dh['id'] == 0].index, inplace=True)
+    return dh
+
+def update_caster_elevation(dh, Z, geoTransform):
+    if type(dh) in (pd.core.frame.DataFrame,):
+        update_caster_elevation_pd(dh, Z, geoTransform)
+    #todo : make the same function for recordarray
+    return dh
+
+@loggg
+def update_caster_elevation_pd(dh, Z, geoTransform):
+    assert np.all([header in dh.columns for header in
+                   ('timestamp', 'zenith')])
+    # get elevation of the caster locations
+    i_im, j_im = map2pix(geoTransform, dh['caster_X'], dh['caster_Y'])
+    dh_Z = bilinear_interpolation(Z, i_im, j_im)
+    if not 'caster_Z' in dh.columns: dh['caster_Z'] = None
+    dh.loc[:,'caster_Z'] = dh_Z
     return dh
 
 def get_casted_elevation_difference(dh):

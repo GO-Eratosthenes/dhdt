@@ -20,7 +20,8 @@ from ..generic.mapping_io import read_geo_image, read_geo_info
 from ..generic.mapping_tools import \
     cast_orientation, make_same_size, pix_centers, map2pix, pix2map
 from ..generic.filtering_statistical import normalized_sampling_histogram
-from ..input.read_sentinel2 import read_sun_angles_s2, read_mean_sun_angles_s2
+from ..input.read_sentinel2 import \
+    read_sun_angles_s2, read_mean_sun_angles_s2, read_sensing_time_s2
 
 def vector_arr_2_unit(vec_arr):
     n = np.linalg.norm(vec_arr, axis=2)
@@ -261,7 +262,7 @@ def find_valley(values, base, neighbors=2):
     return dips, quantiles
 
 def shadow_image_to_list(M, geoTransform, s2_path,
-                         Zn=None, Az=None, **kwargs):
+                         Zn=None, Az=None, timestamp=None, **kwargs):
     """
     Turns the image towards the sun, and looks along each solar ray, hereafter
     the caster and casted locations are written to a txt-file
@@ -278,6 +279,8 @@ def shadow_image_to_list(M, geoTransform, s2_path,
         elevation angle of the illumination direction
     Az : float, unit=degrees
         argument of the illumination
+    timestamp : string
+
     """
     if (Zn is None) or (Az is None):
         Zn, Az = read_mean_sun_angles_s2(s2_path)
@@ -285,6 +288,9 @@ def shadow_image_to_list(M, geoTransform, s2_path,
         out_name = kwargs.get('out_name')
     else:
         out_name = "conn.txt"
+    if timestamp is None:
+        assert isinstance(timestamp, str), \
+            ('please provide a string for the timestamp')
 
     # turn towards the sun
     M_rot = ndimage.rotate(M.astype(float), 180-Az,
@@ -341,6 +347,11 @@ def shadow_image_to_list(M, geoTransform, s2_path,
 
     (sunZn,sunAz) = read_sun_angles_s2(s2_path)
 
+    # if timestamp of imagery is not given, extract it from metadata
+    if timestamp is None:
+        timing = read_sensing_time_s2(s2_path)
+        timestamp = np.datetime_as_string(timing, unit='d')
+
     if (sunZn is None) or (sunAz is None):
         sunZn, sunAz = Zn*np.ones_like(M), Az*np.ones_like(M)
     else:
@@ -362,6 +373,14 @@ def shadow_image_to_list(M, geoTransform, s2_path,
 
     # write to file
     f = open(os.path.join(s2_path, out_name), 'w')
+    # if timestamp is give, add this to the
+    if timestamp is not None:
+        print('# time: '+timestamp, file=f)
+
+    # add header
+    print('# caster_X '+'caster_Y '+'casted_X '+'casted_Y '+\
+          'azimuth '+'zenith', file=f)
+    # write suntrace list to text file
     for k in range(suntrace_list.shape[0]):
         line = '{:+8.2f}'.format(suntrace_list[k,0]) + ' '
         line += '{:+8.2f}'.format(suntrace_list[k,1]) + ' '

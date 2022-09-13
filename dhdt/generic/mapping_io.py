@@ -65,7 +65,7 @@ def read_geo_image(fname, boi=np.array([])):
 
     Returns
     -------
-    data : numpy.array, size=(m,n), ndim=2
+    data : {numpy.array, numpy.masked.array}, size=(m,n), ndim=2
         data array of the band
     spatialRef : string
         osr.SpatialReference in well known text
@@ -103,10 +103,9 @@ def read_geo_image(fname, boi=np.array([])):
         for counter in range(img.RasterCount):
             band = np.array(img.GetRasterBand(counter+1).ReadAsArray())
             no_dat = img.GetRasterBand(counter+1).GetNoDataValue()
-            try:
-                np.putmask(band, band==no_dat, np.nan)
-            except:
-                print('something went wrong')
+            # create masked array
+            if no_dat is not None:
+                band = np.ma.array(band, mask=band==no_dat)
             data = band if counter == 0 else np.dstack((data,
                                                         band[:,:,np.newaxis]))
     else:

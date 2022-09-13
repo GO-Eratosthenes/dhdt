@@ -173,9 +173,9 @@ def pad_images_and_filter_coord_list(M1, M2, geoTransform1, geoTransform2,
 
     Parameters
     ----------
-    M1 : np.array, size=(m,n), ndim={2,3}
+    M1 : {numpy.array, numpy.masked.array}, size=(m,n), ndim={2,3}
         first image array
-    M2 : np.array, size=(m,n), ndim={2,3}
+    M2 : {numpy.array, numpy.masked.array}, size=(m,n), ndim={2,3}
         second image array
     geoTransform1 : tuple
         affine transformation coefficients of array M1
@@ -215,8 +215,10 @@ def pad_images_and_filter_coord_list(M1, M2, geoTransform1, geoTransform2,
     ..generic.mapping_tools.ref_trans : translates geoTransform
     """
     # init
-    assert type(M1)==np.ndarray, ("please provide an array")
-    assert type(M2)==np.ndarray, ("please provide an array")
+    assert type(M1) in (np.ma.core.MaskedArray, np.ndarray), \
+        ("please provide an array")
+    assert type(M2) in (np.ma.core.MaskedArray, np.ndarray), \
+        ("please provide an array")
     assert isinstance(geoTransform1, tuple), ('geoTransform should be a tuple')
     assert isinstance(geoTransform2, tuple), ('geoTransform should be a tuple')
     assert(X_grd.shape == Y_grd.shape) # should be of the same size
@@ -261,7 +263,7 @@ def pad_radius(I, radius, cval=0):
 
     Parameters
     ----------
-    I : np.array, size=(m,n) or (m,n,b)
+    I : {numpy.array, numpy.masked.array}, size=(m,n) or (m,n,b)
         data array
     radius : {positive integer, tuple}
         extra boundary to be added to the data array
@@ -273,15 +275,37 @@ def pad_radius(I, radius, cval=0):
     I_xtra : np.array, size=(m+2*radius,n+2*radius)
         extended data array
     """
+    assert type(I) in (np.ma.core.MaskedArray, np.ndarray), \
+        ("please provide an array")
     if not type(radius) is tuple: radius = (radius, radius)
+
     if I.ndim==3:
+        if type(I) in (np.ma.core.MaskedArray, ):
+            I_xtra = np.ma.array(np.pad(I,
+                            ((radius[0],radius[1]), (radius[0],radius[1]), (0,0)),
+                            'constant', constant_values=cval),
+                                 mask=np.pad(np.ma.getmaskarray(I),
+                                             ((radius[0],radius[1]),
+                                              (radius[0],radius[1]),
+                                              (0,0)),
+                                              'constant', constant_values=True))
+            return I_xtra
         I_xtra = np.pad(I,
                         ((radius[0],radius[1]), (radius[0],radius[1]), (0,0)),
                         'constant', constant_values=cval)
-    else:
-        I_xtra = np.pad(I,
+        return I_xtra
+    if type(I) in (np.ma.core.MaskedArray, ):
+        I_xtra = np.ma.array(np.pad(I,
                         ((radius[0],radius[1]), (radius[0],radius[1])),
-                        'constant', constant_values=cval)
+                        'constant', constant_values=cval),
+                             mask=np.pad(np.ma.getmaskarray(I),
+                                         ((radius[0],radius[1]),
+                                          (radius[0],radius[1])),
+                                          'constant', constant_values=True))
+        return I_xtra
+    I_xtra = np.pad(I,
+                    ((radius[0],radius[1]), (radius[0],radius[1])),
+                    'constant', constant_values=cval)
     return I_xtra
 
 def prepare_grids(im_stack, ds, cval=0):
@@ -293,7 +317,7 @@ def prepare_grids(im_stack, ds, cval=0):
 
     Parameters
     ----------
-    im_stack : np.array, size(m,n,k)
+    im_stack : {numpy.array, numpy.masked.array}, size(m,n,k)
         imagery array
     ds : integer
         size of the template, in pixels
@@ -302,7 +326,7 @@ def prepare_grids(im_stack, ds, cval=0):
 
     Returns
     -------
-    im_stack : np.array, size(m+ds,n+ds,k)
+    im_stack : numpy.array, size(m+ds,n+ds,k)
         extended imagery array
     I_grd : np.array, size=(p,q)
         vertical image coordinates of the template centers
@@ -310,7 +334,8 @@ def prepare_grids(im_stack, ds, cval=0):
         horizontal image coordinates of the template centers
 
     """
-    assert type(im_stack)==np.ndarray, ("please provide an array")
+    assert type(im_stack) in (np.ma.core.MaskedArray, np.ndarray), \
+        ("please provide an array")
     assert type(ds)==int, ("please provide an integer")
     if im_stack.ndim==2: im_stack = im_stack[:,:,np.newaxis]
 
@@ -330,8 +355,10 @@ def prepare_grids(im_stack, ds, cval=0):
     return im_stack, I_grd, J_grd
 
 def make_templates_same_size(I1,I2):
-    assert type(I1)==np.ndarray, ("please provide an array")
-    assert type(I2)==np.ndarray, ("please provide an array")
+    assert type(I1) in (np.ma.core.MaskedArray, np.ndarray), \
+        ("please provide an array")
+    assert type(I2) in (np.ma.core.MaskedArray, np.ndarray), \
+        ("please provide an array")
 
     mt,nt = I1.shape[0],I1.shape[1] # dimenstion of the template
     ms,ns = I2.shape[0],I2.shape[1] # dimension of the search space
@@ -427,7 +454,7 @@ def get_coordinates_of_template_centers(Grid, temp_size):
 
     Parameters
     ----------
-    Grid : np.array, size=(m,n)
+    Grid : {numpy.array, numpy.masked.array}, size=(m,n)
         array with data values
     temp_size : positive integer
         size of the kernel in pixels
@@ -461,7 +488,8 @@ def get_coordinates_of_template_centers(Grid, temp_size):
           based      v           based       |
 
     """
-    assert type(Grid)==np.ndarray, ("please provide an array")
+    assert type(Grid) in (np.ma.core.MaskedArray, np.ndarray), \
+        ("please provide an array")
     assert type(temp_size)==int, ("please provide an integer")
 
     radius = np.floor(temp_size / 2).astype('int')
@@ -469,13 +497,13 @@ def get_coordinates_of_template_centers(Grid, temp_size):
                   radius:(Grid.shape[1]-radius):temp_size]
     return I_idx, J_idx
 
-def get_grid_at_template_centers(grid, temp_size):
+def get_grid_at_template_centers(Grid, temp_size):
     """ When tiling an array into small templates, this function gives the
     value of the pixel in its center.
 
     Parameters
     ----------
-    grid : np.array, size=(m,n)
+    Grid : {numpy.array, numpy.masked.array}, size=(m,n)
         array with data values
     temp_size : integer
         size of the kernel in pixels
@@ -489,21 +517,22 @@ def get_grid_at_template_centers(grid, temp_size):
     --------
     get_coordinates_of_template_centers
     """
-    assert type(grid)==np.ndarray, ("please provide an array")
+    assert type(Grid) in (np.ma.core.MaskedArray, np.ndarray), \
+        ("please provide an array")
     assert type(temp_size)==int, ("please provide an integer")
 
-    Iidx, Jidx = get_coordinates_of_template_centers(grid, temp_size)
-    grid_centers_values = grid[Iidx, Jidx]
+    Iidx, Jidx = get_coordinates_of_template_centers(Grid, temp_size)
+    grid_centers_values = Grid[Iidx, Jidx]
 
     return grid_centers_values
 
-def get_data_and_mask(I,M):
+def get_data_and_mask(I,M=None):
     """ sometimes data is given in masked array form (numpy.ma), then this is
     separated into regular numpy.arrays
 
     Parameters
     ----------
-    I : {numpy.array, numpy.ma}
+    I : {numpy.array, numpy.masked.array}
         data array
     M : numpy.array
         masking array

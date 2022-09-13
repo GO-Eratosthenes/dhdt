@@ -77,13 +77,63 @@ def datetime2calender(dt):
     day = ((D - M) + 1).astype('timedelta64[D]').astype(int)
     return year, month, day
 
+def datenum2datetime(t):
+    """ some write a date as a number "YYYYMMDD" conver this to numpy.datetime
+
+    Parameters
+    ----------
+    t : {int,numpy.array}
+        time, in format YYYYMMD
+
+    Returns
+    -------
+    dt : {numpy.datetime64, numpy.array}, type=numpy.datetime64[D]
+        times in numpy time format
+
+    See Also
+    --------
+    datetime2datenum
+    """
+    if type(t) in (np.ndarray, ):
+        dt = np.array([np.datetime64(str(e)[:4]+'-'+str(e)[4:6]+'-'+str(e)[-2:])
+              for e in t.astype(str)])
+    else:
+        dt = np.datetime64(str(t)[:4] + '-' + str(t)[4:6] + '-' + str(t)[-2:])
+    return dt
+
+def datetime2datenum(dt):
+    """ convert numpy.datetime to a date as a number "YYYYMMDD"
+
+    Parameters
+    ----------
+    dt : {numpy.datetime64, numpy.array}, type=numpy.datetime64[D]
+        times in numpy time format
+
+    Returns
+    -------
+    t : {int,numpy.array}
+        time, in format YYYYMMD
+
+    See Also
+    --------
+    datenum2datetime
+    """
+    if type(dt) in (np.ndarray, ):
+        t = np.array([int(e.astype(str)[:4] +
+                          e.astype(str)[5:7]+
+                          e.astype(str)[-2:])
+              for e in dt.astype(str)], dtype=np.int64)
+    else:
+        dt = int(dt.astype(str)[:4]+dt.astype(str)[5:7]+dt.astype(str)[-2:])
+    return t
+
 # atmospheric scales and formats
 def kelvin2celsius(T):
-    T -= 273.15
-    return T
+    t = T - 273.15
+    return t
 
-def celsius2kelvin(T):
-    T += 273.15
+def celsius2kelvin(t):
+    T = t + 273.15
     return T
 
 def hpa2pascal(P):
@@ -91,28 +141,28 @@ def hpa2pascal(P):
     return P
 
 def mbar2pascal(P):
-    P *= 100
-    return P
+    mb = P * 100
+    return mb
 
 def pascal2mbar(P):
-    P /= 100
-    return P
+    mb = P / 100
+    return mb
 
-def hpa2pascal(P):
-    mbar2pascal(P)
+def hpa2pascal(hpa):
+    P = mbar2pascal(hpa)
     return P
 
 def pascal2hpa(P):
-    pascal2mbar(P)
-    return P
+    hpa = pascal2mbar(P)
+    return hpa
 
 def mbar2torr(P):
-    P *= 0.750061683
-    return P
+    t = P*0.750061683
+    return t
 
-def torr2mbar(P):
-    P /= 0.750061683
-    return P
+def torr2mbar(t):
+    mb = t/0.750061683
+    return mb
 
 # geometric and angular scales and formats
 def deg2dms(ang):
