@@ -202,9 +202,13 @@ def output_glacier_map_background(Z, RGI, outputname, compress=95,
 
 def output_cast_lines_from_conn_txt(conn_dir, geoTransform, RGI,
                                     outputname='conn.png', pen=1, step=2,
+                                    inputname='conn.txt',
                                     color=np.array([255, 128, 0])):
     RGI = RGI.astype(bool)
-    cast_list = np.loadtxt(os.path.join(conn_dir, 'conn.txt'))
+    f_full = os.path.join(conn_dir, imputname)
+    assert os.path.exists(f_full), ('please provide correct whereabouts')
+
+    cast_list = np.loadtxt(f_full, comments='#')
 
     # transform to pixel coordinates
     shdw_i, shdw_j = map2pix(geoTransform, cast_list[:, 2], cast_list[:, 3])

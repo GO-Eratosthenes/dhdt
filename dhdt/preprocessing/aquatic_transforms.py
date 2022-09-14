@@ -58,7 +58,7 @@ def alternative_floating_algae_index(Red, Rededge, Near):
     -----
     Based on the bands of Sentinel-2:
 
-    .. math:: \text{AFAI}=\frac{B_{06} - B_{04}}{B_{8A} - B_{04}}
+    .. math:: AFAI=(B_{06} - B_{04})/(B_{8A} - B_{04})
 
 
     References
@@ -161,8 +161,8 @@ def modified_chlorophyll_absorption_index(Green, Red, Rededge):
     -----
     Based on the bands of Sentinel-2:
 
-    .. math:: \text{MCARI}= ((B_{05} - B_{04}) - .2(B_{05} - B_{03})) *
-                \frac{B_{04}}{B_{03}}
+    .. math:: MCARI= ((B_{05} - B_{04}) - .2(B_{05} - B_{03})) *
+                (B_{04})/(B_{03})
 
     References
     ----------
@@ -180,7 +180,7 @@ def triangular_vegetation_index(Green, Red, Rededge):
     -----
     Based on the bands of Sentinel-2:
 
-    .. math:: \text{TVI}= .5 (120(B_{06} - B_{03}) - 200(B_{04} - B_{03}))
+    .. math:: TVI= .5 (120(B_{06} - B_{03}) - 200(B_{04} - B_{03}))
 
     References
     ----------

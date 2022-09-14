@@ -21,6 +21,14 @@ functions of use for geometric information extraction and retrival
 .. automodule:: dhdt.preprocessing.acquisition_geometry
     :members:
 
+aquatic transforms
+~~~~~~~~~~~~~~~~~~
+functions of use for enhancement of water or suspended material
+
+.. automodule:: dhdt.preprocessing.aquatic_transforms
+    :members:
+
+
 snow transforms
 ~~~~~~~~~~~~~~~
 functions of use for enhancement of snow and ice

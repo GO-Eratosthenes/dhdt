@@ -140,8 +140,8 @@ def get_pressure_from_grib_file(fname='download.grib'):
             T[idx,:,idx_t] = grb['values']
     grbs.close()
 
-    if t.size==1:
-        G, Rh, T = np.squeeze(G), np.squeeze(Rh), np.squeeze(T)
+#    if t.size==1:
+#        G, Rh, T = np.squeeze(G), np.squeeze(Rh), np.squeeze(T)
     return lat, lon, G, Rh, T, t
 
 def get_wind_from_grib_file(fname='download.grib', pres_level=1000):
@@ -274,7 +274,8 @@ def get_era5_atmos_profile(date, x, y, spatialRef,
     g_wmo = 9.80665 # gravity constant defined by WMO
     z_G = G/g_wmo
 
-    posts, stamps = z_G.shape[1], t.size
+    posts = 1 if z_G.ndim==1 else z_G.shape[1]
+    stamps = t.size
     Temp = np.zeros((len(z), posts, stamps), dtype=np.float64)
     Pres, RelHum = np.zeros_like(Temp), np.zeros_like(Temp)
     for i in range(posts):

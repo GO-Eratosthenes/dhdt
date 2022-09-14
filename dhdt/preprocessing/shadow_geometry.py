@@ -288,7 +288,7 @@ def shadow_image_to_list(M, geoTransform, s2_path,
         out_name = kwargs.get('out_name')
     else:
         out_name = "conn.txt"
-    if timestamp is None:
+    if timestamp is not None:
         assert isinstance(timestamp, str), \
             ('please provide a string for the timestamp')
 
@@ -350,7 +350,7 @@ def shadow_image_to_list(M, geoTransform, s2_path,
     # if timestamp of imagery is not given, extract it from metadata
     if timestamp is None:
         timing = read_sensing_time_s2(s2_path)
-        timestamp = np.datetime_as_string(timing, unit='d')
+        timestamp = np.datetime_as_string(timing, unit='D')
 
     if (sunZn is None) or (sunAz is None):
         sunZn, sunAz = Zn*np.ones_like(M), Az*np.ones_like(M)

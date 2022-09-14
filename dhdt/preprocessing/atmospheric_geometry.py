@@ -1,3 +1,6 @@
+import os
+import warnings
+
 import pandas
 import numpy as np
 
@@ -935,6 +938,44 @@ def get_refraction_angle(dh, x_bar, y_bar, spatialRef, h,
         if not 'zenith_refrac' in dh.columns: dh['zenith_refrac'] = None
         dh.loc[IN, 'zenith_refrac'] = zn_new
     return dh
+
+def update_list_with_corr_zenith_pd(dh, file_dir, file_name='conn.txt'):
+    col_order = ('caster_X', 'caster_Y', 'casted_X', 'casted_Y',
+                    'azimuth', 'zenith', 'zenith_refrac')
+    assert np.all([header in dh.columns for header in
+                   col_order+('timestamp',)])
+
+    timestamp = dh['timestamp'].unique()
+    if timestamp.size !=1:
+        warnings.warn('multiple dates present in DataFrame:no output generated')
+        return
+    else:
+        timestamp = np.datetime_as_string(timestamp[0], unit='D')
+
+    dh_sel = dh[dh.columns.intersection(list(col_order))]
+
+    # write to file
+    f = open(os.path.join(file_dir, file_name), 'w')
+
+    # if timestamp is give, add this to the
+    print('# time: '+timestamp, file=f)
+
+    # add header
+    print('# caster_X '+'caster_Y '+'casted_X '+'casted_Y '+\
+          'azimuth '+'zenith '+'zenith_refrac', file=f)
+    # write rows of dataframe into text file
+    for k in range(dh_sel.shape[0]):
+        line = '{:+8.2f}'.format(dh_sel.iloc[k,0]) + ' '
+        line += '{:+8.2f}'.format(dh_sel.iloc[k,1]) + ' '
+        line += '{:+8.2f}'.format(dh_sel.iloc[k,2]) + ' '
+        line += '{:+8.2f}'.format(dh_sel.iloc[k,3]) + ' '
+        line += '{:+3.4f}'.format(dh_sel.iloc[k,4]) + ' '
+        line += '{:+3.4f}'.format(dh_sel.iloc[k,5]) + ' '
+        line += '{:+3.4f}'.format(dh_sel.iloc[k,6])
+        print(line, file=f)
+    f.close()
+
+    return
 
 def refraction_spherical_symmetric(zn_0, lat=None, h_0=None):
     """

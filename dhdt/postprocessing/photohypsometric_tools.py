@@ -360,8 +360,8 @@ def get_casted_elevation_difference(dh):
 
     Parameters
     ----------
-    dh : {numpy.array, numpy.recordarray}
-        stack of coordinates and times, having the following collumns:
+    dh : {pandas.DataFrame, numpy.array, numpy.recordarray}
+        stack of coordinates and times, having at least the following collumns:
             - timestamp : unit=days, date stamp
             - caster_x,caster_y : unit=meter, map coordinate of start of shadow
             - casted_x,casted_y : unit=meter, map coordinate of end of shadow
@@ -383,61 +383,107 @@ def get_casted_elevation_difference(dh):
     read_conn_files_to_stack, get_hypsometric_elevation_change
     """
     if type(dh) in (np.recarray,):
-        doRecArr = True
-        names = ('X_1', 'Y_1', 'T_1', 'X_2', 'Y_2', 'T_2', 'dH_12')
-        formats = [np.float64, np.float64, '<M8[D]',
-                   np.float64, np.float64, '<M8[D]', np.float64]
-        dxyt = np.rec.array(np.zeros((0,7)),
-                            names=names, formats=formats)
-        ids = np.unique(dh['id']).astype(int)
+        dxyt = get_casted_elevation_difference_rec(dh)
+    elif type(dh) in (np.ndarray,):
+        dxyt = get_casted_elevation_difference_np(dh)
     else:
-        doRecArr = False
-        dxyt = np.zeros((0,7))
-        ids = np.unique(dh[:,-1]).astype(int)
+        dxyt = get_casted_elevation_difference_pd(dh)
+    return dxyt
 
+def get_casted_elevation_difference_pd(dh):
+    print('.')
+
+    names = ('X_1', 'Y_1', 'T_1', 'X_2', 'Y_2', 'T_2', 'dH_12')
+    formats = [np.float64, np.float64, '<M8[D]',
+               np.float64, np.float64, '<M8[D]', np.float64]
+    x = np.rec.array(np.zeros((0,7)), names=names, formats=formats)
+    dxyt = pd.DataFrame(x)
+    ids = np.unique(dh['id']).astype(int)
     for ioi in ids:
-        if doRecArr:
-            IN = dh['id'] == ioi
-            dh_ioi = dh[IN]
-        else:
-            IN = dh[:,-1] == ioi
-            dh_ioi = dh[IN,:]
+        dh_ioi = dh[dh['id'] == ioi] # get
+
+        n = dh_ioi.size().astype(int)
+        if n<2: continue
+
+        network_id = get_network_indices(n).T
+
+        zn = dh_ioi['zenith']
+        xy_1 = dh_ioi.iloc[network_id[:, 0]].loc['casted_X', 'casted_Y']
+        xy_2 = dh_ioi.iloc[network_id[:, 1]].loc['casted_X', 'casted_Y']
+        xy_t = dh_ioi.iloc[network_id[:, 0]].loc['caster_X', 'caster_Y']
+
+        dz_ioi = get_elevation_difference(zn.iloc[network_id[:, 0]],
+               zn.iloc[network_id[:, 1]], xy_1, xy_2, xy_t)
+
+        dxyt_line = np.rec.fromarrays([xy_1[:,0], xy_1[:,1],
+               dh_ioi['timestamp'][network_id[:,0]], xy_2[:,0], xy_2[:,1],
+               dh_ioi['timestamp'][network_id[:,1]], dz_ioi], names=names,
+               formats=formats)
+        dxyt = stack_arrays((dxyt, dxyt_line),
+                            asrecarray=True, usemask=False)
+
+    return dxyt
+
+def get_casted_elevation_difference_rec(dh):
+    names = ('X_1', 'Y_1', 'T_1', 'X_2', 'Y_2', 'T_2', 'dH_12')
+    formats = [np.float64, np.float64, '<M8[D]',
+               np.float64, np.float64, '<M8[D]', np.float64]
+    dxyt = np.rec.array(np.zeros((0,7)),
+                        names=names, formats=formats)
+    ids = np.unique(dh['id']).astype(int)
+    for ioi in ids:
+        IN = dh['id'] == ioi # get id of interest
+        dh_ioi = dh[IN]
 
         n = np.sum(IN).astype(int)
         network_id = get_network_indices(n).T
 
-        if doRecArr:
-            sun = angles2unit(dh_ioi['azimuth'])
-            xy_1 = np.stack((dh_ioi['casted_X'][network_id[:, 0]],
-                             dh_ioi['casted_Y'][network_id[:, 0]])).T
-            xy_2 = np.stack((dh_ioi['casted_X'][network_id[:, 1]],
-                             dh_ioi['casted_Y'][network_id[:, 1]])).T
-            xy_t = np.stack((dh_ioi['caster_X'][network_id[:, 0]],
-                             dh_ioi['caster_Y'][network_id[:, 0]])).T
-        else:
-            sun = dh_ioi[:,-2]
-            xy_1 = np.stack((dh_ioi[:,3][network_id[:, 0]],
-                             dh_ioi[:,4][network_id[:, 0]])).T
-            xy_2 = np.stack((dh_ioi[:,3][network_id[:, 1]],
-                             dh_ioi[:,4][network_id[:, 1]])).T
-            xy_t = np.stack((dh_ioi[:,1][network_id[:, 0]],
-                             dh_ioi[:,2][network_id[:, 0]])).T
+        sun = angles2unit(dh_ioi['azimuth'])
+        xy_1 = np.stack((dh_ioi['casted_X'][network_id[:, 0]],
+                         dh_ioi['casted_Y'][network_id[:, 0]])).T
+        xy_2 = np.stack((dh_ioi['casted_X'][network_id[:, 1]],
+                         dh_ioi['casted_Y'][network_id[:, 1]])).T
+        xy_t = np.stack((dh_ioi['caster_X'][network_id[:, 0]],
+                         dh_ioi['caster_Y'][network_id[:, 0]])).T
 
         dz_ioi = get_elevation_difference(sun[network_id[:, 0]],
                                           sun[network_id[:, 1]],
                                           xy_1, xy_2, xy_t)
-        if doRecArr:
-            dxyt_line = np.rec.fromarrays([xy_1[:,0], xy_1[:,1],
-                   dh_ioi['timestamp'][network_id[:,0]], xy_2[:,0], xy_2[:,1],
-                   dh_ioi['timestamp'][network_id[:,1]], dz_ioi], names=names,
-                   formats=formats)
-            dxyt = stack_arrays((dxyt, dxyt_line),
-                                asrecarray=True, usemask=False)
-        else:
-            dxyt_line = np.hstack((xy_1, dh_ioi[:,0][network_id[:,0]],
-                                   xy_2, dh_ioi[:,0][network_id[:,1]],
-                                   dz_ioi))
-            dxyt = np.vstack((dxyt, dxyt_line))
+        dxyt_line = np.rec.fromarrays([xy_1[:,0], xy_1[:,1],
+               dh_ioi['timestamp'][network_id[:,0]], xy_2[:,0], xy_2[:,1],
+               dh_ioi['timestamp'][network_id[:,1]], dz_ioi], names=names,
+               formats=formats)
+        dxyt = stack_arrays((dxyt, dxyt_line),
+                            asrecarray=True, usemask=False)
+    return dxyt
+
+def get_casted_elevation_difference_np():
+    doRecArr = False
+    dxyt = np.zeros((0,7))
+    ids = np.unique(dh[:,-1]).astype(int)
+
+    for ioi in ids:
+        IN = dh[:,-1] == ioi
+        dh_ioi = dh[IN,:]
+
+        n = np.sum(IN).astype(int)
+        network_id = get_network_indices(n).T
+
+        sun = dh_ioi[:,-2]
+        xy_1 = np.stack((dh_ioi[:,3][network_id[:, 0]],
+                         dh_ioi[:,4][network_id[:, 0]])).T
+        xy_2 = np.stack((dh_ioi[:,3][network_id[:, 1]],
+                         dh_ioi[:,4][network_id[:, 1]])).T
+        xy_t = np.stack((dh_ioi[:,1][network_id[:, 0]],
+                         dh_ioi[:,2][network_id[:, 0]])).T
+
+        dz_ioi = get_elevation_difference(sun[network_id[:, 0]],
+                                          sun[network_id[:, 1]],
+                                          xy_1, xy_2, xy_t)
+        dxyt_line = np.hstack((xy_1, dh_ioi[:,0][network_id[:,0]],
+                               xy_2, dh_ioi[:,0][network_id[:,1]],
+                               dz_ioi))
+        dxyt = np.vstack((dxyt, dxyt_line))
     return dxyt
 
 def get_relative_hypsometric_network(dxyt, Z, geoTransform):

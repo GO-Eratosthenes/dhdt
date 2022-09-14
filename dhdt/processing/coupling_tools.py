@@ -680,6 +680,41 @@ def pair_posts(xy_1, xy_2, thres=20.):
     return idx_conn
 
 def merge_ids(dh_mother, dh_child, idx_uni):
+    """ merge two collections of shadow edge locations, through their mutual
+    identification numbers
+
+    Parameters
+    ----------
+    dh_mother : {pandas.DataFrame, numpy.recordarray}
+        stack of coordinates and times, having at least the following collumns:
+            - timestamp : unit=days, date stamp
+            - caster_x,caster_y : unit=meter, map coordinate of start of shadow
+            - casted_x,casted_y : unit=meter, map coordinate of end of shadow
+            - azimuth : unit=degrees, sun orientation
+            - zenith : unit=degrees, overhead angle of the sun
+            - id : identification
+    dh_child : {pandas.DataFrame, numpy.recordarray}
+        stack of coordinates and times, having at least the following collumns:
+            - timestamp : unit=days, date stamp
+            - caster_x,caster_y : unit=meter, map coordinate of start of shadow
+            - casted_x,casted_y : unit=meter, map coordinate of end of shadow
+            - azimuth : unit=degrees, sun orientation
+            - zenith : unit=degrees, overhead angle of the sun
+            - id : identification
+    idx_uni : numpy.array, size=(m,2)
+        list of pairs connection both collections
+
+    Returns
+    -------
+    dh_stack : {pandas.DataFrame, numpy.recordarray}
+        stack of coordinates and times, having at least the following collumns:
+            - timestamp : unit=days, date stamp
+            - caster_x,caster_y : unit=meter, map coordinate of start of shadow
+            - casted_x,casted_y : unit=meter, map coordinate of end of shadow
+            - azimuth : unit=degrees, sun orientation
+            - zenith : unit=degrees, overhead angle of the sun
+            - id : identification
+    """
     if type(dh_mother) in (pd.core.frame.DataFrame, ):
         dh_stack = merge_ids_pd(dh_mother, dh_child, idx_uni)
     elif type(dh_mother) in (np.recarray, ):
@@ -876,9 +911,9 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
         labelled image of the first image (M1).
     L2 : np.array, size=(m,n), dtype=bool
         labelled image of the second image (M2).
-    geoTransform1 : tuple
+    geoTransform1 : tuple, size={(6,) (8,)}
         affine transformation coefficients of array M1
-    geoTransform2 : tuple
+    geoTransform2 : tuple, size={(6,) (8,)}
         affine transformation coefficients of array M2
     xy1 : np.array, size=(_,2), type=float
         map coordinates of matching centers of array M1
@@ -1144,10 +1179,10 @@ def get_intersection(xy_1, xy_2, xy_3, xy_4):
             isinstance(xy_2, (float, np.ndarray)))
     assert (isinstance(xy_3, (float, np.ndarray)) and
             isinstance(xy_4, (float, np.ndarray)))
-    if isinstance(xy_1, np.ndarray):
-        assert xy_1.shape==xy_2.shape, ('coordinate list should be same size')
-        assert xy_3.shape==xy_4.shape, ('coordinate list should be same size')
-        assert xy_1.shape==xy_3.shape, ('coordinate list should be same size')
+    if type(xy_1) in (np.ndarray,):
+        assert len(set({xy_1.shape[0], xy_2.shape[0],
+                        xy_3.shape[0], xy_4.shape[0], })) == 1, \
+            ('please provide arrays of the same size')
 
     x_1,x_2,x_3,x_4 = xy_1[:,0], xy_2[:,0], xy_3[:,0], xy_4[:,0]
     y_1,y_2,y_3,y_4 = xy_1[:,1], xy_2[:,1], xy_3[:,1], xy_4[:,1]
@@ -1157,40 +1192,55 @@ def get_intersection(xy_1, xy_2, xy_3, xy_4):
     dx_34, dy_34 = x_3 - x_4, y_3 - y_4
     denom = (dx_12*dy_34 - dy_12*dx_34)
 
-    x = ( numer_1 * dx_34 - dx_12 * numer_2) / denom
-    y = ( numer_1 * dy_34 - dy_12 * numer_2) / denom
+    x = np.divide( numer_1 * dx_34 - dx_12 * numer_2, denom,
+                   where=denom!=0, out=np.zeros_like(denom))
+    y = np.divide( numer_1 * dy_34 - dy_12 * numer_2, denom,
+                   where=denom!=0, out=np.zeros_like(denom))
 
     xy = np.stack((x,y)).T
     return xy
+
+def get_zenith_from_sun(sun):
+    if sun.shape[1]==1: # only zenith angles are given
+        zn = np.deg2rad(sun_1)
+    elif sun.shape[1]==2: # both azimuth an zenith are given
+        zn = np.deg2rad(sun[:,1])
+    return zn
 
 def get_elevation_difference(sun_1, sun_2, xy_1, xy_2, xy_t):
     """ use geometry to get the relative elevation difference
 
     Parameters
     ----------
-    sun_1 : np.array, size=(k,2), unit=degrees
+    sun_1 : numpy.array, size=(k,2), unit=degrees
         sun vector in array of first instance
-    sun_2 : np.array, size=(k,2), unit=degrees
+    sun_2 : numpy.array, size=(k,2), unit=degrees
         sun vector in array of second instance
-    xy_1 : np.array, size=(k,2), unit=meters
+    xy_1 : numpy.array, size=(k,2), unit=meters
         map location of shadow cast at first instance
-    xy_2 : np.array, size=(k,2), unit=meters
+    xy_2 : numpy.array, size=(k,2), unit=meters
         map location of shadow cast at second instance
-    xy_t : np.array, size=(k,2), unit=meters
+    xy_t : numpy.array, size=(k,2), unit=meters
         map location of common shadow caster
 
     Returns
     -------
-    dh : np.array, size=(k,1), unit=meters
+    dh : numpy.array, size=(k,1), unit=meters
         elevation difference between coordinates in "xy_1" & "xy_2"
     """
+    assert len(set({sun_1.shape[0], sun_2.shape[0], xy_t.shape[0],
+                    xy_1.shape[0],  xy_2.shape[0],}))==1, \
+        ('please provide arrays of the same size')
+
+    zn_1 = get_zenith_from_sun(sun_1)
+    zn_2 = get_zenith_from_sun(sun_2)
+
     # get planar distance between
     dist_1 = np.hypot(xy_1[:,0]-xy_t[:,0], xy_1[:,1]-xy_t[:,1])
     dist_2 = np.hypot(xy_2[:,0]-xy_t[:,0], xy_2[:,1]-xy_t[:,1])
 
     # get elevation difference
-    dh = np.tan(np.radians(sun_1[:,1]))*dist_1 - \
-        np.tan(np.radians(sun_2[:,1]))*dist_2
+    dh = np.tan(zn_1)*dist_1 - np.tan(zn_2)*dist_2
     return dh
 
 def get_caster(sun_1, sun_2, xy_1, xy_2):
@@ -1198,13 +1248,13 @@ def get_caster(sun_1, sun_2, xy_1, xy_2):
 
     Parameters
     ----------
-    sun_1 : np.array, size=(m,), units=degrees
+    sun_1 : numpy.array, size=(m,), units=degrees
         illumination direction at instance 1
-    sun_2 : np.array, size=(m,), units=degrees
+    sun_2 : numpy.array, size=(m,), units=degrees
         illumination direction at instance 2
-    xy_1 : np.array, size=(m,2)
+    xy_1 : numpy.array, size=(m,2)
         spatial location at instance 1
-    xy_2 : np.array, size=(m,2)
+    xy_2 : numpy.array, size=(m,2)
         spatial location at instance 1
 
     Returns
@@ -1212,13 +1262,16 @@ def get_caster(sun_1, sun_2, xy_1, xy_2):
     caster_new : np.array, size=(m,2)
         estimated spatial location of common caster
     """
+    assert len(set({sun_1.shape[0], sun_2.shape[0],
+                    xy_1.shape[0],  xy_2.shape[0],}))==1, \
+        ('please provide arrays of the same size')
+    sun_1, sun_2 = np.deg2rad(sun_1), np.deg2rad(sun_2)
+
     m = sun_1.shape[0]
-    caster_new = get_intersection(xy_1, xy_1+np.stack((np.sin(np.deg2rad(sun_1)),
-                                                       np.cos(np.deg2rad(sun_1))),
-                                                      axis=1),
-                                  xy_2, xy_2+np.stack((np.sin(np.deg2rad(sun_2)),
-                                                       np.cos(np.deg2rad(sun_2))),
-                                                      axis=1))
+    caster_new = get_intersection(xy_1, xy_1+np.stack((np.sin(sun_1),
+                                                       np.cos(sun_1)), axis=1),
+                                  xy_2, xy_2+np.stack((np.sin(sun_2),
+                                                       np.cos(sun_2)), axis=1))
     return caster_new
 
 def get_shadow_rectification(casters, post_1, post_2, az_1, az_2):
@@ -1227,24 +1280,28 @@ def get_shadow_rectification(casters, post_1, post_2, az_1, az_2):
 
     Parameters
     ----------
-    casters : np.array, size=(k,2), unit=meters
+    casters : numpy.array, size=(k,2), unit=meters
         coordinates of the locations that casts shadow
-    post_1 : np.array, size=(k,2), unit=meters
+    post_1 : numpy.array, size=(k,2), unit=meters
         coordinates of the locations that receives shadow at instance 1
-    post_2 : np.array, size=(k,2), unit=meters
+    post_2 : numpy.array, size=(k,2), unit=meters
         coordinates of the locations that receives shadow at instance 2
-    az_1 : np.array, size=(k,1), unit=degrees
+    az_1 : numpy.array, size=(k,1), unit=degrees
         illumination orientation of the caster at instance 1
-    az_2 : np.array, size=(k,1), unit=degrees
+    az_2 : numpy.array, size=(k,1), unit=degrees
         illumination orientation of the caster at instance 2
 
     Returns
     -------
-    scale_12 : np.array, size=(k,1), unit=[]
+    scale_12 : numpy.array, size=(k,1), unit=[]
         relative scale difference between instance 1 & 2
-    simple_sh : np.array, size=(k,1), unit=[]
+    simple_sh : numpy.array, size=(k,1), unit=[]
         relative shear between instance 1 & 2
     """
+    assert len(set({post_1.shape[0], post_2.shape[0], casters.shape[0],
+                    az_1.shape[0], az_2.shape[0],}))==1, \
+        ('please provide arrays of the same size')
+
     # get planar distance between
     dist_1 = np.hypot(post_1[:,0] - casters[:,0], post_1[:,1] - casters[:,1])
     dist_2 = np.hypot(post_2[:,0] - casters[:,0], post_2[:,1] - casters[:,1])

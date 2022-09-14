@@ -5,7 +5,8 @@ from dhdt.generic.debugging import start_pipeline
 from dhdt.generic.mapping_io import read_geo_image, read_geo_info
 from dhdt.generic.mapping_tools import get_mean_map_location
 from dhdt.input.read_sentinel2 import list_central_wavelength_msi
-from dhdt.preprocessing.atmospheric_geometry import get_refraction_angle
+from dhdt.preprocessing.atmospheric_geometry import \
+    get_refraction_angle, update_list_with_corr_zenith_pd
 from dhdt.postprocessing.photohypsometric_tools import \
     read_conn_files_to_df, clean_dh, update_caster_elevation, \
     update_glacier_id
@@ -20,6 +21,8 @@ R_file = "5VMG_RGI_red.tif"
 Z_file = "COP-DEM-05VMG.tif"
 im_paths = ('S2-2021-10-27',
            'S2-2021-04-05',
+           'S2-2020-10-19',
+           'S2-2017-10-18',
            'S2-2020-10-14',
            'S2-2020-11-06',
            'S2-2019-10-25',
@@ -53,9 +56,10 @@ for im_path in im_paths:
           .pipe(clean_dh)
           .pipe(update_caster_elevation, Z, geoTransform)
           .pipe(update_glacier_id, R, geoTransform)
-#          .pipe(get_refraction_angle, x_bar, y_bar, spatialRef, h,
-#                                         central_wavelength,
-#                                         simple_refraction=simple_refraction)
+          .pipe(get_refraction_angle, x_bar, y_bar, spatialRef, h,
+                                         central_wavelength,
+                                         simple_refraction=simple_refraction)
           )
+    update_list_with_corr_zenith_pd(dh, os.path.join(im_dir,im_path))
     print('.')
 print('.')

@@ -143,7 +143,7 @@ def shape2raster(shp_fname,im_fname,geoTransform,rows,cols,spatialRef,
     return
 
 def get_mask_boundary(Msk):
-    inner = ndimage.morphology.binary_erosion(Msk)
+    inner = ndimage.binary_erosion(Msk)
     Bnd = np.logical_xor(Msk, inner)
     return Bnd
 
