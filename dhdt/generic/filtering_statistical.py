@@ -2,7 +2,8 @@ import numpy as np
 
 def online_steady_state(y_ol, X_fi=None, v_fi=None, d_fi=None,
                         lambda_1=.2, lambda_2=.1, lambda_3=.1):
-    """ statistical online test if proces is in steady state, see [1]
+    """ statistical online test if proces is in steady state, see [1]. Which is
+    a simplified F-test based upon the ratio of variances
 
     Parameters
     ----------
@@ -57,6 +58,24 @@ def online_steady_state(y_ol, X_fi=None, v_fi=None, d_fi=None,
     # eq.15 in [1]
     R_i = np.divide(np.multiply((2.-lambda_1), v_fi), d_fi)
     return R_i, X_fi, v_fi, d_fi
+
+def online_T_test(y_ol):
+    n = len(y_ol)
+    if n == 1: return 0
+    x_1, x_2 = np.mean(y_ol[:-1]), np.mean(y_ol)
+    s_1, s_2 = np.var(y_ol[:-1]), np.var(y_ol)
+
+    T = np.divide(np.abs(x_1-x_2), np.hypot(s_1,s_2))*np.sqrt(n)
+    return T
+
+def online_F_test(y_ol):
+    n = len(y_ol)
+    if n <= 2: return np.nan
+    s_1, s_2 = np.nanvar(y_ol[:-1]), np.nanvar(y_ol)
+    max_s, min_s = np.maximum(s_1, s_2), np.minimum(s_1, s_2)
+    if min_s==0: return np.nan
+    F = np.divide(max_s, min_s)
+    return F
 
 def make_2D_Gaussian(size, fwhm=3):
     """make a 2D Gaussian kernel.

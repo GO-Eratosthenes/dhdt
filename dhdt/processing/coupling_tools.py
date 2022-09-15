@@ -1201,8 +1201,9 @@ def get_intersection(xy_1, xy_2, xy_3, xy_4):
     return xy
 
 def get_zenith_from_sun(sun):
-    if sun.shape[1]==1: # only zenith angles are given
-        zn = np.deg2rad(sun_1)
+    if type(sun) in (float,): return np.deg2rad(sun)
+    if sun.size==1: # only zenith angles are given
+        zn = np.deg2rad(sun)
     elif sun.shape[1]==2: # both azimuth an zenith are given
         zn = np.deg2rad(sun[:,1])
     return zn

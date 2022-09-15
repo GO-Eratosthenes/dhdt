@@ -1,5 +1,6 @@
 import os
 import re
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -391,37 +392,40 @@ def get_casted_elevation_difference(dh):
     return dxyt
 
 def get_casted_elevation_difference_pd(dh):
-    print('.')
+    # is refraction present
+    if 'zenith_refrac' not in dh.columns:
+        warnings.warn('OBS: refractured zenith does not seem to be calculated')
+        zn_name = 'zenith'
+    else:
+        zn_name = 'zenith_refrac'
 
     names = ('X_1', 'Y_1', 'T_1', 'X_2', 'Y_2', 'T_2', 'dH_12')
     formats = [np.float64, np.float64, '<M8[D]',
                np.float64, np.float64, '<M8[D]', np.float64]
-    x = np.rec.array(np.zeros((0,7)), names=names, formats=formats)
-    dxyt = pd.DataFrame(x)
+
+    dxyt = None
     ids = np.unique(dh['id']).astype(int)
     for ioi in ids:
         dh_ioi = dh[dh['id'] == ioi] # get
 
-        n = dh_ioi.size().astype(int)
+        n = dh_ioi.shape[0]
         if n<2: continue
 
         network_id = get_network_indices(n).T
 
-        zn = dh_ioi['zenith']
-        xy_1 = dh_ioi.iloc[network_id[:, 0]].loc['casted_X', 'casted_Y']
-        xy_2 = dh_ioi.iloc[network_id[:, 1]].loc['casted_X', 'casted_Y']
-        xy_t = dh_ioi.iloc[network_id[:, 0]].loc['caster_X', 'caster_Y']
+        xy_1 = dh_ioi[['casted_X','casted_Y']].iloc[network_id[:,0]].to_numpy()
+        xy_2 = dh_ioi[['casted_X','casted_Y']].iloc[network_id[:,1]].to_numpy()
+        xy_t = dh_ioi[['caster_X','caster_Y']].iloc[network_id[:,0]].to_numpy()
+        zn_1 = dh_ioi[zn_name].iloc[network_id[:,0]].to_numpy()
+        zn_2 = dh_ioi[zn_name].iloc[network_id[:,1]].to_numpy()
 
-        dz_ioi = get_elevation_difference(zn.iloc[network_id[:, 0]],
-               zn.iloc[network_id[:, 1]], xy_1, xy_2, xy_t)
-
-        dxyt_line = np.rec.fromarrays([xy_1[:,0], xy_1[:,1],
-               dh_ioi['timestamp'][network_id[:,0]], xy_2[:,0], xy_2[:,1],
-               dh_ioi['timestamp'][network_id[:,1]], dz_ioi], names=names,
-               formats=formats)
-        dxyt = stack_arrays((dxyt, dxyt_line),
-                            asrecarray=True, usemask=False)
-
+        dz_ioi = get_elevation_difference(zn_1, zn_2, xy_1, xy_2, xy_t)
+        t_1 = dh_ioi['timestamp'].iloc[network_id[:,0]].to_numpy()
+        t_2 = dh_ioi['timestamp'].iloc[network_id[:,1]].to_numpy()
+        dxyt_line = np.rec.fromarrays([xy_1[:,0], xy_1[:,1], t_1,
+                                       xy_2[:,0], xy_2[:,1], t_2, dz_ioi],
+                                      names=names, formats=formats)
+        dxyt = pd.concat([dxyt, pd.DataFrame.from_records(dxyt_line)], axis=0)
     return dxyt
 
 def get_casted_elevation_difference_rec(dh):
@@ -514,7 +518,7 @@ def get_relative_hypsometric_network(dxyt, Z, geoTransform):
     posts[:,0], posts[:,1] = pix2map(geoTransform, posts[:,0], posts[:,1])
     return posts, A
 
-def get_hypsometric_elevation_change(dxyt, Z, geoTransform):
+def get_hypsometric_elevation_change(dxyt, Z=None, geoTransform=None):
     """
 
     Parameters
