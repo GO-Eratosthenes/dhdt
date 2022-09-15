@@ -1,5 +1,63 @@
 import numpy as np
 
+def online_steady_state(y_ol, X_fi=None, v_fi=None, d_fi=None,
+                        lambda_1=.2, lambda_2=.1, lambda_3=.1):
+    """ statistical online test if proces is in steady state, see [1]
+
+    Parameters
+    ----------
+    y_ol : numpy.array, size=(m,)
+        variable of interest
+    lambda_1, lambda_2, lambda_3 : float
+        tuning paramters
+    R_thres : float
+        critical value for steady state detection
+
+    Returns
+    -------
+    in_steady_state : boolean
+        specifies if proces is in steady state
+    R_i : numpy.array, size=(m,)
+        steady state metric
+
+    References
+    ----------
+    .. [1] Cao & Rhinehart, "An efficient method for on-line identification of
+       steady state" Journal of proces control, vol.5(6) pp.363-374, 1995.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import matplotlib.pyplot as plt
+
+    >>> N,c = 100, 1
+    >>> x = np.linspace(0,7,N)
+    >>> y = np.exp(-c*x) # create exponential decay
+    >>> y += np.random.normal(loc=0.0, scale=0.05, size=N) # add noise
+
+    >>> R_i = np.zeros_like(y)
+    >>> X,v,d = None, None, None
+    >>> for idx,val in enumerate(y):
+    >>>     y_ol = y[:idx+1] # simulate online
+    >>>     R_i[idx],X,v,d = online_steady_state(y_ol,X,v,d)
+
+    >>> plt.figure(), plt.plot(x,R_i)
+    """
+    if len(y_ol)==1:  # initialization
+        X_fi, v_fi = y_ol, 1
+        d_fi = 2*v_fi
+    else:
+        v_fi = np.multiply(lambda_2, (y_ol[-1] - X_fi) ** 2) + \
+               np.multiply(1.-lambda_2, v_fi)           # eq.9 in [1]
+        X_fi = np.multiply(lambda_1, y_ol[-1]) + \
+               np.multiply(1.-lambda_1, y_ol[-2])       # eq.2 in [1]
+        d_fi = np.multiply(lambda_3, (y_ol[-1] - y_ol[-2]) ** 2) + \
+               np.multiply(1.-lambda_3, d_fi)           # eq.13 in [1]
+
+    # eq.15 in [1]
+    R_i = np.divide(np.multiply((2.-lambda_1), v_fi), d_fi)
+    return R_i, X_fi, v_fi, d_fi
+
 def make_2D_Gaussian(size, fwhm=3):
     """make a 2D Gaussian kernel.
     

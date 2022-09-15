@@ -1279,13 +1279,13 @@ def shadow_probabilities(Blue, Green, Red, Near, ae = 1e+1, be = 5e-1):
     assert Blue.shape[:2] == Near.shape[:2],('arrays should be of equal size')
 
     Fk = np.amax(np.stack((Red, Green, Blue), axis=2), axis=2)
-    F = np.divide(np.clip(Fk, 0, 2), 2)  # (10), see Fredembach 2010
-    L = np.divide(Red + Green + Blue, 3)  # (4), see Fredembach 2010
+    F = np.divide(np.clip(Fk, 0, 2), 2)     # (10) in [1]
+    L = np.divide(Red + Green + Blue, 3)    # (4) in [1]
     del Red, Green, Blue, Fk
 
     Dvis = s_curve(1 - L, ae, be)
-    Dnir = s_curve(1 - Near, ae, be)  # (5), see Fredembach 2010
-    D = np.multiply(Dvis, Dnir)  # (6), see Fredembach 2010
+    Dnir = s_curve(1 - Near, ae, be)        # (5) in [1]
+    D = np.multiply(Dvis, Dnir)             # (6) in [1]
     del L, Near, Dvis, Dnir
 
     M = np.multiply(D, (1 - F))

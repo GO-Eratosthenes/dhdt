@@ -205,7 +205,7 @@ def output_cast_lines_from_conn_txt(conn_dir, geoTransform, RGI,
                                     inputname='conn.txt',
                                     color=np.array([255, 128, 0])):
     RGI = RGI.astype(bool)
-    f_full = os.path.join(conn_dir, imputname)
+    f_full = os.path.join(conn_dir, inputname)
     assert os.path.exists(f_full), ('please provide correct whereabouts')
 
     cast_list = np.loadtxt(f_full, comments='#')
@@ -224,5 +224,5 @@ def output_cast_lines_from_conn_txt(conn_dir, geoTransform, RGI,
     output_draw_lines_overlay(ridg_i, ridg_j, shdw_i, shdw_j,
                               RGI.shape, os.path.join(conn_dir, outputname),
                               color=color, interval=step,
-                              pen=1)
+                              pen=pen)
     return
