@@ -62,15 +62,15 @@ def sum_sq_diff(I1, I2):
 
     Parameters
     ----------
-    I1 : numpy.array
+    I1 : numpy.array, ndim=2
         image with intensities (template)
-    I2 : numpy.array
+    I2 : numpy.array, ndim=2
         image with intensities (search space)
 
     Returns
     -------
-    ssd : numpy.array
-        dissimilarity surface, ssd: sum of squared differnce
+    ssd : numpy.array, ndim=2
+        dissimilarity surface, ssd: sum of squared differences
     """
     
     t_size = I1.shape
@@ -90,14 +90,14 @@ def sum_sad_diff(I1, I2):
 
     Parameters
     ----------
-    I1 : numpy.array
+    I1 : numpy.array, ndim=2
         image with intensities (template)
-    I2 : numpy.array
+    I2 : numpy.array, ndim=2
         image with intensities (search space)
 
     Returns
     -------
-    sad : numpy.array
+    sad : numpy.array, ndim=2
         dissimilarity surface, sad: sum of absolute difference
     """
     

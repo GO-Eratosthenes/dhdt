@@ -63,34 +63,40 @@ def read_band_vn(path, band='00'):
         fname = os.path.join(path, '*SRE_'+band+'.tif')
     else:
         fname = path
+    f_full = glob.glob(fname)[0]
+    assert os.path.exists(f_full)
 
     data, spatialRef, geoTransform, targetprj = \
-        read_geo_image(glob.glob(fname)[0])
+        read_geo_image(f_full)
 
     return data, spatialRef, geoTransform, targetprj
     
 # def read_sun_angles_vn(path)
 def read_view_angles_vn(path):
+    assert isinstance(path, str)
     fname = os.path.join(path, 'DATA', 'VENUS*UII_ALL.xml')
-    dom = ElementTree.parse(glob.glob(fname)[0])
+    f_full = glob.glob(fname)[0]
+    assert os.path.exists(f_full)
+
+    dom = ElementTree.parse(f_full)
     root = dom.getroot()
     
-    ul_xy = np.array([float(root[0][1][2][0][2].text), \
+    ul_xy = np.array([float(root[0][1][2][0][2].text),
                       float(root[0][1][2][0][3].text)])
-    ur_xy = np.array([float(root[0][1][2][1][2].text), \
+    ur_xy = np.array([float(root[0][1][2][1][2].text),
                       float(root[0][1][2][1][3].text)])
-    lr_xy = np.array([float(root[0][1][2][2][2].text), \
+    lr_xy = np.array([float(root[0][1][2][2][2].text),
                       float(root[0][1][2][2][3].text)])
-    ll_xy = np.array([float(root[0][1][2][3][2].text), \
+    ll_xy = np.array([float(root[0][1][2][3][2].text),
                       float(root[0][1][2][3][3].text)])
     # hard coded for detector_id="01"
-    ul_za = np.array([float(root[0][2][0][1][0][0].text), \
+    ul_za = np.array([float(root[0][2][0][1][0][0].text),
                       float(root[0][2][0][1][0][1].text)])
-    ur_za = np.array([float(root[0][2][0][1][1][0].text), \
+    ur_za = np.array([float(root[0][2][0][1][1][0].text),
                       float(root[0][2][0][1][1][1].text)])
-    lr_za = np.array([float(root[0][2][0][1][2][0].text), \
+    lr_za = np.array([float(root[0][2][0][1][2][0].text),
                       float(root[0][2][0][1][2][1].text)])
-    ll_za = np.array([float(root[0][2][0][1][3][0].text), \
+    ll_za = np.array([float(root[0][2][0][1][3][0].text),
                       float(root[0][2][0][1][3][1].text)])
         
     
@@ -98,8 +104,12 @@ def read_view_angles_vn(path):
     return Az, Zn
 
 def read_mean_sun_angles_vn(path):
+    assert isinstance(path, str)
     fname = os.path.join(path, 'VENUS*MTD_ALL.xml')
-    dom = ElementTree.parse(glob.glob(fname)[0])
+    f_full = glob.glob(fname)[0]
+    assert os.path.exists(f_full)
+
+    dom = ElementTree.parse(f_full)
     root = dom.getroot()
 
     Zn = float(root[5][0][0][0].text)
@@ -107,8 +117,12 @@ def read_mean_sun_angles_vn(path):
     return Zn, Az
 
 def read_mean_view_angle_vn(path):
+    assert isinstance(path, str)
     fname = os.path.join(path, 'DATA', 'VENUS*UII_ALL.xml')
-    dom = ElementTree.parse(glob.glob(fname)[0])
+    f_full = glob.glob(fname)[0]
+    assert os.path.exists(f_full)
+
+    dom = ElementTree.parse(f_full)
     root = dom.getroot()
     
     # hard coded for detector_id="01"

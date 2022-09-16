@@ -323,7 +323,7 @@ def clean_dh_pd(dh):
 
 def update_caster_elevation(dh, Z, geoTransform):
     if type(dh) in (pd.core.frame.DataFrame,):
-        update_caster_elevation_pd(dh, Z, geoTransform)
+        update_cast_elevation_pd(dh, Z, geoTransform)
     #todo : make the same function for recordarray
     return dh
 
@@ -337,6 +337,25 @@ def update_caster_elevation_pd(dh, Z, geoTransform):
     if not 'caster_Z' in dh.columns: dh['caster_Z'] = None
     dh.loc[:,'caster_Z'] = dh_Z
     return dh
+
+def update_casted_elevation(dxyt, Z, geoTransform):
+    if type(dxyt) in (pd.core.frame.DataFrame,):
+        update_casted_elevation_pd(dxyt, Z, geoTransform)
+    #todo : make the same function for recordarray
+    return dxyt
+
+@loggg
+def update_casted_elevation_pd(dxyt, Z, geoTransform):
+    assert np.all([header in dxyt.columns for header in
+                   ('X_1', 'Y_1', 'X_2', 'Y_2')])
+    # get elevation of the caster locations
+    for i in range(2):
+        x_str, y_str, z_str = 'X_'+str(i+1), 'Y_'+str(i+1), 'Z_'+str(i+1)
+        i_im, j_im = map2pix(geoTransform, dxyt[x_str], dxyt[y_str])
+        dh_Z = bilinear_interpolation(Z, i_im, j_im)
+        if not z_str in dxyt.columns: dxyt[z_str] = None
+        dxyt.loc[:,z_str] = dh_Z
+    return dxyt
 
 def update_glacier_id(dh, R, geoTransform):
     if type(dh) in (pd.core.frame.DataFrame,):
@@ -355,6 +374,13 @@ def update_glacier_id_pd(dh, R, geoTransform):
     dh.loc[:,'glacier_id'] = rgi_id
     return dh
 
+@loggg
+def clean_dhdt(dhdt):
+    if np.all([header in dhdt.columns for header in
+               ('G_1', 'G_2')]):
+        # only keep data points that are on the same glacier
+        dhdt = dhdt[dhdt['G_1']==dhdt['G_2']]
+    return dhdt
 
 def get_casted_elevation_difference(dh):
     """
@@ -399,9 +425,15 @@ def get_casted_elevation_difference_pd(dh):
     else:
         zn_name = 'zenith_refrac'
 
-    names = ('X_1', 'Y_1', 'T_1', 'X_2', 'Y_2', 'T_2', 'dH_12')
-    formats = [np.float64, np.float64, '<M8[D]',
-               np.float64, np.float64, '<M8[D]', np.float64]
+    if 'glacier_id' not in dh.columns:
+        names = ('X_1', 'Y_1', 'T_1', 'X_2', 'Y_2', 'T_2', 'dH_12')
+        formats = [np.float64, np.float64, '<M8[D]',
+                   np.float64, np.float64, '<M8[D]', np.float64]
+    else:
+        names = ('X_1', 'Y_1', 'T_1', 'G_1',
+                 'X_2', 'Y_2', 'T_2', 'G_2', 'dH_12')
+        formats = [np.float64, np.float64, '<M8[D]', np.int16,
+                   np.float64, np.float64, '<M8[D]', np.int16, np.float64]
 
     dxyt = None
     ids = np.unique(dh['id']).astype(int)
@@ -422,9 +454,17 @@ def get_casted_elevation_difference_pd(dh):
         dz_ioi = get_elevation_difference(zn_1, zn_2, xy_1, xy_2, xy_t)
         t_1 = dh_ioi['timestamp'].iloc[network_id[:,0]].to_numpy()
         t_2 = dh_ioi['timestamp'].iloc[network_id[:,1]].to_numpy()
-        dxyt_line = np.rec.fromarrays([xy_1[:,0], xy_1[:,1], t_1,
-                                       xy_2[:,0], xy_2[:,1], t_2, dz_ioi],
-                                      names=names, formats=formats)
+        if 'glacier_id' not in dh.columns:
+            dxyt_line = np.rec.fromarrays([xy_1[:,0], xy_1[:,1], t_1,
+                                           xy_2[:,0], xy_2[:,1], t_2, dz_ioi],
+                                          names=names, formats=formats)
+        else:
+            g_1 = dh_ioi['glacier_id'].iloc[network_id[:, 0]].to_numpy()
+            g_2 = dh_ioi['glacier_id'].iloc[network_id[:, 1]].to_numpy()
+            dxyt_line = np.rec.fromarrays([xy_1[:, 0], xy_1[:, 1], t_1, g_1,
+                                           xy_2[:, 0], xy_2[:, 1], t_2, g_2,
+                                           dz_ioi],
+                                          names=names, formats=formats)
         dxyt = pd.concat([dxyt, pd.DataFrame.from_records(dxyt_line)], axis=0)
     return dxyt
 
@@ -462,7 +502,6 @@ def get_casted_elevation_difference_rec(dh):
     return dxyt
 
 def get_casted_elevation_difference_np():
-    doRecArr = False
     dxyt = np.zeros((0,7))
     ids = np.unique(dh[:,-1]).astype(int)
 
@@ -530,6 +569,8 @@ def get_hypsometric_elevation_change(dxyt, Z=None, geoTransform=None):
             - x_2, y_2 : map coordinate at instance t_2
             - t_2 : date stamp
             - dh_12 : estimated elevation change, between t_1 & t_2
+        optional:
+            - z_1, z_2 : elevation at instance/location _1 and _2
     Z : numpy.array, size=(m,n)
         array with elevation data
     geoTransform : tuple, size={(1,6), (1,8)}
@@ -548,13 +589,22 @@ def get_hypsometric_elevation_change(dxyt, Z=None, geoTransform=None):
     --------
     get_casted_elevation_difference
     """
-
     if type(dxyt) in (np.recarray,):
-        i_1,j_1 = map2pix(geoTransform, dxyt['X_1'], dxyt['Y_1'])
-        i_2,j_2 = map2pix(geoTransform, dxyt['X_2'], dxyt['Y_2'])
-    else:
-        i_1,j_1 = map2pix(geoTransform, dxyt[:,0], dxyt[:,1])
-        i_2,j_2 = map2pix(geoTransform, dxyt[:,3], dxyt[:,4])
+        dhdt = get_hypsometric_elevation_change_rec(dxyt, Z=Z,
+                                                    geoTransform=geoTransform)
+    elif type(dxyt) in (np.ndarray,):
+        dhdt = get_hypsometric_elevation_change_np(dxyt, Z=Z,
+                                                   geoTransform=geoTransform)
+    elif type(dxyt) in (pd.core.frame.DataFrame,):
+        assert np.all([header in dxyt.columns for header in
+                       ('X_1','Y_1','X_2','Y_2','dH_12')])
+        dhdt = get_hypsometric_elevation_change_pd(dxyt, Z=Z,
+                                                    geoTransform=geoTransform)
+    return dhdt
+
+def get_hypsometric_elevation_change_rec(dxyt, Z=None, geoTransform=None):
+    i_1,j_1 = map2pix(geoTransform, dxyt['X_1'], dxyt['Y_1'])
+    i_2,j_2 = map2pix(geoTransform, dxyt['X_2'], dxyt['Y_2'])
 
     Z_1 = bilinear_interpolation(Z, i_1, j_1),
     Z_2 = bilinear_interpolation(Z, i_2, j_2)
@@ -563,17 +613,64 @@ def get_hypsometric_elevation_change(dxyt, Z=None, geoTransform=None):
     Z_12 = bilinear_interpolation(Z, (i_1+i_2)/2, (j_1+j_2)/2)
 
     dZ = np.squeeze(Z_1) - np.squeeze(Z_2)
-    if type(dxyt) in (np.recarray,):
-        dz_12 = dxyt['dH_12'] - dZ
-    else:
-        dz_12 = dxyt[:,-1] - dZ
+    dz_12 = dxyt['dH_12'] - dZ
 
-    if isinstance(dxyt, np.recarray):
-        desc = np.dtype([('T_1', '<M8[D]'), ('T_2', '<M8[D]'),
-                         ('Z_12', np.float64), ('dZ_12', np.float64)])
-        dhdt = np.rec.fromarrays([dxyt['T_1'], dxyt['T_2'], Z_12, dz_12],
-                                 dtype=desc)
-        return dhdt
+    desc = np.dtype([('T_1', '<M8[D]'), ('T_2', '<M8[D]'), ('Z_12', np.float64),
+                     ('dZ_12', np.float64)])
+    dhdt = np.rec.fromarrays([dxyt['T_1'], dxyt['T_2'], Z_12, dz_12],
+                             dtype=desc)
+    return dhdt
+
+def get_hypsometric_elevation_change_np(dxyt, Z=None, geoTransform=None):
+    i_1,j_1 = map2pix(geoTransform, dxyt[:,0], dxyt[:,1])
+    i_2,j_2 = map2pix(geoTransform, dxyt[:,3], dxyt[:,4])
+
+    Z_1 = bilinear_interpolation(Z, i_1, j_1),
+    Z_2 = bilinear_interpolation(Z, i_2, j_2)
+
+    # calculate mid point elevation
+    Z_12 = bilinear_interpolation(Z, (i_1+i_2)/2, (j_1+j_2)/2)
+
+    dZ = np.squeeze(Z_1) - np.squeeze(Z_2)
+    dz_12 = dxyt[:,-1] - dZ
+
+    dhdt = np.stack((dxyt[:,2], dxyt[:,5], Z_12, dz_12))
+    return dhdt
+
+def get_hypsometric_elevation_change_pd(dxyt, Z=None, geoTransform=None):
+
+    simple=True
+    if 'Z_1' not in dxyt.columns:
+        i_1,j_1 = map2pix(geoTransform,
+                          dxyt['X_1'].to_numpy(), dxyt['Y_1'].to_numpy())
+        Z_1 = bilinear_interpolation(Z, i_1, j_1)
     else:
-        dhdt = np.stack((dxyt[:,2], dxyt[:,5], Z_12, dz_12))
-        return dhdt
+        Z_1 = dxyt['Z_1'].to_numpy()
+    if 'Z_2' not in dxyt.columns:
+        i_2,j_2 = map2pix(geoTransform,
+                          dxyt['X_2'].to_numpy(), dxyt['Y_2'].to_numpy())
+        Z_2 = bilinear_interpolation(Z, i_2, j_2)
+    else:
+        Z_2 = dxyt['Z_2'].to_numpy()
+
+    if simple:
+        Z_12 = (Z_1+Z_2)/2
+    else:
+        # calculate mid point elevation
+        Z_12 = bilinear_interpolation(Z, (i_1+i_2)/2, (j_1+j_2)/2)
+
+    dZ = np.squeeze(Z_1) - np.squeeze(Z_2)
+    dz_12 = dxyt['dH_12'] - dZ
+
+    desc = [('T_1', '<M8[D]'), ('T_2', '<M8[D]'), ('Z_12', np.float64),
+            ('dZ_12', np.float64)]
+    arrs = [dxyt['T_1'], dxyt['T_2'], Z_12, dz_12]
+
+    if 'G_1' in dxyt.columns:
+        arrs.append(dxyt['G_1'].to_numpy()), desc.append(('G_1', np.int16))
+    if 'G_2' in dxyt.columns:
+        arrs.append(dxyt['G_2'].to_numpy()), desc.append(('G_2', np.int16))
+
+    dhdt = np.rec.fromarrays(arrs, dtype=np.dtype(desc))
+    dhdt = pd.DataFrame.from_records(dhdt)
+    return dhdt

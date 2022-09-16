@@ -805,7 +805,7 @@ def read_detector_mask(path_meta, boi, geoTransform):
         path where the meta-data is situated.
     boi : pandas.DataFrame
         list with bands of interest
-    geoTransform : tuple
+    geoTransform : tuple, size={(6,),(8,)}
         affine transformation coefficients
 
     Returns
@@ -862,7 +862,9 @@ def read_detector_mask(path_meta, boi, geoTransform):
     >>>
     >>> det_stack = read_detector_mask(path_meta, boi_df, geoTransform)
     """
+    assert isinstance(path_meta, str), ('please provide a string')
     assert isinstance(boi, pd.DataFrame), ('please provide a dataframe')
+    assert isinstance(geoTransform, tuple)
 
     if len(geoTransform)>6: # also image size is given
         msk_dim = (geoTransform[-2], geoTransform[-1], len(boi))
@@ -986,6 +988,7 @@ def read_sensing_time_s2(path, fname='MTD_TL.xml'):
     return rec_time
 
 def get_timing_mask(s2_df, geoTransform, spatialRef):
+    assert isinstance(geoTransform, tuple)
     s2_dict = get_s2_dict(s2_df)
     # get_bearing_from_detector_mask
     toi = read_sensing_time_s2(s2_dict['MTD_TL_path'])
@@ -1124,6 +1127,7 @@ def get_xy_poly_from_gml(gml_struct,idx):
     return pos_arr, det_num
 
 def get_msk_dim_from_gml(gml_struct, geoTransform):
+    assert isinstance(geoTransform, tuple)
     # find dimensions of array through its map extent in metadata
     lower_corner = np.fromstring(gml_struct[1][0][0].text, sep=' ')
     upper_corner = np.fromstring(gml_struct[1][0][1].text, sep=' ')
@@ -1152,6 +1156,7 @@ def read_cloud_mask(path_meta, geoTransform):
     msk_clouds : numpy.array, size=(m,n), dtype=int
         array which highlights where clouds could be
     """
+    assert isinstance(geoTransform, tuple)
 
     f_meta = os.path.join(path_meta, 'MSK_CLOUDS_B00.gml')
     root = get_root_of_table(f_meta)

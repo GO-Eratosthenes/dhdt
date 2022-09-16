@@ -28,8 +28,9 @@ def get_midpoint_altitude(RGI, Z, roi=None):
 
     References
     ----------
-    .. [1] Raper & Braithwaite, "Glacier volume response time and its links to climate and topography based on a
-       conceptual model of glacier hypsometry" The cryosphere, vol.3 pp.183-194, 2009.
+    .. [1] Raper & Braithwaite, "Glacier volume response time and its links to
+       climate and topography based on a conceptual model of glacier hypsometry"
+       The cryosphere, vol.3 pp.183-194, 2009.
     """
 
     f = lambda x: np.quantile(x, 0.5)
@@ -94,7 +95,7 @@ def get_normalized_hypsometry(RGI, Z, dZ, bins=20):
     hypsometry /= count
     return hypsometry, count
 
-def get_general_hypsometry(Z, dZ, interval=100, quant=.5):
+def get_general_hypsometry(Z, dZ, interval=100., quant=.5):
     """ robust estimation of the general hypsometry
 
     Parameters
@@ -115,6 +116,11 @@ def get_general_hypsometry(Z, dZ, interval=100, quant=.5):
     hypsometry : numpy.array, unit=meter
         group statistics within the elevation interval
     """
+    assert len(set({Z.size, dZ.size})) == 1, \
+        ('please provide arrays of the same size')
+    assert isinstance(quant, flaot)
+    assert quant<=1
+
     L = np.round(Z/interval)
     f =  lambda x: np.quantile(x, quant)
     label, hypsometry, counts = get_stats_from_labelled_array(L, dZ, f)
@@ -154,7 +160,9 @@ def get_stats_from_labelled_array(L,I,func): #todo is tuple: multiple functions?
     True: 172
     """
     L, I = L.flatten(), I.flatten()
-    labels, indices, counts = np.unique(L, return_counts=True, return_inverse=True)
+    labels, indices, counts = np.unique(L,
+                                        return_counts=True,
+                                        return_inverse=True)
     arr_split = np.split(I[indices.argsort()], counts.cumsum()[:-1])
 
     result = np.array(list(map(func, arr_split)))
