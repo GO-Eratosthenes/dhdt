@@ -608,8 +608,8 @@ def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
     """
     if boi_df is None:
         boi_df = list_central_wavelength_msi()
-    assert boi_df['gsd'].var()==0, \
-        ('make sure all bands are the same resolution')
+    assert boi_df['gsd'].nunique() == 1, \
+        'make sure all bands are the same resolution'
     root = get_root_of_table(path, fname)
 
     if det_stack.size == 0: # if no stack is given, just import all metadata
