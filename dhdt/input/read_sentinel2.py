@@ -1429,7 +1429,7 @@ def get_flight_path_s2(ds_path, fname='MTD_DS.xml', s2_dict=None):
     >>> import os
     >>> import numpy as np
 
-    >>> S2_dir = '/data-dump/examples/
+    >>> S2_dir = '/data-dump/examples/'
     >>> S2_name = 'S2A_MSIL1C_20200923T163311_N0209_R140_T15MXV_20200923T200821.SAFE'
     >>> fname = os.path.join(S2_dir, S2_name, 'MTD_MSIL1C.xml')
     >>> s2_df = list_central_wavelength_s2()
