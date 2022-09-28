@@ -866,11 +866,10 @@ def read_detector_mask(path_meta, boi, geoTransform):
     assert isinstance(boi, pd.DataFrame), ('please provide a dataframe')
     assert isinstance(geoTransform, tuple)
 
+    det_stack = None
     if len(geoTransform)>6: # also image size is given
         msk_dim = (geoTransform[-2], geoTransform[-1], len(boi))
         det_stack = np.zeros(msk_dim, dtype='int8')  # create stack
-    else:
-        msk_dim = None
 
     for i in range(len(boi)):
         im_id = boi.index[i] # 'B01' | 'B8A'
@@ -884,7 +883,7 @@ def read_detector_mask(path_meta, boi, geoTransform):
             dom = ElementTree.parse(glob.glob(f_meta)[0])
             root = dom.getroot()
 
-            if msk_dim is None:
+            if det_stack is None:
                 msk_dim = get_msk_dim_from_gml(root, geoTransform)
                 msk_dim = msk_dim + (len(boi),)
                 det_stack = np.zeros(msk_dim, dtype='int8') # create stack
@@ -906,6 +905,8 @@ def read_detector_mask(path_meta, boi, geoTransform):
             im_meta = f_meta[:-3]+'jp2'
             assert os.path.exists(im_meta), ('gml and jp2 file not present')
             msk = read_geo_image(im_meta)[0]
+            if det_stack is None:
+                det_stack = np.zeros((*msk.shape, len(boi)), dtype='int8')
             det_stack[:,:,i] = msk
 
     det_stack = np.ma.array(det_stack, mask=det_stack==0)
