@@ -906,7 +906,7 @@ def read_detector_mask(path_meta, boi, geoTransform):
             assert os.path.exists(im_meta), ('gml and jp2 file not present')
             msk = read_geo_image(im_meta)[0]
             if det_stack is None:
-                det_stack = np.zeros((*msk.shape, len(boi)), dtype='int8')
+                det_stack = np.zeros((*msk.shape[:2], len(boi)), dtype='int8')
             det_stack[:,:,i] = msk
 
     det_stack = np.ma.array(det_stack, mask=det_stack==0)
