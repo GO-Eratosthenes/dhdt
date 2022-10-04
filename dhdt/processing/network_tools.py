@@ -33,7 +33,7 @@ def get_network_indices(n):
     grid_idxs = np.vstack((grid_1, grid_2))
     return grid_idxs
 
-def get_network_indices_constrained(idx,d,d_max,n_max):
+def get_network_indices_constrained(idx,d,d_max,n_max, double_direction=True):
     """ Generate a list with all matchable combinations within a certain range
 
     Parameters
@@ -46,6 +46,8 @@ def get_network_indices_constrained(idx,d,d_max,n_max):
         threshold for the maximum difference to still include
     n_max : integer
         maximum amount of nodes
+    double_direction : boolean
+         are duplicates with a different direction allowed
 
     Returns
     -------
@@ -68,6 +70,8 @@ def get_network_indices_constrained(idx,d,d_max,n_max):
     grid2 = indices[:, 1:]
     grid1,_ = np.indices((len(idx), n_max))
     grid_idxs = np.vstack((grid1[IN], grid2[IN]))
+    if not double_direction:
+         grid_idxs = np.unique(np.sort(grid_idxs, axis=0), axis=1)
     return grid_idxs
 
 def get_network_by_sunangle_s2(datPath, sceneList, n):

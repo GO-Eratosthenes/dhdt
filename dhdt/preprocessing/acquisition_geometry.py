@@ -49,7 +49,7 @@ def get_ortho_offset(Z, dx, dy, obs_az, obs_zn, geoTransform):
         azimuth angle of observation
     obs_zn : np.array, size=(m,n), unit=degrees
         zenith angle of observation
-    geoTransform1 : tuple
+    geoTransform : tuple, size={(6,), (8,)}
         affine transformation coefficients of array Z
 
     Returns
@@ -110,6 +110,32 @@ def get_ortho_offset(Z, dx, dy, obs_az, obs_zn, geoTransform):
     return dI, dJ
 
 def compensate_ortho_offset(I, Z, dx, dy, obs_az, obs_zn, geoTransform):
+   """
+
+    Parameters
+    ----------
+    I : numpy.array, size=(m,n), ndim=2, dtype={float,integer}
+        grid with intensities to be compensated
+    Z : numpy.array, size=(m,n), ndim=2, dtype={float,integer}, unit=meters
+        grid with elevations
+    dx, dy : float, unit=meter
+        mis-registration offset
+    obs_az : numpy.array, size=(m,n), unit=degrees
+        azimuth angle of observation
+    obs_zn : np.array, size=(m,n), unit=degrees
+        zenith angle of observation
+    geoTransform1 : tuple
+        affine transformation coefficients of array Z
+
+    Returns
+    -------
+    I_cor : numpy.array, size=(m,n), ndim=2, dtype=float
+        corrected intensities
+
+    See Also
+    --------
+    get_ortho_offset
+    """
     # warp
     dI,dJ = get_ortho_offset(Z, dx, dy, obs_az, obs_zn, geoTransform)
 

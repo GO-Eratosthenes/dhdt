@@ -47,8 +47,10 @@ def create_differential_data(I1,I2):
           image      | i         map         |
           based      v           based       |
     """
-    assert type(I1) == np.ndarray, ("please provide an array")
-    assert type(I2) == np.ndarray, ("please provide an array")
+    assert type(I1) in (np.ma.core.MaskedArray, np.ndarray), \
+        ("please provide an array")
+    assert type(I2) in (np.ma.core.MaskedArray, np.ndarray), \
+        ("please provide an array")
     # admin
     kernel_t = np.array(
         [[1., 1., 1.],
@@ -70,8 +72,11 @@ def create_differential_data(I1,I2):
     else:
         I1 = ndimage.convolve(I1, kernel_g)
         # spatial derivative
-        I_di = ndimage.convolve(I1, di) /2 # take grid spacing into account
-        I_dj = ndimage.convolve(I1, dj) /2
+        I_di = ndimage.convolve(I1, di) / 4
+        I_dj = ndimage.convolve(I1, dj) / 4
+
+        #I_di = ndimage.convolve(I1, di) /2 # take grid spacing into account
+        #I_dj = ndimage.convolve(I1, dj) /2
         # temporal derivative
         I1_dt = ndimage.convolve(I1, -kernel_t)
 
@@ -80,6 +85,9 @@ def create_differential_data(I1,I2):
         I2_dt = nan_resistant_conv2(I2, kernel_t, cval=0)
     else:
         I2 = ndimage.convolve(I2, kernel_g)
+        I_di += ndimage.convolve(I2, di) / 4
+        I_dj += ndimage.convolve(I2, dj) / 4
+
         I2_dt = ndimage.convolve(I2, kernel_t)
 
     I_dt = I2_dt + I1_dt
@@ -293,10 +301,12 @@ def affine_optical_flow(I1, I2, model='affine', iteration=10,
        epipolar line constraint", Proceedings of the international conference on
        computer vision systems, 2015.
     """
-    assert type(I1) == np.ndarray, ("please provide an array")
-    assert type(I2) == np.ndarray, ("please provide an array")
+    assert type(I1) == np.ndarray, ("please provide a numpy array")
+    assert type(I2) == np.ndarray, ("please provide a numpy array")
     assert isinstance(model, str), ('please provide a model; ',
                                     '{''simple'',''affine'',''similarity''}')
+    assert ~np.any(np.isnan(I2)), ("arrays with missing data are not yet supported")
+
     model = model.lower()
 
     kernel_i,kernel_j = get_grad_filters('kroon', tsize=3, order=1,
@@ -425,10 +435,10 @@ def hough_optical_flow(I1, I2, param_resol=100, sample_fraction=1,
 
     Parameters
     ----------
-    I1 : numpy.array, size=(m,n,b), dtype=float, ndim=2
-        first image array.
-    I2 : numpy.array, size=(m,n,b), dtype=float, ndim=2
-        second image array.
+    I1 : {numpy.array, numpy.ma}, size=(m,n,b), dtype=float, ndim=2
+        first image array, np.nan entries indicate no-data.
+    I2 : {numpy.array, numpy.ma}, size=(m,n,b), dtype=float, ndim=2
+        second image array, np.nan entries indicate no-data.
     param_resol : integer
         resolution of the Hough transform, that is, the amount of elements along
         one axis
@@ -461,11 +471,20 @@ def hough_optical_flow(I1, I2, param_resol=100, sample_fraction=1,
     .. [2] Guo & Lü, "Phase-shifting algorithm by use of Hough transform"
        Optics express vol.20(23) pp.26037-26049, 2012.
     """
-    assert type(I1) == np.ndarray, ("please provide an array")
-    assert type(I2) == np.ndarray, ("please provide an array")
+    assert type(I1) in (np.ma.core.MaskedArray, np.ndarray), \
+        ("please provide an array")
+    assert type(I2) in (np.ma.core.MaskedArray, np.ndarray), \
+        ("please provide an array")
+    assert I1.ndim == 2, ("only grayscale imagery are implemented")
+    assert I2.ndim == 2, ("only grayscale imagery are implemented")
 
-    Msk_1, Msk_2 = ~np.isnan(I1), ~np.isnan(I2)
-    I1[~Msk_1], I2[~Msk_2] = np.nan, np.nan
+    # resolve no-data or masked array
+    Msk_1, Msk_2 = np.isnan(I1), np.isnan(I2)
+    if type(I1) == np.ma.core.MaskedArray:
+        Msk_1 = np.logical_or(Msk_1, np.ma.getmaskarray(I1))
+    if type(I1) == np.ma.core.MaskedArray:
+        Msk_1 = np.logical_or(Msk_2, np.ma.getmaskarray(I2))
+    I1[Msk_1], I2[Msk_2] = np.nan, np.nan
 
     if preprocessing in ['hist_equal']:
         I1 = histogram_equalization(I1, I2)
@@ -559,7 +578,52 @@ def hough_sinus(phi,rho,
         np.putmask(vote, np.isnan(vote), 0)
         democracy += vote
 
-#todo: histogram goes quicker
+def differential_stacking(I_st, id_1, id_2, dt):
+    """ differential stack with different time intervals
+
+    Parameters
+    ----------
+    I_st : numpy.array, size=(_,_,k)
+        stack of satellite image templates
+    id_1 : numpy.array, size=(n,1)
+        index of the first image to be matched in the stack, for all n pairs
+    id_2 : numpy.array, size=(n,1)
+        index of the second image to be matched in the stack, for all n pairs
+    dt : numpy.array, size=(n,1)
+        time difference of the pair
+
+    Returns
+    -------
+    diff_stack : {float, np.array}
+        sub-pixel displacement, amount depends upon "num_estimates"
+    """
+    if isinstance(dt, float): dt = np.array([dt])
+    if isinstance(id_1, int): id_1 = np.array([id_1])
+    if isinstance(id_2, int): id_2 = np.array([id_2])
+
+    for i in range(len(dt)):
+        I1, I2 = I_st[..., id_1[i]], I_st[..., id_2[i]]
+        # get local gradients
+        I_di, I_dj, I_dt = create_differential_data(I1, I2)
+        # transform to Hough-space coordinates
+        abs_grad = np.hypot(I_di, I_dj)
+        theta_grad = np.arctan2(I_dj, I_di)
+
+        rho = np.divide(I_dt, abs_grad,
+                        out=np.zeros_like(abs_grad),
+                        where=abs_grad != 0)
+        theta = np.divide(theta_grad, 1.)  # Q_scaling[i])
+        theta *= dt[i]
+
+        # bring into collection
+        if i == 0:
+            diff_stack = np.array([rho.flatten(), theta.flatten()]).T
+        else:
+            diff_stack = np.vstack((diff_stack, np.array([rho.flatten(),
+                                                          theta.flatten()]).T))
+    return diff_stack
+
+    #todo: histogram goes quicker
 #    H,phi_h,rho_h = np.histogram2d(phi[idx], rho[idx],
 #                                   bins=24, range=[[-180, +180], [-max_amp, +max_amp]])
 

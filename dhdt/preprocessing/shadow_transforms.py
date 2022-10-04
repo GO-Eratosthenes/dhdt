@@ -5,6 +5,8 @@ from scipy import ndimage # for image filters
 from sklearn.decomposition import fastica
 from skimage.color import rgb2hsv, hsv2rgb
 
+from ..generic.unit_check import are_three_arrays_equal, are_two_arrays_equal
+
 from .color_transforms import \
     rgb2ycbcr, rgb2hsi, rgb2xyz, xyz2lab, lab2lch, erdas2hsi, rgb2lms, lms2lab,\
     hsi2rgb, rgb2hcv, rgb2yiq
@@ -17,7 +19,7 @@ def apply_shadow_transform(method, Blue, Green, Red, RedEdge, Near, Shw,
     Parameters
     ----------
     method : {‘siz’,’ isi’,’ sei’,’ fcsdi’, ‘nsvi’, ‘nsvdi’, ‘sil’, ‘sr’,\
-              ‘sdi’, ‘sisdi’, ‘mixed’, ‘c3’, ‘entropy’, ‘shi’,’ sp’}
+              ‘sdi’, ‘sisdi’, ‘mixed’, ‘c3’, ‘entropy’, ‘shi’,’ sp’, 'nri'}
         method name to be implemented,can be one of the following:
 
         * 'siz' : shadow index first version
@@ -36,6 +38,7 @@ def apply_shadow_transform(method, Blue, Green, Red, RedEdge, Near, Shw,
         * 'entropy' : entropy shade removal
         * 'shi' : shade index
         * 'sp' : shadow probabilities
+        * 'nri' : normalized range shadow index
     Blue : numpy.array, size=(m,n)
         blue band of satellite image
     Green : numpy.array, size=(m,n)
@@ -86,21 +89,24 @@ def apply_shadow_transform(method, Blue, Green, Red, RedEdge, Near, Shw,
     elif method=='mixed':
         M = mixed_property_based_shadow_index(Blue, Green, Red)
     elif method=='msf':
-        p_s = kwargs['P_S'] if kwargs['P_S'] is not None else .95
+        p_s = kwargs['P_S'] if 'P_S' in kwargs else .95
         M = modified_shadow_fraction(Blue, Green, Red, P_S=p_s)
     elif method=='c3':
         M = color_invariant(Blue, Green, Red)
     elif method=='entropy':
-        a = kwargs['a'] if kwargs['a'] is not None else None
+        a = kwargs['a'] if 'a' in kwargs else 138.
         M,R = entropy_shade_removal(Green, Red, Near, a=a)
         return M,R
     elif method=='shi':
         M = shade_index(Blue, Green, Red, Near)
     elif method=='sp':
-        ae = kwargs['ae'] if kwargs['ae'] is not None else 1e+1
-        be = kwargs['be'] if kwargs['be'] is not None else 5e-1
+        ae = kwargs['ae'] if 'ae' in kwargs else 1e+1
+        be = kwargs['be'] if 'be' in kwargs else 5e-1
         M = shadow_probabilities(Blue, Green, Red, Near, ae=ae, be=be)
-
+    elif method in ('nri','normalized_range_shadow_index',):
+         M = normalized_range_shadow_index(Blue, Green, Red, Near)
+    else:
+        M = None
     return M
 
 # generic transforms
@@ -131,11 +137,7 @@ def pca(X):
     return eigen_vecs, eigen_vals
 
 def pca_rgb_preparation(Blue, Green, Red, min_samp=1e4):
-    assert type(Blue)==np.ndarray, ('please provide an array')
-    assert type(Green)==np.ndarray, ('please provide an array')
-    assert type(Red)==np.ndarray, ('please provide an array')
-    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
-    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+    are_three_arrays_equal(Blue,Green,Red)
 
     OK = Blue != 0  # boolean array with data
 
@@ -174,11 +176,14 @@ def ica(Blue, Green, Red, Near, min_samp=1e4):
     K,W,S,X_mean = fastica(X, return_X_mean=True)
 
     # reconstruct components
-    first = W[0,0]*(Blue-X_mean[0])+W[0,1]*(Green-X_mean[1])+W[0,2]*(Red-X_mean[2])+W[0,3]*(Near-X_mean[3])
-    secnd = W[1,0]*(Blue-X_mean[0])+W[1,1]*(Green-X_mean[1])+W[1,2]*(Red-X_mean[2])+W[1,3]*(Near-X_mean[3])
-    third = W[2,0]*(Blue-X_mean[0])+W[2,1]*(Green-X_mean[1])+W[2,2]*(Red-X_mean[2])+W[2,3]*(Near-X_mean[3])
-    forth = W[3,0]*(Blue-X_mean[0])+W[3,1]*(Green-X_mean[1])+W[3,2]*(Red-X_mean[2])+W[3,3]*(Near-X_mean[3])
-
+    first = W[0,0]*(Blue-X_mean[0]) +W[0,1]*(Green-X_mean[1]) \
+            +W[0,2]*(Red-X_mean[2]) +W[0,3]*(Near-X_mean[3])
+    secnd = W[1,0]*(Blue-X_mean[0]) +W[1,1]*(Green-X_mean[1]) \
+            +W[1,2]*(Red-X_mean[2]) +W[1,3]*(Near-X_mean[3])
+    third = W[2,0]*(Blue-X_mean[0]) +W[2,1]*(Green-X_mean[1]) \
+            +W[2,2]*(Red-X_mean[2]) +W[2,3]*(Near-X_mean[3])
+    forth = W[3,0]*(Blue-X_mean[0]) +W[3,1]*(Green-X_mean[1]) \
+            +W[3,2]*(Red-X_mean[2])+W[3,3]*(Near-X_mean[3])
     return first, secnd, third, forth
 
 # generic metrics
@@ -234,11 +239,7 @@ def shadow_index_zhou(Blue, Green, Red):
     .. [1] Zhou et al. "Shadow detection and compensation from remote sensing
            images under complex urban conditions", 2021.
     """
-    assert type(Blue)==np.ndarray, ('please provide an array')
-    assert type(Green)==np.ndarray, ('please provide an array')
-    assert type(Red)==np.ndarray, ('please provide an array')
-    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
-    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+    are_three_arrays_equal(Blue,Green,Red)
 
     Y, Cb, Cr = rgb2ycbcr(Red, Green, Blue)
     SI = np.divide(Cb-Y, Cb+Y)
@@ -272,14 +273,10 @@ def shadow_hsv_fraction(Blue, Green, Red):
        images in invariant color models." IEEE Transactions on geoscience and
        remote sensing vol.44 pp.1661–1671, 2006.
     """
-    assert type(Blue)==np.ndarray, ('please provide an array')
-    assert type(Green)==np.ndarray, ('please provide an array')
-    assert type(Red)==np.ndarray, ('please provide an array')
-    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
-    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+    are_three_arrays_equal(Blue,Green,Red)
 
-    H, S, I = rgb2hsi(Red, Green, Blue)
-    SF = np.divide(H+1, I+1)
+    H,_,I = rgb2hsi(Red, Green, Blue)
+    SF = np.divide(H+1, I+1, where=I!=-1)
     return SF
 
 def modified_shadow_fraction(Blue, Green, Red, P_S=.95):
@@ -309,19 +306,15 @@ def modified_shadow_fraction(Blue, Green, Red, P_S=.95):
        based on successive thresholding scheme." IEEE transactions on geoscience
        and remote sensing vol.47, pp.671–682, 2009.
     """
-    assert type(Blue)==np.ndarray, ('please provide an array')
-    assert type(Green)==np.ndarray, ('please provide an array')
-    assert type(Red)==np.ndarray, ('please provide an array')
-    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
-    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+    are_three_arrays_equal(Blue,Green,Red)
 
     H, S, I = rgb2hsi(Red, Green, Blue)
-    r = np.divide(H, I+1)
+    r = np.divide(H, I+1, where=I!=-1)
     T_S = np.quantile(r, P_S)
     sig = np.std(r)
 
     SF = np.exp(-np.divide((r-T_S)**2, 4*sig))
-    SF[SF>=T_S] = 1
+    np.putmask(SF, SF>=T_S, 1.)
     return SF
 
 def shadow_hcv_fraction(Blue, Green, Red):
@@ -351,14 +344,10 @@ def shadow_hcv_fraction(Blue, Green, Red):
        images in invariant color models." IEEE Transactions on geoscience and
        remote sensing vol.44 pp.1661–1671, 2006.
     """
-    assert type(Blue)==np.ndarray, ('please provide an array')
-    assert type(Green)==np.ndarray, ('please provide an array')
-    assert type(Red)==np.ndarray, ('please provide an array')
-    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
-    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+    are_three_arrays_equal(Blue,Green,Red)
 
-    H, C, V = rgb2hcv(Red, Green, Blue)
-    SF = np.divide(H+1, V+1)
+    H,_,V = rgb2hcv(Red, Green, Blue)
+    SF = np.divide(H+1, V+1, where=V!=-1)
     return SF
 
 def shadow_ycbcr_fraction(Blue, Green, Red):
@@ -388,14 +377,10 @@ def shadow_ycbcr_fraction(Blue, Green, Red):
        images in invariant color models." IEEE Transactions on geoscience and
        remote sensing vol.44 pp.1661–1671, 2006.
     """
-    assert type(Blue)==np.ndarray, ('please provide an array')
-    assert type(Green)==np.ndarray, ('please provide an array')
-    assert type(Red)==np.ndarray, ('please provide an array')
-    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
-    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+    are_three_arrays_equal(Blue,Green,Red)
 
-    Y, Cb, Cr = rgb2ycbcr(Red, Green, Blue)
-    SF = np.divide(Cr+1, Y+1)
+    Y,_,Cr = rgb2ycbcr(Red, Green, Blue)
+    SF = np.divide(Cr+1, Y+1, where=Y!=-1)
     return SF
 
 def shadow_yiq_fraction(Blue, Green, Red):
@@ -425,14 +410,10 @@ def shadow_yiq_fraction(Blue, Green, Red):
        images in invariant color models." IEEE Transactions on geoscience and
        remote sensing vol.44 pp.1661–1671, 2006.
     """
-    assert type(Blue)==np.ndarray, ('please provide an array')
-    assert type(Green)==np.ndarray, ('please provide an array')
-    assert type(Red)==np.ndarray, ('please provide an array')
-    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
-    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+    are_three_arrays_equal(Blue,Green,Red)
 
-    Y, I, Q = rgb2yiq(Red, Green, Blue)
-    SF = np.divide(Q+1, Y+1)
+    Y,_,Q = rgb2yiq(Red, Green, Blue)
+    SF = np.divide(Q+1, Y+1, where=Y!=-1)
     return SF
 
 #def shadow_quantifier_index
@@ -469,11 +450,8 @@ def improved_shadow_index(Blue, Green, Red, Near):
     .. [1] Zhou et al. "Shadow detection and compensation from remote sensing
        images under complex urban conditions", 2021.
     """
-    assert type(Blue)==np.ndarray, ('please provide an array')
-    assert type(Green)==np.ndarray, ('please provide an array')
-    assert type(Red)==np.ndarray, ('please provide an array')
-    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
-    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+    are_three_arrays_equal(Blue,Green,Red)
+    are_two_arrays_equal(Blue,Near)
 
     SI = shadow_index_zhou(Blue, Green, Red)
     ISI = np.divide( SI + (1 - Near), SI + (1 + Near))
@@ -518,15 +496,11 @@ def shadow_enhancement_index(Blue,Green,Red,Near):
        journal of applied earth observation and geoinformation, vol.78
        pp.53--65, 2019.
     """
-    assert type(Blue)==np.ndarray, ('please provide an array')
-    assert type(Green)==np.ndarray, ('please provide an array')
-    assert type(Red)==np.ndarray, ('please provide an array')
-    assert type(Near)==np.ndarray, ('please provide an array')
-    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
-    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
-    assert Blue.shape[:2] == Near.shape[:2], ('arrays should be of equal size')
+    are_three_arrays_equal(Blue,Green,Red)
+    are_two_arrays_equal(Blue,Near)
 
-    SEI = np.divide( (Blue + Near)-(Green + Red), (Blue + Near)+(Green + Red))
+    denom = (Blue + Near)+(Green + Red)
+    SEI = np.divide( (Blue + Near)-(Green + Red), denom, where=denom!=0)
     return SEI
 
 def false_color_shadow_difference_index(Green,Red,Near):
@@ -560,14 +534,11 @@ def false_color_shadow_difference_index(Green,Red,Near):
        Proceedings of the ISPRS conference on photogrammetric image analysis,
        pp.109-119, 2011.
     """
-    assert type(Green)==np.ndarray, ('please provide an array')
-    assert type(Red)==np.ndarray, ('please provide an array')
-    assert type(Near)==np.ndarray, ('please provide an array')
-    assert Red.shape[:2] == Green.shape[:2],('arrays should be of equal size')
-    assert Red.shape[:2] == Near.shape[:2], ('arrays should be of equal size')
+    are_three_arrays_equal(Green,Red,Near)
 
-    (H, S, I) = rgb2hsi(Near, Red, Green)  # create HSI bands
-    FCSI = (S - I) / (S + I)
+    _,S,I = rgb2hsi(Near, Red, Green)  # create HSI bands
+    denom = S + I
+    FCSI = np.divide(S - I,denom, where=denom!=0)
     return FCSI
 
 def normalized_difference_water_index(Green, Near):
@@ -597,9 +568,8 @@ def normalized_difference_water_index(Green, Near):
        of vegetation liquid water from space" Remote sensing of environonment,
        vol. 58 pp. 257–266, 1996
     """
-    assert type(Near)==np.ndarray, ('please provide an array')
-    assert type(Green)==np.ndarray, ('please provide an array')
-    assert Green.shape[:2] == Near.shape[:2],('arrays should be of equal size')
+    are_two_arrays_equal(Green,Near)
+
     denom = (Green + Near)
     NDWI = np.divide( (Green - Near), denom,
                       out=np.zeros_like(denom), where=denom!=0)
@@ -632,9 +602,7 @@ def normalized_difference_blue_water_index(Blue, Near):
        wetlands on HJU satellite CCD images" Remote sensing information,
        vol.4 pp.28–33, 2011
     """
-    assert type(Near)==np.ndarray, ('please provide an array')
-    assert type(Blue)==np.ndarray, ('please provide an array')
-    assert Blue.shape[:2] == Near.shape[:2],('arrays should be of equal size')
+    are_two_arrays_equal(Blue,Near)
 
     denom = (Blue + Near)
     NDBWI = np.divide( (Blue - Near), denom,
@@ -671,13 +639,8 @@ def combinational_shadow_index(Blue,Green,Red,Near):
        journal of applied earth observation and geoinformation, vol.78
        pp.53--65, 2019.
     """
-    assert type(Blue)==np.ndarray, ('please provide an array')
-    assert type(Green)==np.ndarray, ('please provide an array')
-    assert type(Red)==np.ndarray, ('please provide an array')
-    assert type(Near)==np.ndarray, ('please provide an array')
-    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
-    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
-    assert Blue.shape[:2] == Near.shape[:2],('arrays should be of equal size')
+    are_three_arrays_equal(Blue,Green,Red)
+    are_two_arrays_equal(Blue,Near)
 
     SEI = shadow_enhancement_index(Blue,Green,Red,Near)
     NDWI = normalized_difference_water_index(Green, Near)
@@ -721,14 +684,11 @@ def normalized_sat_value_difference_index(Blue, Green, Red):
        satellite images", Proceedings of IEEE IGARSS, pp.II-1036--II-1039,
        2008.
     """
-    assert type(Blue)==np.ndarray, ('please provide an array')
-    assert type(Green)==np.ndarray, ('please provide an array')
-    assert type(Red)==np.ndarray, ('please provide an array')
-    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
-    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+    are_three_arrays_equal(Blue,Green,Red)
 
     (H,S,I) = rgb2hsi(Red, Green, Blue)  # create HSI bands
-    NSVDI = (S - I) / (S + I)
+    denom = S + I
+    NSVDI = np.divide(S - I, denom, where=denom!=0)
     return NSVDI
 
 def shadow_identification(Blue, Green, Red):
@@ -762,13 +722,9 @@ def shadow_identification(Blue, Green, Red):
        images", Proceedings of the 16th Brazilian symposium on computer graphics
        and image processing, pp.270-277, 2003.
     """
-    assert type(Blue)==np.ndarray, ('please provide an array')
-    assert type(Green)==np.ndarray, ('please provide an array')
-    assert type(Red)==np.ndarray, ('please provide an array')
-    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
-    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+    are_three_arrays_equal(Blue,Green,Red)
 
-    (H,S,I) = rgb2hsi(Red, Green, Blue)  # create HSI bands
+    _,S,I = rgb2hsi(Red, Green, Blue)  # create HSI bands
     SI = S - I
     return SI
 
@@ -799,20 +755,17 @@ def shadow_index_liu(Blue, Green, Red):
            International journal of applied earth observation and
            geoinformation, vol.78 pp.53--65, 2019.
     """
-    assert type(Blue)==np.ndarray, ('please provide an array')
-    assert type(Green)==np.ndarray, ('please provide an array')
-    assert type(Red)==np.ndarray, ('please provide an array')
-    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
-    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+    are_three_arrays_equal(Blue,Green,Red)
 
-    (_,S,I) = rgb2hsi(Red, Green, Blue)
+    _,S,I = rgb2hsi(Red, Green, Blue)
 
     X = pca_rgb_preparation(Red, Green, Blue, min_samp=1e4)
     e, lamb = pca(X)
     del X
-    PC1 = np.dot(e[0, :], np.array([Red, Green, Blue]))
+    PC1 = e[0,0]*Red + e[0,1]*Green + e[0,2]*Blue
 
-    SI = np.divide((PC1 - I) * (1 + S), (PC1 + I + S))
+    denom = (PC1 + I + S)
+    SI = np.divide((PC1 - I) * (1 + S), denom, where=denom!=0)
     return SI
 
 def specthem_ratio(Blue, Green, Red):
@@ -844,15 +797,11 @@ def specthem_ratio(Blue, Green, Red):
        motion imagery application" ISPRS journal of photogrammetry and remote
        sensing, vol.140 pp.104--121, 2018.
     """
-    assert type(Blue)==np.ndarray, ('please provide an array')
-    assert type(Green)==np.ndarray, ('please provide an array')
-    assert type(Red)==np.ndarray, ('please provide an array')
-    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
-    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+    are_three_arrays_equal(Blue,Green,Red)
 
     X,Y,Z = rgb2xyz(Red, Green, Blue, method='Ford')
     L,a,b = xyz2lab(X,Y,Z)
-    _,h = lab2lch(L,a,b)
+    h = lab2lch(L,a,b)[1]
     Sr = np.divide(h+1 , L+1)
     return Sr
 
@@ -879,18 +828,15 @@ def shadow_detector_index(Blue, Green, Red):
        high-resolution satellite images" IEEE geoscience and remote sensing
        letters, vol.14(4) pp.494--498, 2017.
     """
-    assert type(Blue)==np.ndarray, ('please provide an array')
-    assert type(Green)==np.ndarray, ('please provide an array')
-    assert type(Red)==np.ndarray, ('please provide an array')
-    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
-    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+    are_three_arrays_equal(Blue,Green,Red)
 
     X = pca_rgb_preparation(Red, Green, Blue, min_samp=1e4)
     e, lamb = pca(X)
     del X
-    PC1 = np.dot(e[0, :], np.array([Red, Green, Blue]))
+    PC1 = e[0,0]*Red + e[0,1]*Green + e[0,2]*Blue
 
-    SDI = ((1 - PC1) + 1)/(((Green - Blue) * Red) + 1)
+    denom = ((Green - Blue) * Red) + 1
+    SDI = np.divide((1 - PC1) + 1, denom, where=denom!=0)
     return SDI
 
 def sat_int_shadow_detector_index(Blue, RedEdge, Near):
@@ -916,13 +862,9 @@ def sat_int_shadow_detector_index(Blue, RedEdge, Near):
        in satellite high-resolution images" International journal of remote
        sensing, vol.39(20) pp.7014--7028, 2018.
     """
-    assert type(Blue)==np.ndarray, ('please provide an array')
-    assert type(RedEdge)==np.ndarray, ('please provide an array')
-    assert type(Near)==np.ndarray, ('please provide an array')
-    assert Blue.shape[:2] == RedEdge.shape[:2],('arrays should be of equal size')
-    assert Blue.shape[:2] == Near.shape[:2], ('arrays should be of equal size')
+    are_three_arrays_equal(Blue,RedEdge,Near)
 
-    (_,S,I) = erdas2hsi(Blue, RedEdge, Near)
+    _,S,I = erdas2hsi(Blue, RedEdge, Near)
     SISDI = S - (2*I)
     return SISDI
 
@@ -949,14 +891,10 @@ def mixed_property_based_shadow_index(Blue, Green, Red):
        approach for VHR multispectral remote sensing images" Applied sciences
        vol.8(10) pp.1883, 2018.
     """
-    assert type(Blue)==np.ndarray, ('please provide an array')
-    assert type(Green)==np.ndarray, ('please provide an array')
-    assert type(Red)==np.ndarray, ('please provide an array')
-    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
-    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+    are_three_arrays_equal(Blue,Green,Red)
 
-    (H, S, I) = rgb2hsi(Red, Green, Blue)  # create HSI bands
-    MPSI = (H - I) * (Green - Blue)
+    H,_,I = rgb2hsi(Red, Green, Blue)  # create HSI bands
+    MPSI = np.multiply(H - I, Green - Blue)
     return MPSI
 
 def color_invariant(Blue, Green, Red):
@@ -984,11 +922,7 @@ def color_invariant(Blue, Green, Red):
        high‐resolution satellite images" International journal of remote
        sensing, vol.29(7) pp.1945--1963, 2008
     """
-    assert type(Blue)==np.ndarray, ('please provide an array')
-    assert type(Green)==np.ndarray, ('please provide an array')
-    assert type(Red)==np.ndarray, ('please provide an array')
-    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
-    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+    are_three_arrays_equal(Blue,Green,Red)
 
     c3 = np.arctan2( Blue, np.amax( np.dstack((Red, Green))))
     return c3
@@ -1020,13 +954,8 @@ def modified_color_invariant(Blue, Green, Red, Near): #wip
        detection" International journal of remote sensing, vol.36(24)
        pp.6214--6223, 2015.
     """
-    assert type(Blue)==np.ndarray, ('please provide an array')
-    assert type(Green)==np.ndarray, ('please provide an array')
-    assert type(Red)==np.ndarray, ('please provide an array')
-    assert type(Near)==np.ndarray, ('please provide an array')
-    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
-    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
-    assert Blue.shape[:2] == Near.shape[:2],('arrays should be of equal size')
+    are_three_arrays_equal(Blue,Green,Red)
+    are_two_arrays_equal(Blue,Near)
 
     C3 = color_invariant(Blue, Green, Red)
     NDWI = normalized_difference_water_index(Green, Near)
@@ -1058,11 +987,7 @@ def reinhard(Blue, Green, Red):
     .. [1] Reinhard et al. "Color transfer between images" IEEE Computer
        graphics and applications vol.21(5) pp.34-41, 2001.
     """
-    assert type(Blue)==np.ndarray, ('please provide an array')
-    assert type(Green)==np.ndarray, ('please provide an array')
-    assert type(Red)==np.ndarray, ('please provide an array')
-    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
-    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
+    are_three_arrays_equal(Blue,Green,Red)
 
     (L,M,S) = rgb2lms(Red, Green, Blue)
     L = np.log10(L)
@@ -1095,11 +1020,7 @@ def entropy_shade_removal(Ia, Ib, Ic, a=None):
     .. [1] Finlayson et al. "Entropy minimization for shadow removal"
        International journal of computer vision vol.85(1) pp.35-57 2009.
     """
-    assert type(Ia)==np.ndarray, ('please provide an array')
-    assert type(Ib)==np.ndarray, ('please provide an array')
-    assert type(Ic)==np.ndarray, ('please provide an array')
-    assert Ia.shape[:2] == Ib.shape[:2],('arrays should be of equal size')
-    assert Ia.shape[:2] == Ic.shape[:2], ('arrays should be of equal size')
+    are_three_arrays_equal(Ia,Ib,Ic)
 
     Ia[Ia==0], Ib[Ib==0] = 1E-6, 1E-6
     sqIc = np.power(Ic, 1./2)
@@ -1270,13 +1191,8 @@ def shadow_probabilities(Blue, Green, Red, Near, ae = 1e+1, be = 5e-1):
        near-infrared information" IEEE transactions on pattern analysis and
        machine intelligence, vol.36(8) pp.1672-1678, 2013.
     """
-    assert type(Blue)==np.ndarray, ('please provide an array')
-    assert type(Green)==np.ndarray, ('please provide an array')
-    assert type(Red)==np.ndarray, ('please provide an array')
-    assert type(Near)==np.ndarray, ('please provide an array')
-    assert Blue.shape[:2] == Green.shape[:2],('arrays should be of equal size')
-    assert Blue.shape[:2] == Red.shape[:2], ('arrays should be of equal size')
-    assert Blue.shape[:2] == Near.shape[:2],('arrays should be of equal size')
+    are_three_arrays_equal(Blue,Green,Red)
+    are_two_arrays_equal(Blue,Near)
 
     Fk = np.amax(np.stack((Red, Green, Blue), axis=2), axis=2)
     F = np.divide(np.clip(Fk, 0, 2), 2)     # (10) in [1]

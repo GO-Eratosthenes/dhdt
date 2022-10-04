@@ -50,9 +50,9 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
     I2 : {numpy.array, numpy.ma}, size=(m,n,b), dtype=float, ndim={2,3}
         second image array, can be complex.
     L1 : numpy.array, size=(m,n), dtype=bool
-        labelled image of the first image (M1).
+        labelled image of the first image (M1), hence True's are neglected.
     L2 : numpy.array, size=(m,n), dtype=bool
-        labelled image of the second image (M2).
+        labelled image of the second image (M2), hence True's are neglected.
     geoTransform1 : tuple
         affine transformation coefficients of array M1
     geoTransform2 : tuple
@@ -121,10 +121,10 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
         list_differential_correlators, list_peak_estimators, list_frequency_correlators
 
     # init
-    assert isinstance(I1, np.ma.core.MaskedArray) or isinstance(I1, np.ndarray), \
-        "please provide an array"
-    assert isinstance(I2, np.ma.core.MaskedArray) or isinstance(I2, np.ndarray), \
-        "please provide an array"
+    assert type(I1) in (np.ma.core.MaskedArray, np.ndarray), \
+         ("please provide an array")
+    assert type(I2) in (np.ma.core.MaskedArray, np.ndarray), \
+         ("please provide an array")
     assert isinstance(L1, np.ndarray), "please provide an array"
     assert isinstance(L2, np.ndarray), "please provide an array"
     assert isinstance(geoTransform1, tuple), 'geoTransform should be a tuple'
@@ -153,11 +153,9 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
                                                          same=True)
     geoTransformPad2 = ref_trans(geoTransform2, -search_radius, -search_radius)
 
-    L1,L2 = pad_radius(L1,temp_radius), pad_radius(L2, search_radius)
-    if kwargs.get('num_estimates') == None:
-        b = 1
-    else:
-        b = kwargs.get('num_estimates')
+    L1,L2 = pad_radius(L1,temp_radius, cval=True), \
+            pad_radius(L2, search_radius, cval=True)
+    b=1 if kwargs.get('num_estimates') == None else kwargs.get('num_estimates')
 
     (m,n) = X_grd.shape
     X2_grd,Y2_grd = np.zeros((m,n,b)), np.zeros((m,n,b))
@@ -245,8 +243,10 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
             X2_grd[idx_grd[0],idx_grd[1]] = x2_new
             Y2_grd[idx_grd[0],idx_grd[1]] = y2_new
         if precision_estimate:
-            match_metric[idx_grd[0]][idx_grd[1]] = np.array(
-                [score, si, sj, rho])
+            match_metric[idx_grd[0],idx_grd[1],0] = score
+            match_metric[idx_grd[0],idx_grd[1],1] = si
+            match_metric[idx_grd[0],idx_grd[1],2] = sj
+            match_metric[idx_grd[0],idx_grd[1],3] = rho
         else:
             match_metric[idx_grd[0],idx_grd[1]] = score
 
@@ -255,18 +255,19 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
     return X2_grd, Y2_grd, match_metric
 
 def couple_pair(file_1, file_2, bbox=None, rgi_id=None,
+                wght_1=None, wght_2=None,
                 rect='metadata', prepro='bandpass',
                 match='norm_corr', boi=np.array([]),
-                temp_radius=7, search_radius = 22,
-                processing=None,
-                subpix='moment', metric='peak_entr'):
-    """ refine and couple two shadow images together
+                temp_radius=3, search_radius=7,
+                processing=None, subpix='moment', metric='peak_entr',
+                shw_fname="shadow.tif", label_fname="labelPolygons.tif"):
+    """ refine and couple two shadow images together via matching
 
     Parameters
     ----------
     file_1, file_2 : string
         path to first and second image(ry)
-    bbox : {list, np.array}, size=(4,1)
+    bbox : {list, numpy.array}, size=(4,1)
         bounding box of region of interest
     rgi_id : string
         code of the glacier of interest following the Randolph Glacier Inventory
@@ -276,15 +277,15 @@ def couple_pair(file_1, file_2, bbox=None, rgi_id=None,
             * metadata - estimate scale and shear from geometry and metadata
             else: do not include affine corrections
     prepro : string
-          #todo
+        #todo
     match: {'norm_corr' (default), 'aff_of', 'cumu_corr', 'sq_diff',
     'sad_diff', 'cosi_corr', 'phas_only', 'symm_phas', 'ampl_comp', 'orie_corr',
     'mask_corr', 'bina_phas', 'wind_corr', 'gaus_phas', 'upsp_corr',
     'cros_corr', 'robu_corr', 'lucas_kan', 'lucas_aff'}
         Specifies which matching method to apply, see
-        "list_spatial_correlators", "list_frequency_correlators" or
-        "list_differential_correlators" for more information
-    boi : np.array
+            "list_spatial_correlators", "list_frequency_correlators" or
+            "list_differential_correlators" for more information
+    boi : numpy.array
         list of bands of interest
     temp_radius: integer
         amount of pixels from the center
@@ -297,21 +298,25 @@ def couple_pair(file_1, file_2, bbox=None, rgi_id=None,
             * shadow - using the shadow transfrom in the given folder
             else - using the image files provided in 'file1' & 'file2'
     subpix : {'tpss' (default), 'svd', 'radon', 'hough', 'ransac', 'wpca',\
-              'pca', 'lsq', 'diff', 'gauss_1', 'parab_1', 'moment', 'mass',\
-              'centroid', 'blais', 'ren', 'birch', 'eqang', 'trian', 'esinc',\
-              'gauss_2', 'parab_2', 'optical_flow'}
+            'pca', 'lsq', 'diff', 'gauss_1', 'parab_1', 'moment', 'mass',\
+            'centroid', 'blais', 'ren', 'birch', 'eqang', 'trian', 'esinc',\
+            'gauss_2', 'parab_2', 'optical_flow'}
         Method used to estimate the sub-pixel location, see
         "list_peak_estimators", list_phase_estimators" for more information
+    shw_fname : str, default='shadow.tif'
+        image name of the shadow transform/enhancement
+    label_fname : str, default="labelPolygons.tif"
+        filename of the numbered image with all the shadow polygons
 
     Returns
     -------
-    post_1 : np.array, size=(k,2)
+    post_1 : numpy.array, size=(k,2)
         locations of shadow ridge at instance 1
-    post_2_corr : np.array, size=(k,2)
+    post_2_corr : numpy.array, size=(k,2)
         locations of shadow ridge at instance 2
-    casters : np.array, size=(k,2)
+    casters : numpy.array, size=(k,2)
         common point where the shadow originates
-    dh : np.array, size=(k,1)
+    dh : numpy.array, size=(k,1)
         elevation differences between "post_1" and "post_2_corr"
     """
     # admin
@@ -324,10 +329,6 @@ def couple_pair(file_1, file_2, bbox=None, rgi_id=None,
     _,geoTransform2,_,rows2,cols2,_ = read_geo_info(file_2)
 
     if bbox is None:  bbox = get_local_bbox_in_s2_tile(file_1, dir_im1)
-
-    # naming of the files
-    shw_fname = "shadow.tif"           # image with shadow transform / enhancement
-    label_fname = "labelPolygons.tif"  # numbered image with all the shadow polygons
 
     # text file listing coordinates of shadow casting and casted points
     if os.path.exists(file_1[:-4]+'.tif'): # testing dataset is created
@@ -346,99 +347,71 @@ def couple_pair(file_1, file_2, bbox=None, rgi_id=None,
     idxConn = pair_images(conn_1, conn_2) # connected list
     caster = conn_1[idxConn[:,1],0:2]
     # cast location in xy-coordinates
-    post_1 = conn_1[idxConn[:,1],2:4].copy()
-    post_2 = conn_2[idxConn[:,0],2:4].copy()
+    post_1,post_2 = conn_1[idxConn[:,1],2:4].copy(),\
+                     conn_2[idxConn[:,0],2:4].copy()
 
-    # output
-    #shp_name = os.path.join(dir_im1, 'pairs.shp')
-    #casting_pairs_mat2shp(post_1, caster, post_2, shp_name, crs)
-    # refine through feature descriptors
-    #todo
-    if match in ['feature']: # using the shadow polygons
-        L1 = read_geo_image(os.path.join(dir_im1, label_fname))[0]
-        L2 = read_geo_image(os.path.join(dir_im2, label_fname))[0]
+    if processing in ['shadow']:
+        I1 = read_geo_image(os.path.join(dir_im1, shw_fname), boi=boi)[0]
+        I2 = read_geo_image(os.path.join(dir_im2, shw_fname), boi=boi)[0]
+    elif processing in ['stacking']: # multi-spectral stacking
+        #todo
+        I1 = get_stack_out_of_dir(dir_im1,boi,bbox)[0]
+        I2 = get_stack_out_of_dir(dir_im2,boi,bbox)[0]
+    else: # load the files given
+        I1 = read_geo_image(file_1, boi=boi)[0]
+        I2 = read_geo_image(file_2, boi=boi)[0]
 
-        # use polygon descriptors
-        #describ='NCD' # BAS
-        if subpix in ['CAN', 'NCD']: # sun angle needed?
-            (sun1_Zn,sun1_Az) = read_sun_angles_s2(file_1)
-            (sun2_Zn,sun2_Az) = read_sun_angles_s2(file_2)
-        else:
-            sun1_Az, sun2_Az = [], []
+    # handle masking
+    if wght_1 is not None:
+        if isinstance(wght_1, str):
+            L1 = read_geo_image(wght_1)[0].data
+        elif type(wght_1) in (np.ndarray,):
+            L1 = wght_1
+        I1 = get_data_and_mask(I1)[0]
+    else:
+        I1, L1 = get_data_and_mask(I1)
+    if wght_2 is not None:
+        if isinstance(wght_2, str):
+            L2 = read_geo_image(wght_2)[0].data
+        elif type(wght_2) in (np.ndarray,):
+            L2 = wght_2
+        I2 = get_data_and_mask(I2)[0]
+    else:
+       I2, L2 = get_data_and_mask(I2)
 
-        post_2_new, euc_score = match_shadow_ridge(L1, L2, sun1_Az, sun2_Az,
-                                                   geoTransform1, geoTransform2,
-                                                   post_1, post_2, subpix, K=10)
-    else: # refine through pattern matching
-        if rect in ['binary']: # get shadow classification if needed
-            L1 = read_geo_image(os.path.join(dir_im1, label_fname))[0]
-            L2 = read_geo_image(os.path.join(dir_im2, label_fname))[0]
-        else:
-            L1, L2 = np.ones((rows1,cols1)), np.ones((rows2,cols2))
+    # handle affine compensation
+    if rect in ['metadata']:
+        az_1, az_2 = conn_1[idxConn[:, 1], 4], conn_2[idxConn[:, 0], 4]
+        scale_12, simple_sh = get_shadow_rectification(caster,
+           post_1, post_2, az_1, az_2)
+    else: # start with rigid displacement
+        scale_12 = np.ones((np.shape(post_1)[0]))
+        simple_sh = np.zeros((np.shape(post_1)[0]))
 
-        if processing in ['shadow']:
-            I1 = read_geo_image(os.path.join(dir_im1, shw_fname), boi=boi)[0]
-            I2 = read_geo_image(os.path.join(dir_im2, shw_fname), boi=boi)[0]
-        elif processing in ['stacking']: # multi-spectral stacking
-            I1 = get_stack_out_of_dir(dir_im1,boi,bbox)[0]
-            I2 = get_stack_out_of_dir(dir_im2,boi,bbox)[0]
-        else: # load the files given
-            I1 = read_geo_image(file_1, boi=boi)[0]
-            I2 = read_geo_image(file_2, boi=boi)[0]
+    post_2_new, score = match_shadow_casts(I1, I2, L1, L2,
+       geoTransform1, geoTransform2, post_1, post_2, scale_12, simple_sh,
+       temp_radius=temp_radius, search_radius=search_radius,
+       prepro=prepro, correlator=match, subpix=subpix, metric='peak_abs')
 
-        if (rect in ['binary']) | (prepro in ['sundir']): # get sun angles if needed
-            sun1_Az = read_sun_angles_s2(dir_im1)[1]
-            sun2_Az = read_sun_angles_s2(dir_im2)[1]
-            if bbox is not None: # clip when sub-set of imagery is used
-                sun1_Az = sun1_Az[bbox[0]:bbox[1], bbox[2]:bbox[3]]
-                sun2_Az = sun2_Az[bbox[0]:bbox[1], bbox[2]:bbox[3]]
-
-            if prepro in ['sundir']: # put emphasis on sun direction in the imagery
-                I1 = cast_orientation(I1, sun1_Az)
-                I2 = cast_orientation(I2, sun2_Az)
-        else:
-            sun1_Az, sun2_Az = [], []
-
-        if rect in ['metadata']:
-            az_1, az_2 = conn_1[idxConn[:, 1], 4], conn_2[idxConn[:, 0], 4]
-            scale_12, simple_sh = get_shadow_rectification(caster,
-                                                           post_1, post_2,
-                                                           az_1, az_2)
-        else: # start with rigid displacement
-            scale_12 = np.ones((np.shape(post_1)[0]))
-            simple_sh = np.zeros((np.shape(post_1)[0]))
-
-        post_2_new, corr_score = match_shadow_casts(I1, I2, L1, L2,
-                                                   sun1_Az, sun2_Az,
-                                                   geoTransform1, geoTransform2,
-                                                   post_1, post_2,
-                                                   scale_12, simple_sh,
-                                                   temp_radius=temp_radius,
-                                                   search_radius=search_radius,
-                                                   reg=rect, prepro=prepro,
-                                                   correlator=match,
-                                                   subpix=subpix,
-                                                   metric='peak_abs')
-    post_1 = conn_1[idxConn[:,1],2:4] # cast location in xy-coordinates for t_1
-    post_2 = conn_2[idxConn[:,0],2:4]
+    # cast location in xy-coordinates for t_1
+    post_1,post_2 = conn_1[idxConn[:,1],2:4], conn_2[idxConn[:,0],2:4]
     # extract elevation change
-    sun_1 = conn_1[idxConn[:,1],4:6]
-    sun_2 = conn_2[idxConn[:,0],4:6]
-
-    score = euc_score if match in ['feature'] else corr_score
+    sun_1,sun_2 = conn_1[idxConn[:,1],4:6], conn_2[idxConn[:,0],4:6]
+    # calculate new intersection
 
     caster_new = get_caster(sun_1[:,0], sun_2[:,0], post_1, post_2_new)
 
-    dh = get_elevation_difference(sun_1, sun_2, post_1, post_2, caster)
+    dh_old = get_elevation_difference(sun_1, sun_2, post_1, post_2, caster)
     dh_new = get_elevation_difference(sun_1, sun_2, post_1, post_2_new, caster)
-    return post_1, post_2_new, caster, dh_new, score, caster_new, dh, post_2,crs
+    return post_1, post_2_new, caster, dh_new, score, caster_new, dh_old, \
+           post_2, crs
 
 def create_template_at_center(I, i,j, radius, filling='random'):
     """ get sub template of data array, at a certain location
 
     Parameters
     ----------
-    I : np.array, size=(m,n) or (m,n,b)
+    I : numpy.array, size=(m,n) or (m,n,b)
         data array
     i,j : integer
         horizontal, vertical coordinate of the template center
@@ -454,7 +427,7 @@ def create_template_at_center(I, i,j, radius, filling='random'):
 
     Returns
     -------
-    I_sub : np.array, size=(m,n) or (m,n,b)
+    I_sub : numpy.array, size={(m,n),(m,n,b)}
         template of data array
 
     See Also
@@ -520,7 +493,7 @@ def create_template_off_center(I, i,j, width, filling='random'):
 
     Parameters
     ----------
-    I : np.array, size=(m,n) or (m,n,b)
+    I : numpy.array, size={(m,n), (m,n,b)}
         data array
     i : integer
         vertical coordinate of the template center
@@ -538,7 +511,7 @@ def create_template_off_center(I, i,j, width, filling='random'):
 
     Returns
     -------
-    I_sub : np.array, size=(m,n) or (m,n,b)
+    I_sub : numpy.array, size={(m,n),(m,n,b)}
         template of data array
 
     See Also
@@ -580,7 +553,7 @@ def make_time_pairing(acq_time,
 
     Parameters
     ----------
-    acq_time : np.array, size=(_,1), type=np.timedelta64[ns]
+    acq_time : numpy.array, size=(_,1), type=np.timedelta64[ns]
         acquisition times of different recordings
     t_min : integer, type=np.timedelta64[ns]
         minimal time difference to pair
@@ -593,7 +566,7 @@ def make_time_pairing(acq_time,
         index of first couple, based on the "acq_time" as reference
     idx_2 : TYPE
         index of second couple, based on the "acq_time" as reference
-    couple_dt : np.array, size=(_,1), type=np.timedelta64[ns]
+    couple_dt : numpy.array, size=(_,1), type=np.timedelta64[ns]
         time difference of the pair
     """
     t_1,t_2 = np.meshgrid(acq_time, acq_time,
@@ -614,16 +587,16 @@ def pair_images(conn_1, conn_2, thres=20):
 
     Parameters
     ----------
-    conn_1 : np.array, size=(k,>=2)
+    conn_1 : numpy.array, size=(k,>=2)
         list with spatial coordinates or any other index
-    conn_2 : np.array, size=(k,>=2)
+    conn_2 : numpy.array, size=(k,>=2)
         list with spatial coordinates or any other index
     thres : {integer,float}
         search range to consider
 
     Returns
     -------
-    idxConn : np.array, size=(l,2)
+    idxConn : numpy.array, size=(l,2)
         array of indices of pairs
 
     Example
@@ -890,27 +863,24 @@ def match_shadow_ridge(M1, M2, Az1, Az2, geoTransform1, geoTransform2,
 # create file with approx shadow cast locations
 
 # refine by matching, and include correlation score
-def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
-                       geoTransform1, geoTransform2,
-                       xy1, xy2,
-                       scale_12, simple_sh,
+def match_shadow_casts(M1, M2, L1, L2, geoTransform1, geoTransform2,
+                       xy1, xy2, scale_12, simple_sh,
                        temp_radius=7, search_radius=22,
-                       reg='binary', prepro='bandpass',
-                       correlator='cosicorr', subpix='moment',
+                       prepro='bandpass',correlator='cosicorr', subpix='moment',
                        metric='peak_nois'):
     """
     Redirecting arrays to
 
     Parameters
     ----------
-    M1 : np.array, size=(m,n,b), dtype=float
+    M1 : numpy.array, size=(m,n,b), dtype=float
         first image array, can be complex.
-    M2 : np.array, size=(m,n,b), dtype=float
+    M2 : numpy.array, size=(m,n,b), dtype=float
         second image array, can be complex.
-    L1 : np.array, size=(m,n), dtype=bool
-        labelled image of the first image (M1).
-    L2 : np.array, size=(m,n), dtype=bool
-        labelled image of the second image (M2).
+    L1 : numpy.array, size=(m,n), dtype=bool
+        label of the first image, where True denote elements to ignore.
+    L2 : numpy.array, size=(m,n), dtype=bool
+        label of the second image, where True denote elements to ignore.
     geoTransform1 : tuple, size={(6,) (8,)}
         affine transformation coefficients of array M1
     geoTransform2 : tuple, size={(6,) (8,)}
@@ -927,11 +897,8 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
         amount of pixels from the center
     search_radius: integer
         amount of pixels from the center
-    reg : {"binary", other}
-         * "binary" :
-         * otherwise, estimate scale and shear from geometry and metadata
     prepro : {'bandpass' (default), 'raiscos', 'highpass'}
-        Specifies which pre-procssing to apply to the imagery:
+        Specifies which pre-procssing procedure to apply to the imagery:
 
           * 'bandpass' : bandpass filter
           * 'raiscos' : raised cosine
@@ -984,76 +951,30 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
     ij2_corr = np.zeros((i1.shape[0],2)).astype(np.float64)
     snr_score = np.zeros((i1.shape[0],1)).astype(np.float16)
 
-    for counter in tqdm(range(len(i1))): # loop through all posts
-
-        # deformation compensation
-        if reg in ['binary']:
-            # construct binary templates
-            az1_sub = sun1_Az[i1[counter],j1[counter]]
-            d_elong = 0 # move center of template into the direction of the caster
-            i1_c = np.round(i1[counter] + \
-                            (np.cos(np.degrees(az1_sub))*d_elong)).astype('int')
-            j1_c = np.round(j1[counter] - \
-                            (np.sin(np.degrees(az1_sub))*d_elong)).astype('int')
-
-            L1_sub = L1[i1_c-search_radius : i1_c+search_radius+1,
-                    j1_c-search_radius : j1_c+search_radius+1]
-
-            Xr,Yr = rot_trans_template_coord(az1_sub, search_radius)
-
-            sun_along = np.abs(Xr)<(temp_radius/2) # sides lobe
-            sun_top = Yr<=0 # upper part of the template
-
-            B1_sub = (sun_along & sun_top & L1_sub)
-            B1_sub = np.logical_or(B1_sub, np.flip(np.flip(B1_sub, 0),1))
-
-            az2_sub = sun2_Az[i2[counter],j2[counter]]
-            i2_c = np.round(i2[counter] + \
-                            (np.cos(np.degrees(az2_sub))*d_elong)).astype('int')
-            j2_c = np.round(j2[counter] - \
-                            (np.sin(np.degrees(az2_sub))*d_elong)).astype('int')
-
-            L2_sub = L2[i2_c-search_radius : i2_c+search_radius+1,
-                    j2_c-search_radius : j2_c+search_radius+1]
-
-            Xr,Yr = rot_trans_template_coord(az2_sub, search_radius)
-            sun_along = np.abs(Xr)<(temp_radius/2) # sides lobe
-            sun_top = Yr<=0 # upper part of the template
-
-            B2_sub = (sun_along & sun_top & L2_sub)
-            B2_sub = np.logical_or(B2_sub, np.flip(np.flip(B2_sub, 0),1))
-
-            breakpoint()
-        else: # estimate scale and shear from geometry
-            A = np.array([[1, simple_sh[counter]],
-                          [0, scale_12[counter]]])
-            A_inv = np.linalg.inv(A)
-            if correlator in frequency_based:
-                X_aff,Y_aff = aff_trans_template_coord(A_inv, search_radius,
-                                                       fourier=True)
-            else:
-                X_aff, Y_aff = aff_trans_template_coord(A_inv, search_radius,
-                                                        fourier=False)
+    for idx in tqdm(range(len(i1))): # loop through all posts
+        A = np.array([[1, simple_sh[idx]],
+                      [0, scale_12[idx]]])
+        A_inv = np.linalg.inv(A)
 
         # create templates
         if correlator in frequency_based:
             X_one, Y_one = aff_trans_template_coord(np.eye(2), temp_radius,
                                                     fourier=True)
+            X_aff,Y_aff = aff_trans_template_coord(A_inv, search_radius,
+                                                    fourier=True)
         else:
             X_one, Y_one = aff_trans_template_coord(np.eye(2), temp_radius,
                                                     fourier=False)
+            X_aff, Y_aff = aff_trans_template_coord(A_inv, search_radius,
+                                                    fourier=False)
 
-        M1_sub = bilinear_interpolation(M1,
-                                        i1[counter]+Y_one, j1[counter]+X_one)
-        L1_sub = bilinear_interpolation(L1,
-                                        i1[counter]+Y_one, j1[counter]+X_one)
-        M2_sub = bilinear_interpolation(M2,
-                                        i2[counter]+Y_aff, j2[counter]+X_aff)
-        L2_sub = bilinear_interpolation(L2,
-                                        i2[counter]+Y_aff, j2[counter]+X_aff)
+        M1_sub = bilinear_interpolation(M1, i1[idx]+Y_one, j1[idx]+X_one)
+        L1_sub = bilinear_interpolation(L1, i1[idx]+Y_one, j1[idx]+X_one)
+        M2_sub = bilinear_interpolation(M2, i2[idx]+Y_aff, j2[idx]+X_aff)
+        L2_sub = bilinear_interpolation(L2, i2[idx]+Y_aff, j2[idx]+X_aff)
+
         if correlator in ['aff_of']:
             (di,dj,Aff,snr) = affine_optical_flow(M1_sub, M2_sub)
-
         else:
             QC = match_translation_of_two_subsets(M1_sub, M2_sub,
                                                   correlator,subpix,
@@ -1067,7 +988,7 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
         if subpix in ['optical_flow']:
             # reposition second template
             M2_new = create_template_at_center(M2,
-                   i2[counter]-di, j2[counter]-dj,temp_radius)
+                   i2[idx]-di, j2[idx]-dj,temp_radius)
             # optical flow refinement
             ddi,ddj = simple_optical_flow(M1_sub, M2_new)
             if (abs(ddi)>0.5) or (abs(ddj)>0.5): # divergence
@@ -1075,10 +996,8 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
         else:
             ddi,ddj = estimate_subpixel(QC, subpix, m0=m0)
 
-        if abs(ddi)<2:
-            di += ddi
-        if abs(ddj)<2:
-            dj += ddj
+        if abs(ddi)<2: di += ddi
+        if abs(ddj)<2: dj += ddj
 
         # adjust for affine transform
         if 'Aff' in locals(): # affine transform is also estimated
@@ -1089,10 +1008,10 @@ def match_shadow_casts(M1, M2, L1, L2, sun1_Az, sun2_Az,
             dj_rig = dj*A[0,0] + di*A[0,1]
             di_rig = dj*A[1,0] + di*A[1,1]
 
-        snr_score[counter] = score
+        snr_score[idx] = score
 
-        ij2_corr[counter,0] = i2[counter] - di_rig
-        ij2_corr[counter,1] = j2[counter] - dj_rig
+        ij2_corr[idx,0] = i2[idx] - di_rig
+        ij2_corr[idx,1] = j2[idx] - dj_rig
 
     x2_corr,y2_corr = pix2map(geoTransformPad2, ij2_corr[:,0], ij2_corr[:,1])
     xy2_corr = np.nan * np.ones((IN.shape[0],2))
@@ -1109,7 +1028,7 @@ def angles2unit(azimuth):
 
     Returns
     -------
-    xy : np.array, size=(2,1), dtype=float
+    xy : numpy.array, size=(2,1), dtype=float
         unit vector in map coordinates, that is East and Nordwards direction
 
     Notes
@@ -1141,18 +1060,18 @@ def get_intersection(xy_1, xy_2, xy_3, xy_4):
 
     Parameters
     ----------
-    xy_1 : np.array, size=(m,2)
+    xy_1 : numpy.array, size=(m,2)
         array with 2D coordinate of start from the first line.
-    xy_2 : np.array, size=(m,2)
+    xy_2 : numpy.array, size=(m,2)
         array with 2D coordinate of end from the first line.
-    xy_3 : np.array, size=(m,2)
+    xy_3 : numpy.array, size=(m,2)
         array with 2D coordinate of start from the second line.
-    xy_4 : np.array, size=(m,2)
+    xy_4 : numpy.array, size=(m,2)
         array with 2D coordinate of end from the second line.
 
     Returns
     -------
-    xy : np.array, size=(m,2)
+    xy : numpy.array, size=(m,2)
         array with 2D coordinate of intesection
 
     Notes
@@ -1306,7 +1225,7 @@ def get_shadow_rectification(casters, post_1, post_2, az_1, az_2):
     # get planar distance between
     dist_1 = np.hypot(post_1[:,0] - casters[:,0], post_1[:,1] - casters[:,1])
     dist_2 = np.hypot(post_2[:,0] - casters[:,0], post_2[:,1] - casters[:,1])
-    scale_12 = np.divide(dist_2, dist_1)
+    scale_12 = np.divide(dist_2, dist_1, where=dist_1!=0)
 
     # sometimes caster and casted are on the same location,
     # causing very large scaling, just reduce this

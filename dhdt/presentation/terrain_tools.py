@@ -66,7 +66,7 @@ def adaptive_elevation_smoothing(Z, t_size=7, g_max=7):
                                   )
     #todo build scale space box
 
-    Z_new = Z_new[:,:,0]
+    Z_new = Z_new[...,0]
     return Z_new
 
 def curvature_enhanced_shading(Z, az=-45, zn=+45, spac=10, c=0.2):

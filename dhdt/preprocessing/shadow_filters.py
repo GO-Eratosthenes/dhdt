@@ -3,12 +3,14 @@ import numpy as np
 from numpy.lib.stride_tricks import as_strided
 
 # image processing libraries
-from scipy import ndimage
+from scipy import ndimage, signal
 from skimage.filters import threshold_otsu
 from sklearn.cluster import MeanShift, estimate_bandwidth
 
 from ..generic.filtering_statistical import make_2D_Gaussian
 from ..generic.handler_im import rotated_sobel, diff_compass
+
+from ..processing.matching_tools_frequency_filters import perdecomp
 
 def enhance_shadows(Shw, method, **kwargs):
     """ Given a specific method, employ shadow transform
@@ -23,7 +25,6 @@ def enhance_shadows(Shw, method, **kwargs):
             * 'mean' : mean shift filter
             * 'kuwahara' : kuwahara filter
             * 'median' : iterative median filter
-            * 'otsu' : buffered Otsu filter
             * 'anistropic' : anistropic diffusion filter
 
     Returns
@@ -33,10 +34,10 @@ def enhance_shadows(Shw, method, **kwargs):
 
     See Also
     --------
-    mean_shift_filter, kuwahara_filter, iterative_median_filter, otsu_filter,
+    mean_shift_filter, kuwahara_filter, iterative_median_filter,
     anistropic_diffusion_scalar
     """
-    if method in ('mean'):
+    if method in ('mean', 'mean-shift'):
         quantile=0.1 if kwargs.get('quantile')==None else kwargs.get('quantile')
         M = mean_shift_filter(Shw, quantile=quantile)
     elif method in ('kuwahara'):
@@ -46,15 +47,16 @@ def enhance_shadows(Shw, method, **kwargs):
         tsize=5 if kwargs.get('tsize')==None else kwargs.get('tsize')
         iter=50 if kwargs.get('loop')==None else kwargs.get('loop')
         M = iterative_median_filter(Shw,tsize=tsize, loop=iter)
-    elif method in ('otsu'):
-        tsize = 5 if kwargs.get('tsize') == None else kwargs.get('tsize')
-        M = otsu_filter(Shw, tsize=tsize)
-    elif method in ('anistropic'):
+    elif method in ('anistropic', 'anistropic-diffusion'):
         iter = 10 if kwargs.get('iter') == None else kwargs.get('iter')
         K = .15 if kwargs.get('K') == None else kwargs.get('K')
         s = .25 if kwargs.get('s') == None else kwargs.get('s')
         n = 4 if kwargs.get('n') == None else kwargs.get('n')
         M = anistropic_diffusion_scalar(Shw, iter=iter, K=K, s=s, n=n)
+    elif method in ('L0', 'L0smoothing'):
+        lamb = 2E-2 if kwargs.get('lamb') == None else kwargs.get('lamb')
+        kappa = 2. if kwargs.get('kappa') == None else kwargs.get('kappa')
+        M = L0_smoothing(Shw, lamb=lamb, kappa=kappa)
     else:
         assert 1==2, 'please provide a correct method'
     return M
@@ -74,7 +76,7 @@ def mean_shift_filter(I, quantile=0.1):
     labels : np.array, size=(m,n), dtype=integer
         array with numbered labels
     """
-    bw = estimate_bandwidth(I.flatten, quantile=quantile, n_samples=I.shape[1])
+    bw = estimate_bandwidth(I, quantile=quantile, n_samples=I.shape[1])
     ms = MeanShift(bandwidth=bw, bin_seeding=True)
     ms.fit(I.reshape(-1,1))
 
@@ -180,19 +182,6 @@ def iterative_median_filter(I, tsize=5, loop=50):
     for i in range(loop):
         I = ndimage.median_filter(I, size=tsize)
     return I
-
-def otsu_classification(buffer,out):
-    thres = threshold_otsu(buffer)
-    verdict = thres>buffer[len(buffer)//2]
-    return float(verdict)
-
-def test(x, out):
-    out[:] = np.lib.stride_tricks.as_strided(x, strides=x.strides * 2, shape=(5, x.size - 4)).sum(axis=0)
-
-def otsu_filter(I, tsize=5):
-    I_new = ndimage.generic_filter1d(I, otsu_classification, tsize,
-                                     mode='mirror')
-    return I_new
 
 def selective_blur_func(C, t_size):
     # decompose arrays, these seem to alternate....
@@ -412,3 +401,78 @@ def anistropic_diffusion_scalar(I, iter=10, K=.15, s=.25, n=4):
             I_update += I_xtra
         I_new[1:-1,1:-1] += s*I_update
     return I_new
+
+def psf2otf(psf, dim):
+    m,n = psf.shape[0], psf.shape[1]
+
+    new_psf = np.zeros(dim)
+    new_psf[:m, :n] = psf[:, :]
+
+    new_psf = np.roll(new_psf, -dim[0]//2, axis=0)
+    new_psf = np.roll(new_psf, -dim[1]//2, axis=1)
+    otf = np.fft.fft2(new_psf)
+    return otf
+
+def L0_smoothing(I, lamb=2E-2, kappa=2., beta_max=1E5):
+    """
+
+    Parameters
+    ----------
+    I : numpy.array, size={(m,n), (m,n,b)}, dtype=float
+        grid with intensity values
+    lamb : float, default=.002
+    kappa : float, default=2.
+    beta_max : float, default=10000
+
+    Returns
+    -------
+    I : numpy.array, size={(m,n), (m,n,b)}, dtype=float
+        modified intensity image
+
+    References
+    ----------
+    .. [1] Xu et al. "Image smoothing via L0 gradient minimization" ACM
+           transactions on graphics, 2011.
+    """
+    m,n = I.shape[:2]
+    b=1 if I.ndim==2 else I.shape[2]
+
+    dx,dy = np.array([[+1, -1]]), np.array([[+1], [-1]])
+    dx_F,dy_F = psf2otf(dx,(m,n)), psf2otf(dy,(m,n))
+
+    I = perdecomp(I)[0]
+    N_1 = np.fft.fft2(I)
+    D_2 = np.abs(dx_F) ** 2 + np.abs(dy_F) ** 2
+
+    if b>1:
+        dx, dy = np.tile(dx[..., np.newaxis], (1,1,b)), \
+                 np.tile(dy[..., np.newaxis], (1,1,b))
+        D_2 = np.tile(D_2[...,np.newaxis], (1,1,b))
+
+    beta = 2*lamb
+    while beta < beta_max:
+        D_1 = 1 + beta*D_2
+
+        h = np.roll(signal.fftconvolve(I,dx, mode='same'), -1, axis=1)
+        v = np.roll(signal.fftconvolve(I, dy, mode='same'), -1, axis=0)
+
+        t = (h**2 + v**2)<(lamb/beta)
+        np.putmask(h, t, 0)
+        np.putmask(v, t, 0)
+
+        if b==1:
+            N_2 =  np.concatenate((np.array(h[:,-1]-h[:,0], ndmin=2).T,
+                                   -np.diff(h,1,1)), axis=1)
+            N_2 += np.concatenate((np.array(v[-1,...]-v[0,...], ndmin=2),
+                                   -np.diff(v,1,0)), axis=0)
+        else:
+            N_2 = np.concatenate((np.array(h[:,-1,:]-h[:,0,:], ndmin=3
+                                           ).transpose((1, 0, 2)),
+                                  -np.diff(h, 1, 1)), axis=1)
+            N_2 += np.concatenate((np.array(v[-1,...]-v[0,...], ndmin=3),
+                                   -np.diff(v,1,0)), axis=0)
+            N_2 = np.tile(np.sum(N_2, axis=2)[...,np.newaxis], (1,1,b))
+        I_F = np.divide( N_1 + beta*np.fft.fft2(N_2) ,D_1)
+        I = np.real(np.fft.ifft2(I_F))
+        beta *= kappa
+    return I

@@ -50,7 +50,7 @@ def read_geo_info(fname):
     geoTransform += (rows, cols,)
     return spatialRef, geoTransform, targetprj, rows, cols, bands
 
-def read_geo_image(fname, boi=np.array([])):
+def read_geo_image(fname, boi=np.array([]), no_dat=None):
     """ This function takes as input the geotiff name and the path of the
     folder that the images are stored, reads the image and returns the data as
     an array
@@ -62,6 +62,8 @@ def read_geo_image(fname, boi=np.array([])):
     boi : numpy.array, size=(k,1)
         bands of interest, if a multispectral image is read, a selection can
         be specified
+    no_dat : {integer,float}
+         no data value
 
     Returns
     -------
@@ -102,7 +104,8 @@ def read_geo_image(fname, boi=np.array([])):
     if len(boi) == 0:
         for counter in range(img.RasterCount):
             band = np.array(img.GetRasterBand(counter+1).ReadAsArray())
-            no_dat = img.GetRasterBand(counter+1).GetNoDataValue()
+            if no_dat is None:
+                 no_dat = img.GetRasterBand(counter+1).GetNoDataValue()
             # create masked array
             if no_dat is not None:
                 band = np.ma.array(band, mask=band==no_dat)

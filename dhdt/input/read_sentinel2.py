@@ -295,7 +295,8 @@ def read_stack_s2(s2_df):
 
     # in the meta data files there is no mention of its size, hence include
     # it to the geoTransform
-    geoTransform = geoTransform + (im_stack.shape[0], im_stack.shape[1])
+    if len(geoTransform)==6:
+         geoTransform = geoTransform + (im_stack.shape[0], im_stack.shape[1])
     return im_stack, spatialRef, geoTransform, targetprj
 
 def read_geotransform_s2(path, fname='MTD_TL.xml', resolution=10):

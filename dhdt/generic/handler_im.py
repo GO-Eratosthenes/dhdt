@@ -315,7 +315,7 @@ def rescale_image(I, sc, method='cubic'):
 
     Parameters
     ----------
-    I : np.array, size=(m,n)
+    I : numpy.array, size=(m,n), ndim={2,3}
         image
     sc : float
         scaling factor, >1 is zoom-in, <1 is zoom-out.
@@ -326,7 +326,7 @@ def rescale_image(I, sc, method='cubic'):
 
     Returns
     -------
-    I_new : np.array, size=(m,n)
+    I_new : numpy.array, size={(m,n),(m,n,b)}, ndim={2,3}
         rescaled, but not resized image
 
     """
@@ -334,19 +334,27 @@ def rescale_image(I, sc, method='cubic'):
     T = np.array([[sc, 0], [0, sc]]) # scaling matrix
 
     # make local coordinate system
-    (mI,nI) = I.shape
-    (grd_i1,grd_j1) = np.meshgrid(np.linspace(-1, 1, mI), np.linspace(-1, 1, nI))
+    m,n = I.shape[:2]
+    (grd_i1,grd_j1) = np.meshgrid(np.linspace(-1, 1, m), np.linspace(-1, 1, n))
 
     stk_1 = np.vstack( (grd_i1.flatten(), grd_j1.flatten()) ).T
 
     grd_2 = np.matmul(T, stk_1.T)
     # calculate new interpolation grid
-    grd_i2 = np.reshape(grd_2[0,:], (mI, nI))
-    grd_j2 = np.reshape(grd_2[1,:], (mI, nI))
+    grd_i2 = np.reshape(grd_2[0,:], (m, n))
+    grd_j2 = np.reshape(grd_2[1,:], (m, n))
 
     # apply scaling
-    I_new = griddata(stk_1, I.flatten().T, (grd_i2,grd_j2),
-                     method=method)
+    if I.ndim<3:
+         I_new = griddata(stk_1, I.flatten().T, (grd_i2,grd_j2),
+                          method=method)
+    else:
+         b = I.shape[2]
+         I_new = np.zeros((m,n,b))
+         for i in range(b):
+             I_new[...,i] = griddata(stk_1, I[...,i].flatten().T,
+                                     (grd_i2,grd_j2),
+                                     method=method)
     return I_new
 
 def rotated_sobel(az, size=3, indexing='ij'):

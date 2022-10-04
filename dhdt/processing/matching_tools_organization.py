@@ -110,6 +110,24 @@ def list_peak_estimators():
 # todo: include masks
 def estimate_translation_of_two_subsets(I1, I2, M1, M2, correlator='lucas_kan',
                                         **kwargs):
+    """
+
+    Parameters
+    ----------
+    I1,I2 : numpy.array, size=(m,n), dtype={float,integer}
+        grids with intensities
+    M1,M2 : numpy.array, size=(m,n), dtype=bool
+        labelled array corresponding to I1,I2. Hence True denotes exclusion.
+    correlator : string, default='lucas_kanade'
+        methodology to use to correlate I1 and I2
+
+    Returns
+    -------
+    di, dj : float, unit=pixels
+        relative displacement (translation) between I1 and I2
+    score : float
+        (dis)-similarity score
+    """
     assert type(I1) == np.ndarray, ('please provide an array')
     assert type(I2) == np.ndarray, ('please provide an array')
     assert type(M1) == np.ndarray, ('please provide an array')
@@ -132,8 +150,8 @@ def estimate_translation_of_two_subsets(I1, I2, M1, M2, correlator='lucas_kan',
         if kwargs.get('max_amp') != None:
             max_amp = kwargs.get('max_amp')
 
-        if M1.size!=0: I1[~M1] = np.nan # set data outside mask to NaN
-        if M2.size!=0: I2[~M2] = np.nan  # set data outside mask to NaN
+        if M1.size!=0: I1[M1] = np.nan # set data outside mask to NaN
+        if M2.size!=0: I2[M2] = np.nan  # set data outside mask to NaN
 
         di,dj,score = hough_optical_flow(I1, I2,
                                          num_estimates=num_est,
@@ -150,6 +168,33 @@ def estimate_translation_of_two_subsets(I1, I2, M1, M2, correlator='lucas_kan',
 def match_translation_of_two_subsets(I1_sub,I2_sub,correlator,subpix,
                                      M1_sub=np.array([]),
                                      M2_sub=np.array([]) ):
+    """
+
+    Parameters
+    ----------
+    I1_sub : numpy.array, size={(m,n),(k,l)}, dtype={float,integer}, ndim={2,3}
+        grid with intensities, a.k.a. template to locate
+    I2_sub : numpy.array, size=(m,n), dtype={float,integer}, ndim={2,3}
+        grid with intensities, a.k.a. search space
+    correlator : string
+        methodology to use to correlate I1 and I2
+    subpix : string
+        methodology to refine the to sub-pixel localization
+    M1_sub,M2_sub :  numpy.array, size=(m,n), dtype=bool
+        labels corresponding to I1_sub,I2_sub. Hence True denotes exclusion.
+
+    Returns
+    -------
+    {Q,C} : numpy.array, size={(m,n),(k,l)}, dtype={complex,float}, ndim=2
+        cross-correlation spectra or function
+
+    See Also
+    --------
+    estimate_subpixel, estimate_precision
+    list_frequency_correlators, list_spatial_correlators,
+    list_phase_estimators, list_peak_estimators
+
+    """
     assert type(I1_sub)==np.ndarray, ('please provide an array')
     assert type(I2_sub)==np.ndarray, ('please provide an array')
     assert type(M1_sub)==np.ndarray, ('please provide an array')
@@ -228,7 +273,32 @@ def match_translation_of_two_subsets(I1_sub,I2_sub,correlator,subpix,
     else:
         return Q
 
-def estimate_subpixel(QC, subpix, m0=np.zeros((1,2))):
+
+def estimate_subpixel(QC, subpix, m0=np.zeros((1, 2)), **kwargs):
+    """ estimate the sub-pixel translational displacement, present in a
+    cross-correlation function or spectra.
+
+    Parameters
+    ----------
+    QC : numpy.array, size=(m,n), dtype={complex,float}, ndim=2
+        cross-correlation spectra or function
+    subpix : string
+        methodology to refine the to sub-pixel localization
+    m0 : numpy.array, size=(1,2), dtype=integer
+        row, collumn location of the peak of the cross-correlation function
+
+    Returns
+    -------
+    ddi,ddj : float
+        sub-pixel location of the peak/phase-plane
+
+    See Also
+    --------
+        See Also
+    --------
+    match_translation_of_two_subsets,
+    list_phase_estimators, list_peak_estimators
+    """
     assert type(QC)==np.ndarray, ('please provide an array')
     assert type(m0)==np.ndarray, ('please provide an array')
     phase_based = list_phase_estimators()
@@ -238,13 +308,16 @@ def estimate_subpixel(QC, subpix, m0=np.zeros((1,2))):
          'it can be one of the following:' +
          f' { {*peak_based,*phase_based} }')
 
+    ds = 1
+    if kwargs.get('ds') != None: ds = kwargs.get('num_estimates')
+
     if subpix in peak_based: # correlation surface
         if subpix in ['gauss_1']:
             ddi,ddj,_,_ = get_top_gaussian(QC, top=m0)
         elif subpix in ['parab_1']:
             ddi,ddj,_,_= get_top_parabolic(QC, top=m0)
         elif subpix in ['moment']:
-            ddi,ddj,_,_= get_top_moment(QC, ds=1, top=m0)
+            ddi,ddj,_,_= get_top_moment(QC, ds=ds, top=m0)
         elif subpix in ['mass']:
             ddi,ddj,_,_= get_top_mass(QC, top=m0)
         elif subpix in ['centroid']:
@@ -260,11 +333,11 @@ def estimate_subpixel(QC, subpix, m0=np.zeros((1,2))):
         elif subpix in ['trian']:
             ddi,ddj,_,_= get_top_triangular(QC, top=m0)
         elif subpix in ['esinc']:
-            ddi,ddj,_,_= get_top_esinc(QC, ds=1, top=m0)
+            ddi,ddj,_,_= get_top_esinc(QC, ds=ds, top=m0)
         elif subpix in ['gauss_2']:
-            ddi,ddj,_,_= get_top_2d_gaussian(QC, ds=1, top=m0)
+            ddi,ddj,_,_= get_top_2d_gaussian(QC, ds=ds, top=m0)
         elif subpix in ['parab_2t']:
-            ddi,ddj,_,_= get_top_paraboloid(QC, ds=1, top=m0)
+            ddi,ddj,_,_= get_top_paraboloid(QC, ds=ds, top=m0)
 
     elif subpix in phase_based: #cross-spectrum
         if subpix in ['tpss']:
@@ -327,6 +400,16 @@ def estimate_precision(C, di, dj, method='gaussian'):
                      | i            rows
                      v
 
+    See Also
+    --------
+    estimate_subpixel, match_translation_of_two_subsets
+    hessian_spread, gauss_spread
+
+    References
+    ----------
+    .. [1] Altena et al. "Correlation dispersion as a measure to better estimate
+       uncertainty of remotely sensed glacier displacements" The cryosphere,
+       vol.16(6) pp.2285-2300, 2021.
     """
     if method in ['hessian']:
         cov_ii,cov_jj,cov_ij = hessian_spread(C,

@@ -120,7 +120,7 @@ def list_central_wavelength_oli():
     center_wavelength = {"B1": .443, "B2": .482, "B3": .561, "B4": .655,
                          "B5": .865, "B6":1.609, "B7":2.201, "B8": .590,
                          "B9":1.373, "B10":10.896,"B11":12.001,
-                        }*1E3
+                        }
     # convert from nm to µm
     center_wavelength = {k: v*1E3 for k, v in center_wavelength.items()}
 

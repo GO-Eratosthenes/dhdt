@@ -94,7 +94,7 @@ def list_central_wavelength_sd(num_bands=4):
     df = pd.DataFrame(d)
     return df
 
-def read_band_ps(dir_path, fname):
+def read_band_ps(dir_path, fname, no_dat=None):
     """
     This function takes as input the PlanetScope file name and the path of the
     folder that the images are stored, reads the image and returns the data as
@@ -123,11 +123,20 @@ def read_band_ps(dir_path, fname):
     list_central_wavelength_ps
 
     """
-    fname = os.path.join(dir_path, fname)
+    if fname is not None:
+        fname = os.path.join(dir_path, fname)
+    else:
+        fname = dir_path
+
     assert len(glob.glob(fname))!=0, ('file does not seem to be present')
 
     data, spatialRef, geoTransform, targetprj = \
-        read_geo_image(glob.glob(fname)[0])
+        read_geo_image(glob.glob(fname)[0], no_dat=no_dat)
+    return data, spatialRef, geoTransform, targetprj
+
+def read_data_ps(f_full, df):  # todo: doctstring
+    data, spatialRef, geoTransform, targetprj = read_band_ps(f_full, None)
+    data = data[..., df['bandid'].to_numpy()]
     return data, spatialRef, geoTransform, targetprj
 
 def read_detector_type_ps(path, fname='*_metadata.xml'):

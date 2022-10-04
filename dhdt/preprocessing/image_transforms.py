@@ -39,8 +39,8 @@ def mat_to_gray(I, notI=None, vmin=None, vmax=None):
 
     if np.ptp(I) == 0: return Inew
 
-    if vmin is not None: Inew[yesI] = np.maximum(Inew[yesI], vmin)
-    if vmax is not None: Inew[yesI] = np.minimum(Inew[yesI], vmax)
+    if vmin is not None: I[yesI] = np.maximum(I[yesI], vmin)
+    if vmax is not None: I[yesI] = np.minimum(I[yesI], vmax)
 
     Inew[yesI] = np.interp(I[yesI],
                            (I[yesI].min(),
@@ -78,13 +78,16 @@ def gamma_adjustment(I, gamma=1.0):
                                  ).astype("uint16")
         I_new = np.take(look_up_table, I, out=np.zeros_like(I))
     else: # float
-        radio_range = 2**16-1
-        I = np.round(I*radio_range).astype(np.uint16)
-        look_up_table = np.array([((i / radio_range) ** gamma) * radio_range
-                                  for i in np.arange(0, radio_range+1)]
-                                 ).astype("uint16")
-        I_new = np.take(look_up_table, I, out=np.zeros_like(I))
-        I_new = (I_new/radio_range).astype(np.float64)
+        if np.ptp(I)<=1.0:
+             I_new = I ** gamma
+        else:
+            radio_range = 2**16-1
+            I = np.round(I*radio_range).astype(np.uint16)
+            look_up_table = np.array([((i / radio_range) ** gamma) * radio_range
+                                      for i in np.arange(0, radio_range+1)]
+                                     ).astype("uint16")
+            I_new = np.take(look_up_table, I, out=np.zeros_like(I))
+            I_new = (I_new/radio_range).astype(np.float64)
     return I_new
 
 def log_adjustment(I):
@@ -191,9 +194,9 @@ def inverse_tangent_transformation(x):
     --------
     >>> import numpy as np
     >>> import matplotlib.pyplot as plt
-    >>> x = np.arange(0,1,.001)
+    >>> x = np.arange(-1,1,.001)
     >>> y = inverse_tangent_transformation(x)
-    >>> plt.plot(x,fx), plt.show()
+    >>> plt.figure(), plt.plot(x,y), plt.show()
     shows the mapping function
     """
     fx = np.arctan(x)
@@ -209,14 +212,13 @@ def get_histogram(img):
 
     Returns
     -------
-    hist : np.array, size=(2**8|2**16,2)
+    hist : np.array, size={(2**8,2), (2**16,2)}
         histogram array
     """
-    m, n = img.shape
-    if img.dtype.type==np.uint8:
-        hist = [0.] * 2**8
-    else:
-        hist = [0.] * 2**16
+    assert img.ndim==2, ('please provide a 2D array')
+    m, n = img.shape[:2]
+    bit_depth=8 if img.dtype.type==np.uint8 else 16
+    hist = [0.] * 2**bit_depth
 
     for i in range(m):
       for j in range(n):
@@ -267,20 +269,24 @@ def histogram_equalization(img, img_ref):
 
     Parameters
     ----------
-    img : np.array, ndim=2
+    img : numpy.array, size=(m,n), ndim=2
         asd
-    img_ref : np.array, ndim=2
+    img_ref : numpy.array, size=(m,n), ndim=2
 
     Returns
     -------
-    img : np.array, ndim=2
+    img : numpy.array, size=(m,n), ndim=2
         transformed image
 
     See Also
     --------
     normalize_histogram
+    general_midway_equalization : equalize multiple imagery
     """
-    mn = img.shape
+    assert img.ndim==2, ('please provide a 2D array')
+    assert img_ref.ndim == 2, ('please provide a 2D array')
+
+    mn = img.shape[:2]
     img, img_ref = img.flatten(), img_ref.flatten()
 
     # make resistant to NaN's
@@ -305,8 +311,110 @@ def histogram_equalization(img, img_ref):
     new_img[~IN] = np.nan
     return new_img.reshape(mn)
 
-def high_pass_im(Im, radius=10):
+
+def cum_hist(img):
+    """ compute the cumulative histogram of an image
+
+    Parameters
+    ----------
+    img : numpy.array, size=(m,n), ndim=2
+        grid with intensity values
+
+    Returns
+    -------
+    cdf : numpy.array, size=(2**n,), dtype=integer
+        emperical cumulative distribution function, i.e. a cumulative histogram.
     """
+    bit_depth = 8 if img.dtype.type == np.uint8 else 16
+    pdf = np.histogram(img, bins=range(0, 2 ** bit_depth))[0]
+    cdf = np.cumsum(pdf).astype(float)
+    cdf = cdf / np.sum(pdf)
+    return cdf
+
+def psuedo_inv(cumhist, val):
+    """
+    Parameters
+    ----------
+    cumhist : numpy.array, size=(2**n,), dtype={integer, float}
+        emperical cumulative distribution function, i.e. a cumulative histogram.
+    val : {integer,float}
+
+    Returns
+    -------
+    res : {integer,float}
+        the pseudo-inverse of cumhist
+
+    Notes
+    -----
+    The following acronyms are used:
+
+    CDF - cumulative distribution function
+    """
+    res = np.min(np.where(cumhist >= val))
+    return res
+
+
+def general_midway_equalization(I):
+    """ equalization of multiple imagery, based on [1]
+
+    Parameters
+    ----------
+    I : numpy.array, dim=3, type={uint8,uint16}
+        stack of imagery
+
+    Returns
+    -------
+    I_new : numpy.array, dim=3, type={uint8,uint16}
+        harmonized stack of imagery
+
+    References
+    ----------
+    .. [1] Delon, "Midway image equalization", Journal of mathematical imaging
+       and Vision", vol.21(2) pp.119-134, 2004
+
+    Notes
+    -----
+    The following acronyms are used:
+
+    CDF - cumulative distribution function
+    """
+
+    # compute the corresponding cumulative histograms (CDFs) of all N images:
+
+    CDFs = []
+
+    assert I.ndim == 3, ('please provide an array with multiple dimensions')
+    bit_depth = 8 if I.dtype.type == np.uint8 else 16
+    im_depth = I.shape[2]
+    for k in range(im_depth):
+        if type(I) in (np.ma.core.MaskedArray,):
+            CDFs.append(cum_hist(I[..., k].compressed()))
+        else:
+            CDFs.append(cum_hist(I[..., k]))
+
+    idx_min_CDF, idx_max_CDF = (2 ** bit_depth) - 1, 0
+    for k in range(im_depth):
+        idx_min_CDF = np.minimum(np.argmin(CDFs[k] == 0), idx_min_CDF)
+        idx_max_CDF = np.maximum(np.argmax(CDFs[k] == 1), idx_max_CDF)
+
+    I_new = np.zeros_like(I, dtype=np.float64)
+    for x in range(im_depth):
+        res = np.zeros((I_new.shape[0:2]), dtype=np.float64)
+        for p in range(im_depth):
+            # compute pseudo inverse
+            inv_CDF = np.empty_like(CDFs[p])
+            for i in range(idx_min_CDF, idx_max_CDF):
+                inv_CDF[i] = psuedo_inv(CDFs[p], CDFs[x][i])
+            inv_CDF[idx_max_CDF:] = np.max(inv_CDF)
+            # compute midway equalization (using floating-point):
+            res += np.take(inv_CDF, I[..., x])
+        res *= 1 / im_depth
+        I_new[..., x] = res
+
+    return I_new
+
+def high_pass_im(Im, radius=10):
+   """
 
     Parameters
     ----------
@@ -314,19 +422,19 @@ def high_pass_im(Im, radius=10):
         data array with intensities
     radius : float, unit=pixels
         hard threshold of the sphere in Fourier space
+
     Returns
     -------
     Inew : numpy.array, ndim={2,3}, size=(m,n,_)
         data array with high-frequency signal
 
     """
-    m, n = Im.shape[0],Im.shape[1]
+    m,n = Im.shape[:2]
 
-    # fourier coordinate system
+    # Fourier coordinate system
     (I, J) = np.mgrid[:m, :n]
-    Hi = np.fft.fftshift(np.divide(1 - np.exp(-((I - m/2)**2 + (J - n/2)**2)),
-                                   (2 * radius)**2)
-                         )
+    Hi = np.fft.fftshift(1 - np.exp( -np.divide(((I - m/2)**2 + (J - n/2)**2),
+                                                 (2 * radius) ** 2)))
 
     if Im.ndim==2:
         If = np.fft.fft2(Im)
@@ -334,7 +442,7 @@ def high_pass_im(Im, radius=10):
         return Inew
     else:
         Inew = np.zeros_like(Im)
-        for i in range(Im.ndim):
-            If = np.fft.fft2(Im[:,:,i])
-            Inew[:,:,i] = np.real(np.fft.ifft2(If * Hi))
+        for i in range(Im.shape[2]):
+             If = np.fft.fft2(Im[...,i])
+             Inew[...,i] = np.real(np.fft.ifft2(If * Hi))
         return Inew

@@ -1,5 +1,8 @@
 import numpy as np
 
+from ..generic.unit_check import \
+    are_three_arrays_equal, are_two_arrays_equal
+
 from .image_transforms import mat_to_gray
 
 def rgb2hcv(Blue, Green, Red):
@@ -7,21 +10,21 @@ def rgb2hcv(Blue, Green, Red):
 
     Parameters
     ----------
-    Blue : np.array, size=(m,n)
+    Blue : numpy.array, size=(m,n)
         Blue band of satellite image
-    Green : np.array, size=(m,n)
+    Green : numpy.array, size=(m,n)
         Green band of satellite image
-    Red : np.array, size=(m,n)
+    Red : numpy.array, size=(m,n)
         Red band of satellite image
 
     Returns
     -------
-    V : np.array, size=(m,n)
-        array with dominant frequency
-    H : np.array, size=(m,n)
+    H : numpy.array, size=(m,n)
         array with amount of color
-    C : np.array, size=(m,n)
+    C : numpy.array, size=(m,n)
         luminance
+    V : numpy.array, size=(m,n)
+        array with dominant frequency
 
     See also
     --------
@@ -34,6 +37,8 @@ def rgb2hcv(Blue, Green, Red):
        images in invariant color models", IEEE transactions in geoscience and
        remote sensing, vol. 44(6) pp. 1661--1671, 2006.
     """
+    are_three_arrays_equal(Blue,Green,Red)
+
     NanBol = Blue == 0
     Blue, Green = mat_to_gray(Blue, NanBol), mat_to_gray(Green, NanBol)
     Red = Red = mat_to_gray(Red, NanBol)
@@ -49,25 +54,56 @@ def rgb2hcv(Blue, Green, Red):
     C[IN] = C2[IN]
     return H, C, V
 
+
+def hcv2rgb(H, C, V):
+    """ transform a color bubble model to red green blue arrays
+
+    Parameters
+    ----------
+    H : numpy.array, size=(m,n)
+        array with amount of color
+    C : numpy.array, size=(m,n)
+        luminance
+    V : numpy.array, size=(m,n)
+        array with dominant frequency
+
+    Returns
+    -------
+    Red, Green, Blue : numpy.array, size=(m,n)
+        array with colours
+
+    References
+    ----------
+    .. [1] Shih, "The reversibility of six geometric color spaces",
+       Photogrammetric engineering & remote sensing, vol.61(10) pp.1223-1232,
+       1995.
+    """
+    are_three_arrays_equal(H,C,V)
+
+    Red = V - C * np.cos(H - 2 * np.pi / 3)
+    Green = V - C * np.cos(H)
+    Blue = V - C * np.cos(H + 2 * np.pi / 3)
+    return Red, Green, Blue
+
 def rgb2yiq(Red, Green, Blue):
     """transform red, green, blue to luminance, inphase, quadrature values
 
     Parameters
     ----------
-    Red : np.array, size=(m,n)
+    Red : numpy.array, size=(m,n)
         red band of satellite image
-    Green : np.array, size=(m,n)
+    Green : numpy.array, size=(m,n)
         green band of satellite image
-    Blue : np.array, size=(m,n)
+    Blue : numpy.array, size=(m,n)
         blue band of satellite image
 
     Returns
     -------
-    Y : np.array, size=(m,n)
+    Y : numpy.array, size=(m,n)
         luminance
-    I : np.array, size=(m,n)
+    I : numpy.array, size=(m,n)
         inphase
-    Q : np.array, size=(m,n)
+    Q : numpy.array, size=(m,n)
         quadrature
 
     See also
@@ -78,6 +114,7 @@ def rgb2yiq(Red, Green, Blue):
     -----
     .. [1] Gonzalez & Woods "Digital image processing", 1992.
     """
+    are_three_arrays_equal(Blue,Green,Red)
 
     L = np.array([(+0.299, +0.587, +0.114),
                   (+0.596, -0.275, -0.321),
@@ -93,20 +130,20 @@ def yiq2rgb(Y,I,Q):
 
     Parameters
     ----------
-    Red : np.array, size=(m,n)
+    Red : numpy.array, size=(m,n)
         red band of satellite image
-    Green : np.array, size=(m,n)
+    Green : numpy.array, size=(m,n)
         green band of satellite image
-    Blue : np.array, size=(m,n)
+    Blue : numpy.array, size=(m,n)
         blue band of satellite image
 
     Returns
     -------
-    Y : np.array, size=(m,n)
+    Y : numpy.array, size=(m,n)
         luminance
-    I : np.array, size=(m,n)
+    I : numpy.array, size=(m,n)
         inphase
-    Q : np.array, size=(m,n)
+    Q : numpy.array, size=(m,n)
         quadrature
 
     See also
@@ -117,6 +154,8 @@ def yiq2rgb(Y,I,Q):
     -----
     .. [1] Gonzalez & Woods "Digital image processing", 1992.
     """
+    are_three_arrays_equal(Y,I,Q)
+
     L = np.array([(+0.299, +0.587, +0.114),
                   (+0.596, -0.275, -0.321),
                   (+0.212, -0.523, +0.311)])
@@ -131,20 +170,20 @@ def rgb2ycbcr(Red, Green, Blue):
 
     Parameters
     ----------
-    Red : np.array, size=(m,n)
+    Red : numpy.array, size=(m,n)
         red band of satellite image
-    Green : np.array, size=(m,n)
+    Green : numpy.array, size=(m,n)
         green band of satellite image
-    Blue : np.array, size=(m,n)
+    Blue : numpy.array, size=(m,n)
         blue band of satellite image
 
     Returns
     -------
-    Y : np.array, size=(m,n)
+    Y : numpy.array, size=(m,n)
         luma
-    Cb : np.array, size=(m,n)
+    Cb : numpy.array, size=(m,n)
         chroma
-    Cr : np.array, size=(m,n)
+    Cr : numpy.array, size=(m,n)
         chroma
 
     See also
@@ -157,6 +196,7 @@ def rgb2ycbcr(Red, Green, Blue):
        images in invariant color models", IEEE transactions in geoscience and
        remote sensing, vol. 44(6) pp. 1661--1671, 2006.
     """
+    are_three_arrays_equal(Blue,Green,Red)
 
     L = np.array([(+0.257, +0.504, +0.098),
                   (-0.148, -0.291, +0.439),
@@ -177,20 +217,20 @@ def rgb2hsi(Red, Green, Blue):
 
     Parameters
     ----------
-    Red : np.array, size=(m,n)
+    Red : numpy.array, size=(m,n)
         red band of satellite image
-    Green : np.array, size=(m,n)
+    Green : numpy.array, size=(m,n)
         green band of satellite image
-    Blue : np.array, size=(m,n)
+    Blue : numpy.array, size=(m,n)
         blue band of satellite image
 
     Returns
     -------
-    Hue : np.array, size=(m,n), range=0...1
+    Hue : numpy.array, size=(m,n), range=0...1
         Hue
-    Sat : np.array, size=(m,n), range=0...1
+    Sat : numpy.array, size=(m,n), range=0...1
         Saturation
-    Int : np.array, size=(m,n), range=0...1
+    Int : numpy.array, size=(m,n), range=0...1
         Intensity
 
     See also
@@ -204,6 +244,8 @@ def rgb2hsi(Red, Green, Blue):
        remote sensing, vol. 44(6) pp. 1661--1671, 2006.
     .. [2] Pratt, "Digital image processing" Wiley, 1991.
     """
+    are_three_arrays_equal(Blue,Green,Red)
+
     if np.ptp(Red.flatten())>1:
         Red = mat_to_gray(Red)
     if np.ptp(Green.flatten())>1:
@@ -223,7 +265,9 @@ def rgb2hsi(Red, Green, Blue):
     Hue = np.remainder(Hue, 1) # bring to from -.5...+.5 to 0...1 range
     return Hue, Sat, Int
 
-def hsi2rgb(Hue, Sat, Int): #todo
+def hsi2rgb(Hue, Sat, Int): #todo: docstring
+    are_three_arrays_equal(Hue,Sat,Int)
+
     Red,Green,Blue = np.zeros_like(Hue), np.zeros_like(Hue), np.zeros_like(Hue)
     Class = np.ceil(Hue/3)
     Color = 1 + Sat * np.divide(Hue, np.cos(np.radians(60)))
@@ -253,21 +297,21 @@ def erdas2hsi(Blue, Green, Red):
 
     Parameters
     ----------
-    Blue : np.array, size=(m,n)
+    Blue : numpy.array, size=(m,n)
         blue band of satellite image
-    Green : np.array, size=(m,n)
+    Green : numpy.array, size=(m,n)
         green band of satellite image
-    Red : np.array, size=(m,n)
+    Red : numpy.array, size=(m,n)
         red band of satellite image
 
 
     Returns
     -------
-    Hue : np.array, size=(m,n), float
+    Hue : numpy.array, size=(m,n), float
         hue
-    Sat : np.array, size=(m,n), float
+    Sat : numpy.array, size=(m,n), float
         saturation
-    Int : np.array, size=(m,n), float
+    Int : numpy.array, size=(m,n), float
         intensity
 
     See also
@@ -278,6 +322,8 @@ def erdas2hsi(Blue, Green, Red):
     -----
     .. [1] ERDAS, "User handbook", 2013.
     """
+    are_three_arrays_equal(Blue,Green,Red)
+
     if np.ptp(Red.flatten())>1:
         Red = mat_to_gray(Red)
     if np.ptp(Green.flatten())>1:
@@ -316,11 +362,11 @@ def rgb2xyz(Red, Green, Blue, method='reinhardt'):
 
     Parameters
     ----------
-    Red : np.array, size=(m,n)
+    Red : numpy.array, size=(m,n)
         red band of satellite image
-    Green : np.array, size=(m,n)
+    Green : numpy.array, size=(m,n)
         green band of satellite image
-    Blue : np.array, size=(m,n)
+    Blue : numpy.array, size=(m,n)
         blue band of satellite image
     method :
         'reinhardt'
@@ -330,9 +376,7 @@ def rgb2xyz(Red, Green, Blue, method='reinhardt'):
 
     Returns
     -------
-    X : np.array, size=(m,n)
-    Y : np.array, size=(m,n)
-    Z : np.array, size=(m,n)
+    X,Y,Z : numpy.array, size=(m,n)
 
     See also
     --------
@@ -344,6 +388,8 @@ def rgb2xyz(Red, Green, Blue, method='reinhardt'):
        and applications vol.21(5) pp.34-41, 2001.
     .. [2] Ford & Roberts. "Color space conversion", pp. 1--31, 1998.
     """
+    are_three_arrays_equal(Blue,Green,Red)
+
     if method=='ford':
         M = np.array([(0.4124564, 0.3575761, 0.1804375),
                       (0.2126729, 0.7151522, 0.0721750),
@@ -363,18 +409,16 @@ def xyz2lms(X, Y, Z):
 
     Parameters
     ----------
-    X : np.array, size=(m,n)
+    X : numpy.array, size=(m,n)
         modified XYZitu601-1 axis
-    Y : np.array, size=(m,n)
+    Y : numpy.array, size=(m,n)
         modified XYZitu601-1 axis
-    Z : np.array, size=(m,n)
+    Z : numpy.array, size=(m,n)
         modified XYZitu601-1 axis
 
     Returns
     -------
-    L : np.array, size=(m,n)
-    M : np.array, size=(m,n)
-    S : np.array, size=(m,n)
+    L,M,S : numpy.array, size=(m,n)
 
     See also
     --------
@@ -385,6 +429,8 @@ def xyz2lms(X, Y, Z):
     .. [1] Reinhard et al. "Color transfer between images" IEEE Computer graphics
        and applications vol.21(5) pp.34-41, 2001.
     """
+    are_three_arrays_equal(X,Y,Z)
+
     N = np.array([(+0.3897, +0.6890, -0.0787),
                   (-0.2298, +1.1834, +0.0464),
                   (+0.0000, +0.0000, +0.0000)])
@@ -399,15 +445,11 @@ def xyz2lab(X, Y, Z, th=0.008856):
 
     Parameters
     ----------
-    X : np.array, size=(m,n)
-    Y : np.array, size=(m,n)
-    Z : np.array, size=(m,n)
+    X,Y,Z : numpy.array, size=(m,n)
 
     Returns
     -------
-    L : np.array, size=(m,n)
-    a : np.array, size=(m,n)
-    b : np.array, size=(m,n)
+    L,a,b : numpy.array, size=(m,n)
 
     See also
     --------
@@ -420,6 +462,8 @@ def xyz2lab(X, Y, Z, th=0.008856):
        motion imagery application" ISPRS journal of photogrammetry and remote
        sensing, vol.140 pp.104--121, 2018.
     """
+    are_three_arrays_equal(X,Y,Z)
+
     Xn,Yn,Zn = 95.047, 100.00, 108.883 # D65 illuminant
 
     YYn = Y/Yn
@@ -444,14 +488,11 @@ def lab2lch(L, a, b):
 
     Parameters
     ----------
-    L : np.array, size=(m,n)
-    a : np.array, size=(m,n)
-    b : np.array, size=(m,n)
+    L,a,b : numpy.array, size=(m,n)
 
     Returns
     -------
-    C : np.array, size=(m,n)
-    h : np.array, size=(m,n)
+    C,h : numpy.array, size=(m,n)
 
     See also
     --------
@@ -464,7 +505,9 @@ def lab2lch(L, a, b):
        motion imagery application" ISPRS journal of photogrammetry and remote
        sensing, vol.140 pp.104--121, 2018.
     """
-    C = np.hypot( a, b)
+    are_two_arrays_equal(a,b)
+
+    C = np.hypot(a, b)
 
     # calculate angle, and let it range from 0...1
     h = ((np.arctan2(b, a) + 2*np.pi)% 2*np.pi) / 2*np.pi
@@ -475,18 +518,16 @@ def rgb2lms(Red, Green, Blue):
 
     Parameters
     ----------
-    Red : np.array, size=(m,n)
+    Red : numpy.array, size=(m,n)
         red band of satellite image
-    Green : np.array, size=(m,n)
+    Green : numpy.array, size=(m,n)
         green band of satellite image
-    Blue : np.array, size=(m,n)
+    Blue : numpy.array, size=(m,n)
         blue band of satellite image
 
     Returns
     -------
-    L : np.array, size=(m,n)
-    M : np.array, size=(m,n)
-    S : np.array, size=(m,n)
+    L,M,S : numpy.array, size=(m,n)
 
     See also
     --------
@@ -496,6 +537,8 @@ def rgb2lms(Red, Green, Blue):
     -----
     .. [1] Reinhard et al. "Color transfer between images", 2001.
     """
+    are_three_arrays_equal(Blue,Green,Red)
+
     I = np.array([(0.3811, 0.5783, 0.0402),
                   (0.1967, 0.7244, 0.0782),
                   (0.0241, 0.1228, 0.8444)])
@@ -510,15 +553,11 @@ def lms2lab(L, M, S):
 
     Parameters
     ----------
-    L : np.array, size=(m,n)
-    M : np.array, size=(m,n)
-    S : np.array, size=(m,n)
+    L,M,S : numpy.array, size=(m,n)
 
     Returns
     -------
-    l : np.array, size=(m,n)
-    a : np.array, size=(m,n)
-    b : np.array, size=(m,n)
+    l,a,b : numpy.array, size=(m,n)
 
     See also
     --------
@@ -528,6 +567,8 @@ def lms2lab(L, M, S):
     -----
     .. [1] Reinhard et al. "Color transfer between images", 2001.
     """
+    are_three_arrays_equal(L,M,S)
+
     I = np.matmul(np.array([(1/np.sqrt(3), 0, 0),
                             (0, 1/np.sqrt(6), 0),
                             (0, 0, 1/np.sqrt(2))]),

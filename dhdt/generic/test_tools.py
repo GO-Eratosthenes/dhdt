@@ -8,21 +8,26 @@ from osgeo import osr
 from skimage import data
 from scipy.interpolate import griddata
 
-from .mapping_io import make_geo_im
-from .mapping_tools import get_max_pixel_spacing, map2pix
+from .unit_check import zenit_angle_check
 from .unit_conversion import deg2arg, celsius2kelvin
+from .mapping_tools import get_max_pixel_spacing, map2pix
+from .mapping_io import read_geo_info, read_geo_image, make_geo_im
 from .mapping_io import read_geo_info
 from .handler_im import bilinear_interpolation
+
 from ..preprocessing.image_transforms import mat_to_gray
 from ..preprocessing.atmospheric_geometry import \
     refractive_index_visible, refractive_index_broadband, \
     get_sat_vapor_press, get_water_vapor_enhancement
 from ..preprocessing.shadow_geometry import shadow_image_to_list
+from ..preprocessing.shadow_filters import fade_shadow_cast
+
 from ..processing.matching_tools_frequency_filters import \
     normalize_power_spectrum
 from ..processing.matching_tools import get_integer_peak_location
 from ..processing.network_tools import get_network_indices
 from ..processing.coupling_tools import couple_pair
+
 from ..postprocessing.solar_tools import make_shadowing
 from ..postprocessing.photohypsometric_tools import \
     read_conn_files_to_stack, get_casted_elevation_difference, clean_dh, \
@@ -429,11 +434,15 @@ def create_artificial_terrain(m,n,step_size=.01, multi_res=(2,4)):
     geoTransform = (0, +10, 0, 0, 0, -10, m, n)
     return Z, geoTransform
 
-def create_artifical_sun_angles(n):
-    zn = np.random.uniform(low=35, high=85, size=n)
-    az = deg2arg(np.random.uniform(low=160, high=200, size=n))
+
+def create_artifical_sun_angles(n, az_min=160., zn_min=35.,
+                                az_max=200., zn_max=85.):
+    zn_min, zn_max = zenit_angle_check(zn_min), zenit_angle_check(zn_max)
+    zn = np.random.uniform(low=zn_min, high=zn_max, size=n)
+    az = deg2arg(np.random.uniform(low=az_min, high=az_max, size=n))
     return az, zn
 
+#todo
 #def create_artificial_glacier_mask(Z, seeds=42):
 #    i,j = make_seeds(S, n=seeds)
 #    R = none
@@ -441,7 +450,7 @@ def create_artifical_sun_angles(n):
 
 def create_shadow_caster_casted(Z, geoTransform, az, zn, out_path,
                                 out_name="conn-test.txt", incl_image=False,
-                                **kwargs):
+                                incl_wght=False, **kwargs):
     """
     Create artificial shadowing, and a connection file, for testing purposes
 
@@ -461,15 +470,27 @@ def create_shadow_caster_casted(Z, geoTransform, az, zn, out_path,
     spac = get_max_pixel_spacing(geoTransform)
     Shw = make_shadowing(Z, az, zn, spac=spac)
 
+    if np.logical_or(incl_image, incl_wght):
+         crs = osr.SpatialReference()
+         crs.ImportFromEPSG(3411)
+         # Northern Hemisphere Projection Based on Hughes 1980 Ellipsoid
+
     if incl_image:
         im_name = out_name.split('.')[0]+".tif"
-        crs = osr.SpatialReference()
-        crs.ImportFromEPSG(3411) # Northern Hemisphere Projection Based on Hughes 1980 Ellipsoid
         make_geo_im(Shw, geoTransform, crs.ExportToWkt(),
                     os.path.join(out_path, im_name))
 
-    shadow_image_to_list(Shw, geoTransform, out_path,
-                         Zn=zn, Az=az, out_name=out_name, **kwargs)
+    if incl_wght:
+         t_size=13 if kwargs.get('t_size') == None else kwargs.get('t_size')
+         wg_name = out_name.split('.')[0]+"wgt.tif"
+         # create weighting function
+         F = fade_shadow_cast(Shw, az, t_size=t_size)
+         W = np.abs(F - np.round(F)) * 2
+         make_geo_im(W, geoTransform, crs.ExportToWkt(),
+                     os.path.join(out_path, wg_name))
+
+     shadow_image_to_list(Shw, geoTransform, out_path, timestamp='0001-01-01',
+                          Zn=zn, Az=az, out_name=out_name, **kwargs)
     return
 
 def test_photohypsometric_coupling(N, Z_shape, tolerance=0.1):
@@ -494,7 +515,8 @@ def test_photohypsometric_coupling(N, Z_shape, tolerance=0.1):
 
     assert np.isclose(0, np.quantile(dhdt['dZ_12'], 0.5), atol=tolerance)
 
-def test_photohypsometric_refinement_by_same(Z_shape, tolerance=0.5):
+def test_photohypsometric_refinement_by_same(Z_shape, tolerance=1.0,
+                                              weight=False):
     Z, geoTransform = create_artificial_terrain(Z_shape[0],Z_shape[1])
     az,zn = create_artifical_sun_angles(1)
 
@@ -502,19 +524,30 @@ def test_photohypsometric_refinement_by_same(Z_shape, tolerance=0.5):
     with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmpdir:
         dump_path = os.path.join(os.getcwd(), tmpdir)
         create_shadow_caster_casted(Z, geoTransform,
-            az[0], zn[0], dump_path, out_name="conn.txt", incl_image=True)
+            az[0], zn[0], dump_path, out_name="conn.txt", incl_image=True,
+                                     incl_wght=weight)
         # read and refine through image matching
-        post_1,post_2_new,caster,dh,score,caster_new,_,_,_ = \
-            couple_pair(os.path.join(dump_path, "conn.tif"), \
-                        os.path.join(dump_path, "conn.tif"),
-                        rect=None)
+        if weight:
+             post_1,post_2_new,caster,dh,score,caster_new,_,_,_ = \
+                 couple_pair(os.path.join(dump_path, "conn.tif"), \
+                             os.path.join(dump_path, "conn.tif"),
+                             wght_1=os.path.join(dump_path, "connwgt.tif"),
+                             wght_2=os.path.join(dump_path, "connwgt.tif"),
+                             temp_radius=5, search_radius=9, rect=None,
+                             match='wght_corr')
+         else:
+             post_1,post_2_new,caster,dh,score,caster_new,_,_,_ = \
+                 couple_pair(os.path.join(dump_path, "conn.tif"), \
+                             os.path.join(dump_path, "conn.tif"),
+                             rect=None)
     pix_dispersion = np.nanmedian(np.hypot(post_1[:,0]-post_2_new[:,0],
                                            post_1[:,1]-post_2_new[:,1]))
     assert np.isclose(0, pix_dispersion, atol=tolerance)
 
 def test_photohypsometric_refinement(N, Z_shape, tolerance=0.1):
     Z, geoTransform = create_artificial_terrain(Z_shape[0],Z_shape[1])
-    az,zn = create_artifical_sun_angles(N)
+    az,zn = create_artifical_sun_angles(N, az_min=179.9, az_max=180.1,
+                                        zn_min=60., zn_max=65.)
 
     # create temperary directory
     with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmpdir:
@@ -522,7 +555,8 @@ def test_photohypsometric_refinement(N, Z_shape, tolerance=0.1):
         for i in range(N):
             f_name = "conn-"+str(i).zfill(3)+".txt"
             create_shadow_caster_casted(Z, geoTransform,
-                az[i], zn[i], dump_path, out_name=f_name, incl_image=True)
+                az[i], zn[i], dump_path, out_name=f_name, incl_image=True,
+                incl_wght=True)
         # read and refine through image matching
         print('+')
         match_idxs = get_network_indices(N)
@@ -531,14 +565,36 @@ def test_photohypsometric_refinement(N, Z_shape, tolerance=0.1):
             fname_2 = "conn-"+str(match_idxs[1][idx]).zfill(3)+".tif"
             file_1 = os.path.join(dump_path,fname_1)
             file_2 = os.path.join(dump_path,fname_2)
+            w_1 = file_1.split('.')[0]+"wgt.tif"
+            w_2 = file_2.split('.')[0]+"wgt.tif"
+
             post_1,post_2_new,caster,dh,score,caster_new,_,_,_ = \
-                couple_pair(file_1, file_2)
+                couple_pair(file_1, file_2, wght_1=w_1, wght_2=w_2,
+                            temp_radius=5, search_radius=9, rect="metadata",
+                            match='wght_corr')
             geoTransform = read_geo_info(file_1)[1]
             i_1,j_1 = map2pix(geoTransform, post_1[:,0], post_1[:,1])
             i_2,j_2 = map2pix(geoTransform, post_2_new[:,0], post_2_new[:,1])
             h_1 = bilinear_interpolation(Z, i_1, j_1)
             h_2 = bilinear_interpolation(Z, i_2, j_2)
-            # dh
+            dh_12 = h_2 - h_1
+
+            I_1, I_2 = read_geo_image(file_1)[0], read_geo_image(file_2)[0]
+
+            cnt = 1320
+            w,h = 11,11
+            i_idx,j_idx = np.floor(i_1[cnt]).astype(int), \
+                          np.floor(j_1[cnt]).astype(int)
+            Isub_1 = I_1[i_idx-w:i_idx+w,j_idx-w:j_idx+w]
+            i_idx, j_idx = np.floor(i_2[cnt]).astype(int), \
+                           np.floor(j_2[cnt]).astype(int)
+            Isub_2 = I_2[i_idx-w:i_idx+w, j_idx-w:j_idx+w]
+
+            fig, (ax1, ax2) = plt.subplots(1, 2)
+            ax1.imshow(Isub_1)
+            ax1.scatter(np.mod(j_1[cnt],1)+w, np.mod(i_1[cnt],1)+h, marker='+')
+            ax2.imshow(Isub_2)
+            ax2.scatter(np.mod(j_2[cnt],1)+w, np.mod(i_2[cnt],1)+h, marker='+')
 
             print('.')
     return

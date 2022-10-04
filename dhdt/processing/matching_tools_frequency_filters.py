@@ -43,7 +43,8 @@ def perdecomp(img):
     
     >>> spec1 = np.fft.fft2(per)
     """
-    assert type(img)==np.ndarray, ("please provide an array")
+    assert type(img) in (np.ma.core.MaskedArray, np.ndarray), \
+        ("please provide an array")
 
     # don't need to process empty arrays
     if (0 in img.shape): return img, np.zeros_like(img)

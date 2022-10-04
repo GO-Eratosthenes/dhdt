@@ -593,13 +593,16 @@ def gauss_spread(C, intI, intJ, dI, dJ, est='dist'):
             hess = np.zeros(4)
 
     # convert to parameters
-    rho = (0.5 * hess[1]) / np.sqrt(np.abs(hess[0] * hess[2]))
-    cov_ii = 1 / (-2 * (1 - rho) * hess[0])
-    cov_jj = 1 / (-2 * (1 - rho) * hess[2])
+    denom = np.sqrt(np.abs(hess[0] * hess[2]))
+    rho = np.divide(0.5 * hess[1] , denom, where=denom!=0)
+    cov_ii = -2 * (1 - rho) * hess[0]
+    if cov_ii!=0: cov_ii = np.divide(1, cov_ii)
+    cov_jj = -2 * (1 - rho) * hess[2]
+    if cov_jj!=0: cov_jj = np.divide(1, cov_jj)
 
     # deviations can be negative
     if np.iscomplex(rho) or np.iscomplex(cov_ii) or np.iscomplex(cov_jj):
-        cov_ii, cov_jj, rho = 0, 0, 0
+        return 0, 0, 0
     return cov_ii, cov_jj, rho, hess, frac
 
 def intensity_disparity(I1,I2):
