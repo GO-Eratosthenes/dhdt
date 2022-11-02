@@ -8,14 +8,11 @@ from xml.etree import ElementTree
 import numpy as np
 import pandas as pd
 
-# geospatial libaries
-from osgeo import gdal, osr
-
 # raster/image libraries
 from PIL import Image, ImageDraw
 from skimage.transform import resize
 from sklearn.neighbors import NearestNeighbors
-from scipy.interpolate import griddata, interp2d
+from scipy.interpolate import griddata
 from scipy.ndimage import label
 from scipy.signal import convolve2d
 
