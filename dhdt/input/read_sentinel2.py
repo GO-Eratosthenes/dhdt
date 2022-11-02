@@ -894,7 +894,7 @@ def read_detector_mask(path_meta, boi, geoTransform):
                 i_arr, j_arr = map2pix(geoTransform, pos_arr[:,0], pos_arr[:,1])
                 ij_arr = np.hstack((j_arr[:,np.newaxis], i_arr[:,np.newaxis]))
                 # make mask
-                msk = Image.new("L", [np.size(det_stack,0), np.size(det_stack,1)], 0)
+                msk = Image.new("L", [np.size(det_stack,1), np.size(det_stack,0)], 0)
                 ImageDraw.Draw(msk).polygon(tuple(map(tuple, ij_arr[:,0:2])),
                                             outline=det_num, fill=det_num)
                 msk = np.array(msk)
