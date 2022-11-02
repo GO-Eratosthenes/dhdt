@@ -1,9 +1,9 @@
 import numpy as np
 
- def zenit_angle_check(zn):
-     zn = np.maximum(zn, 0.)
-     zn = np.minimum(zn, 90.)
-     return zn
+def zenit_angle_check(zn):
+    zn = np.maximum(zn, 0.)
+    zn = np.minimum(zn, 90.)
+    return zn
 
 
 def are_two_arrays_equal(A, B):
