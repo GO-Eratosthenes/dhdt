@@ -405,7 +405,6 @@ def general_midway_equalization(I):
 
 def high_pass_im(Im, radius=10):
     """
-
     Parameters
     ----------
     Im : numpy.array, ndim={2,3}, size=(m,n,_)
@@ -417,7 +416,6 @@ def high_pass_im(Im, radius=10):
     -------
     Inew : numpy.array, ndim={2,3}, size=(m,n,_)
         data array with high-frequency signal
-
     """
     m,n = Im.shape[:2]
 
