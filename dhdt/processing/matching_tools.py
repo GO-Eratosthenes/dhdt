@@ -6,7 +6,7 @@ from skimage.morphology import extrema
 
 from ..generic.mapping_tools import map2pix
 
-def get_integer_peak_location(C, metric='peak_abs'):
+def get_integer_peak_location(C, metric=None):
     """ get the location in an array of the highest score
 
     Parameters
@@ -28,10 +28,8 @@ def get_integer_peak_location(C, metric='peak_abs'):
 
     Returns
     -------
-    di : integer
-        horizontal location of highest score
-    dj : integer
-        vertical location of highest score
+    di,dj : integer
+        horizontal and vertical location of highest score
     matching_metric : float
         metric as specified by 'method'
     max_corr : float
@@ -57,33 +55,33 @@ def get_integer_peak_location(C, metric='peak_abs'):
          |image      v           |
          +-----------+-----------+
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
-    >>> from .matching_tools_organization import get_integer_peak_location
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.processing.matching_tools_organization import \
+            get_integer_peak_location
+    >>> from dhdt.generic.test_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> Q = phase_corr(im1, im2)
     >>> C = np.fft.ifft2(Q)
     >>> di,dj,_,_ = get_integer_peak_location(C)
     """
-    from .matching_tools_correlation_metrics import \
-        get_correlation_metric, list_matching_metrics
+    from .matching_tools_organization import \
+        estimate_match_metric
 
     assert type(C)==np.ndarray, ("please provide an array")
-    metrics_list = list_matching_metrics()
-    assert (metric in metrics_list), \
-        ('please provide a valid metric method. '+
-         'it can be one of the following:'+
-         f' { {*metrics_list} }')
     max_corr = np.argmax(C)
-    score = get_correlation_metric(C, metric=metric)
 
     ij = np.unravel_index(max_corr, C.shape, order='F') # 'C'
     di, dj = ij[::-1]
     di -= C.shape[0] // 2
     dj -= C.shape[1] // 2
+
+    if metric is None:
+        score = 0
+    else:
+        score = estimate_match_metric(C, di=di, dj=dj, metric=metric)
     return di, dj, score, max_corr
 
 def get_peak_indices(C, num_estimates=1):
@@ -468,7 +466,7 @@ def get_coordinates_of_template_centers(Grid, temp_size):
 
     See Also
     --------
-    get_grid_at_template_centers, prepare_grids,
+    get_value_at_template_centers, prepare_grids,
     ..generic.mapping_tools.pix2map
 
     Notes
@@ -497,7 +495,7 @@ def get_coordinates_of_template_centers(Grid, temp_size):
                   radius:(Grid.shape[1]-radius):temp_size]
     return I_idx, J_idx
 
-def get_grid_at_template_centers(Grid, temp_size):
+def get_value_at_template_centers(Grid, temp_size):
     """ When tiling an array into small templates, this function gives the
     value of the pixel in its center.
 
@@ -510,8 +508,8 @@ def get_grid_at_template_centers(Grid, temp_size):
 
     Returns
     -------
-    gridnew : np.array, size=(k,l)
-        coordinates of the pixel in the kernels' center
+    grid_centers_values : np.array, size=(k,l)
+        value of the pixel in the kernels' center
 
     See Also
     --------
@@ -533,22 +531,28 @@ def get_data_and_mask(I,M=None):
     Parameters
     ----------
     I : {numpy.array, numpy.masked.array}
-        data array
-    M : numpy.array
-        masking array
+        data grid
+    M : {numpy.array, numpy.masked.array}, default=None
+        masking array, where True means data, and False neglecting elements
 
     Returns
     -------
     I : numpy.array
         data array
-    M : numpy.array
-        masking array
+    M : numpy.array, dtype=bool
+        masking array, where True means data, and False neglecting elements
     """
     # make compatible with masekd array
     if type(I)==np.ma.core.MaskedArray:
-        M, I = np.ma.getmaskarray(I), np.ma.getdata(I)
+        if M is None:
+            M = np.invert(np.ma.getmaskarray(I))
+        else:
+            if type(M)==np.ma.core.MaskedArray: M = np.ma.getdata(M)
+            M = np.logical_and(M, np.invert(np.ma.getmaskarray(I)))
+        I = np.ma.getdata(I)
     else:
         if M is None: M = np.ones_like(I)
         if M.size==0: M = np.ones_like(I)
+        if type(M)==np.ma.core.MaskedArray: M = np.ma.getdata(M)
         M = M.astype(dtype=bool)
     return I, M

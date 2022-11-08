@@ -19,6 +19,15 @@ following function makes reading such data easier.
 .. automodule:: dhdt.input.read_landsat8
     :members:
 
+read Terra ASTER data
+~~~~~~~~~~~~~~~~~~~~~
+The ASTER instrument onboard of the Terra satellite has been collecting data
+since 1999, but will be decommisioned soon. Nonetheless, its archive is very
+valuable and the following functions make reading such data easier.
+
+.. automodule:: dhdt.input.read_aster
+    :members:
+
 read RapidEye data
 ~~~~~~~~~~~~~~~~~~~~~
 The RapidEye constellation composed of five commercial mini-satellites,

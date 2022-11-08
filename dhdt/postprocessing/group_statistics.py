@@ -118,7 +118,7 @@ def get_general_hypsometry(Z, dZ, interval=100., quant=.5):
     """
     assert len(set({Z.size, dZ.size})) == 1, \
         ('please provide arrays of the same size')
-    assert isinstance(quant, flaot)
+    assert isinstance(quant, float)
     assert quant<=1
 
     L = np.round(Z/interval)

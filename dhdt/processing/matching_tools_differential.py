@@ -5,6 +5,7 @@ import numpy as np
 # image processing libraries
 from scipy import ndimage, interpolate
 
+from ..generic.unit_check import are_two_arrays_equal
 from ..preprocessing.image_transforms import mat_to_gray, histogram_equalization
 from ..processing.matching_tools import get_peak_indices
 from ..generic.filtering_statistical import make_2D_Gaussian
@@ -51,6 +52,8 @@ def create_differential_data(I1,I2):
         ("please provide an array")
     assert type(I2) in (np.ma.core.MaskedArray, np.ndarray), \
         ("please provide an array")
+    are_two_arrays_equal(I1, I2)
+
     # admin
     kernel_t = np.array(
         [[1., 1., 1.],
@@ -94,7 +97,7 @@ def create_differential_data(I1,I2):
     return I_di, I_dj, I_dt
 
 def simple_optical_flow(I1, I2, window_size, sampleI, sampleJ,
-                        tau=1e-2, sigma=0.):  # processing
+                        tau=1e-2, sigma=0.):
     """ displacement estimation through optical flow
 
     Parameters
@@ -157,8 +160,7 @@ def simple_optical_flow(I1, I2, window_size, sampleI, sampleJ,
        application to stereo vision", Proceedings of 7th international joint
        conference on artificial intelligence, 1981.
     """
-    assert type(I1) == np.ndarray, ("please provide an array")
-    assert type(I2) == np.ndarray, ("please provide an array")
+    are_two_arrays_equal(I1, I2)
 
     # check and initialize
     if isinstance(sampleI, int):
@@ -301,11 +303,10 @@ def affine_optical_flow(I1, I2, model='affine', iteration=10,
        epipolar line constraint", Proceedings of the international conference on
        computer vision systems, 2015.
     """
-    assert type(I1) == np.ndarray, ("please provide a numpy array")
-    assert type(I2) == np.ndarray, ("please provide a numpy array")
     assert isinstance(model, str), ('please provide a model; ',
                                     '{''simple'',''affine'',''similarity''}')
     assert ~np.any(np.isnan(I2)), ("arrays with missing data are not yet supported")
+    are_two_arrays_equal(I1, I2)
 
     model = model.lower()
 
@@ -477,6 +478,7 @@ def hough_optical_flow(I1, I2, param_resol=100, sample_fraction=1,
         ("please provide an array")
     assert I1.ndim == 2, ("only grayscale imagery are implemented")
     assert I2.ndim == 2, ("only grayscale imagery are implemented")
+    are_two_arrays_equal(I1, I2)
 
     # resolve no-data or masked array
     Msk_1, Msk_2 = np.isnan(I1), np.isnan(I2)
@@ -547,6 +549,8 @@ def hough_sinus(phi,rho,
     .. [1] Guo & Lü, "Phase-shifting algorithm by use of Hough transform"
        Optics express vol.20(23) pp.26037-26049, 2012.
     """
+    are_two_arrays_equal(phi, rho)
+
     normalize = True
     phi,rho = phi.flatten(), rho.flatten()
     if normalize:

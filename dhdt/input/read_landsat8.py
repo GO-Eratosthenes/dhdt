@@ -99,7 +99,7 @@ def list_central_wavelength_oli():
     >>> l8_df = list_central_wavelength_oli()
     >>> l8_df = l8_df[l8_df['name'].isin(boi)]
     >>> l8_df
-             wavelength  bandwidth  resolution           name  bandid
+             wavelength  bandwidth  resolution   common_name  bandid
     B02         482         60          30           blue       2
     B03         561         57          30          green       3
     B04         655         37          30            red       4
@@ -236,11 +236,12 @@ def read_stack_l8(path, l8_df):
 
     for idx, val in enumerate(l8_df.index):
         if idx==0:
-            im_stack, spatialRef, geoTransform, targetprj = read_band_l8(path, band=val)
+            im_stack, spatialRef, geoTransform, targetprj = read_band_l8(
+                path, band=val)
         else: # stack others bands
             if im_stack.ndim==2:
-                im_stack = im_stack[:,:,np.newaxis]
-            band,_,_,_ = read_band_l8(path, band=val)
+                im_stack = im_stack[...,np.newaxis]
+            band = read_band_l8(path, band=val)[0]
             band = band[:,:,np.newaxis]
             im_stack = np.concatenate((im_stack, band), axis=2)
     return im_stack, spatialRef, geoTransform, targetprj

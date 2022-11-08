@@ -8,9 +8,7 @@ from skimage.measure import find_contours
 
 # local functions
 from ..generic.mapping_tools import pol2cart, cart2pol, rot_mat
-
-from .matching_tools_frequency_filters import \
-    make_fourier_grid
+from .matching_tools_frequency_filters import make_fourier_grid
 
 # radon > direction > sign > shear
 
@@ -116,11 +114,10 @@ def create_cirus_array(rho,theta,d):
     B = np.array(im) # binary circus array
     return B
 
-def affine_binairy_center(B1, B2):
+def affine_binairy_center(B1, B2): #todo: docstring
     # preparation
-    pT = np.sum(B1) # Lebesgue integral
-    pO = np.sum(B2)
-    
+    pT, pO = np.sum(B1), np.sum(B2) # Lebesgue integral
+
     Jac = pO/pT # Jacobian
     
     x = np.linspace(0,B1.shape[1]-1,B1.shape[1])
@@ -129,11 +126,8 @@ def affine_binairy_center(B1, B2):
     del x, y
     
     # calculating moments of the template
-    x12 = Jac* np.sum(X1**2 * B1)
-    x13 = Jac* np.sum(X1**3 * B1)
-    
-    x22 = Jac* np.sum(Y1**2 * B1)
-    x23 = Jac* np.sum(Y1**3 * B1)
+    x12, x13 = Jac* np.sum(X1**2 * B1), Jac* np.sum(X1**3 * B1)
+    x22, x23 = Jac* np.sum(Y1**2 * B1), Jac* np.sum(Y1**3 * B1)
     del X1, Y1
     
     x = np.linspace(0,B2.shape[1]-1,B2.shape[1])
@@ -193,8 +187,7 @@ def moment(I,p,q):
 
 def mom_mat(I):
     M_00 = moment(I,0,0)
-    i_bar = moment(I,1,0)/M_00
-    j_bar = moment(I,0,1)/M_00
+    i_bar, j_bar = moment(I,1,0)/M_00, moment(I,0,1)/M_00
     
     mu_20 = moment(I,2,0)/M_00 - i_bar**2
     mu_02 = moment(I,0,2)/M_00 - j_bar**2
@@ -261,8 +254,8 @@ def scaling_through_power_summation(S1, S2):
     References
     ----------    
     .. [1] Pla & Bober. "Estimating translation/deformation motion through
-       phase correlation", International conference on image analysis and 
-       processing. in Lecture notes in computer science, vol.1310, 1997. 
+           phase correlation", International conference on image analysis and
+           processing. in Lecture notes in computer science, vol.1310, 1997.
     """  
     assert type(S1)==np.ndarray, ("please provide an array")
     assert type(S2)==np.ndarray, ("please provide an array")
@@ -273,5 +266,4 @@ def scaling_through_power_summation(S1, S2):
         np.sum(np.abs(F_1*S1).flatten())
     sc_y = np.sum(np.abs(F_2*S2).flatten()) / \
         np.sum(np.abs(F_2*S1).flatten())
-    
     return sc_x, sc_y

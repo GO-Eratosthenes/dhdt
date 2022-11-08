@@ -2,6 +2,7 @@
 import numpy as np
 from scipy import fftpack, ndimage
 
+from ..generic.unit_check import are_two_arrays_equal
 from ..generic.handler_im import get_grad_filters
 from .matching_tools import \
     reposition_templates_from_center, make_templates_same_size, \
@@ -10,7 +11,7 @@ from .matching_tools_frequency_filters import \
     raised_cosine, thresh_masking, normalize_power_spectrum, gaussian_mask
 from .matching_tools_harmonic_functions import create_complex_fftpack_DCT
 
-def upsample_dft(Q, up_m=0, up_n=0, upsampling=1, \
+def upsample_dft(Q, up_m=0, up_n=0, upsampling=1,
                  i_offset=0, j_offset=0):
     (m,n) = Q.shape
     if up_m==0:
@@ -110,9 +111,10 @@ def cosine_corr(I1, I2):
 
     Parameters
     ----------
-    I1 : numpy.array, size=(m,n), dtype=float
-        array with intensities
-    I2 : numpy.array, size=(m,n), dtype=float
+    I1 : numpy.array, size=(m,n), ndim={2,3}, dtype=float
+        array with intensities, if multiple bands are given the cross-
+        correlation spectra are stacked, see [2].
+    I2 : numpy.array, size=(m,n), ndim={2,3}, dtype=float
         array with intensities
 
     Returns
@@ -128,43 +130,37 @@ def cosine_corr(I1, I2):
     ----------
     .. [1] Li, et al. "DCT-based phase correlation motion estimation",
        IEEE international conference on image processing, vol. 1, 2004.
+    .. [2] Altena & Leinss, "Improved surface displacement estimation through
+       stacking cross-correlation spectra from multi-channel imagery", Science
+       of Remote Sensing, vol.6 pp.100070, 2022.
     """
     assert type(I1)==np.ndarray, ('please provide an array')
     assert type(I2)==np.ndarray, ('please provide an array')
 
+    def _cosine_corr_core(I1,I2):
+        C1 = create_complex_fftpack_DCT(I1)
+        C2 = create_complex_fftpack_DCT(I2)
+#            C1 = create_complex_DCT(I1bnd, Cc, Cs)
+#            C2 = create_complex_DCT(I2bnd, Cc, Cs)
+        Q = (C1) * np.conj(C2)
+        Qn = normalize_power_spectrum(Q)
+        return Q
+
 #    # construct cosine and sine basis matrices
 #    Cc, Cs = get_cosine_matrix(I1), get_sine_matrix(I1)
 
+    I1sub, I2sub = make_templates_same_size(I1, I2)
     if I1.ndim==3: # multi-spectral frequency stacking
         bands = I1.shape[2]
-        I1sub,I2sub = make_templates_same_size(I1,I2)
-
         for i in range(bands): # loop through all bands
-            I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
-
-            C1 = create_complex_fftpack_DCT(I1bnd)
-            C2 = create_complex_fftpack_DCT(I2bnd)
-
-#            C1 = create_complex_DCT(I1bnd, Cc, Cs)
-#            C2 = create_complex_DCT(I2bnd, Cc, Cs)
-            if i == 0:
-                Q = C1*np.conj(C2)
+            Q_b = _cosine_corr_core(I1sub[...,i], I2sub[...,i])
+            if i ==0:
+                Q = Q_b.copy()/bands
             else:
-                Q_b = (C1)*np.conj(C2)
-                Q = (1/(i+1))*Q_b + (i/(i+1))*Q
-
+                Q += Q_b/bands
     else:
-        I1sub,I2sub = make_templates_same_size(I1,I2)
-
-        C1 = create_complex_fftpack_DCT(I1sub)
-        C2 = create_complex_fftpack_DCT(I2sub)
-
-        # C1 = create_complex_DCT(I1sub, Cc, Cs)
-        # C2 = create_complex_DCT(I2sub, Cc, Cs)
-        Q = (C1)*np.conj(C2)
-        Qn = normalize_power_spectrum(Q)
-        C = np.fft.fftshift(np.real(np.fft.ifft2(Qn)))
-    return C
+        Q = _cosine_corr_core(I1sub, I2sub)
+    return Q
 
 def masked_cosine_corr(I1, I2, M1, M2): #todo
     """
@@ -176,9 +172,9 @@ def masked_cosine_corr(I1, I2, M1, M2): #todo
     I2 : {numpy.array, numpy.ma}, size=(m,n), ndim=2
         array with intensities
     M1 : numpy.array, size=(m,n), ndim=2, dtype={bool,float}
-        array with mask
+        array with mask, hence False's are neglected
     M2 : numpy.array, size=(m,n), ndim=2, dtype={bool,float}
-        array with mask
+        array with mask, hence False's are neglected
 
 
     """
@@ -186,8 +182,8 @@ def masked_cosine_corr(I1, I2, M1, M2): #todo
         ("please provide an array")
     assert type(I2) in (np.ma.core.MaskedArray, np.array), \
         ("please provide an array")
-    assert type(M1)==np.ndarray, ('please provide an array')
-    assert type(M2)==np.ndarray, ('please provide an array')
+    assert (type(M1)==np.ndarray) or (M1 is None), ('please provide an array')
+    assert (type(M2)==np.ndarray) or (M2 is None), ('please provide an array')
 
     # make compatible with masekd array
     I1,M1, I2,M2 = get_data_and_mask(I1, M1), get_data_and_mask(I2, M2)
@@ -287,6 +283,7 @@ def phase_only_corr(I1, I2):
            ---┤ F  ├---------------┘
               └----┘
 
+    If multiple bands are given, cross-spectral stacking is applied, see [3].
 
     References
     ----------
@@ -295,6 +292,9 @@ def phase_only_corr(I1, I2):
     .. [2] Kumar & Juday, "Design of phase-only, binary phase-only, and complex
        ternary matched filters with increased signal-to-noise ratios for
        colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
+    .. [3] Altena & Leinss, "Improved surface displacement estimation through
+       stacking cross-correlation spectra from multi-channel imagery", Science
+       of Remote Sensing, vol.6 pp.100070, 2022.
 
     Example
     -------
@@ -313,31 +313,24 @@ def phase_only_corr(I1, I2):
     assert type(I1)==np.ndarray, ('please provide an array')
     assert type(I2)==np.ndarray, ('please provide an array')
 
+    def _phase_only_corr_core(I1, I2):
+        S1, S2 = np.fft.fft2(I1), np.fft.fft2(I2)
+        W2 = np.divide(1, np.abs(I2),
+                       out=np.zeros_like(I2), where=I2!=0)
+        Q = S1 * np.conj((W2 * S2))
+        return Q
+
+    I1sub, I2sub = make_templates_same_size(I1, I2)
     if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
-        I1sub,I2sub = make_templates_same_size(I1,I2)
         bands = I1.shape[2]
-
         for i in range(bands): # loop through all bands
-            I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
-
-            S1, S2 = np.fft.fft2(I1bnd), np.fft.fft2(I2bnd)
-            W2 = np.divide(1, np.abs(I2bnd),
-                           out=np.zeros_like(I2bnd), where=I2bnd!=0)
-            if i == 0:
-                Q = (S1)*np.conj((W2*S2))
+            Q_b = _phase_only_corr_core(I1sub[:,:,i], I2sub[:,:,i])
+            if i ==0:
+                Q = Q_b.copy()/bands
             else:
-                Q_b = (S1)*np.conj((W2*S2))
-                Q = (1/(i+1))*Q_b + (i/(i+1))*Q
-
+                Q += Q_b/bands
     else:
-        I1sub,I2sub = make_templates_same_size(I1,I2)
-
-        S1, S2 = np.fft.fft2(I1sub), np.fft.fft2(I2sub)
-
-        W2 = np.divide(1, np.abs(I2sub),
-                       out=np.zeros_like(I2sub), where=I2sub!=0)
-
-        Q = (S1)*np.conj((W2*S2))
+        Q = _phase_only_corr_core(I1sub, I2sub)
     return Q
 
 def projected_phase_corr(I1, I2, M1=np.array(()), M2=np.array(())):
@@ -345,14 +338,14 @@ def projected_phase_corr(I1, I2, M1=np.array(()), M2=np.array(())):
 
     Parameters
     ----------
-    I1 : numpy.array, size=(m,n), ndim=2
+    I1 : {numpy.array, numpy.ma}, size=(m,n), ndim=2
         array with intensities
-    I2 : numpy.array, size=(m,n), ndim=2
+    I2 : {numpy.array, numpy.ma}, size=(m,n), ndim=2
         array with intensities
     M1 : numpy.array, size=(m,n), ndim=2, dtype={bool,float}
-        array with mask
+        array with mask, hence False's are neglected
     M2 : numpy.array, size=(m,n), ndim=2, dtype={bool,float}
-        array with mask
+        array with mask, hence False's are neglected
 
     Returns
     -------
@@ -393,8 +386,8 @@ def projected_phase_corr(I1, I2, M1=np.array(()), M2=np.array(())):
         ("please provide an array")
     assert type(I2) in (np.ma.core.MaskedArray, np.array), \
         ("please provide an array")
-    assert type(M1)==np.ndarray, ('please provide an array')
-    assert type(M2)==np.ndarray, ('please provide an array')
+    assert (type(M1)==np.ndarray) or (M1 is None), ('please provide an array')
+    assert (type(M2)==np.ndarray) or (M2 is None), ('please provide an array')
 
     # make compatible with masekd array
     I1,M1, I2,M2 = get_data_and_mask(I1, M1), get_data_and_mask(I2, M2)
@@ -461,10 +454,9 @@ def sign_only_corr(I1, I2): # to do
     assert type(I1)==np.ndarray, ('please provide an array')
     assert type(I2)==np.ndarray, ('please provide an array')
 
+    I1sub, I2sub = make_templates_same_size(I1, I2)
     if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
-        I1sub,I2sub = make_templates_same_size(I1,I2)
         bands = I1.shape[2]
-
         for i in range(bands): # loop through all bands
             I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
 
@@ -475,10 +467,7 @@ def sign_only_corr(I1, I2): # to do
             else:
                 Q_b = (C1)*np.conj(C2)
                 Q = (1/(i+1))*Q_b + (i/(i+1))*Q
-
-    else:
-        I1sub,I2sub = make_templates_same_size(I1,I2)
-
+    else: # single pair processing
         C1,C2 = fftpack.dctn(I1sub, type=2), fftpack.dctn(I2sub, type=2)
 #        C1,C2 = np.multiply(C1,1/C1), np.multiply(C2,1/C2)
         C1,C2 = np.sign(C1), np.sign(C2)
@@ -502,7 +491,8 @@ def symmetric_phase_corr(I1, I2):
     Parameters
     ----------
     I1 : numpy.array, size=(m,n), ndim={2,3}
-        array with intensities
+        array with intensities, if multiple bands are given the cross-
+        correlation spectra are stacked, see [3].
     I2 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities
 
@@ -537,6 +527,7 @@ def symmetric_phase_corr(I1, I2):
            ---┤ F  ├---┴-------------------┘
               └----┘
 
+    If multiple bands are given, cross-spectral stacking is applied, see [3].
 
     References
     ----------
@@ -545,6 +536,9 @@ def symmetric_phase_corr(I1, I2):
     .. [2] Wernet. "Symmetric phase only filtering: a new paradigm for DPIV
        data processing", Measurement science and technology, vol.16 pp.601-618,
        2005.
+    .. [3] Altena & Leinss, "Improved surface displacement estimation through
+       stacking cross-correlation spectra from multi-channel imagery", Science
+       of Remote Sensing, vol.6 pp.100070, 2022.
 
     Example
     -------
@@ -560,31 +554,26 @@ def symmetric_phase_corr(I1, I2):
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
     """
-    assert type(I1)==np.ndarray, ('please provide an array')
-    assert type(I2)==np.ndarray, ('please provide an array')
+    are_two_arrays_equal(I1, I2)
 
+    def _symmetric_phase_corr_core(I1, I2):
+        S1, S2 = np.fft.fft2(I1), np.fft.fft2(I2)
+        denom = np.sqrt(abs(S1)) * np.sqrt(abs(S2))
+        W2 = np.divide(1, denom, where=denom!=0)
+        Q = S1 * np.conj((W2 * S2))
+        return Q
+
+    I1sub,I2sub = make_templates_same_size(I1,I2)
     if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
-        I1sub,I2sub = make_templates_same_size(I1,I2)
         bands = I1.shape[2]
-
         for i in range(bands): # loop through all bands
-            I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
-
-            S1, S2 = np.fft.fft2(I1bnd), np.fft.fft2(I2bnd)
-            W2 = np.divided(1, np.sqrt(abs(S1))*np.sqrt(abs(S2)) )
-            if i == 0:
-                Q = (S1)*np.conj((W2*S2))
+            Q_b = _symmetric_phase_corr_core(I1sub[...,i], I2sub[...,i])
+            if i ==0:
+                Q = Q_b.copy()/bands
             else:
-                Q_b = (S1)*np.conj((W2*S2))
-                Q = (1/(i+1))*Q_b + (i/(i+1))*Q
-
-    else:
-        I1sub,I2sub = make_templates_same_size(I1,I2)
-
-        S1, S2 = np.fft.fft2(I1sub), np.fft.fft2(I2sub)
-        W2 = np.divide(1, np.sqrt(abs(I1sub))*np.sqrt(abs(I2sub)) )
-
-        Q = (S1)*np.conj((W2*S2))
+                Q += Q_b/bands
+    else: # single pair processing
+        Q = _symmetric_phase_corr_core(I1sub, I2sub)
     return Q
 
 def amplitude_comp_corr(I1, I2, F_0=0.04):
@@ -593,7 +582,8 @@ def amplitude_comp_corr(I1, I2, F_0=0.04):
     Parameters
     ----------
     I1 : numpy.array, size=(m,n), ndim={2,3}
-        array with intensities
+        array with intensities, if multiple bands are given the cross-
+        correlation spectra are stacked, see [2].
     I2 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities
     F_0 : float, default=4e-2
@@ -608,6 +598,9 @@ def amplitude_comp_corr(I1, I2, F_0=0.04):
     ----------
     .. [1] Mu et al. "Amplitude-compensated matched filtering", Applied optics,
        vol. 27(16) pp. 3461-3463, 1988.
+    .. [2] Altena & Leinss, "Improved surface displacement estimation through
+       stacking cross-correlation spectra from multi-channel imagery", Science
+       of Remote Sensing, vol.6 pp.100070, 2022.
 
     Example
     -------
@@ -623,43 +616,32 @@ def amplitude_comp_corr(I1, I2, F_0=0.04):
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
     """
-    assert type(I1)==np.ndarray, ('please provide an array')
-    assert type(I2)==np.ndarray, ('please provide an array')
+    are_two_arrays_equal(I1, I2)
 
+    def _amplitude_comp_corr_core(I1,I2,F_0):
+        S1, S2 = np.fft.fft2(I1), np.fft.fft2(I2)
+        s_0 = F_0 * np.amax(abs(S2))
+
+        W = np.divide(1, abs(I2),
+                      out=np.zeros_like(I2), where=I2!=0)
+        A = np.divide(s_0, abs(I2)**2,
+                      out=np.zeros_like(I2), where=I2!=0)
+        W[abs(S2) > s_0] = A[abs(S2) > s_0]
+        Q = (S1) * np.conj((W * S2))
+        return Q
+
+    I1sub,I2sub = make_templates_same_size(I1,I2)
     if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
-        I1sub,I2sub = make_templates_same_size(I1,I2)
         bands = I1.shape[2]
 
         for i in range(bands): # loop through all bands
-            I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
-
-            S1, S2 = np.fft.fft2(I1bnd), np.fft.fft2(I2bnd)
-            s_0 = F_0 * np.amax(abs(S2))
-
-            W = np.divide(1, abs(I2sub), \
-                          out=np.zeros_like(I2sub), where=I2sub!=0 )
-            A = np.divide(s_0, abs(I2sub)**2, \
-                          out=np.zeros_like(I2sub), where=I2sub!=0)
-            W[abs(S2)>s_0] = A
-            if i == 0:
-                Q = (S1)*np.conj((W*S2))
+            Q_b = _amplitude_comp_corr_core(I1sub[...,i], I2sub[...,i],F_0)
+            if i ==0:
+                Q = Q_b.copy()/bands
             else:
-                Q_b = (S1)*np.conj((W*S2))
-                Q = (1/(i+1))*Q_b + (i/(i+1))*Q
-
-    else:
-        I1sub,I2sub = make_templates_same_size(I1,I2)
-
-        S1, S2 = np.fft.fft2(I1sub), np.fft.fft2(I2sub)
-        s_0 = F_0 * np.amax(abs(S2))
-
-        W = np.divide(1, abs(I2sub), \
-                      out=np.zeros_like(I2sub), where=I2sub!=0)
-        A = np.divide(s_0, abs(I2sub)**2, \
-                      out=np.zeros_like(I2sub), where=I2sub!=0)
-        W[abs(S2)>s_0] = A[abs(S2)>s_0]
-
-        Q = (S1)*np.conj((W*S2))
+                Q += Q_b/bands
+    else: # single pair processing
+        Q = _amplitude_comp_corr_core(I1sub, I2sub, F_0)
     return Q
 
 def robust_corr(I1, I2):
@@ -721,7 +703,8 @@ def gradient_corr(I1, I2):
     Parameters
     ----------
     I1 : numpy.array, size=(m,n), ndim={2,3}
-        array with intensities
+        array with intensities, if multiple bands are given the cross-
+        correlation spectra are stacked, see [3].
     I2 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities
 
@@ -774,6 +757,9 @@ def gradient_corr(I1, I2):
     .. [2] Tzimiropoulos et al. "Subpixel registration with gradient
            correlation" IEEE transactions on image processing, vol.20(6)
            pp.1761--1767, 2010.
+    .. [3] Altena & Leinss, "Improved surface displacement estimation through
+           stacking cross-correlation spectra from multi-channel imagery", Science
+           of Remote Sensing, vol.6 pp.100070, 2022.
 
     Example
     -------
@@ -792,35 +778,27 @@ def gradient_corr(I1, I2):
     assert type(I1)==np.ndarray, ('please provide an array')
     assert type(I2)==np.ndarray, ('please provide an array')
 
-    H_x,_ = get_grad_filters(ftype='kroon', tsize=3, order=1)
-    H_y = np.transpose(H_x)
-    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
-        I1sub,I2sub = make_templates_same_size(I1,I2)
-        bands = I1.shape[2]
-
-        for i in range(bands): # loop through all bands
-            I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
-
-            G1 = ndimage.convolve(I1bnd, H_x) + 1j*ndimage.convolve(I1bnd, H_y)
-            G2 = ndimage.convolve(I2bnd, H_x) + 1j*ndimage.convolve(I2bnd, H_y)
-
-            S1, S2 = np.fft.fft2(G1), np.fft.fft2(G2)
-
-            if i == 0:
-                Q = (S1)*np.conj(S2)
-            else:
-                Q_b = (S1)*np.conj(S2)
-                Q = (1/(i+1))*Q_b + (i/(i+1))*Q
-
-    else:
-        I1sub,I2sub = make_templates_same_size(I1,I2)
-
-        G1 = ndimage.convolve(I1sub, H_x) + 1j * ndimage.convolve(I1sub, H_y)
-        G2 = ndimage.convolve(I2sub, H_x) + 1j * ndimage.convolve(I2sub, H_y)
-
-        S1, S2 = np.fft.fft2(G2), np.fft.fft2(G2)
-
+    def _gradient_corr_core(I1,I2,H_x,H_y):
+        G1 = ndimage.convolve(I1, H_x) + 1j * ndimage.convolve(I1, H_y)
+        G2 = ndimage.convolve(I2, H_x) + 1j * ndimage.convolve(I2, H_y)
+        S1, S2 = np.fft.fft2(G1), np.fft.fft2(G2)
         Q = (S1)*np.conj(S2)
+        return Q
+
+    H_x = get_grad_filters(ftype='kroon', tsize=3, order=1)[0]
+    H_y = np.transpose(H_x)
+
+    I1sub, I2sub = make_templates_same_size(I1, I2)
+    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
+        bands = I1.shape[2]
+        for i in range(bands): # loop through all bands
+            Q_b = _gradient_corr_core(I1sub[...,i], I2sub[...,i], H_x, H_y)
+            if i == 0:
+                Q = Q_b.copy()/bands
+            else:
+                Q += Q_b/bands
+    else: # single pair processing
+        Q = _gradient_corr_core(I1sub, I2sub, H_x, H_y)
     return Q
 
 def normalized_gradient_corr(I1, I2):
@@ -829,7 +807,8 @@ def normalized_gradient_corr(I1, I2):
     Parameters
     ----------
     I1 : numpy.array, size=(m,n), ndim={2,3}
-        array with intensities
+        array with intensities, if multiple bands are given the cross-
+        correlation spectra are stacked, see [2].
     I2 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities
 
@@ -880,6 +859,9 @@ def normalized_gradient_corr(I1, I2):
     .. [1] Tzimiropoulos et al. "Subpixel registration with gradient
            correlation" IEEE transactions on image processing, vol.20(6)
            pp.1761--1767, 2010.
+    .. [2] Altena & Leinss, "Improved surface displacement estimation through
+           stacking cross-correlation spectra from multi-channel imagery",
+           Science of Remote Sensing, vol.6 pp.100070, 2022.
 
     Example
     -------
@@ -898,45 +880,34 @@ def normalized_gradient_corr(I1, I2):
     assert type(I1)==np.ndarray, ('please provide an array')
     assert type(I2)==np.ndarray, ('please provide an array')
 
-    H_x,_ = get_grad_filters(ftype='kroon', tsize=3, order=1)
-    H_y = np.transpose(H_x)
-    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
-        I1sub,I2sub = make_templates_same_size(I1,I2)
-        bands = I1.shape[2]
-
-        for i in range(bands): # loop through all bands
-            I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
-
-            G1 = ndimage.convolve(I1bnd, H_x) + 1j*ndimage.convolve(I1bnd, H_y)
-            G2 = ndimage.convolve(I2bnd, H_x) + 1j*ndimage.convolve(I2bnd, H_y)
-
-            G1 -= np.mean(G1)
-            G2 -= np.mean(G2)
-            G1 /= np.max(G1)
-            G2 /= np.max(G2)
-
-            S1, S2 = np.fft.fft2(G1), np.fft.fft2(G2)
-
-            if i == 0:
-                Q = (S1)*np.conj(S2)
-            else:
-                Q_b = (S1)*np.conj(S2)
-                Q = (1/(i+1))*Q_b + (i/(i+1))*Q
-
-    else:
-        I1sub,I2sub = make_templates_same_size(I1,I2)
-
-        G1 = ndimage.convolve(I1sub, H_x) + 1j * ndimage.convolve(I1sub, H_y)
-        G2 = ndimage.convolve(I2sub, H_x) + 1j * ndimage.convolve(I2sub, H_y)
+    def _normalized_gradient_corr_core(I1,I2,H_x,H_y):
+        G1 = ndimage.convolve(I1, H_x) + 1j * ndimage.convolve(I1, H_y)
+        G2 = ndimage.convolve(I2, H_x) + 1j * ndimage.convolve(I2, H_y)
 
         G1 -= np.mean(G1)
         G2 -= np.mean(G2)
         G1 /= np.max(G1)
         G2 /= np.max(G2)
 
-        S1, S2 = np.fft.fft2(G2), np.fft.fft2(G2)
-
+        S1, S2 = np.fft.fft2(G1), np.fft.fft2(G2)
         Q = (S1)*np.conj(S2)
+        return Q
+
+    H_x = get_grad_filters(ftype='kroon', tsize=3, order=1)[0]
+    H_y = np.transpose(H_x)
+
+    I1sub, I2sub = make_templates_same_size(I1, I2)
+    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
+        bands = I1.shape[2]
+        for i in range(bands): # loop through all bands
+            Q_b = _normalized_gradient_corr_core(I1sub[...,i], I2sub[...,i],
+                                                 H_x, H_y)
+            if i == 0:
+                Q = Q_b.copy()/bands
+            else:
+                Q += Q_b/bands
+    else: # single pair processing
+        Q = _normalized_gradient_corr_core(I1sub, I2sub, H_x, H_y)
     return Q
 
 def orientation_corr(I1, I2):
@@ -945,7 +916,8 @@ def orientation_corr(I1, I2):
     Parameters
     ----------
     I1 : numpy.array, size=(m,n), ndim={2,3}
-        array with intensities
+        array with intensities, if multiple bands are given the cross-
+        correlation spectra are stacked, see [3].
     I2 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities
 
@@ -997,10 +969,14 @@ def orientation_corr(I1, I2):
     References
     ----------
     .. [1] Fitch et al. "Orientation correlation", Proceeding of the Britisch
-       machine vison conference, pp. 1--10, 2002.
+           machine vison conference, pp. 1--10, 2002.
     .. [2] Heid & Kääb. "Evaluation of existing image matching methods for
-       deriving glacier surface displacements globally from optical satellite
-       imagery", Remote sensing of environment, vol. 118 pp. 339-355, 2012.
+           deriving glacier surface displacements globally from optical
+           satellite imagery", Remote sensing of environment, vol.118
+           pp.339-355, 2012.
+    .. [3] Altena & Leinss, "Improved surface displacement estimation through
+           stacking cross-correlation spectra from multi-channel imagery",
+           Science of Remote Sensing, vol.6 pp.100070, 2022.
 
     Example
     -------
@@ -1019,36 +995,29 @@ def orientation_corr(I1, I2):
     assert type(I1)==np.ndarray, ('please provide an array')
     assert type(I2)==np.ndarray, ('please provide an array')
 
-    H_x,_ = get_grad_filters(ftype='kroon', tsize=3, order=1)
-    H_y = np.transpose(H_x)
-
-    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
-        I1sub,I2sub = make_templates_same_size(I1,I2)
-        bands = I1.shape[2]
-
-        for i in range(bands): # loop through all bands
-            I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
-
-            G1 = ndimage.convolve(I1bnd, H_x) + 1j*ndimage.convolve(I1bnd, H_y)
-            G2 = ndimage.convolve(I2bnd, H_x) + 1j*ndimage.convolve(I2bnd, H_y)
-            G1,G2 = normalize_power_spectrum(G1),normalize_power_spectrum(G2)
-
-            S1, S2 = np.fft.fft2(G1), np.fft.fft2(G2)
-            if i == 0:
-                Q = (S1)*np.conj(S2)
-            else:
-                Q_b = (S1)*np.conj(S2)
-                Q = (1/(i+1))*Q_b + (i/(i+1))*Q
-    else:
-        I1sub,I2sub = make_templates_same_size(I1,I2)
-
-        G1 = ndimage.convolve(I1sub, H_x) + 1j*ndimage.convolve(I1sub, H_y)
-        G2 = ndimage.convolve(I2sub, H_x) + 1j*ndimage.convolve(I2sub, H_y)
+    def _orientation_corr_core(I1, I2, H_x, H_y):
+        G1 = ndimage.convolve(I1, H_x) + 1j * ndimage.convolve(I1, H_y)
+        G2 = ndimage.convolve(I2, H_x) + 1j * ndimage.convolve(I2, H_y)
         G1, G2 = normalize_power_spectrum(G1), normalize_power_spectrum(G2)
 
         S1, S2 = np.fft.fft2(G1), np.fft.fft2(G2)
+        Q = (S1) * np.conj(S2)
+        return Q
 
-        Q = (S1)*np.conj(S2)
+    H_x = get_grad_filters(ftype='kroon', tsize=3, order=1)[0]
+    H_y = np.transpose(H_x)
+
+    I1sub, I2sub = make_templates_same_size(I1, I2)
+    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
+        bands = I1.shape[2]
+        for i in range(bands): # loop through all bands
+            Q_b = _orientation_corr_core(I1sub[...,i], I2sub[...,i], H_x, H_y)
+            if i == 0:
+                Q = Q_b.copy()/bands
+            else:
+                Q += Q_b/bands
+    else: # single pair processing
+        Q_b = _orientation_corr_core(I1sub, I2sub, H_x, H_y)
     return Q
 
 def windrose_corr(I1, I2):
@@ -1057,7 +1026,8 @@ def windrose_corr(I1, I2):
     Parameters
     ----------
     I1 : numpy.array, size=(m,n), ndim={2,3}
-        array with intensities
+        array with intensities, if multiple bands are given the cross-
+        correlation spectra are stacked, see [3].
     I2 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities
 
@@ -1085,8 +1055,11 @@ def windrose_corr(I1, I2):
     References
     ----------
     .. [1] Kumar & Juday, "Design of phase-only, binary phase-only, and complex
-       ternary matched filters with increased signal-to-noise ratios for
-       colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
+           ternary matched filters with increased signal-to-noise ratios for
+           colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
+    .. [2] Altena & Leinss, "Improved surface displacement estimation through
+           stacking cross-correlation spectra from multi-channel imagery",
+           Science of Remote Sensing, vol.6 pp.100070, 2022.
 
     Example
     -------
@@ -1105,25 +1078,23 @@ def windrose_corr(I1, I2):
     assert type(I1)==np.ndarray, ('please provide an array')
     assert type(I2)==np.ndarray, ('please provide an array')
 
+    def _windrose_corr_core(I1,I2):
+        S1, S2 = np.sign(np.fft.fft2(I1)), np.sign(np.fft.fft2(I2))
+        Q = S1 * np.conj(S2)
+        return Q
+
+    I1sub, I2sub = make_templates_same_size(I1, I2)
     if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
-        I1sub,I2sub = make_templates_same_size(I1,I2)
         bands = I1.shape[2]
-
         for i in range(bands): # loop through all bands
-            I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
-
-            S1, S2 = np.sign(np.fft.fft2(I1bnd)), np.sign(np.fft.fft2(I2bnd))
+            Q_b = _windrose_corr_core(I1sub[...,i], I2sub[...,i])
             if i == 0:
-                Q = (S1)*np.conj(S2)
+                Q = Q_b.copy()/bands
             else:
-                Q_b = (S1)*np.conj(S2)
-                Q = (1/(i+1))*Q_b + (i/(i+1))*Q
+                Q += Q_b/bands
 
     else:
-        I1sub,I2sub = make_templates_same_size(I1,I2)
-        S1, S2 = np.sign(np.fft.fft2(I1sub)), np.sign(np.fft.fft2(I2sub))
-
-        Q = (S1)*np.conj(S2)
+        Q = _windrose_corr_core(I1sub, I2sub)
     return Q
 
 def phase_corr(I1, I2):
@@ -1132,7 +1103,8 @@ def phase_corr(I1, I2):
     Parameters
     ----------
     I1 : numpy.array, size=(m,n), ndim={2,3}
-        array with intensities
+        array with intensities, if multiple bands are given the cross-
+        correlation spectra are stacked, see [2].
     I2 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities
 
@@ -1174,8 +1146,11 @@ def phase_corr(I1, I2):
     References
     ----------
     .. [1] Kuglin & Hines. "The phase correlation image alignment method",
-       proceedings of the IEEE international conference on cybernetics and
-       society, pp. 163-165, 1975.
+           proceedings of the IEEE international conference on cybernetics and
+           society, pp. 163-165, 1975.
+    .. [2] Altena & Leinss, "Improved surface displacement estimation through
+           stacking cross-correlation spectra from multi-channel imagery",
+           Science of Remote Sensing, vol.6 pp.100070, 2022.
 
     Example
     -------
@@ -1194,30 +1169,23 @@ def phase_corr(I1, I2):
     assert type(I1)==np.ndarray, ('please provide an array')
     assert type(I2)==np.ndarray, ('please provide an array')
 
-    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
-        I1sub,I2sub = make_templates_same_size(I1,I2)
-        bands = I1.shape[2]
-
-        for i in range(bands): # loop through all bands
-            I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
-
-            S1, S2 = np.fft.fft2(I1bnd), np.fft.fft2(I2bnd)
-
-            if i == 0:
-                Q = (S1)*np.conj(S2)
-                Q = normalize_power_spectrum(Q)
-            else:
-                Q_b = (S1)*np.conj(S2)
-                Q_b = np.divide(Q_b, np.abs(Q), \
-                                out=np.zeros_like(Q), where=Q!=0)
-                Q = (1/(i+1))*Q_b + (i/(i+1))*Q
-
-    else:
-        I1sub,I2sub = make_templates_same_size(I1,I2)
-
-        S1, S2 = np.fft.fft2(I1sub), np.fft.fft2(I2sub)
-        Q = (S1)*np.conj(S2)
+    def _phase_corr_core(I1,I2):
+        S1, S2 = np.fft.fft2(I1), np.fft.fft2(I2)
+        Q = S1 * np.conj(S2)
         Q = normalize_power_spectrum(Q)
+        return Q
+
+    I1sub, I2sub = make_templates_same_size(I1, I2)
+    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
+        bands = I1.shape[2]
+        for i in range(bands): # loop through all bands
+            Q_b = _phase_corr_core(I1sub[...,i], I2sub[...,i])
+            if i == 0:
+                Q = Q_b.copy()/bands
+            else:
+                Q += Q_b/bands
+    else:
+        Q = _phase_corr_core(I1sub, I2sub)
     return Q
 
 def gaussian_transformed_phase_corr(I1, I2):
@@ -1226,7 +1194,8 @@ def gaussian_transformed_phase_corr(I1, I2):
     Parameters
     ----------
     I1 : numpy.array, size=(m,n), ndim={2,3}
-        array with intensities
+        array with intensities, if multiple bands are given the cross-
+        correlation spectra are stacked, see [2].
     I2 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities
 
@@ -1268,7 +1237,10 @@ def gaussian_transformed_phase_corr(I1, I2):
     References
     ----------
     .. [1] Eckstein et al. "Phase correlation processing for DPIV
-       measurements", Experiments in fluids, vol.45 pp.485-500, 2008.
+           measurements", Experiments in fluids, vol.45 pp.485-500, 2008.
+    .. [2] Altena & Leinss, "Improved surface displacement estimation through
+           stacking cross-correlation spectra from multi-channel imagery",
+           Science of Remote Sensing, vol.6 pp.100070, 2022.
 
     Example
     -------
@@ -1287,36 +1259,25 @@ def gaussian_transformed_phase_corr(I1, I2):
     assert type(I1)==np.ndarray, ('please provide an array')
     assert type(I2)==np.ndarray, ('please provide an array')
 
-    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
-        I1sub,I2sub = make_templates_same_size(I1,I2)
-        bands = I1.shape[2]
-
-        for i in range(bands): # loop through all bands
-            I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
-
-            S1, S2 = np.fft.fft2(I1bnd), np.fft.fft2(I2bnd)
-
-            if i == 0:
-                Q = (S1)*np.conj(S2)
-                Q = normalize_power_spectrum(Q)
-                M = gaussian_mask(S1)
-                Q = np.multiply(M, Q)
-            else:
-                Q_b = (S1)*np.conj(S2)
-                Q_b = np.divide(Q_b, np.abs(Q),\
-                                out=np.zeros_like(Q), where=Q!=0)
-                Q_b = np.multiply(M, Q_b)
-                Q = (1/(i+1))*Q_b + (i/(i+1))*Q
-
-    else:
-        I1sub,I2sub = make_templates_same_size(I1,I2)
-
-        S1, S2 = np.fft.fft2(I1sub), np.fft.fft2(I2sub)
-        Q = (S1)*np.conj(S2)
-        Q = normalize_power_spectrum(Q)
-
-        M = gaussian_mask(Q)
+    def _gaussian_transformed_phase_corr_core(I1,I2):
+        S1, S2 = np.fft.fft2(I1), np.fft.fft2(I2)
+        Q = normalize_power_spectrum(S1 * np.conj(S2))
+        M = gaussian_mask(S1)
         Q = np.multiply(M, Q)
+        return Q
+
+    I1sub, I2sub = make_templates_same_size(I1, I2)
+    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
+        bands = I1.shape[2]
+        for i in range(bands): # loop through all bands
+            Q_b = _gaussian_transformed_phase_corr_core(I1sub[...,i],
+                                                        I2sub[...,i])
+            if i == 0:
+                Q = Q_b.copy()/bands
+            else:
+                Q += Q_b/bands
+    else:
+        Q = _gaussian_transformed_phase_corr_core(I1sub, I2sub)
     return Q
 
 def upsampled_cross_corr(S1, S2, upsampling=2):
@@ -1360,9 +1321,7 @@ def upsampled_cross_corr(S1, S2, upsampling=2):
 
     (m,n) = S1.shape
     S1,S2 = pad_dft(S1, 2*m, 2*n), pad_dft(S2, 2*m, 2*n)
-#    Q = S1*conj(S2)
     Q = normalize_power_spectrum(S1)*np.conj(normalize_power_spectrum(S2))
-#    Q = normalize_power_spectrum(Q)
     C = np.real(np.fft.ifft2(Q))
 
     ij = np.unravel_index(np.argmax(C), C.shape, order='F')
@@ -1379,12 +1338,10 @@ def upsampled_cross_corr(S1, S2, upsampling=2):
         j_shift = 1 + np.round(j_offset*upsampling)/upsampling
         F_shift = np.fix(np.ceil(1.5*upsampling)/2)
 
-        CC = np.conj(upsample_dft(Q,\
-                                  up_m=np.ceil(upsampling*1.5),\
-                                  up_n=np.ceil(upsampling*1.5),\
-                                  upsampling=upsampling,\
-                                  i_offset=F_shift-(i_shift*upsampling),\
-                                  j_offset=F_shift-(j_shift*upsampling)))
+        CC = np.conj(upsample_dft(
+            Q, up_m=np.ceil(upsampling*1.5), up_n=np.ceil(upsampling*1.5),
+            upsampling=upsampling, i_offset=F_shift-(i_shift*upsampling),
+            j_offset=F_shift-(j_shift*upsampling)))
         ij = np.unravel_index(np.argmax(CC), CC.shape, order='F')
         ddi, ddj = ij[::-1]
         ddi -= (F_shift )
@@ -1400,7 +1357,8 @@ def cross_corr(I1, I2):
     Parameters
     ----------
     I1 : numpy.array, size=(m,n), ndim={2,3}
-        array with intensities
+        array with intensities, if multiple bands are given the cross-
+        correlation spectra are stacked, see [2].
     I2 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities
 
@@ -1439,8 +1397,12 @@ def cross_corr(I1, I2):
     References
     ----------
     .. [1] Heid & Kääb. "Evaluation of existing image matching methods for
-       deriving glacier surface displacements globally from optical satellite
-       imagery", Remote sensing of environment, vol. 118 pp. 339-355, 2012.
+           deriving glacier surface displacements globally from optical
+           satellite imagery", Remote sensing of environment, vol.118
+           pp.339-355, 2012.
+    .. [2] Altena & Leinss, "Improved surface displacement estimation through
+           stacking cross-correlation spectra from multi-channel imagery",
+           Science of Remote Sensing, vol.6 pp.100070, 2022.
 
     Example
     -------
@@ -1459,26 +1421,22 @@ def cross_corr(I1, I2):
     assert type(I1)==np.ndarray, ('please provide an array')
     assert type(I2)==np.ndarray, ('please provide an array')
 
+    def _cross_corr_core(I1,I2):
+        S1, S2 = np.fft.fft2(I1), np.fft.fft2(I2)
+        Q = S1 * np.conj(S2)
+        return Q
+
+    I1sub, I2sub = make_templates_same_size(I1, I2)
     if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
-        I1sub,I2sub = make_templates_same_size(I1,I2)
         bands = I1.shape[2]
-
         for i in range(bands): # loop through all bands
-            I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
-
-            S1, S2 = np.fft.fft2(I1bnd), np.fft.fft2(I2bnd)
-
+            Q_b = _cross_corr_core(I1sub[...,i], I2sub[...,i])
             if i == 0:
-                Q = (S1)*np.conj(S2)
+                Q = Q_b.copy()/bands
             else:
-                Q_b = (S1)*np.conj(S2)
-                Q = (1/(i+1))*Q_b + (i/(i+1))*Q
-
+                Q += Q_b/bands
     else:
-        I1sub,I2sub = make_templates_same_size(I1,I2)
-
-        S1, S2 = np.fft.fft2(I1sub), np.fft.fft2(I2sub)
-        Q = (S1)*np.conj(S2)
+        Q = _cross_corr_core(I1sub, I2sub)
     return Q
 
 def binary_orientation_corr(I1, I2):
@@ -1487,7 +1445,8 @@ def binary_orientation_corr(I1, I2):
     Parameters
     ----------
     I1 : numpy.array, size=(m,n), ndim={2,3}
-        array with intensities
+        array with intensities, if multiple bands are given the cross-
+        correlation spectra are stacked, see [2].
     I2 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities
 
@@ -1515,8 +1474,11 @@ def binary_orientation_corr(I1, I2):
     References
     ----------
     .. [1] Kumar & Juday, "Design of phase-only, binary phase-only, and complex
-       ternary matched filters with increased signal-to-noise ratios for
-       colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
+           ternary matched filters with increased signal-to-noise ratios for
+           colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
+    .. [2] Altena & Leinss, "Improved surface displacement estimation through
+           stacking cross-correlation spectra from multi-channel imagery",
+           Science of Remote Sensing, vol.6 pp.100070, 2022.
 
     Example
     -------
@@ -1535,29 +1497,23 @@ def binary_orientation_corr(I1, I2):
     assert type(I1)==np.ndarray, ('please provide an array')
     assert type(I2)==np.ndarray, ('please provide an array')
 
-    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
-        I1sub,I2sub = make_templates_same_size(I1,I2)
-        bands = I1.shape[2]
-
-        for i in range(bands): # loop through all bands
-            I1bnd, I2bnd = I1sub[:,:,i], I2sub[:,:,i]
-
-            S1, S2 = np.fft.fft2(I1bnd), np.fft.fft2(I2bnd)
-            W = np.sign(np.real(S2))
-
-            if i == 0:
-                Q = (S1)*np.conj(W*S2)
-            else:
-                Q_b = (S1)*np.conj(W*S2)
-                Q = (1/(i+1))*Q_b + (i/(i+1))*Q
-
-    else:
-        I1sub,I2sub = make_templates_same_size(I1,I2)
-
-        S1, S2 = np.fft.fft2(I1sub), np.fft.fft2(I2sub)
+    def _binary_orientation_corr_core(I1,I2):
+        S1, S2 = np.fft.fft2(I1), np.fft.fft2(I2)
         W = np.sign(np.real(S2))
+        Q = S1 * np.conj(W * S2)
+        return Q
 
-        Q = (S1)*np.conj(W*S2)
+    I1sub,I2sub = make_templates_same_size(I1,I2)
+    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
+        bands = I1.shape[2]
+        for i in range(bands): # loop through all bands
+            Q_b = _binary_orientation_corr_core(I1sub[...,i], I2sub[...,i])
+            if i == 0:
+                Q = Q_b.copy()/bands
+            else:
+                Q += Q_b/bands
+    else:
+        Q = _binary_orientation_corr_core(I1sub, I2sub)
     return Q
 
 def masked_corr(I1, I2, M1=np.array(()), M2=np.array(())):
@@ -1570,9 +1526,9 @@ def masked_corr(I1, I2, M1=np.array(()), M2=np.array(())):
     I2 : {numpy.array, numpy.ma}, size=(m,n), ndim=2
         array with intensities
     M1 : numpy.array, size=(m,n)
-        array with mask
+        array with mask, hence False's are neglected
     M2 : numpy.array, size=(m,n)
-        array with mask
+        array with mask, hence False's are neglected
 
     Returns
     -------
@@ -1603,8 +1559,8 @@ def masked_corr(I1, I2, M1=np.array(()), M2=np.array(())):
         ("please provide an array")
     assert type(I2) in (np.ma.core.MaskedArray, np.array), \
         ("please provide an array")
-    assert type(M1)==np.ndarray, ('please provide an array')
-    assert type(M2)==np.ndarray, ('please provide an array')
+    assert (type(M1)==np.ndarray) or (M1 is None), ('please provide an array')
+    assert (type(M2)==np.ndarray) or (M2 is None), ('please provide an array')
 
     # init
     I1,M1, I2,M2 = get_data_and_mask(I1, M1), get_data_and_mask(I2, M2)

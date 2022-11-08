@@ -64,7 +64,8 @@ def nan_resistant_conv2(I, kernel, size='same', cval=np.nan):
     References
     ----------
     .. [1] Altena et al. "Correlation dispersion as a measure to better estimate
-       uncertainty of remotely sensed glacier displacements" The cryosphere
+       uncertainty of remotely sensed glacier displacements", The Crysophere,
+       vol.16(6) pp.2285–2300, 2022.
     """
     m,n = I.shape
     k,l = kernel.shape
@@ -122,7 +123,8 @@ def nan_resistant_diff2(I, kernel, size='same', cval=np.nan):
     References
     ----------
     .. [1] Altena et al. "Correlation dispersion as a measure to better estimate
-       uncertainty of remotely sensed glacier displacements" The cryosphere
+       uncertainty of remotely sensed glacier displacements", The Crysophere,
+       vol.16(6) pp.2285–2300, 2022.
     """
     m,n = I.shape
     k,l = kernel.shape

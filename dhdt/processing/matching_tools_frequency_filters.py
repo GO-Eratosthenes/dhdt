@@ -4,12 +4,8 @@ import numpy as np
 
 # image processing libraries
 from scipy import ndimage, interpolate, fft, signal
-from skimage.transform import radon
-from skimage.measure import ransac
-from sklearn.cluster import KMeans
 
-from ..generic.filtering_statistical import make_2D_Gaussian, mad_filtering
-from ..generic.handler_im import get_grad_filters
+from ..generic.unit_conversion import deg2compass
 
 # frequency preparation
 def perdecomp(img):
@@ -112,6 +108,62 @@ def normalize_power_spectrum(Q):
     assert type(Q)==np.ndarray, ("please provide an array")
     Qn = np.divide(Q, abs(Q), out=np.zeros_like(Q), where=Q!=0)
     return Qn
+
+def local_coherence(Q, ds=1):
+    """ estimate the local coherence of a spectrum
+
+    Parameters
+    ----------
+    Q : numpy.array, size=(m,n), dtype=complex
+        array with cross-spectrum, with centered coordinate frame
+    ds : integer, default=1
+        kernel radius to describe the neighborhood
+
+    Returns
+    -------
+    M : numpy.array, size=(m,n), dtype=float
+        vector coherence from no to ideal, i.e.: 0...1
+
+    See Also
+    --------
+    thresh_masking
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import matplotlib.pyplot as plt
+    >>> from ..generic.test_tools import create_sample_image_pair
+
+    >>> # create cross-spectrum with random displacement
+    >>> im1,im2,_,_,_ = create_sample_image_pair(d=2**4, max_range=1)
+    >>> spec1,spec2 = np.fft.fft2(im1), np.fft.fft2(im2)
+    >>> Q = spec1 * np.conjugate(spec2)
+    >>> Q = normalize_spectrum(Q)
+    >>> Q = np.fft.fftshift(Q) # transform to centered grid
+
+    >>> C = local_coherence(Q)
+
+    >>> plt.figure(), plt.imshow(C), cmap='OrRd'), plt.colorbar(), plt.show()
+    >>> plt.figure(), plt.imshow(np.angle(Q), cmap='twilight'),
+    >>> plt.colorbar(), plt.show()
+    """
+    assert type(Q) == np.ndarray, ("please provide an array")
+
+    diam = 2 * ds + 1
+    C = np.zeros_like(Q)
+    (isteps, jsteps) = np.meshgrid(np.linspace(-ds, +ds, 2 * ds + 1, dtype=int), \
+                                   np.linspace(-ds, +ds, 2 * ds + 1, dtype=int))
+    IN = np.ones(diam ** 2, dtype=bool)
+    IN[diam ** 2 // 2] = False
+    isteps, jsteps = isteps.flatten()[IN], jsteps.flatten()[IN]
+
+    for idx, istep in enumerate(isteps):
+        jstep = jsteps[idx]
+        Q_step = np.roll(Q, (istep, jstep))
+        # if the spectrum is normalized, then no division is needed
+        C += Q * np.conj(Q_step)
+    C = np.abs(C) / np.sum(IN)
+    return C
 
 def make_fourier_grid(Q, indexing='ij', system='radians', shift=True):
     """
@@ -729,34 +781,54 @@ def cosine_bell(I):
     W[R>.5] = 0
     return W
 
-def cross_shading_filter(Q): #, az_1, az_2): #todo
-    assert type(Q)==np.ndarray, ("please provide an array")
-    (m,n) = Q.shape    
-    Coh = local_coherence(np.fft.fftshift(Q))
-    R = np.fft.fftshift(low_pass_circle(Q, r=0.50))
-    Coh[R==0] = 0
-    
-    theta = np.linspace(0., 180., max(m,n), endpoint=False)
-    S = radon(Coh, theta)/m # sinogram
-    
-    # classify
-    s = S[m//2,:]
-    min_idx,max_idx = np.argmin(s), np.argmax(s)
-    # create circle
-    x,y = np.sin(np.radians(2*theta)), np.cos(np.radians(2*theta))
-    coh_circle = np.vstack((x,y,(s+.1)**2)).T
-    kmeans = KMeans(n_clusters=2, \
-                    init=np.array([coh_circle[min_idx,:], 
-                                  coh_circle[max_idx,:]]),
-                    n_init=1
-                    ).fit(coh_circle)
-    grouping = kmeans.labels_ #.astype(np.float)
-    OUT = grouping==grouping[min_idx]     
-       
+def cross_shading_filter(Q, az_1, az_2): #todo
+    """
 
-    Fx,Fy = make_fourier_grid(Q)    
-    Theta = np.round(np.degrees(np.arctan2(Fx,Fy) % np.pi)/360 *m) *360 /m 
-    W = np.isin(Theta, theta[~OUT])
+    Parameters
+    ----------
+    Q : numpy.array, size=(m,n)
+        cross-power spectrum
+    az_1 : float, unit=degrees, range=-180...+180
+        illumination direction of template
+    az_2 : float, unit=degrees, range=-180...+180
+        illumination direction of search space
+
+    Returns
+    -------
+    W : numpy.array, size=(m,n), dtype=float
+        weigthing grid
+
+    References
+    ----------
+    .. [1] Wan, "Phase correlation-based illumination-insensitive image matching
+           for terrain-related applications" PhD thesis at Imperical College
+           London, 2015.
+    """
+    F_1, F_2 = make_fourier_grid(Q, indexing='xy', system='radians')
+    theta = np.angle(F_2 + 1j * F_1)
+    az_1, az_2 = np.deg2rad(az_1), np.deg2rad(az_2)
+
+    def _get_angular_sel(theta, az_1, az_2):
+        c_theta, s_theta = np.cos(theta), np.sin(theta)
+        c_down, s_down = np.minimum(np.cos(az_1), np.cos(az_2)), \
+                         np.minimum(np.sin(az_1), np.sin(az_2))
+        c_up, s_up = np.maximum(np.cos(az_1), np.cos(az_2)), \
+                     np.maximum(np.sin(az_1), np.sin(az_2))
+        OUT = np.logical_and(np.logical_and(np.less(c_down, c_theta),
+                                            np.less(c_theta, c_up)),
+                             np.logical_and(np.less(s_down, s_theta),
+                                            np.less(s_theta, s_up))
+                             )  # (4.42) in [1], pp.51
+        return OUT
+
+    W = np.ones_like(Q, dtype=float)
+    down, up = az_2 - (3*np.pi/2), az_1 - (np.pi/2)
+    OUT1 = _get_angular_sel(theta, down, up)
+    np.putmask(W, OUT1, 0)
+
+    down, up = az_2 - (np.pi/2), az_1 + (np.pi/2)
+    OUT2 = _get_angular_sel(theta, down, up)
+    np.putmask(W, OUT2, 0)
     return W
 
 # cross-spectral and frequency signal metrics for filtering
@@ -797,7 +869,8 @@ def thresh_masking(S, m=1e-4, s=10):
     
     # compose filter
     M = S_bar>th
-    M = ndimage.median_filter(M, size=(s,s))
+    if s > 0:
+        M = ndimage.median_filter(M, size=(s,s))
     return M
 
 def perc_masking(S, m=.95, s=10):
@@ -807,7 +880,14 @@ def perc_masking(S, m=.95, s=10):
 
     # compose filter
     M = S_bar > th
-    M = ndimage.median_filter(M, size=(s, s))
+    if s > 0:
+        M = ndimage.median_filter(M, size=(s, s))
+    return M
+
+def coherence_masking(S, m=.7, s=0):
+    M = local_coherence(normalize_power_spectrum(S)) > m
+    if s>0:
+        M = ndimage.median_filter(M, size=(s, s))
     return M
 
 def adaptive_masking(S, m=.9):

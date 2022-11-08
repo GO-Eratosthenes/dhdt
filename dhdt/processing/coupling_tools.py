@@ -27,12 +27,12 @@ from .matching_tools import \
 from .matching_tools_organization import \
     list_spatial_correlators, list_peak_estimators, list_phase_estimators, \
     match_translation_of_two_subsets, estimate_subpixel, estimate_precision, \
-    estimate_translation_of_two_subsets, list_frequency_correlators
+    estimate_translation_of_two_subsets, list_frequency_correlators, \
+    estimate_match_metric
 from .matching_tools_differential import \
     affine_optical_flow, simple_optical_flow
 from .matching_tools_binairy_boundaries import \
     beam_angle_statistics, cast_angle_neighbours, neighbouring_cast_distances
-from ..postprocessing.mapping_io import casting_pairs_mat2shp
 
 
 # simple image matching
@@ -50,9 +50,9 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
     I2 : {numpy.array, numpy.ma}, size=(m,n,b), dtype=float, ndim={2,3}
         second image array, can be complex.
     L1 : numpy.array, size=(m,n), dtype=bool
-        labelled image of the first image (M1), hence True's are neglected.
+        labelled image of the first image (I1), hence False's are neglected.
     L2 : numpy.array, size=(m,n), dtype=bool
-        labelled image of the second image (M2), hence True's are neglected.
+        labelled image of the second image (I2), hence False's are neglected.
     geoTransform1 : tuple
         affine transformation coefficients of array M1
     geoTransform2 : tuple
@@ -91,16 +91,18 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
 
           * 'simple' : direct single pair processing
           * 'refine' : move template to first estimate, and refine matching
-          * 'stacking' : matching several bands and combine the result
+          * 'stacking' : matching several bands and combine the result, see
+                         also [2] for more details
     boi : np.array
         list of bands of interest
 
     Returns
     -------
-    X2_grd : numpy.array, size=(k,l), type=float
-        horizontal map coordinates of the refined matching centers of array M2
-    Y2_grd : numpy.array, size=(k,l), type=float
-        vertical map coordinates of the refined matching centers of array M2
+    X2_grd, Y2_grd : numpy.array, size=(k,l), type=float
+        horizontal and vertical map coordinates of the refined matching centers
+        of array I2
+    match_metric : numpy.array, size=(k,l), type=float
+        matching score of individual matches
 
     See Also
     --------
@@ -114,17 +116,27 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
     ----------
     .. [1] Altena et al. "Correlation dispersion as a measure to better estimate
        uncertainty of remotely sensed glacier displacements", The Crysophere,
-       vol.XX pp.XXX, 2022.
+       vol.16(6) pp.2285–2300, 2022.
+    .. [2] Altena & Leinss, "Improved surface displacement estimation through
+       stacking cross-correlation spectra from multi-channel imagery", Science
+       of remote sensing, vol.6 pp.100070, 2022.
     """
     # combating import loops
     from .matching_tools_organization import \
-        list_differential_correlators, list_peak_estimators, list_frequency_correlators
+        list_differential_correlators, list_peak_estimators, \
+        list_frequency_correlators
 
     # init
     assert type(I1) in (np.ma.core.MaskedArray, np.ndarray), \
          ("please provide an array")
     assert type(I2) in (np.ma.core.MaskedArray, np.ndarray), \
          ("please provide an array")
+    if (type(I1) not in (np.ma.core.MaskedArray,)) and (L1 is None):
+        L1 = np.ones_like(I1)
+    elif L1 is None: L1 = np.array([])
+    if (type(I2) not in (np.ma.core.MaskedArray,)) and (L2 is None):
+        L2 = np.ones_like(I2)
+    elif L2 is None: L2=np.array([])
     assert isinstance(L1, np.ndarray), "please provide an array"
     assert isinstance(L2, np.ndarray), "please provide an array"
     assert isinstance(geoTransform1, tuple), 'geoTransform should be a tuple'
@@ -132,30 +144,31 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
     assert X_grd.shape == Y_grd.shape  # should be of the same size
     assert temp_radius <= search_radius, 'given search radius is too small'
 
+    b=1 if kwargs.get('num_estimates') == None else kwargs.get('num_estimates')
+
     I1, L1 = get_data_and_mask(I1, L1)
     I2, L2 = get_data_and_mask(I2, L2)
+
+    if X_grd.ndim==1: # sometimes a collumn is given instead of a grid
+        X_grd,Y_grd = X_grd[:,np.newaxis], Y_grd[:,np.newaxis]
 
     correlator = correlator.lower()
     if (subpix is not None): subpix=subpix.lower()
 
+    # create lists with the different match approaches
     frequency_based = list_frequency_correlators()
     differential_based = list_differential_correlators()
     peak_based = list_peak_estimators()
 
     # prepare
     I1,I2 = select_boi_from_stack(I1,boi), select_boi_from_stack(I2,boi)
-    I1,I2,i1,j1,i2,j2,IN = pad_images_and_filter_coord_list(I1, I2,
-                                                         geoTransform1,
-                                                         geoTransform2,
-                                                         X_grd, Y_grd,
-                                                         temp_radius,
-                                                         search_radius,
-                                                         same=True)
+    I1,I2,i1,j1,i2,j2,IN = pad_images_and_filter_coord_list(
+        I1, I2, geoTransform1, geoTransform2, X_grd, Y_grd,
+        temp_radius, search_radius, same=True)
     geoTransformPad2 = ref_trans(geoTransform2, -search_radius, -search_radius)
 
-    L1,L2 = pad_radius(L1,temp_radius, cval=True), \
-            pad_radius(L2, search_radius, cval=True)
-    b=1 if kwargs.get('num_estimates') == None else kwargs.get('num_estimates')
+    L1,L2 = pad_radius(L1,temp_radius, cval=False), \
+            pad_radius(L2, search_radius, cval=False)
 
     (m,n) = X_grd.shape
     X2_grd,Y2_grd = np.zeros((m,n,b)), np.zeros((m,n,b))
@@ -199,10 +212,13 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
             QC = match_translation_of_two_subsets(I1_sub,I2_sub,
                  correlator, subpix, L1_sub,L2_sub)
             if (subpix in peak_based) or (subpix is None):
-                di,dj,score,_ = get_integer_peak_location(QC, metric=metric)
-            else:
-                di, dj, score = np.zeros(b), np.zeros(b), np.zeros(b)
+                di,dj = get_integer_peak_location(QC, metric=None)[0:2]
+            else: # integer estimation in phase space is not straight forward
+                di,dj = np.zeros(b), np.zeros(b)
             m0 = np.array([di, dj])
+
+#            if np.logical_and(np.all(I1_sub!=0), np.all(I2_sub!=0)):
+#                print('all data in arrays')
 
             if processing in ['refine']: # reposition second template
                 if correlator in frequency_based:
@@ -223,12 +239,17 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
             else:
                 ddi,ddj = estimate_subpixel(QC, subpix, m0=m0)
 
-            if precision_estimate:
-                si,sj,rho = estimate_precision(QC, di+ddi,dj+ddj,
-                                               method='gaussian')
+            di += ddi
+            dj += ddj
 
-            if abs(ddi)<2: di += ddi
-            if abs(ddj)<2: dj += ddj
+            # get the similarity metrics
+            if precision_estimate:
+                si,sj,rho = estimate_precision(QC, di,dj,
+                                               method='gaussian')
+            score = estimate_match_metric(QC, di=di, dj=dj, metric=metric)
+#            if score>.7:
+#                print('.')
+
         # transform from local image to metric map system
         x2_new,y2_new = pix2map(geoTransformPad2,
                                 i2[counter] + di, j2[counter] + dj)
@@ -294,7 +315,7 @@ def couple_pair(file_1, file_2, bbox=None, rgi_id=None,
     processing : {"stacking", "shadow", None}
         matching can be done on a single image pair, or by matching several
         bands and combine the result (stacking)
-            * stacking - using multiple bands in the matching
+            * stacking - using multiple bands in the matching, see [1]
             * shadow - using the shadow transfrom in the given folder
             else - using the image files provided in 'file1' & 'file2'
     subpix : {'tpss' (default), 'svd', 'radon', 'hough', 'ransac', 'wpca',\
@@ -318,6 +339,12 @@ def couple_pair(file_1, file_2, bbox=None, rgi_id=None,
         common point where the shadow originates
     dh : numpy.array, size=(k,1)
         elevation differences between "post_1" and "post_2_corr"
+
+    References
+    ----------
+    .. [1] Altena & Leinss, "Improved surface displacement estimation through
+       stacking cross-correlation spectra from multi-channel imagery", Science
+       of remote sensing, vol.6 pp.100070, 2022.
     """
     # admin
     assert os.path.exists(file_1), ('file does not seem to exist')
@@ -454,21 +481,32 @@ def create_template_at_center(I, i,j, radius, filling='random'):
     i,j = np.round(i).astype(int), np.round(j).astype(int)
     if not type(radius) is tuple: radius = (radius, radius)
 
+    if I.ndim==2:
+        sub_shape = (2*radius[0]+1, 2*radius[1]+1)
+    elif I.ndim==3:
+        sub_shape = (2*radius[0]+1, 2*radius[1]+1, I.shape[2])
+
     # create sub template
     if filling in ('random', ):
+        quant = 0
         if I.dtype.type == np.uint8:
-            I_sub = np.random.randint(2**8,
-                                      size=(2*radius[0]+1, 2*radius[1]+1)\
-                                      ).astype(np.uint8)
+            quant = 8
         elif I.dtype.type == np.uint16:
-            I_sub = np.random.randint(2**16, size=(2*radius[0]+1, 2*radius[1]+1)
-                                      ).astype(np.uint16)
+            quant = 16
+
+        if quant==0:
+            I_sub = np.random.random_sample(sub_shape)
         else:
-            I_sub = np.random.randn(2*radius[0]+1, 2*radius[1]+1)
+            I_sub = np.random.randint(2**quant, size=sub_shape)
     elif filling in ('nan', ):
-        I_sub = np.nan * np.zeros((2*radius[0]+1, 2*radius[1]+1))
+        I_sub = np.nan * np.zeros(sub_shape)
     else:
-        I_sub = np.zeros((2*radius[0]+1, 2*radius[1]+1))
+        I_sub = np.zeros(sub_shape)
+
+    if I.dtype.type == np.uint8:
+        I_sub = I_sub.astype(np.uint8)
+    elif I.dtype.type == np.uint16:
+        I_sub = I_sub.astype(np.uint16)
 
     m,n = I.shape[0], I.shape[1]
     min_0, max_0 = np.maximum(0, i-radius[0]), np.minimum(m, i+radius[0]+1)
@@ -1046,11 +1084,10 @@ def angles2unit(azimuth):
     """
     assert isinstance(azimuth, (float, np.ndarray))
 
-    x = np.sin(np.radians(azimuth))
-    y = np.cos(np.radians(azimuth))
+    x, y = np.sin(np.radians(azimuth)), np.cos(np.radians(azimuth))
 
     if x.ndim==1:
-        xy = np.stack((x, y)).T
+        xy = np.stack((x[:,np.newaxis], y[:,np.newaxis]), axis=1)
     elif x.ndim==2:
         xy = np.dstack((x, y))
     return xy
@@ -1060,14 +1097,10 @@ def get_intersection(xy_1, xy_2, xy_3, xy_4):
 
     Parameters
     ----------
-    xy_1 : numpy.array, size=(m,2)
-        array with 2D coordinate of start from the first line.
-    xy_2 : numpy.array, size=(m,2)
-        array with 2D coordinate of end from the first line.
-    xy_3 : numpy.array, size=(m,2)
-        array with 2D coordinate of start from the second line.
-    xy_4 : numpy.array, size=(m,2)
-        array with 2D coordinate of end from the second line.
+    xy_1,xy_2 : numpy.array, size=(m,2)
+        array with 2D coordinate of start and end from the first line.
+    xy_3, xy_4 : numpy.array, size=(m,2)
+        array with 2D coordinate of start and end from the second line.
 
     Returns
     -------
@@ -1119,7 +1152,7 @@ def get_intersection(xy_1, xy_2, xy_3, xy_4):
     xy = np.stack((x,y)).T
     return xy
 
-def get_zenith_from_sun(sun):
+def _get_zenith_from_sun(sun):
     if type(sun) in (float,): return np.deg2rad(sun)
     if sun.size==1: # only zenith angles are given
         zn = np.deg2rad(sun)
@@ -1152,8 +1185,8 @@ def get_elevation_difference(sun_1, sun_2, xy_1, xy_2, xy_t):
                     xy_1.shape[0],  xy_2.shape[0],}))==1, \
         ('please provide arrays of the same size')
 
-    zn_1 = get_zenith_from_sun(sun_1)
-    zn_2 = get_zenith_from_sun(sun_2)
+    zn_1 = _get_zenith_from_sun(sun_1)
+    zn_2 = _get_zenith_from_sun(sun_2)
 
     # get planar distance between
     dist_1 = np.hypot(xy_1[:,0]-xy_t[:,0], xy_1[:,1]-xy_t[:,1])
@@ -1187,7 +1220,6 @@ def get_caster(sun_1, sun_2, xy_1, xy_2):
         ('please provide arrays of the same size')
     sun_1, sun_2 = np.deg2rad(sun_1), np.deg2rad(sun_2)
 
-    m = sun_1.shape[0]
     caster_new = get_intersection(xy_1, xy_1+np.stack((np.sin(sun_1),
                                                        np.cos(sun_1)), axis=1),
                                   xy_2, xy_2+np.stack((np.sin(sun_2),

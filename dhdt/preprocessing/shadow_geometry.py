@@ -151,41 +151,31 @@ def make_shading(dem_path, dem_file, im_path, im_name,
     return Shd
 
 # geometric functions
-def getShadowPolygon(M, sizPix, thres):  # pre-processing
-    """
-    Use superpixels to group and label an image
-    input:   M              array (m x n)     array with intensity values
-             sizPix         integer           window size of the kernel
-             thres          integer           threshold value for
-                                              Region Adjacency Graph
-    output:  labels         array (m x n)     array with numbered labels
-             SupPix         array (m x n)     array with numbered superpixels
-    """
+def get_shadow_polygon(M, t_siz):
+    """ use superpixels to group and label an image
 
-    mn = np.ceil(np.divide(np.nanprod(M.shape), sizPix))
-    SupPix = segmentation.slic(M, sigma=1,
+    Parameters
+    ----------
+    M : numpy.array, size=(m,n)
+        grid with intensity values
+    t_size : integer
+        window size of the kernel
+
+    Returns
+    -------
+    labels : numpy.array, size=(m,n)
+        grid with numbered labels
+    super_pix : numpy.array, size=(m,n)
+        grid with numbered superpixels
+    """
+    mn = np.ceil(np.divide(np.nanprod(M.shape), t_size))
+    super_pix = segmentation.slic(M, sigma=1,
                                n_segments=mn,
                                compactness=0.010)  # create super pixels
 
-    #    g = graph.rag_mean_color(M, SupPix) # create region adjacency graph
-    #    mc = np.empty(len(g))
-    #    for n in g:
-    #        mc[n] = g.nodes[n]['mean color'][1]
-    #    graphCut = graph.cut_threshold(SupPix, g, thres)
-    #    meanIm = color.label2rgb(graphCut, M, kind='avg')
-    meanIm = color.label2rgb(SupPix, M, kind='avg')
-    sturge = 1.6 * (np.log2(mn) + 1)
-    values, base = np.histogram(np.reshape(meanIm, -1),
-                                bins=np.int(np.ceil(sturge)))
-    dips = find_valley(values, base, 2)
-    val = max(dips)
-    #    val = filters.threshold_otsu(meanIm)
-    #    val = filters.threshold_yen(meanIm)
-    imSeparation = meanIm > val
-    labels = measure.label(imSeparation, background=0)
-    labels = np.int16(
-        labels)  # so it can be used for the boundaries extraction
-    return labels, SupPix
+    mean_im = color.label2rgb(super_pix, M, kind='avg')
+    labels = sturge(mean_im)[0]
+    return labels, super_pix
 
 # threshholding and classification functions
 def sturge(M):
@@ -261,37 +251,7 @@ def find_valley(values, base, neighbors=2):
     quantiles = cumsum_norm[selec]
     return dips, quantiles
 
-def shadow_image_to_list(M, geoTransform, s2_path,
-                         Zn=None, Az=None, timestamp=None, **kwargs):
-    """
-    Turns the image towards the sun, and looks along each solar ray, hereafter
-    the caster and casted locations are written to a txt-file
-
-    Parameters
-    ----------
-    M : np.array, size=(m,n), dtype={integer,boolean}
-        shadow classification
-    geoTransform : tuple, size=(1,6)
-        affine transformation coefficients
-    s2_path : string
-        working directory path with metadata
-    Zn : float, unit=degrees
-        elevation angle of the illumination direction
-    Az : float, unit=degrees
-        argument of the illumination
-    timestamp : string
-
-    """
-    if (Zn is None) or (Az is None):
-        Zn, Az = read_mean_sun_angles_s2(s2_path)
-    if 'out_name' in kwargs:
-        out_name = kwargs.get('out_name')
-    else:
-        out_name = "conn.txt"
-    if timestamp is not None:
-        assert isinstance(timestamp, str), \
-            ('please provide a string for the timestamp')
-
+def shadow_image_to_suntrace_list(M, geoTransform, Az):
     # turn towards the sun
     M_rot = ndimage.rotate(M.astype(float), 180-Az,
                            axes=(1, 0), reshape=True, output=None,
@@ -310,7 +270,6 @@ def shadow_image_to_list(M, geoTransform, s2_path,
     suntrace_list = np.empty((0, 4))
     for k in range(M_rot.shape[1]):
         M_trace = M_rot[:,k] # line of intensities along a sun trace
-        IN = M_trace!=-9999
 
         shade_class = M_trace>=0.5 # take the upper threshold
         shade_class = shade_class.astype(int)
@@ -343,8 +302,42 @@ def shadow_image_to_list(M, geoTransform, s2_path,
     # remove out of image sun traces
     OUT = np.any(suntrace_list==-9999, axis=1)
     suntrace_list = suntrace_list[~OUT,:]
-    # find azimuth and elevation at cast location
+    return suntrace_list
 
+def shadow_image_to_list(M, geoTransform, s2_path,
+                         Zn=None, Az=None, timestamp=None, **kwargs):
+    """
+    Turns the image towards the sun, and looks along each solar ray, hereafter
+    the caster and casted locations are written to a txt-file
+
+    Parameters
+    ----------
+    M : np.array, size=(m,n), dtype={integer,boolean}
+        shadow classification
+    geoTransform : tuple, size={(1,6), (1,8)}
+        affine transformation coefficients
+    s2_path : string
+        working directory path with metadata
+    Zn : float, unit=degrees
+        elevation angle of the illumination direction
+    Az : float, unit=degrees
+        argument of the illumination
+    timestamp : string
+
+    """
+    if (Zn is None) or (Az is None):
+        Zn, Az = read_mean_sun_angles_s2(s2_path)
+    if 'out_name' in kwargs:
+        out_name = kwargs.get('out_name')
+    else:
+        out_name = "conn.txt"
+    if timestamp is not None:
+        assert isinstance(timestamp, str), \
+            ('please provide a string for the timestamp')
+
+    suntrace_list = shadow_image_to_suntrace_list(M, geoTransform, Az)
+
+    # find azimuth and elevation at cast location
     (sunZn,sunAz) = read_sun_angles_s2(s2_path)
 
     # if timestamp of imagery is not given, extract it from metadata

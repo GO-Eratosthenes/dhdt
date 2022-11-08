@@ -240,6 +240,10 @@ def get_water_vapor_press(T):
     P_w : {float, numpy.array}, unit=Pascal
         water vapor pressure
 
+    See Also
+    --------
+    get_sat_vapor_press
+
     References
     ----------
     .. [1] Yan et al, "Correction of atmospheric refraction geolocation error of
@@ -253,17 +257,18 @@ def get_water_vapor_press(T):
     P_w *= 3386.39          # eq. 23 in [1]
     return P_w
 
-def get_sat_vapor_press(T):
-    """
+def get_sat_vapor_press(T, method='IAPWS'):
+    """ uses either [1] or the international standard of IAPWS [2].
 
     Parameters
     ----------
     T : {float, numpy.array}, unit=Kelvin
         temperature
+
     Returns
     -------
-    P_w : {float, numpy.array}, unit=Pascal
-        water vapor pressure
+    svp : {float, numpy.array}
+        saturation vapor pressure
 
     See Also
     --------
@@ -273,9 +278,53 @@ def get_sat_vapor_press(T):
     ----------
     .. [1] Giacomo, "Equation for the determination of the density of moist air"
            Metrologica, vol.18, pp.33-40, 1982.
+    .. [2] Wagner and Pruß, "The IAPWS formulation 1995 for the thermodynamic
+           properties of ordinary water substance for general and scientific
+           use.” Journal of physical and chemical reference data, vol.31(2),
+           pp.387-535, 2002.
     """
-    A, B, C, D = 1.2378847E-5, -1.9121316E-2, 33.93711047, -6.3431645E3
-    svp = np.exp(A*T**2 + B*T + C + D/T)        # eq.22 in [1]
+    if method in ('simple', 'old'):
+        A, B, C, D = 1.2378847E-5, -1.9121316E-2, 33.93711047, -6.3431645E3
+        svp = np.exp(A*T**2 + B*T + C + D/T)        # eq.22 in [1]
+    else:
+        k_1,k_2 = 1.16705214528E3, -7.24213167032E5
+        k_3,k_4,k_5 = -1.70738469401E1, 1.20208247025E4, -3.23255503223E6
+        k_6,k_7,k_8 = 1.49151086135E1, -4.82326573616E3, 4.05113405421E5
+        k_9,k_10 = -2.38555575678E-1, 6.50175348448E2
+
+        omega = T + np.divide(k_9 ,(T - k_10))
+        a = omega**2 + np.multiply(k_1, omega) + k_2
+        b = np.multiply(k_3, omega**2) + np.multiply(k_4, omega) + k_5
+        c = np.multiply(k_6, omega**2) + np.multiply(k_7, omega) + k_8
+        x = -b + np.sqrt(b**2 - (4 * a * c))
+        svp = 1E6*np.power(np.divide(2*c, x), 4)
+    return svp
+
+def get_sat_vapor_press_ice(T):
+    """ following the international standard of IAPWS [2].
+
+    Parameters
+    ----------
+    T : {float, numpy.array}, unit=Kelvin
+        temperature
+
+    Returns
+    -------
+    svp : {float, numpy.array}
+        saturation vapor pressure
+
+    References
+    ----------
+    .. [1] Wagner and Pruß, "The IAPWS formulation 1995 for the thermodynamic
+       properties of ordinary water substance for general and scientific
+       use.” Journal of physical and chemical reference data, vol.31(2),
+       pp.387-535, 2002.
+    """
+    a_1, a_2 = -13.928169, 34.7078238
+    t_frac = np.divide(T, 273.16)
+    y = np.multiply(a_1, 1 - np.power(t_frac, -1.5)) + \
+        np.multiply(a_2, 1 - np.power(t_frac, -1.25))
+    svp = 611.657 * np.exp(y)
     return svp
 
 def get_water_vapor_press_ice(T):
@@ -293,7 +342,7 @@ def get_water_vapor_press_ice(T):
 
     See Also
     --------
-    get_sat_vapor_press
+    get_sat_vapor_press, get_water_vapor_press
 
     References
     ----------
@@ -306,7 +355,7 @@ def get_water_vapor_press_ice(T):
     return P_w
 
 def get_water_vapor_enhancement(t,p):
-    """
+    """ estimate the enhancement factor for the humidity calculation
 
     Parameters
     ----------
@@ -438,7 +487,7 @@ def refractive_index_broadband_vapour(sigma):
                                                             # eq.3 in [2]
     n_ws = cf*(w_0 + w_1*(sigma**2)+ w_2*(sigma**4)+ w_3*(sigma**6))
     n_ws /= 1E8
-    n_ws += 1
+#    n_ws += 1
     return n_ws
 
 def water_vapor_frac(p,T,fH):
@@ -485,8 +534,8 @@ def water_vapor_frac(p,T,fH):
 
     Freeze = T <= 273.15
 
-    np.putmask(svp, Freeze, get_water_vapor_press_ice(T[Freeze]))
-    np.putmask(svp, ~Freeze, get_water_vapor_press_ice(T[~Freeze]))
+    np.putmask(svp, Freeze, get_sat_vapor_press_ice(T[Freeze]))
+    np.putmask(svp, ~Freeze, get_sat_vapor_press(T[~Freeze]))
 
     t = kelvin2celsius(T) # transform to Celsius scale
     # enhancement factor of water vapor
@@ -522,7 +571,7 @@ def compressability_moist_air(p, T, x_w):
     References
     ----------
     .. [1] Ciddor, "Refractive index of air: new equations for the visible and
-           near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
+       near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
     .. [2] Davis, "Equation for the determination of the density of moist air
        (1981/91)" Metrologica, vol.29 pp.67-70.
     """
@@ -537,12 +586,15 @@ def compressability_moist_air(p, T, x_w):
     # there seem to be two temperature scales used in the equation...
     T_k, t = T.copy(), kelvin2celsius(T.copy())
 
-    Z = 1 - (p/T_k)*(a_0 + a_1*t + a_2*(t**2)         # eq.12 in [1]
-                   + (b_0 + b_1*t)*x_w                # eq.5 in [2]
-                   + (c_0 + c_1*t)*(x_w**2)) + (p**2/T_k**2) * (d + e*(x_w**2))
+    p_tk = p/T_k
+    Z = 1 - p_tk*(a_0 + a_1*t + a_2*(t**2)         # eq.12 in [1]
+                   + (b_0 + b_1*t)*x_w             # eq.5 in [2]
+                   + (c_0 + c_1*t)*(x_w**2)) \
+                   + p_tk**2 * (d + e*(x_w**2))
     return Z
 
-def get_density_air(T,P,fH, moist=True, CO2=450, M_w=0.018015, R=8.314510):
+def get_density_air(T,P,fH, moist=True, CO2=450, M_w=0.018015, R=8.314510,
+                    saturation=False):
     """
 
     Parameters
@@ -587,14 +639,17 @@ def get_density_air(T,P,fH, moist=True, CO2=450, M_w=0.018015, R=8.314510):
     # molar mass of dry air containing XXX ppm of CO2
     M_a = ((CO2-400)*12.011E-6 + 28.9635)*1E-3 # eq2 in [2]
 
-    if moist is True:
-        x_w = water_vapor_frac(P,T,fH)
-    else:
-        x_w = 0.
+    x_w = water_vapor_frac(P,T,fH)
+    if np.any(fH==1):
+        np.putmask(x_w, fH==1, 1.)
 
     Z = compressability_moist_air(P, T, x_w)
-    rho = np.divide(P*M_a, Z*R*T)*(1 - x_w*(1-np.divide(M_w, M_a)) )
-                                                            # eq. 4 in [1]
+    if moist is True: # calculate moisture component
+        rho = np.divide(x_w*P*M_a, Z*R*T)*\
+              (1 - x_w*(1-np.divide(M_w, M_a)) )
+    else:
+        rho = np.divide((1-x_w)*P*M_a, Z*R*T)*\
+              (1 - x_w*(1-np.divide(M_w, M_a)) ) # eq. 4 in [1]
     return rho
 
 def ciddor_eq5(rho_a, rho_w, n_axs, n_ws, rho_axs, rho_ws):
@@ -605,6 +660,7 @@ def ciddor_eq5(rho_a, rho_w, n_axs, n_ws, rho_axs, rho_ws):
     rho_a : {numpy.array, float}, unit=kg m-3
         density of dry air
     rho_w : (numpy.array, float}, unit=kg m-3
+        density of moist air
     n_axs : numpy.array, size=(k,)
         refractive index for dry air at sea level at a specific wavelength
     n_ws : numpy.array, size=(k,)
@@ -627,8 +683,8 @@ def ciddor_eq5(rho_a, rho_w, n_axs, n_ws, rho_axs, rho_ws):
     """
     # eq. 4 in [1]
     n_prop = 1 + \
-             np.multiply.outer(np.divide(rho_a, rho_axs),(n_axs-1)) + \
-             np.multiply.outer(np.divide(rho_w, rho_ws), (n_ws-1))
+             np.multiply(np.divide(rho_a, rho_axs), n_axs) + \
+             np.multiply(np.divide(rho_w, rho_ws), n_ws)
 
     return n_prop
 
@@ -787,7 +843,7 @@ def refractive_index_broadband(df, T_0, P_0, fH_0, CO2=450.,
                                T_w=20., P_w=1333.,
                                LorentzLorenz=False):
     """ Estimate the refractive index in for wavelengths in the range of
-    300...1200nm, see also [1].
+    300...1700 nm, see also [1].
 
     Parameters
     ----------
@@ -848,6 +904,10 @@ def refractive_index_broadband(df, T_0, P_0, fH_0, CO2=450.,
     else:
         sigma = np.array([1/df])
 
+    if np.any(np.logical_or(sigma>1/0.3,sigma<1/1.7)):
+        warnings.warn("wavelength(s) seem to be out of the domain,"+
+                      " i.e.: 0.3...1.7 µm")
+
     # convert to correct unit
     T_0 = celsius2kelvin(T_0)
     T_a, T_w = celsius2kelvin(T_a), celsius2kelvin(T_w)
@@ -856,12 +916,11 @@ def refractive_index_broadband(df, T_0, P_0, fH_0, CO2=450.,
     # amended for changes in temperature and CO2 content
     k_0, k_1, k_2, k_3 = 238.0185, 5792105., 57.362, 167917.
 
-    n_as = 1 + \
-           (np.divide(k_1, k_0 - sigma**2) +
+    n_as = (np.divide(k_1, k_0 - sigma**2) +
             np.divide(k_3, k_2 - sigma**2) )*1E-8            # eq.1 in [1]
 
-    n_axs = 1 + ((n_as - 1) * (1 + .534E-6 * (CO2 - 450)))      # eq.2 in [1]
-    n_ws = refractive_index_broadband_vapour(sigma)             # eq.3 in [1]
+    n_axs = (n_as * (1 + (.534E-6 * (CO2 - 450))))           # eq.2 in [1]
+    n_ws = refractive_index_broadband_vapour(sigma)          # eq.3 in [1]
 
     rho_a = get_density_air(T_0,P_0,fH_0,moist=False, CO2=CO2)
     rho_w = get_density_air(T_0,P_0,fH_0,moist=True, CO2=CO2)    # eq.4 in [1]
@@ -876,6 +935,30 @@ def refractive_index_broadband(df, T_0, P_0, fH_0, CO2=450.,
         n = ciddor_eq6(rho_a, rho_w, n_axs, n_ws, rho_axs, rho_ws)
                                                                 # eq.6 in [1]
     n = np.squeeze(n)
+    return n
+
+def refractive_index_simple(p,RH,t):
+    """ simple shop-floor formula fro refraction, see appendix B in [1].
+
+    Parameters
+    ----------
+    p : {numpy.array, float}, unit=kPa
+        pressure
+    RH : {numpy.array, float}, unit=percent
+        relative humidity
+    t : {numpy.array, float}, unit=Celsius
+        temperature
+
+    Returns
+    -------
+    n : {numpy.array, float}
+        refractive index
+
+    References
+    ----------
+    .. [1] https://emtoolbox.nist.gov/wavelength/Documentation.asp#AppendixB
+    """
+    n = 1+7.86E-4*p/(273+t)-1.5E-11 * RH *(t**2+160)
     return n
 
 def refraction_angle_analytical(zn_0, n_0):
@@ -904,8 +987,8 @@ def refraction_angle_analytical(zn_0, n_0):
     return zn
 
 @loggg
-def get_refraction_angle(dh, x_bar, y_bar, spatialRef, h,
-                         central_wavelength, simple_refraction=True):
+def get_refraction_angle(dh, x_bar, y_bar, spatialRef, central_wavelength,
+                         h, simple_refraction=True):
     assert type(dh) in (pandas.core.frame.DataFrame, ), \
         ('please provide a pandas dataframe')
     assert np.all([header in dh.columns for header in
@@ -920,7 +1003,6 @@ def get_refraction_angle(dh, x_bar, y_bar, spatialRef, h,
         sub_dh = dh.loc[IN]
         era_idx = np.where(t_era == timestamp)[0][0]
 
-
         # get temperature and pressure at location
         dh_T = np.interp(sub_dh['caster_Z'], z, np.squeeze(Temp[...,era_idx]))
         dh_P = np.interp(sub_dh['caster_Z'], z, np.squeeze(Pres[...,era_idx]))
@@ -931,7 +1013,7 @@ def get_refraction_angle(dh, x_bar, y_bar, spatialRef, h,
             dh_T = kelvin2celsius(dh_T)
             CO2 = get_CO2_level(lat, timestamp, m=3, nb=3)[0]
             n_0 = refractive_index_broadband(central_wavelength,
-                                         dh_T, dh_P, dh_fH, CO2=CO2)
+                                             dh_T, dh_P, dh_fH, CO2=CO2)
 
         zn_new = refraction_angle_analytical(sub_dh['zenith'], n_0)
 

@@ -65,8 +65,8 @@ def list_central_wavelength_msi():
         - SWIR : short wave infra-red
         - CMOS : silicon complementary metal oxide semiconductor, Si
 
-    Example
-    -------
+    Examples
+    --------
     make a selection by name:
 
     >>> boi = ['red', 'green', 'blue', 'near infrared']
@@ -98,7 +98,7 @@ def list_central_wavelength_msi():
     center_wavelength = {"B01": 443, "B02": 492, "B03": 560, "B04": 665,
                   "B05": 704, "B06": 741, "B07": 783, "B08": 833, "B8A": 865,
                   "B09": 945, "B10":1374, "B11":1614, "B12":2202,
-                  }
+                  }/1E3 # convert from nm to µm
     full_width_half_max = {"B01": 21, "B02": 66, "B03": 36, "B04": 31,
                  "B05": 15, "B06": 15, "B07": 20, "B08":106, "B8A": 21,
                  "B09": 20, "B10": 31, "B11": 91, "B12":175,
@@ -286,11 +286,11 @@ def read_stack_s2(s2_df):
             im_stack, spatialRef, geoTransform, targetprj = read_band_s2(full_path)
         else: # stack others bands
             if im_stack.ndim==2:
-                im_stack = im_stack[:,:,np.newaxis]
-            band,_,_,_ = read_band_s2(full_path)
+                im_stack = im_stack[...,np.newaxis]
+            band = read_band_s2(full_path)[0]
             if im_scaling[idx]!=1: # resize image to higher res.
                 band = resize(band, (im_stack.shape[0], im_stack.shape[1]), order=3)
-            band = band[:,:,np.newaxis]
+            band = band[...,np.newaxis]
             im_stack = np.concatenate((im_stack, band), axis=2)
 
     # in the meta data files there is no mention of its size, hence include

@@ -5,8 +5,7 @@ from osgeo import gdal
 from scipy.linalg import block_diag
 
 from .matching_tools import \
-    get_coordinates_of_template_centers, \
-    get_grid_at_template_centers
+    get_coordinates_of_template_centers
 from .matching_tools_differential import simple_optical_flow
 from .network_tools import getNetworkIndices, getNetworkBySunangles, \
     getAdjacencyMatrixFromNetwork

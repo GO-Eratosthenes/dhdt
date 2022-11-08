@@ -5,7 +5,86 @@ from ..generic.filtering_statistical import mad_filtering
 from .matching_tools_frequency_filters import normalize_power_spectrum, \
     construct_phase_values, cross_spectrum_to_coordinate_list
 
+def list_phase_metrics():
+    """ list the abbreviations of the different implemented phase metrics,
+    there are:
+        * 'phase_fit' : the absolute score
+        * 'phase_sup' : the primary peak ratio i.r.t. the second peak
+
+    See Also
+    --------
+    get_phase_metric, entropy_corr, peak_confidence, peak_to_noise,
+    peak_corr_energy, peak_rms_ratio, num_of_peaks, peak_winner_margin,
+    primary_peak_margin, primary_peak_ratio
+    """
+    metrics_list = ['phase_fit', 'phase_sup']
+    return metrics_list
+
+def get_phase_metric(Q, di, dj, metric='phase_fit'):
+    """ redistribution function, to get a metric from a matching score surface
+
+    Parameters
+    ----------
+    Q : numpy.array, size=(m,n), type=complex
+        phase angles of the cross-correlation spectra
+    di,dj : {float,integer}
+        estimated displacement
+    metric : string
+        abbreviation for the metric type to be calculated, for the options see
+        "list_pahse_metrics" for the options
+
+    Returns
+    -------
+    score : float
+        metric of the matching phase angle in relation to its surface
+
+    See Also
+    --------
+    list_matching_metrics, entropy_corr, peak_confidence, peak_to_noise,
+    peak_corr_energy, peak_rms_ratio, num_of_peaks, peak_winner_margin,
+    primary_peak_margin, primary_peak_ratio
+    """
+    # admin
+    assert type(Q) == np.ndarray, ('please provide an array')
+    if Q.size==0: return None
+
+    # redistribute correlation surface to the different functions
+    if metric in ['phase_fit', 'phase_fitness', 'snr']:
+        score = phase_fitness(Q, di, dj)
+    elif metric in ['phase_sup', 'phase_support']:
+        score = phase_support(Q, di, dj)
+    else:
+        score = None
+    return score
+
 def phase_fitness(Q, di, dj, norm=2):
+    """ estimate the goodness of fit of the phase diffence
+
+    Parameters
+    ----------
+    Q : numpy.array, size={(m,n), (k,3)}
+        cross-spectrum
+    di,dj : {float,integer}
+        estimated displacement
+    norm : integer
+        norm for the difference
+
+    Returns
+    -------
+    fitness : float, range=0...1
+        goodness of fit, see also [1]
+
+    See Also
+    --------
+    signal_to_noise, phase_support
+
+    References
+    ----------
+    .. [1] Leprince, et.al. "Automatic and precise orthorectification,
+       coregistration, and subpixel correlation of satellite images,
+       application to ground deformation measurements", IEEE Transactions on
+       geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.
+    """
     assert type(Q) == np.ndarray, ('please provide an array')
     # admin
     data = cross_spectrum_to_coordinate_list(Q)
@@ -18,6 +97,32 @@ def phase_fitness(Q, di, dj, norm=2):
     return fitness
 
 def phase_support(Q, di, dj, thres=1.4826):
+    """ estimate the support of the fit for the phase differences
+
+    Parameters
+    ----------
+    Q : numpy.array, size={(m,n), (k,3)}
+        cross-spectrum
+    di,dj : {float,integer}
+        estimated displacement
+    norm : integer
+        norm for the difference
+
+    Returns
+    -------
+    support : float, range=0...1
+        ammount of support, see also [1]
+
+    See Also
+    --------
+    phase_fitness
+
+    References
+    ----------
+    .. [1] Altena & Leinss, "Improved surface displacement estimation through
+       stacking cross-correlation spectra from multi-channel imagery",
+       Science of Remote Sensing, vol.6 pp.100070, 2022.
+    """
     assert type(Q) == np.ndarray, ('please provide an array')
 
     data = cross_spectrum_to_coordinate_list(Q)
@@ -47,11 +152,18 @@ def signal_to_noise(Q, C, norm=2):
     Returns
     -------
     snr : float, range=0...1
-        signal to noise ratio
+        signal to noise ratio, see also [1]
 
     See Also
     --------
     phase_fitness
+
+    References
+    ----------
+    .. [1] Leprince, et.al. "Automatic and precise orthorectification,
+       coregistration, and subpixel correlation of satellite images,
+       application to ground deformation measurements", IEEE Transactions on
+       geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.
     """
     assert type(Q) == np.ndarray, ('please provide an array')
     assert type(C) == np.ndarray, ('please provide an array')
@@ -60,58 +172,3 @@ def signal_to_noise(Q, C, norm=2):
     Q_diff = np.abs(Qn-C)**norm
     snr = 1 - (np.sum(Q_diff) / (2*norm*np.prod(C.shape)))
     return snr
-
-def local_coherence(Q, ds=1):
-    """ estimate the local coherence of a spectrum
-
-    Parameters
-    ----------
-    Q : numpy.array, size=(m,n), dtype=complex
-        array with cross-spectrum, with centered coordinate frame
-    ds : integer, default=1
-        kernel radius to describe the neighborhood
-
-    Returns
-    -------
-    M : numpy.array, size=(m,n), dtype=float
-        vector coherence from no to ideal, i.e.: 0...1
-
-    See Also
-    --------
-    thresh_masking
-
-    Example
-    -------
-    >>> import numpy as np
-    >>> import matplotlib.pyplot as plt
-    >>> from ..generic.test_tools import create_sample_image_pair
-
-    >>> # create cross-spectrum with random displacement
-    >>> im1,im2,_,_,_ = create_sample_image_pair(d=2**4, max_range=1)
-    >>> spec1,spec2 = np.fft.fft2(im1), np.fft.fft2(im2)
-    >>> Q = spec1 * np.conjugate(spec2)
-    >>> Q = normalize_spectrum(Q)
-    >>> Q = np.fft.fftshift(Q) # transform to centered grid
-
-    >>> C = local_coherence(Q)
-
-    >>> plt.imshow(C), cmap='OrRd'), plt.colorbar(), plt.show()
-    >>> plt.imshow(Q), cmap='twilight'), plt.colorbar(), plt.show()
-    """
-    assert type(Q) == np.ndarray, ("please provide an array")
-
-    diam = 2 * ds + 1
-    C = np.zeros_like(Q)
-    (isteps, jsteps) = np.meshgrid(np.linspace(-ds, +ds, 2 * ds + 1, dtype=int), \
-                                   np.linspace(-ds, +ds, 2 * ds + 1, dtype=int))
-    IN = np.ones(diam ** 2, dtype=bool)
-    IN[diam ** 2 // 2] = False
-    isteps, jsteps = isteps.flatten()[IN], jsteps.flatten()[IN]
-
-    for idx, istep in enumerate(isteps):
-        jstep = jsteps[idx]
-        Q_step = np.roll(Q, (istep, jstep))
-        # if the spectrum is normalized, then no division is needed
-        C += Q * np.conj(Q_step)
-    C = np.abs(C) / np.sum(IN)
-    return C

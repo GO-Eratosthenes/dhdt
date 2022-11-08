@@ -103,7 +103,9 @@ def get_header_conn_file(conn_path, no_lines=6):
             header = [names.strip() for names in line.split(' ')[1:]]
     return header
 
-def read_conn_to_df(conn_path):
+def read_conn_to_df(conn_path, conn_file='conn.txt'):
+    if os.path.isdir(conn_path):
+        conn_path = os.path.join(conn_path, conn_file)
     col_names = get_header_conn_file(conn_path)
     dh = pd.read_csv(conn_path, delimiter=' ',
                      header=None, names=col_names, comment='#')
@@ -323,7 +325,7 @@ def clean_dh_pd(dh):
 
 def update_caster_elevation(dh, Z, geoTransform):
     if type(dh) in (pd.core.frame.DataFrame,):
-        update_cast_elevation_pd(dh, Z, geoTransform)
+        update_caster_elevation_pd(dh, Z, geoTransform)
     #todo : make the same function for recordarray
     return dh
 

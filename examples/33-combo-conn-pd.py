@@ -36,8 +36,7 @@ im_paths = ('S2-2021-10-27',
            'S2-2017-10-18')
 im_paths = ('S2-2019-10-25', 'S2-2019-10-15',)
 
-dh = read_conn_files_to_df(im_paths, folder_path=im_dir,
-                           dist_thres=100.)
+dh = read_conn_files_to_df(im_paths, folder_path=im_dir, dist_thres=10.)
 # preprocessing
 dh = (dh
       .pipe(start_pipeline)
@@ -64,3 +63,6 @@ elev,q_050,n_050 = get_general_hypsometry(dhdt_sel['Z_12'].to_numpy(),
                                           quant=.5)
 
 print('hypsometric pairs calculated')
+
+
+

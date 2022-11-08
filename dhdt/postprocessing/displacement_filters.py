@@ -106,9 +106,9 @@ def nan_resistant_filter(I, filter):
 
     References
     ----------
-    .. [1] Altena et al. “Correlation dispersion as a measure to better estimate
-       uncertainty of remotely sensed glacier displacements” The cryosphere
-       discussions, 2021.
+    .. [1] Altena et al. "Correlation dispersion as a measure to better estimate
+       uncertainty of remotely sensed glacier displacements", The Crysophere,
+       vol.16(6) pp.2285–2300, 2022.
     """
     #todo if all entities have the same sign
     I_new = ndimage.generic_filter(I, nan_resistant,

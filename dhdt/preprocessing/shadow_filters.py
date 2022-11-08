@@ -237,7 +237,7 @@ def fade_shadow_cast(Shw, az, t_size=9):
                                mode='mirror', cval=np.nan,
                                extra_keywords = {'t_size': (t_size, t_size)}
                                )
-    S_b = S_b[:,:,0]
+    S_b = S_b[...,0]
     Shf = np.copy(Shw).astype(np.float64)
     Shf[M_f] = S_b[M_f]
     return Shf

@@ -246,21 +246,21 @@ def get_root_of_table(path, fname=None):
 def get_s2_image_locations(fname,s2_df):
     """
     The Sentinel-2 imagery are placed within a folder structure, where one
-    folder has an ever changing name. Fortunately this function finds the path from
-    the meta data
+    folder has an ever changing name. Fortunately this function finds the path
+    from the metadata
 
     Parameters
     ----------
     fname : string
         path string to the Sentinel-2 folder
-    s2_df : dataframe
+    s2_df : pandas.dataframe
         index of the bands of interest
 
     Returns
     -------
     im_paths : series, size=(k,)
         dataframe series with relative folder and file locations of the bands
-    datastrip_id : str
+    datastrip_id : string
         folder name of the metadata
 
     Example

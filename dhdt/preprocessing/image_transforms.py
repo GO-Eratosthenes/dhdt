@@ -1,5 +1,7 @@
 import numpy as np
 
+from ..generic.data_tools import gompertz_curve, s_curve
+
 def mat_to_gray(I, notI=None, vmin=None, vmax=None):
     """ transform matix array  to float, omitting nodata values
 
@@ -90,6 +92,32 @@ def gamma_adjustment(I, gamma=1.0):
             I_new = (I_new/radio_range).astype(np.float64)
     return I_new
 
+def gompertz_adjustment(I, a=None, b=None):
+    """ transform intensity in non-linear way, so high reflected surfaces like
+    snow have more emphasized.
+
+    Parameters
+    ----------
+    I : np.array, size=(m,n), dtype=integer
+        array with intensity values
+    a,b : float
+        parameters for the Gompertz function
+
+    Returns
+    -------
+    I_new : np.array, size=(m,n)
+        array with transform
+    """
+    if I.dtype.type == np.uint8:
+        if (a is None) or (b is None):
+            a, b = 10, .025
+        I_new = gompertz_curve(I.astype(float), a, b).astype(np.uint8)
+    elif I.dtype.type == np.uint16:
+        if (a is None) or (b is None):
+            a, b = 10, .000125
+        I_new = gompertz_curve(I.astype(float), a, b).astype(np.uint16)
+    return I_new
+
 def log_adjustment(I):
     """ transform intensity in non-linear way
 
@@ -117,44 +145,6 @@ def log_adjustment(I):
     else:
         I_new = I_new.astype("uint16")
     return I_new
-
-def s_curve(x, a=10, b=.5):
-    """ transform intensity in non-linear way
-
-    enhances high and low intensities
-
-    Parameters
-    ----------
-    x : np.array, size=(m,n)
-        array with intensity values
-    a : float
-        slope
-    b : float
-        intercept
-
-    Returns
-    -------
-    fx : np.array, size=(m,n)
-        array with transform
-
-    References
-    ----------
-    .. [1] Fredembach & Süsstrunk. "Automatic and accurate shadow detection from
-       (potentially) a single image using near-infrared information", EPFL Tech
-       Report 165527, 2010.
-
-    Examples
-    --------
-    >>> import numpy as np
-    >>> import matplotlib.pyplot as plt
-    >>> x = np.arange(0,1,.001)
-    >>> fx = s_curve(x)
-    >>> plt.plot(x,fx), plt.show()
-    shows the mapping function
-    """
-    fe = -a * (x - b)
-    fx = np.divide(1, 1 + np.exp(fe))
-    return fx
 
 def hyperbolic_adjustment(I, intercept):
     """ transform intensity through an hyperbolic sine function
@@ -414,7 +404,7 @@ def general_midway_equalization(I):
     return I_new
 
 def high_pass_im(Im, radius=10):
-   """
+    """
 
     Parameters
     ----------

@@ -188,10 +188,45 @@ def read_band_re(band, path):
     targetprj : osgeo.osr.SpatialReference() object
         coordinate reference system (CRS)
     """
-    fname = os.path.join(path, '*_Analytic.tif')
+    fname = os.path.join(path, '*_Analytic*tif')
+
+    bnd_id = int(band)-1
+    assert 0<=bnd_id<=4, ('please provide correct band number for RapidEye data')
 
     data, spatialRef, geoTransform, targetprj = \
         read_geo_image(glob.glob(fname)[0])
+    data = np.squeeze(data[...,bnd_id])
+    return data, spatialRef, geoTransform, targetprj
+
+def read_stack_re(path):
+    """ read specific band of RapidEye image
+
+    This function takes as input the RapidEye band number and the path of the
+    folder that the images are stored, reads the image and returns the data as
+    an array
+
+    Parameters
+    ----------
+    path : string
+        path to folder with imagery.
+
+    Returns
+    -------
+    data : np.array, size=(m,n,_), dtype=integer
+        data of one RadidEye band.
+    spatialRef : string
+        osr.SpatialReference in well known text
+    geoTransform : tuple, size=(6,1)
+        affine transformation coefficients.
+    targetprj : osgeo.osr.SpatialReference() object
+        coordinate reference system (CRS)
+    """
+    fname = os.path.join(path, '*_Analytic*tif')
+    ffull = glob.glob(fname)[0]
+
+    assert os.path.exists(ffull), ('file does not seem to be present')
+    data, spatialRef, geoTransform, targetprj = \
+        read_geo_image(ffull)
     return data, spatialRef, geoTransform, targetprj
 
 def read_sun_angles_re(path):

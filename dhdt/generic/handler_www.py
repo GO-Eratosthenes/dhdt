@@ -3,9 +3,12 @@ import os
 
 import tarfile
 import zipfile
+import bz2
 import urllib.request
 
 import ftps # for Copernicus FTP-download
+import requests # for NASA Earthdata Login
+import warnings
 
 # geospatial libaries
 from osgeo import gdal
@@ -37,6 +40,59 @@ def get_file_from_ftps(url, user, password,
                      os.path.join(dump_dir, file_name))
     return
 
+
+def get_file_from_www(full_url, dump_dir=os.getcwd()):
+    """ Downloads a file from a location given by the url
+
+    Parameters
+    ----------
+    full_url : string
+        depository where the file is situated
+    dump_dir : string
+        folder location where the data needs to be unpacked
+
+    See Also
+    --------
+    get_file_from_protected_www
+    """
+    assert url_exist(full_url)
+    file_name = full_url.split('/')[-1]
+
+    # download data
+    urllib.request.urlretrieve(full_url, os.path.join(dump_dir, file_name))
+    return
+
+def get_file_from_protected_www(full_url, dump_dir=os.getcwd(),
+                                user=None, password=None):
+    """ Some data is situated in password protected repositories, this function
+
+    Parameters
+    ----------
+    full_url : string
+        server address
+    dump_dir : string
+        path to place the content
+    user : string
+        username
+    password : string
+        password for access
+
+    See Also
+    --------
+    get_file_from_www
+    """
+    file_name = full_url.split('/')[-1]
+    with requests.Session() as session:
+        r1 = session.request('get', full_url)
+        r = session.get(r1.url, auth=(user, password))
+        if r.ok:
+            with open(os.path.join(dump_dir, file_name), 'wb') as f:
+                f.write(r.content)
+        else:
+            warnings.warn("Something might have gone wrong while downloading")
+            return
+    return
+
 def url_exist(file_url):
     """ Check if an url exist
 
@@ -57,6 +113,41 @@ def url_exist(file_url):
     except:
         return False
 
+def get_bz2_file(bz2_url, dump_dir=os.getcwd()):
+    """ Level-3 data of Terra ASTER is packed into bz2-files. This function
+    downloads and unpacks such data
+
+    Parameters
+    ----------
+    bz2_url : string
+        depository where the file is situated
+    dump_dir : string
+        folder location where the data needs to be unpacked
+
+    Returns
+    -------
+    bz2_names : list
+        list of strings of file names within the compressed folder
+    """
+    assert url_exist(bz2_url)
+    zip_name = bz2_url.split('/')[-1]
+
+    # download data
+    urllib.request.urlretrieve(bz2_url, os.path.join(dump_dir, zip_name))
+
+    # decompress
+    zipfile = bz2.BZ2File(os.path.join(dump_dir, zip_name))
+    data = zipfile.read()
+    tar_name = zip_name[:-4]
+    with open(os.path.join(dump_dir, tar_name), 'wb') as new_file:
+        new_file.write(data)
+
+    # extract out of tar
+    tar_file = tarfile.open(os.path.join(dump_dir, tar_name), mode="r")
+    tar_file.extractall(path=dump_dir)
+    bz2_names = tar_file.getnames()
+    return bz2_names
+
 def get_tar_file(tar_url, dump_dir=os.getcwd()):
     """ Downloads and unpacks compressed folder
 
@@ -72,7 +163,8 @@ def get_tar_file(tar_url, dump_dir=os.getcwd()):
     tar_names : list
         list of strings of file names within the compressed folder
     """
-    
+    assert url_exist(tar_url)
+
     ftp_stream = urllib.request.urlopen(tar_url)
     tar_file = tarfile.open(fileobj=ftp_stream, mode="r|gz")
     tar_file.extractall(path=dump_dir)

@@ -489,8 +489,8 @@ def create_shadow_caster_casted(Z, geoTransform, az, zn, out_path,
          make_geo_im(W, geoTransform, crs.ExportToWkt(),
                      os.path.join(out_path, wg_name))
 
-     shadow_image_to_list(Shw, geoTransform, out_path, timestamp='0001-01-01',
-                          Zn=zn, Az=az, out_name=out_name, **kwargs)
+    shadow_image_to_list(Shw, geoTransform, out_path, timestamp='0001-01-01',
+                         Zn=zn, Az=az, out_name=out_name, **kwargs)
     return
 
 def test_photohypsometric_coupling(N, Z_shape, tolerance=0.1):
@@ -535,11 +535,11 @@ def test_photohypsometric_refinement_by_same(Z_shape, tolerance=1.0,
                              wght_2=os.path.join(dump_path, "connwgt.tif"),
                              temp_radius=5, search_radius=9, rect=None,
                              match='wght_corr')
-         else:
-             post_1,post_2_new,caster,dh,score,caster_new,_,_,_ = \
-                 couple_pair(os.path.join(dump_path, "conn.tif"), \
-                             os.path.join(dump_path, "conn.tif"),
-                             rect=None)
+        else:
+            post_1,post_2_new,caster,dh,score,caster_new,_,_,_ = \
+                couple_pair(os.path.join(dump_path, "conn.tif"), \
+                            os.path.join(dump_path, "conn.tif"),
+                            rect=None)
     pix_dispersion = np.nanmedian(np.hypot(post_1[:,0]-post_2_new[:,0],
                                            post_1[:,1]-post_2_new[:,1]))
     assert np.isclose(0, pix_dispersion, atol=tolerance)
@@ -696,6 +696,7 @@ def test_refraction_calculation():
 
     # from Table 3 in [1], or Table 1 in [2]
     sigma = 633.                                # central wavelength in [nm]
+    sigma /= 1E3                                # convert to µm
     T = np.array([20., 20., 20., 10., 30.])     # temperature in [Celsius]
     P = np.array([80., 100., 120., 100., 100.]) # atm. pressure in [kiloPascal]
     P *= 1E3
@@ -707,8 +708,8 @@ def test_refraction_calculation():
     assert np.all(np.isclose(n_0, n_tilde, atol=1E-8))
 
     frac_Hum = np.array([0., 0., 0., 0., 0.])
-    n_0 = refractive_index_broadband(sigma, T, P, frac_Hum, LorentzLorenz=False)
-
+    n_0 = refractive_index_broadband(sigma, T, P, frac_Hum, LorentzLorenz=False) #todo
+    assert np.all(np.isclose(n_0, n_tilde, atol=1E-8))
 
     # from Table.4 in [1], for ambient air
     T = np.array([19.526, 19.517, 19.173, 19.173, 19.188,
@@ -722,11 +723,14 @@ def test_refraction_calculation():
     CO2 = np.array([510., 510., 450., 440., 450., 440., 600., 600., 610.])
                                             # carbondioxide concentration, [ppm]
     n_0 = refractive_index_visible(sigma, T, P, p_w, CO2=CO2)
+    n_0 = refractive_index_broadband(sigma, T, P, p_w, CO2=CO2)
 
     n_tilde = np.array([27392.3, 27394.0, 27683.4, 27686.9, 27659.1,
                       27661.4, 27802.1, 27800.3, 27801.8])  # measured refraction
     n_tilde *= 1E-8
     n_tilde += 1
     assert np.all(np.isclose(n_0, n_tilde, atol=1E-8))
+
+
 
     return

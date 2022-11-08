@@ -309,6 +309,9 @@ def ecef2llh(xyz):
     llh = np.stack(llh, axis=0)
     return llh
 
+def get_utm_zone_simple(lon):
+    return ((np.floor((lon + 180) / 6) % 60) + 1).astype(int)
+
 def ll2map(ll, spatialRef):
     """ transforms angles to map coordinates (that is 2D) in a projection frame
 
@@ -961,8 +964,20 @@ def get_shape_extent(bbox, geoTransform):
     return (rows, cols)
 
 def get_max_pixel_spacing(geoTransform):
-    spac = np.maximum(np.sqrt(geoTransform[1]**2 + geoTransform[2]**2),
-                      np.sqrt(geoTransform[4] ** 2 + geoTransform[5]**2))
+    """ calculate the maximum spacing between pixels
+
+    Parameters
+    ----------
+    geoTransform : tuple, size={(6,1), (8,1)}
+        georeference transform of an image.
+
+    Returns
+    -------
+    spac : float, unit=meter
+        maximum spacing between pixels
+    """
+    spac = np.maximum(np.hypot(geoTransform[1], geoTransform[2]),
+                      np.hypot(geoTransform[4], geoTransform[5]))
     return spac
 
 def get_map_extent(bbox):
@@ -970,15 +985,13 @@ def get_map_extent(bbox):
 
     Parameters
     ----------
-    bbox : np.array, size=(1,4), dtype=float
+    bbox : np.array, size=(1,4)
         bounding box, in the following order: min max X, min max Y
 
     Returns
     -------
-    xB : TYPE
-        coordinate list of horizontal outer points
-    yB : TYPE
-        coordinate list of vertical outer points
+    xB,yB : numpy.array, size=(5,1)
+        coordinate list of horizontal and vertical outer points
 
     See Also
     --------

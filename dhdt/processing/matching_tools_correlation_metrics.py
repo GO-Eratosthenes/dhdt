@@ -2,6 +2,7 @@ import numpy as np
 
 from skimage.morphology import extrema
 
+from ..generic.unit_check import are_two_arrays_equal
 from ..preprocessing.image_transforms import high_pass_im
 
 def list_matching_metrics():
@@ -32,6 +33,7 @@ def get_correlation_metric(C, metric='peak_abs'):
     Parameters
     ----------
     C : numpy.array, size=(m,n)
+        grid with correlation scores
     metric : string
         abbreviation for the metric type to be calculated, for the options see
         "list_matching_metrics" for the options
@@ -627,6 +629,7 @@ def intensity_disparity(I1,I2):
     """
     assert type(I1) == np.ndarray, ('please provide an array')
     assert type(I2) == np.ndarray, ('please provide an array')
+    are_two_arrays_equal(I1, I2)
 
     I1, I2 = I1.flatten(), I2.flatten()
 

@@ -10,9 +10,8 @@ from skimage.measure.fit import _dynamic_max_trials
 from ..generic.data_tools import gradient_descent, secant
 from ..preprocessing.shadow_transforms import pca
 from .matching_tools_frequency_filters import \
-    raised_cosine, thresh_masking, normalize_power_spectrum, \
+    raised_cosine, thresh_masking, normalize_power_spectrum, local_coherence, \
     make_fourier_grid, construct_phase_plane, cross_spectrum_to_coordinate_list
-from .matching_tools_frequency_metrics import local_coherence
 
 def phase_jac(Q, m, W=np.array([]),
               F1=np.array([]), F2=np.array([]), rank=2): # wip
@@ -353,6 +352,9 @@ def phase_svd(Q, W, rad=0.1):
     """
     assert type(Q)==np.ndarray, ("please provide an array")
     assert type(W)==np.ndarray, ("please provide an array")
+
+    if np.abs(Q).ptp()>1:
+        Q = normalize_power_spectrum(Q)
 
     rad = np.minimum(rad, 0.5)
     (m,n) = Q.shape

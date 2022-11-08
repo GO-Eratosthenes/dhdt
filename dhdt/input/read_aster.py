@@ -7,6 +7,8 @@ import pandas as pd
 # geospatial libaries
 from osgeo import gdal, osr
 
+from ..generic.mapping_io import read_geo_image
+
 def list_platform_metadata_tr():
     tr_dict = {
         'COSPAR': '1999-068A',
@@ -51,7 +53,7 @@ def list_central_wavelength_as():
     similarly you can also select by pixel resolution:
 
     >>> as_df = list_central_wavelength_as()
-    >>> sw_df = as_df[as_df['resolution']==30]
+    >>> sw_df = as_df[as_df['gsd']==30]
     >>> sw_df.index
     Index(['B04', 'B05', 'B06', 'B07', 'B08', 'B09'], dtype='object')
 
@@ -99,7 +101,16 @@ def list_central_wavelength_as():
     df = pd.DataFrame(d)
     return df
 
-def read_band_as(path, band='3N'):
+def read_band_as(path, band='3N', level=1):
+    if level==1:
+        data, spatialRef, geoTransform, targetprj = \
+            read_band_as_l1(path, band=band)
+    elif level==3:
+        data, spatialRef, geoTransform, targetprj = \
+            read_band_as_l3(path, band=band)
+    return data, spatialRef, geoTransform, targetprj
+
+def read_band_as_l1(path, band='3N'):
     """
     This function takes as input the ASTER L1T hdf-filename and the path of the
     folder that the images are stored, reads the image and returns the data as
@@ -144,7 +155,6 @@ def read_band_as(path, band='3N'):
 
     # get projection data
     ul_xy = np.fromstring(img.GetMetadata()['UpperLeftM'.upper()], sep=', ')[::-1]
-    lr_xy = np.fromstring(img.GetMetadata()['LowerRightM'.upper()], sep=', ')[::-1]
     proj_str = img.GetMetadata()['MapProjectionName'.upper()]
     utm_code = img.GetMetadata()['UTMZoneCode1'.upper()]
 
@@ -166,8 +176,19 @@ def read_band_as(path, band='3N'):
 
     return data, spatialRef, geoTransform, targetprj
 
-def read_stack_as(path, as_df):
-    """
+def read_band_as_l3(path, band='3N'):
+    data, spatialRef, geoTransform, targetprj = []
+    return data, spatialRef, geoTransform, targetprj
+
+def read_stack_as(path, as_df, level=1):
+    if level==1:
+        data, spatialRef, geoTransform, targetprj = read_stack_as_l1(path,as_df)
+    elif level==3:
+        data, spatialRef, geoTransform, targetprj = read_stack_as_l3(as_df)
+    return data, spatialRef, geoTransform, targetprj
+
+def read_stack_as_l1(path, as_df):
+    """ read the band stack of Level-1 data
 
     Parameters
     ----------
@@ -192,6 +213,13 @@ def read_stack_as(path, as_df):
     --------
     list_central_wavelength_as
     """
+    if (path == '') or (path is None):
+        if 'filepath' in as_df:
+            path = as_df['filepath'][0]
+        else:
+            assert False, ('please first run "get_as_image_locations" to find' +
+                           ' the proper file locations, or provide path directly')
+
     for idx, val in enumerate(as_df.index):
         # resolve index and naming issue for ASTER metadata
         if val[-1] in ['N', 'B']:
@@ -200,13 +228,40 @@ def read_stack_as(path, as_df):
             boi = str(int(val[1:])) # remove leading zero if present
 
         if idx==0:
-            im_stack, spatialRef, geoTransform, targetprj = read_band_as(path, band=boi)
+            im_stack, spatialRef, geoTransform, targetprj = \
+                read_band_as(path, band=boi)
         else: # stack others bands
             if im_stack.ndim==2:
                 im_stack = im_stack[:,:,np.newaxis]
-            band,_,_,_ = read_band_as(path, band=boi)
-            band = band[:,:,np.newaxis]
+            band = read_band_as(path, band=boi)[0]
+            band = band[...,np.newaxis]
             im_stack = np.concatenate((im_stack, band), axis=2)
+    return im_stack, spatialRef, geoTransform, targetprj
+
+def read_stack_as_l3(as_df):
+    assert isinstance(as_df, pd.DataFrame), ('please provide a dataframe')
+    assert 'filepath' in as_df, ('please first run "get_as_image_locations"'+
+                                ' to find the proper file locations')
+    assert len(set(as_df['gsd'].array))==1, \
+        ('only single resolution is implemented here')
+
+    for val, idx in enumerate(as_df.index):
+        f_path = as_df['filepath'][idx]
+        if val==0:
+            im_stack, spatialRef, geoTransform, targetprj = read_geo_image(
+                f_path)
+        else:
+            if im_stack.ndim==2:
+                im_stack = im_stack[...,np.newaxis]
+            band = read_geo_image(f_path)[0]
+            band = band[...,np.newaxis]
+            im_stack = np.concatenate((im_stack, band), axis=2)
+
+    # create masked array, if this is not already done so
+    if type(im_stack) not in (np.ma.core.MaskedArray,):
+        Mask = np.all(im_stack==0,axis=2)[...,np.newaxis]
+        im_stack = np.ma.array(im_stack,
+                               mask=np.tile(Mask, (1,1,im_stack.shape[2])))
     return im_stack, spatialRef, geoTransform, targetprj
 
 #utc = img.GetMetadata()['CalendarDate'.upper()] + \
