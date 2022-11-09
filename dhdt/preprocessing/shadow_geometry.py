@@ -273,6 +273,15 @@ def shadow_image_to_suntrace_list(M, geoTransform, Az):
 
         shade_class = M_trace>=0.5 # take the upper threshold
         shade_class = shade_class.astype(int)
+        # remove shadowlines that touch the boundary
+        trace = np.logical_or(M_trace==-9999, shade_class)
+        start_idx = np.argmin(np.cumsum(trace) == \
+                              np.linspace(1, trace.size, trace.size))
+        end_idx = np.argmin(np.linspace(1, trace.size,trace.size) == \
+                            np.cumsum(np.flipud(trace)))
+        shade_class[:start_idx] = 0
+        shade_class[-end_idx:] = 0
+
         shade_exten = np.pad(shade_class, (1,1), 'constant',
                              constant_values=0)
         shade_node = np.roll(shade_exten, 1)-shade_exten
