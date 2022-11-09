@@ -24,14 +24,38 @@ def list_platform_metadata_vn():
     return vn_dict
 
 def list_central_wavelength_vssc():
+    """ create dataframe with metadata about VENµS
+
+    Returns
+    -------
+    df : pandas.dataframe
+        metadata and general multispectral information about the  SuperSpectral
+        Camera that is onboard VENµS, having the following collumns:
+
+            * center_wavelength, unit=µm : central wavelength of the band
+            * full_width_half_max, unit=µm : extent of the spectral sensativity
+            * bandid : number for identification in the meta data
+            * gsd, unit=m : spatial resolution of a pixel
+            * common_name : general name of the band, if applicable
+
+    References
+    -------
+    .. [1] Dick, et al. "VENμS: mission characteristics, final evaluation of the
+           first phase and data production" Remote sensing vol.14(14) pp.3281,
+           2022.
+    """
     center_wavelength = {"B1": 420, "B2" : 443, "B3" : 490, "B4" : 555,
                          "B5": 620, "B6" : 620, "B7" : 667, "B8" : 702,
                          "B9": 742, "B10": 782, "B11": 865, "B12": 910,
                         }
+    # convert from nm to µm
+    center_wavelength = {k: v/1E3 for k, v in center_wavelength.items()}
     full_width_half_max = {"B1": 40, "B2" : 40, "B3" : 40, "B4" : 40,
                            "B5": 40, "B6" : 40, "B7" : 30, "B8" : 24,
                            "B9": 16, "B10": 16, "B11": 40, "B12": 20,
                           }
+    # convert from nm to µm
+    full_width_half_max = {k: v/1E3 for k, v in full_width_half_max.items()}
     gsd = {"B1" : 5., "B2" : 5., "B3" : 5., "B4" : 5., "B5": 5., "B6" : 5.,
            "B7" : 5., "B8" : 5., "B9": 5., "B10": 5., "B11": 5., "B12": 5.,
            }
@@ -39,7 +63,6 @@ def list_central_wavelength_vssc():
               "B5": 'B5', "B6" : 'B6', "B7" : 'B7', "B8" : 'B8',
               "B9": 'B9', "B10":'B10', "B11":'B11', "B12":'B12',
               }
-    # along_track_view_angle =
     common_name = {"B1": 'coastal',    "B2" : 'coastal',
                    "B3" : 'blue',      "B4" : 'green',
                    "B5" : 'stereo',    "B6" : 'stereo',

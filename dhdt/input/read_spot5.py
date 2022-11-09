@@ -21,11 +21,11 @@ def list_central_wavelength_hrg():
         metadata and general multispectral information about the MSI
         instrument that is onboard SPOT5, having the following collumns:
 
-            * wavelength : central wavelength of the band
-            * bandwidth : extent of the spectral sensativity
+            * center_wavelength, unit=µm : central wavelength of the band
+            * full_width_half_max, unit=µm : extent of the spectral sensativity
             * bandid : number for identification in the meta data
             * resolution : spatial resolution of a pixel
-            * name : general name of the band, if applicable
+            * common_name : general name of the band, if applicable
 
     Example
     -------

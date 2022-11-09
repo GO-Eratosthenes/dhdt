@@ -7,7 +7,7 @@ from pytz import timezone
 
 from scipy import ndimage
 
-from ..generic.unit_conversion import doy2dmy
+from ..generic.unit_conversion import doy2dmy, deg2arg
 from ..generic.data_tools import estimate_sinus
 from ..generic.mapping_tools import get_mean_map_lat_lon
 
@@ -158,7 +158,8 @@ def sun_angles_to_vector(az, zn, indexing='ij'):
     return sun
 
 # elevation model based functions
-def make_shadowing(Z, az, zn, spac=10, weights=None, radiation=False):
+def make_shadowing(Z, az, zn, spac=10, weights=None, radiation=False,
+                   border='copy'):
     """ create synthetic shadow image from given sun angles
 
     Parameters
@@ -173,6 +174,8 @@ def make_shadowing(Z, az, zn, spac=10, weights=None, radiation=False):
         resolution of the square grid. The default is 10.
     weights : numpy.array
         if the zenith angle is a vector, it can be used to get a weighted sum
+    border : string, {'copy','zeros'}
+        specify what to do at the border, since it is a zonal operation
 
     Returns
     -------
@@ -203,6 +206,7 @@ def make_shadowing(Z, az, zn, spac=10, weights=None, radiation=False):
           |/                    |/ | elevation angle
           └----                 └--┴---
     """
+    az = deg2arg(az) # give range -180...+180
     Zr = ndimage.rotate(Z, az, axes=(1, 0), cval=-1, order=3)
     # mask based
     Mr = ndimage.rotate(np.zeros(Z.shape, dtype=bool), az, axes=(1, 0), \
@@ -235,8 +239,12 @@ def make_shadowing(Z, az, zn, spac=10, weights=None, radiation=False):
     j_max = int(np.floor((Ms.shape[1] + Z.shape[1]) / 2))
 
     Sw = Ms[i_min:i_max, j_min:j_max]
-    # remove edge cases
-    Sw[:,0], Sw[:,-1], Sw[0,:], Sw[-1,:] = 0, 0, 0, 0
+    # remove edge cases by copying
+    if border in ('copy'):
+        Sw[:,-1], Sw[-1,:] = Sw[:,-2], Sw[-2,:]
+        Sw[:,+0], Sw[+0,:] = Sw[:,+1], Sw[+1,:]
+    else:
+        Sw[:,0], Sw[:,-1], Sw[0,:], Sw[-1,:] = 0, 0, 0, 0
     return Sw
 
 def make_shading(Z, az, zn, spac=10):

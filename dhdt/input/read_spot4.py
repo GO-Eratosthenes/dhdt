@@ -21,11 +21,11 @@ def list_central_wavelength_s4():
         metadata and general multispectral information about the MSI
         instrument that is onboard SPOT4, having the following collumns:
 
-            * wavelength : central wavelength of the band
-            * bandwidth : extent of the spectral sensativity
+            * center_wavelength, unit=µm : central wavelength of the band
+            * full_width_half_max, unit=µm : extent of the spectral sensativity
             * bandid : number for identification in the meta data
             * resolution : spatial resolution of a pixel
-            * name : general name of the band, if applicable
+            * common_name : general name of the band, if applicable
 
     Example
     -------
@@ -42,22 +42,26 @@ def list_central_wavelength_s4():
     B08         833        106          10  near infrared       7
 
     """
-    wavelength = {"B01": 545, "B02": 640, "B03": 740, "B04": 1665,
-                  }
-    bandwidth = {"B01": 90, "B02": 70, "B03": 100, "B04": 170,
-                 }
+    center_wavelength = {"B01": 545, "B02": 640, "B03": 740, "B04": 1665,
+                         }
+    # convert from nm to µm
+    center_wavelength = {k: v / 1E3 for k, v in center_wavelength.items()}
+    full_width_half_max = {"B01": 90, "B02": 70, "B03": 100, "B04": 170,
+                           }
+    # convert from nm to µm
+    full_width_half_max = {k: v/1E3 for k, v in full_width_half_max.items()}
     bandid = {"B01": 0, "B02": 1, "B03": 2, "B04": 3,
                   }
     resolution = {"B01": 20, "B02": 20, "B03": 20, "B04": 20,
                   }
-    name = {"B01": 'green', "B02" : 'red', "B03" : 'near infrared',
-            "B04" : 'shortwave infrared',
-            }
+    common_name = {"B01": 'green', "B02" : 'red', "B03" : 'near infrared',
+                   "B04" : 'shortwave infrared',
+                   }
     d = {
-         "wavelength": pd.Series(wavelength),
-         "bandwidth": pd.Series(bandwidth),
+         "center_wavelength": pd.Series(center_wavelength),
+         "full_width_half_max": pd.Series(full_width_half_max),
          "resolution": pd.Series(resolution),
-         "name": pd.Series(name),
+         "common_name": pd.Series(name),
          "bandid": pd.Series(bandid)
          }
     df = pd.DataFrame(d)

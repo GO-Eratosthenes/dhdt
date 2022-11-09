@@ -31,8 +31,8 @@ def list_central_wavelength_msi():
         metadata and general multispectral information about the MSI
         instrument that is onboard Sentinel-2, having the following collumns:
 
-            * wavelength, unit=µm : central wavelength of the band
-            * bandwidth, unit=µm : extent of the spectral sensativity
+            * center_wavelength, unit=µm : central wavelength of the band
+            * full_width_half_max, unit=µm : extent of the spectral sensativity
             * bandid : number for identification in the meta data
             * resolution, unit=m : spatial resolution of a pixel
             * along_pixel_size, unit=µm : physical size of the sensor
@@ -42,6 +42,7 @@ def list_central_wavelength_msi():
             * crossdetector_parallax, unit=degress : in along-track direction
             * name : general name of the band, if applicable
             * solar_illumination, unit=W m-2 µm-1 :
+        mostly following the naming convension of the STAC EO extension [3]
 
     Notes
     -----
@@ -91,15 +92,22 @@ def list_central_wavelength_msi():
        R&D to operational program with large volume foundry", Proceedings of the
        SPIE conference on sensors, systems, and next generation satellites XIV,
        2010.
+    .. [3] https://github.com/stac-extensions/eo
     """
     center_wavelength = {"B01": 443, "B02": 492, "B03": 560, "B04": 665,
                   "B05": 704, "B06": 741, "B07": 783, "B08": 833, "B8A": 865,
                   "B09": 945, "B10":1374, "B11":1614, "B12":2202,
-                  }/1E3 # convert from nm to µm
+                  }
+    # convert from nm to µm
+    center_wavelength = {k: v/1E3 for k, v in center_wavelength.items()}
+
     full_width_half_max = {"B01": 21, "B02": 66, "B03": 36, "B04": 31,
                  "B05": 15, "B06": 15, "B07": 20, "B08":106, "B8A": 21,
                  "B09": 20, "B10": 31, "B11": 91, "B12":175,
                  }
+    # convert from nm to µm
+    full_width_half_max = {k: v/1E3 for k, v in full_width_half_max.items()}
+
     bandid = {"B01": 0, "B02": 1, "B03": 2, "B04": 3,
               "B05": 4, "B06": 5, "B07": 6, "B08": 7, "B8A": 8,
               "B09": 9, "B10":10, "B11":11, "B12":12,

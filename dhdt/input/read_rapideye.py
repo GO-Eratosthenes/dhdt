@@ -67,11 +67,11 @@ def list_central_wavelength_re():
         metadata and general multispectral information about the MSI
         instrument that is onboard Sentinel-2, having the following collumns:
 
-            * wavelength, unit=µm : central wavelength of the band
-            * bandwidth, unit=µm : extent of the spectral sensativity
+            * center_wavelength, unit=µm : central wavelength of the band
+            * full_width_half_max, unit=µm : extent of the spectral sensativity
             * bandid : number for identification in the meta data
             * resolution, unit=m : spatial resolution of a pixel
-            * name : general name of the band, if applicable
+            * common_name : general name of the band, if applicable
             * irradiance, unit=W m-2 μm-1 : exo-atmospheric radiance
             * relative_timing, unit=ms : relative sampling time difference
 
@@ -128,11 +128,16 @@ def list_central_wavelength_re():
     Index(['B03', 'B04'], dtype='object')
 
     """
-    wavelength = {"B01": 475, "B02": 555, "B03": 657,
-                  "B04": 710, "B05": 805,
-                  }
-    bandwidth = {"B01": 70, "B02": 70, "B03": 55, "B04": 40, "B05": 90,
-                 }
+    center_wavelength = {"B01": 475, "B02": 555, "B03": 657,
+                         "B04": 710, "B05": 805,
+                         }
+    # convert from nm to µm
+    center_wavelength = {k: v/1E3 for k, v in center_wavelength.items()}
+    full_width_half_max = {"B01": 70, "B02": 70, "B03": 55,
+                           "B04": 40, "B05": 90,
+                           }
+    full_width_half_max = {k: v / 1E3 for k, v in full_width_half_max.items()}
+
     bandid = {"B01": 0, "B02": 1, "B03": 2, "B04": 3, "B05": 4,
                   }
     resolution = {"B01": 5., "B02": 5., "B03": 5., "B04": 5., "B05": 5.,
@@ -152,8 +157,8 @@ def list_central_wavelength_re():
                        "B05": np.timedelta64(3060, 'ms'),
                        } # estimates, see [1]
     d = {
-         "wavelength": pd.Series(wavelength),
-         "bandwidth": pd.Series(bandwidth),
+         "center_wavelength": pd.Series(center_wavelength),
+         "full_width_half_max": pd.Series(full_width_half_max),
          "resolution": pd.Series(resolution),
          "common_name": pd.Series(name),
          "bandid": pd.Series(bandid),

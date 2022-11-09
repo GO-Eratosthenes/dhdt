@@ -117,12 +117,12 @@ def list_central_wavelength_oli():
     # following the naming of pystac.extensions.eo???
     # https://stac-extensions.github.io/eo/v1.0.0/schema.json
     # center_wavelength = (min_wavelength + max_wavelength) / 2
-    center_wavelength = {"B1": .443, "B2": .482, "B3": .561, "B4": .655,
-                         "B5": .865, "B6":1.609, "B7":2.201, "B8": .590,
-                         "B9":1.373, "B10":10.896,"B11":12.001,
+    center_wavelength = {"B1": 443, "B2": 482, "B3": 561, "B4": 655,
+                         "B5": 865, "B6":1609, "B7":2201, "B8": 590,
+                         "B9":1373, "B10":10896,"B11": 12001,
                         }
     # convert from nm to µm
-    center_wavelength = {k: v*1E3 for k, v in center_wavelength.items()}
+    center_wavelength = {k: v/1E3 for k, v in center_wavelength.items()}
 
     # full_width_half_max = max_wavelength - min_wavelength
     full_width_half_max = {"B1": 0.016, "B2": 0.060, "B3": 0.057, "B4": 0.037,

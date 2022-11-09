@@ -13,7 +13,11 @@ from ..generic.mapping_io import read_geo_image
 # dove-C
 def list_central_wavelength_dc():
     center_wavelength = {"B1": 485., "B2" : 545., "B3" : 630., "B4" : 820.}
+    # convert from nm to µm
+    center_wavelength = {k: v/1E3 for k, v in center_wavelength.items()}
     full_width_half_max = {"B1": 60., "B2" : 90., "B3" :  80., "B4" :  80.}
+    # convert from nm to µm
+    full_width_half_max = {k: v/1E3 for k, v in full_width_half_max.items()}
     gsd = {"B1" : 3., "B2" : 3., "B3" : 3., "B4" : 3.}
     bandid = {"B1": 0, "B2" : 1, "B3" : 2, "B4" : 3}
     acquisition_order = {"B1": 1, "B2": 1, "B3": 1, "B4": 2}
@@ -37,7 +41,11 @@ def list_central_wavelength_dc():
 # dove-R
 def list_central_wavelength_dr():
     center_wavelength = {"B1": 485., "B2" : 545., "B3" : 630., "B4" : 820.}
+    # convert from nm to µm
+    center_wavelength = {k: v/1E3 for k, v in center_wavelength.items()}
     full_width_half_max = {"B1":60., "B2" : 90., "B3" :  80., "B4" :  80.}
+    # convert from nm to µm
+    full_width_half_max = {k: v/1E3 for k, v in full_width_half_max.items()}
     gsd = {"B1" : 3., "B2" : 3., "B3" : 3., "B4": 3.}
     bandid = {"B1": 0, "B2" : 1, "B3" : 2, "B4" : 3}
     # along_track_view_angle =
@@ -62,8 +70,12 @@ def list_central_wavelength_dr():
 def list_central_wavelength_sd(num_bands=4):
     center_wavelength = {"B1": 443., "B2" : 490., "B3" : 531., "B4" : 565.,
                          "B5": 665., "B6" : 610., "B10": 705., "B13": 865.}
+    # convert from nm to µm
+    center_wavelength = {k: v/1E3 for k, v in center_wavelength.items()}
     full_width_half_max = {"B1": 20., "B2" : 50., "B3" :  36., "B4" :  36.,
                            "B5": 31., "B6" : 20., "B10":  15., "B13":  40.}
+    # convert from nm to µm
+    full_width_half_max = {k: v/1E3 for k, v in full_width_half_max.items()}
     gsd = {"B1" :12., "B2" : 3., "B3" : 3., "B4" : 3.,
            "B5" : 3., "B6" : 6., "B10": 6., "B13": 6.,}
     if num_bands==4:
