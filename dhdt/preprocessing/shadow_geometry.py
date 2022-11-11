@@ -251,21 +251,49 @@ def find_valley(values, base, neighbors=2):
     quantiles = cumsum_norm[selec]
     return dips, quantiles
 
-def shadow_image_to_suntrace_list(M, geoTransform, Az):
+def shadow_image_to_suntrace_list(M, geoTransform, Az, method='nearest'):
+    """ given an mask, compute the suntraces with caster and casted locations
+
+    Parameters
+    ----------
+    M : np.array, size=(m,n), dtype={integer,boolean}
+        grid with a shadow classification
+    geoTransform : tuple, size={(1,6), (1,8)}
+        affine transformation coefficients
+    Az : float, unit=degrees
+        argument of the illumination
+    method : string, default='nearest'
+        interpolation of the, the following are implemented:
+        - 'nearest' using nearest neighbor, so the coordinates are at the
+          resolution of the given mask, thus precisely falling at the pixel
+          center
+        - 'spline' using cubic spline, so the coordinates are floats, though
+          the position might not be much more precise
+
+    Returns
+    -------
+    suntrace_list : numpy.array, size=(k,4)
+        list of coordinates with x,y coordinates of caster and casted
+    """
+    assert M.ndim>1, ('please provide a multi-dimensional array')
+    if method in ('nearest','nearest_neighbor','nn',):
+        spl_order = 0
+    else:
+        spl_order = 3
     # turn towards the sun
     M_rot = ndimage.rotate(M.astype(float), 180-Az,
                            axes=(1, 0), reshape=True, output=None,
-                           order=3, mode='constant', cval=-9999)
+                           order=spl_order, mode='constant', cval=-9999)
 
     # neither ndimage or transform.warp gives the new coordinate system.
     # hence, clumsy interpolation of the grid is applied here
     X,Y = pix_centers(geoTransform, M.shape[0], M.shape[1], make_grid=True)
     X_rot = ndimage.rotate(X, 180-Az,
                            axes=(1, 0), reshape=True, output=None,
-                           order=3, mode='constant', cval=X[0,0])#
+                           order=spl_order, mode='constant', cval=X[0,0])
     Y_rot = ndimage.rotate(Y, 180-Az,
                            axes=(1, 0), reshape=True, output=None,
-                           order=3, mode='constant', cval=-9999)# Y[0,0]
+                           order=spl_order, mode='constant', cval=-9999)
 
     suntrace_list = np.empty((0, 4))
     for k in range(M_rot.shape[1]):
@@ -273,7 +301,7 @@ def shadow_image_to_suntrace_list(M, geoTransform, Az):
 
         shade_class = M_trace>=0.5 # take the upper threshold
         shade_class = shade_class.astype(int)
-        # remove shadowlines that touch the boundary
+        # remove shadowtraces that touch the boundary
         trace = np.logical_or(M_trace==-9999, shade_class)
         start_idx = np.argmin(np.cumsum(trace) == \
                               np.linspace(1, trace.size, trace.size))
@@ -314,7 +342,7 @@ def shadow_image_to_suntrace_list(M, geoTransform, Az):
     return suntrace_list
 
 def shadow_image_to_list(M, geoTransform, s2_path,
-                         Zn=None, Az=None, timestamp=None, **kwargs):
+                         Zn=None, Az=None, timestamp=None, crs=None, **kwargs):
     """
     Turns the image towards the sun, and looks along each solar ray, hereafter
     the caster and casted locations are written to a txt-file
@@ -332,7 +360,9 @@ def shadow_image_to_list(M, geoTransform, s2_path,
     Az : float, unit=degrees
         argument of the illumination
     timestamp : string
-
+        the date of acquistion
+    crs : {osr.SpatialReference, string}
+        the coordinate reference system via GDAL SpatialReference describtion
     """
     if (Zn is None) or (Az is None):
         Zn, Az = read_mean_sun_angles_s2(s2_path)
@@ -343,6 +373,9 @@ def shadow_image_to_list(M, geoTransform, s2_path,
     if timestamp is not None:
         assert isinstance(timestamp, str), \
             ('please provide a string for the timestamp')
+    if timestamp is not None:
+        if not isinstance(crs, str):
+            crs = crs.ExportToWkt()
 
     suntrace_list = shadow_image_to_suntrace_list(M, geoTransform, Az)
 
@@ -375,9 +408,11 @@ def shadow_image_to_list(M, geoTransform, s2_path,
 
     # write to file
     f = open(os.path.join(s2_path, out_name), 'w')
-    # if timestamp is give, add this to the
+    # add meta-data if given
     if timestamp is not None:
         print('# time: '+timestamp, file=f)
+    if crs is not None:
+        print('# proj: '+crs, file=f)
 
     # add header
     print('# caster_X '+'caster_Y '+'casted_X '+'casted_Y '+\

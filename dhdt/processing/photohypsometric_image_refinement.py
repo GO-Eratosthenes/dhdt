@@ -1,7 +1,7 @@
 import numpy as np
 
 from scipy.optimize import curve_fit
-from scipy.interpolate import UnivariateSpline
+from scipy.interpolate import CubicSpline
 
 from ..generic.mapping_tools import get_max_pixel_spacing, map2pix
 from ..generic.handler_im import bilinear_interpolation, simple_nearest_neighbor
@@ -41,7 +41,8 @@ def transform_4_logit(X,Y,method='exact', **kwargs):
     return X_tilde, Y_tilde, a, d
 
 def refine_cast_location(I, M, geoTransform, x_casted, y_casted, azimuth,
-                         x_caster, y_caster, extent=120, method='spline'):
+                         x_caster, y_caster, extent=120, method='spline',
+                         **kwargs):
     """ search along the episolar line to find the cast ridge
 
     Parameters
@@ -115,19 +116,26 @@ def refine_cast_location(I, M, geoTransform, x_casted, y_casted, azimuth,
         except:
             infl_point, point_cov = 0,0
     elif method in ('spline', 'cubic_spline'):
-        us = UnivariateSpline(rng, line_I-np.quantile(line_I,.5), k=3)
-        crossings = us.roots()
+        qnt = 0.5 if kwargs.get('quantile') is None else kwargs.get('quantile')
+#        spli = UnivariateSpline(rng, line_I-np.quantile(line_I,qnt), k=3)
+        spli = CubicSpline(rng, line_I-np.quantile(line_I,qnt))
+        crossings = spli.roots()
+        # only select upwards roots
+        UP = np.sign(spli(crossings, 1))==1
+        if np.any(UP):
+            crossings = crossings[UP]
+        # select closest to
         infl_point = crossings[np.argmin(np.abs(crossings))]
     else: # estimate via Hough transform
         x_tilde, y_tilde, a, d = transform_4_logit(local_x, line_I,
-                                                   method='exact', quantile_dist=0.05)
+           method='exact', quantile_dist=0.05)
         w = logit_weighting(np.divide(line_I - d, a - d))
         c, b, point_cov = hough_transf(x_tilde, y_tilde, w=w,
                                        bnds=[-1, +1.5, -1.5, +1.5])
         y_hgh = four_pl_curve(local_x, a, b[0], -c[0], d)
         infl_point = np.interp(-c[0], local_x, rng)
 
-    x_refine = np.sin(az_rad)*infl_point + x_casted
-    y_refine = np.cos(az_rad)*infl_point + y_casted
+    x_refine = x_casted + np.sin(az_rad)*infl_point
+    y_refine = y_casted + np.cos(az_rad)*infl_point
     return x_refine, y_refine, point_cov
 
