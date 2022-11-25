@@ -78,15 +78,14 @@ stereo [@abrams2012heliometric] have also been used for this methodology.
 This methodology has gotten some interest in the cryospheric research community
 [@rada2022high; ], though up to now it has stayed at the level of a proof of concept.
 
-Here, we present a Pyhton library that includes a whole processing pipeline, from .
-Recently , but making use of the shadow cast [].
+Here, we present a Pyhton library that includes a complete and highly automated
+processing pipeline. The procedures of such a photohypsometic pipeline are
+illustrated in \autoref{fig:pipeline}.
+
+![Schematic of the photohypsometric pipeline.\label{fig:pipeline}](fig/generalworkflow.pdf){ width=100% }
 
 
 # Design and data sources
-
-
-![Schematic of the photohypsometric pipeline.](fig/generalworkflow.pdf){ width=100% }
-
 The data structure of the `dhdt` library follows a data processing pipeline,
 where general functions call more detailed and refactured components. The
 top level structure is as follows:  
