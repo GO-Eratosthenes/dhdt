@@ -2,7 +2,7 @@ import numpy as np
 
 from ..generic.filtering_statistical import make_2D_Gaussian
 from ..generic.handler_im import \
-    bilinear_interpolation, conv_2Dfilter, get_grad_filters
+    bilinear_interpolation
 from ..generic.mapping_tools import create_offset_grid, vel2pix
 from ..processing.matching_tools import pad_radius
 from .shadow_geometry import estimate_surface_normals
@@ -160,7 +160,7 @@ def get_template_aspect_slope(Z,i_samp,j_samp,t_size,spac=10.):
         array with collumn coordinates of the template centers
     j_samp : np.array, size=(k,l), integer, unit=pixels
         array with row coordinates of the template centers
-    t_size : integer, unit=pixels
+    t_size : integer, {x ∈ ℕ | x ≥ 1}, unit=pixels
         size of the template
     spac : float, unit=meters
         spacing of the elevation grid
@@ -230,40 +230,6 @@ def get_template_aspect_slope(Z,i_samp,j_samp,t_size,spac=10.):
     return Slope, Aspect
 
 #todo:
-def get_aspect_slope(Z, spac=10.):
-    """ use simple local estimation, to calculate terrain parameters
-
-    Parameters
-    ----------
-    Z : numpy.array, size=(m,n), float, unit=meters
-        array with elevation values
-    spac : float, unit=meters
-        spacing of the elevation grid
-
-    Returns
-    -------
-    Slp,Asp : np.array, size=(m,n), float
-        mean slope and aspect angle in the template
-
-    See Also
-    --------
-    get_template_aspect_slope
-
-    References
-    ----------
-    .. [1] Horn, "Hill shading and the reflectance map", Proceedings of the IEEE
-       vol.69(1) pp.14--47, 1981.
-    """
-    # calculate gradients
-    fx,fy = get_grad_filters(ftype='kroon', tsize=3, order=1, indexing='xy')
-    fx /= spac
-    fy /= spac
-    Z_dx, Z_dy = conv_2Dfilter(Z, fx), conv_2Dfilter(Z, fy)
-
-    # calculate terrain parameters
-    Asp = np.arctan2(Z_dy, Z_dx)
-    Slp = np.hypot(Z_dy, Z_dx)
-    return Asp, Slp
 
 def get_template_acquisition_angles(Az,Zn,Det,i_samp,j_samp,t_size):
     """
@@ -280,7 +246,7 @@ def get_template_acquisition_angles(Az,Zn,Det,i_samp,j_samp,t_size):
         array with collumn coordinates of the template centers
     j_samp : np.array, size=(k,l), integer
         array with row coordinates of the template centers
-    t_size : integer, unit=pixels
+    t_size : integer, {x ∈ ℕ | x ≥ 1}, unit=pixels
         size of the template
 
     Returns

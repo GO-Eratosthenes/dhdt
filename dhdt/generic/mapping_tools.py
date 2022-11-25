@@ -9,6 +9,7 @@ from rasterio import Affine
 # raster/image libraries
 from scipy import ndimage
 
+from .attitude_tools import rot_mat
 from .handler_im import get_grad_filters
 
 def cart2pol(x, y):
@@ -412,44 +413,42 @@ def ecef2map(xyz, spatialRef):
     xy = ll2map(llh[:, :-1], spatialRef)
     return xy
 
-def rot_mat(theta):
-    """ build a 2x2 rotation matrix
-
-    Parameters
-    ----------
-    theta : float
-        angle in degrees
-
-    Returns
-    -------
-    R : np.array, size=(2,2)
-        2D rotation matrix
-
-    Notes
-    -----
-    Matrix is composed through,
-
-        .. math:: \mathbf{R}[1,:] = [+\cos(\omega), -\sin(\omega)]
-        .. math:: \mathbf{R}[2,:] = [+\sin(\omega), +\cos(\omega)]
-
-    The angle(s) are declared in the following coordinate frame:
-
-        .. code-block:: text
-
-                 ^ North & y
-                 |
-            - <--|--> +
-                 |
-                 +----> East & x
-
-    """
-    R = np.array([[+np.cos(np.radians(theta)), -np.sin(np.radians(theta))],
-                  [+np.sin(np.radians(theta)), +np.cos(np.radians(theta))]])
-    return R
-
 def rot_covar(V, R):
     V_r = R @ V @ np.transpose(R)
     return V_r
+
+def covar2err_ellipse(sigma_1, sigma_2, rho):
+    """ parameter transform from co-variance matrix to standard error-ellipse
+
+    Parameters
+    ----------
+    sigma_1, sigma_2 : float
+        variance along each axis
+    rho : float
+        dependency between axis
+
+    Returns
+    -------
+    lambda_2, lambda_2 : float
+        variance along major and minor axis
+    theta : float, unit=degrees
+        orientation of the standard ellipse
+
+    References
+    ----------
+    .. [1] Altena et al. "Correlation dispersion as a measure to better estimate
+       uncertainty of remotely sensed glacier displacements", The Crysophere,
+       vol.16(6) pp.2285–2300, 2022.
+    """
+    # intermediate variables
+    s1s2_min = sigma_1**2 - sigma_2**2
+    s1s2_plu = sigma_1**2 + sigma_2**2
+    s1s2r = sigma_1 * sigma_2 * rho
+    lamb = np.sqrt(np.divide(s1s2_min**2,4) + s1s2r)
+    lambda_1 = s1s2_plu/2 + lamb                            # eq.5 in [1]
+    lambda_2 = s1s2_plu/2 - lamb
+    theta = np.rad2deg(np.arctan2(2*s1s2r, s1s2_min) / 2)   # eq.6 in [1]
+    return lambda_1, lambda_2, theta
 
 def rotate_variance(Theta, qii, qjj, rho):
     qii_r, qjj_r = np.zeros_like(qii), np.zeros_like(qjj)
@@ -462,47 +461,13 @@ def rotate_variance(Theta, qii, qjj, rho):
                 breakpoint
             V = np.array([[qjj[iy,ix], qij],
                           [qij, qii[iy,ix]]])
-            R = rot_mat(Theta[iy,ix])
+            R = rot_mat(Theta[iy, ix])
             V_r = rot_covar(V, R)
             qii_r[iy, ix], qjj_r[iy, ix] = V_r[1][1], V_r[0][0]
         else:
             qii_r[iy,ix], qjj_r[iy,ix] = np.nan, np.nan
     return qii_r, qjj_r
 
-def lodrigues_est(XYZ_1, XYZ_2):
-    m = XYZ_1.shape[0]
-    dXYZ = XYZ_1 - XYZ_2
-
-    A = np.vstack((np.moveaxis(np.expand_dims(
-        np.hstack((np.zeros((m,1)),
-                   np.expand_dims(-XYZ_2[:,2]-XYZ_1[:,2],axis=1),
-                   np.expand_dims(+XYZ_2[:,1]+XYZ_1[:,1],axis=1))),
-                    axis=2), [0,1,2], [2,1,0]),
-                   np.moveaxis(np.expand_dims(
-        np.hstack((
-                   np.expand_dims(+XYZ_2[:,2]+XYZ_1[:,2], axis=1),
-                   np.zeros((m, 1)),
-                   np.expand_dims(-XYZ_2[:,0]-XYZ_1[:,0], axis=1))),
-                       axis=2), [0,1,2], [2,1,0]),
-                   np.moveaxis(np.expand_dims(
-        np.hstack((
-                np.expand_dims(-XYZ_2[:,1]-XYZ_1[:,1], axis=1),
-                np.expand_dims(-XYZ_2[:,0]-XYZ_1[:,0], axis=1),
-                np.zeros((m, 1)))),
-                       axis=2), [0,1,2], [2,1,0]),))
-
-    # squeeze back to collumns
-    x_hat = np.linalg.lstsq(np.transpose(A, axes=(2,0,1)).reshape((3*m,3,1)).squeeze(),
-                            dXYZ.reshape(-1)[:,np.newaxis], rcond=None)[0]
-    a,b,c = x_hat[0], x_hat[1], x_hat[2]
-    return a,b,c
-
-def lodrigues_mat(a,b,c):
-    S = np.array([[0, +c/2, -b/2],
-                  [-c/2, 0, +a/2,],
-                  [+b/2, -a/2, 0]]) # skew symmetric
-    R = (np.eye(3) - S)* np.linalg.inv(np.eye(3) + S)
-    return R
 
 def cast_orientation(I, Az, indexing='ij'):
     """ emphasises intentisies within a certain direction
@@ -715,9 +680,9 @@ def pix_centers(geoTransform, rows=None, cols=None, make_grid=True):
     ----------
     geoTransform : tuple, size={(6,1), (8,1)}
         georeference transform of an image.
-    rows : integer, default=None
+    rows : integer, {x ∈ ℕ | x ≥ 0}, default=None
         amount of rows in an image.
-    cols : integer, default=None
+    cols : integer, {x ∈ ℕ | x ≥ 0}, default=None
         amount of collumns in an image.
     make_grid : bool, optional
         Should a grid be made. The default is True.
@@ -844,13 +809,13 @@ def bbox_boolean(img):
 
     Returns
     -------
-    r_min : integer
+    r_min : integer, {x ∈ ℕ | x ≥ 0}
         minimum row with a true boolean.
-    r_max : integer
+    r_max : integer, {x ∈ ℕ | x ≥ 0}
         maximum row with a true boolean.
-    c_min : integer
+    c_min : integer, {x ∈ ℕ | x ≥ 0}
         minimum collumn with a true boolean.
-    c_max : integer
+    c_max : integer, {x ∈ ℕ | x ≥ 0}
         maximum collumn with a true boolean.
     """
     assert type(img)==np.ndarray, ("please provide an array")
@@ -867,9 +832,9 @@ def get_bbox(geoTransform, rows=None, cols=None):
     ----------
     geoTransform : tuple, size=(1,6)
         georeference transform of an image.
-    rows : integer
+    rows : integer, {x ∈ ℕ | x ≥ 0}
         amount of rows in an image.
-    cols : integer
+    cols : integer, {x ∈ ℕ | x ≥ 0}
         amount of collumns in an image.
 
     Returns
@@ -926,9 +891,9 @@ def get_shape_extent(bbox, geoTransform):
 
     Returns
     -------
-    rows : integer
+    rows : integer, {x ∈ ℕ | x ≥ 0}
         amount of rows in an image.
-    cols : integer
+    cols : integer, {x ∈ ℕ | x ≥ 0}
         amount of collumns in an image.
 
     See Also
@@ -1026,7 +991,7 @@ def get_mean_map_location(geoTransform, spatialRef, rows=None, cols=None):
         georeference transform of an image.
     spatialRef : osgeo.osr.SpatialReference
         target projection system
-    rows, cols : integer, default=None
+    rows, cols : integer, {x ∈ ℕ | x ≥ 0}, default=None
         amount of rows/collumns in an image.
 
     Returns
@@ -1048,7 +1013,7 @@ def get_mean_map_lat_lon(geoTransform, spatialRef, rows=None, cols=None):
         georeference transform of an image.
     spatialRef : osgeo.osr.SpatialReference
         target projection system
-    rows, cols : integer, default=None
+    rows, cols : integer, {x ∈ ℕ | x ≥ 0}, default=None
         amount of rows/collumns in an image.
 
     Returns
@@ -1069,9 +1034,9 @@ def get_bbox_polygon(geoTransform, rows, cols):
     ----------
     geoTransform : tuple, size=(6,1)
         georeference transform of an image.
-    rows : integer
+    rows : integer, {x ∈ ℕ | x ≥ 0}
         amount of rows in an image.
-    cols : integer
+    cols : integer, {x ∈ ℕ | x ≥ 0}
         amount of collumns in an image.
 
     Returns
@@ -1126,9 +1091,9 @@ def make_same_size(Old,geoTransform_old, geoTransform_new, rows_new, cols_new):
         georeference transform of the old image.
     geoTransform_new : tuple, size=(6,1)
         georeference transform of the new image.
-    rows_new : integer
+    rows_new : integer, {x ∈ ℕ | x ≥ 0}
         amount of rows of the new image.
-    cols_new : integer
+    cols_new : integer, {x ∈ ℕ | x ≥ 0}
         amount of collumns of the new image.
 
     Returns

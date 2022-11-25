@@ -3,7 +3,7 @@ import numpy as np
 from scipy import ndimage
 
 # local functions
-from ..generic.mapping_tools import rot_mat
+from ..generic.attitude_tools import rot_mat
 from ..processing.matching_tools_frequency_filters import \
     make_fourier_grid
 

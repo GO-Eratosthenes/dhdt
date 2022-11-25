@@ -9,7 +9,7 @@ def get_midpoint_altitude(RGI, Z, roi=None):
         array with labelled glaciers
     Z : numpy.array, unit=meter
         array with elevation
-    roi : integer
+    roi : integer, {x ∈ ℕ | 1 ≥ x ≥ 19}
         the RGI id of the glacier of interest
 
     Returns
@@ -52,7 +52,7 @@ def get_normalized_hypsometry(RGI, Z, dZ, bins=20):
         array with elevation
     dZ : numpy.array, unit=meter
         array with elevation change
-    bins : integer, default=20
+    bins : integer, {x ∈ ℕ | x ≥ 1}, default=20
         amount of bins to use for the hypsometric estimation
 
     Returns
@@ -179,7 +179,7 @@ def hypsometeric_void_interpolation(z,dz,Z,deg=3):
         general elevation change of the elevation bin given by 'z'
     Z : numpy.array, size=(m,n), unit=meters
         array with elevation
-    deg : integer, default=3
+    deg : integer, {x ∈ ℕ | x ≥ 0}, default=3
         order of the polynomial
 
     Returns

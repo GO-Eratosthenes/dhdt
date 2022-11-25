@@ -26,11 +26,11 @@ def read_geo_info(fname):
         affine transformation coefficients, but also giving the image dimensions
     targetprj : osgeo.osr.SpatialReference() object
         coordinate reference system (CRS)
-    rows : integer
+    rows : integer, {x ∈ ℕ | x ≥ 0}
         number of rows in the image, that is its height
-    cols : integer
+    cols : integer, {x ∈ ℕ | x ≥ 0}
         number of collumns in the image, that is its width
-    bands : integer
+    bands : integer, {x ∈ ℕ | x ≥ 1}
         number of bands in the image, that is its depth
 
     See Also

@@ -63,7 +63,7 @@ def get_amount_of_timestamps(name_str):
 
     Returns
     -------
-    nmbr : integer
+    nmbr : integer, {x ∈ ℕ | x ≥ 0}
         amount of datapoints
 
     Examples

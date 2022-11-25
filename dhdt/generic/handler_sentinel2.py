@@ -48,7 +48,7 @@ def get_s2_dict(s2_df):
             date of acquisition
         * 'tile_code': string, e.g.: '05VMG'
             MGRS tile coding
-        * 'relative_orbit': integer
+        * 'relative_orbit': integer, {x ∈ ℕ}
             orbit from which the imagery were taken
 
     Notes
@@ -130,7 +130,9 @@ def list_platform_metadata_s2a():
         'instruments': {'MSI'},
         'constellation': 'sentinel',
         'launch_date': '+2015-06-23',
-        'orbit': 'sso'}
+        'orbit': 'sso',
+        'inclination': 98.5621, # https://www.n2yo.com/satellite/?s=40697
+        'revolutions_per_day': 14.30824258387262}
     return s2a_dict
 
 def list_platform_metadata_s2b():
@@ -140,7 +142,9 @@ def list_platform_metadata_s2b():
         'instruments': {'MSI'},
         'constellation': 'sentinel',
         'launch_date': '+2017-03-07',
-        'orbit': 'sso'}
+        'orbit': 'sso',
+        'inclination': 98.5664,
+        'revolutions_per_day': 14.30818491298178}
     return s2b_dict
 
 def get_bbox_from_tile_code(tile_code, shp_dir=None, shp_name=None):

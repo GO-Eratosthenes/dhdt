@@ -1,13 +1,11 @@
-import os
 import numpy as np
 import matplotlib.pyplot as plt
 
 from PIL import Image
-from osgeo import ogr
 
 from ..generic.handler_im import bilinear_interpolation
 from ..generic.mapping_tools import vel2pix
-from ..generic.test_tools import construct_correlation_peak
+from ..testing.test_matching import construct_correlation_peak
 from ..generic.gis_tools import polylines2shapefile
 
 def make_seeds(Msk, n=1E2):

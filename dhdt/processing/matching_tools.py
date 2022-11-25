@@ -385,6 +385,31 @@ def make_templates_same_size(I1,I2):
             I2sub = I2[+md:-md, +nd:-nd]
     return I1, I2sub
 
+def remove_posts_outside_image(I, i, j):
+    """
+
+    Parameters
+    ----------
+    I : numpy.array, size=(m,n)
+        grid of interest
+    i,j : numpy.array, size=(k,)
+        post locations given in image coordinates
+
+    Returns
+    -------
+    i,j : numpy.array, size=(l,)
+        filtered locations within the data array "I"
+
+    See Also
+    --------
+    remove_posts_pairs_outside_image
+    """
+    assert I.ndim>=2, ('please provide an 2D array')
+
+    IN = np.logical_and.reduce((i>=0, i<(I.shape[0]-1), j>=0, j<(I.shape[1]-1)))
+    i, j = i[IN], j[IN]
+    return i, j, IN
+
 def remove_posts_pairs_outside_image(I1, i1, j1, I2, i2, j2):
     """
 
@@ -403,9 +428,18 @@ def remove_posts_pairs_outside_image(I1, i1, j1, I2, i2, j2):
     -------
     i1,j1,i2,j2 : numpy.array, size=(l,)
         filtered locations within the data array "I1" or "I2"
+
+    See Also
+    --------
+    remove_posts_outside_image
     """
-    IN = np.logical_and.reduce((i1>=0, i1<I1.shape[0], j1>=0, j1<I1.shape[1],
-                                i2>=0, i2<I2.shape[0], j2>=0, j2<I2.shape[1]))
+    assert I1.ndim >= 2, ('please provide I1 as an 2D array')
+    assert I2.ndim >= 2, ('please provide I2 as an 2D array')
+
+    IN = np.logical_and.reduce((i1>=0, i1<(I1.shape[0]-1),
+                                j1>=0, j1<(I1.shape[1]-1),
+                                i2>=0, i2<(I2.shape[0]-1),
+                                j2>=0, j2<(I2.shape[1]-1)))
     i1, j1, i2, j2 = i1[IN], j1[IN], i2[IN], j2[IN]
     return i1, j1, i2, j2, IN
 

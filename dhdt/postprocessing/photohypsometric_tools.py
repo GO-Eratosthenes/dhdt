@@ -246,6 +246,56 @@ def read_conn_files_to_df(folder_list, conn_file="conn.txt",
             - casted_x, casted_y : map coordinate of end of shadow
             - azimuth : sun orientation, unit=degrees
             - zenith : overhead angle of the sun, unit=degrees
+
+    Notes
+    -----
+    The nomenclature is as follows:
+
+        .. code-block:: text
+
+          * sun
+           \
+            \ <-- sun trace
+             \
+             |\ <-- caster
+             | \
+             |  \                    ^ Z
+             |   \                   |
+         ----┴----+  <-- casted      └-> {X,Y}
+
+    The angles related to the sun are as follows:
+
+        .. code-block:: text
+
+          surface normal              * sun
+          ^                     ^    /
+          |                     |   /
+          |-- zenith angle      |  /
+          | /                   | /|
+          |/                    |/ | elevation angle
+          └----                 └------ {X,Y}
+
+        The azimuth angle declared in the following coordinate frame:
+
+        .. code-block:: text
+
+                 ^ North & Y
+                 |
+            - <--|--> +
+                 |
+                 +----> East & X
+
+    The text file has the following columns:
+
+        .. code-block:: text
+
+            * conn.txt
+            ├ caster_X      <- map location of the start of the shadow trace
+            ├ caster_Y
+            ├ casted_X
+            ├ casted_Y      <- map location of the end of the shadow trace
+            ├ azimuth       <- argument of the illumination direction
+            └ zenith        <- off-normal angle of the sun without atmosphere
     """
     assert isinstance(folder_list, tuple)^isinstance(conn_file, tuple), \
         ('one should be a tuple, while the other should be a string')
@@ -324,6 +374,51 @@ def clean_dh_pd(dh):
     return dh
 
 def update_caster_elevation(dh, Z, geoTransform):
+    """ include the elevation of the caster location (the start of the shadow
+    trace) as a collumn. Which has the name 'caster_z'
+
+    Parameters
+    ----------
+    dh : {numpy.array, numpy.recordarray, pandas.DataFrame}
+        array with photohypsometric information
+    Z : numpy.array, size=(m,n), unit=meters
+        grid with elevation values
+    geoTransform : tuple, size={(1,6), (1,8)}
+        affine transformation coefficients
+
+    Returns
+    -------
+    dh : pandas.DataFrame
+        DataFrame of coordinates and times, having at least the following
+        collumns:
+            - caster_z : elevation of the start of shadow
+                (the newly created collumn)
+            - timestamp : date stamp
+            - caster_x, caster_y : map coordinate of start of shadow
+            - casted_x, casted_y : map coordinate of end of shadow
+            - azimuth : sun orientation, unit=degrees
+            - zenith : overhead angle of the sun, unit=degrees
+
+    See Also
+    --------
+    update_casted_elevation
+
+    Notes
+    -----
+    The nomenclature is as follows:
+
+        .. code-block:: text
+
+          * sun
+           \
+            \ <-- sun trace
+             \
+             |\ <-- caster
+             | \
+             |  \                    ^ Z
+             |   \                   |
+         ----┴----+  <-- casted      └-> {X,Y}
+    """
     if type(dh) in (pd.core.frame.DataFrame,):
         update_caster_elevation_pd(dh, Z, geoTransform)
     #todo : make the same function for recordarray
@@ -341,6 +436,51 @@ def update_caster_elevation_pd(dh, Z, geoTransform):
     return dh
 
 def update_casted_elevation(dxyt, Z, geoTransform):
+    """ include the elevation of the casted location (the end of the shadow
+    trace) as a collumn. Which has the name 'casted_z'
+
+    Parameters
+    ----------
+    dh : {numpy.array, numpy.recordarray, pandas.DataFrame}
+        array with photohypsometric information
+    Z : numpy.array, size=(m,n), unit=meters
+        grid with elevation values
+    geoTransform : tuple, size={(1,6), (1,8)}
+        affine transformation coefficients
+
+    Returns
+    -------
+    dh : pandas.DataFrame
+        DataFrame of coordinates and times, having at least the following
+        collumns:
+            - casted_z : elevation of the end of shadow
+                (the newly created collumn)
+            - timestamp : date stamp
+            - caster_x, caster_y : map coordinate of start of shadow
+            - casted_x, casted_y : map coordinate of end of shadow
+            - azimuth : sun orientation, unit=degrees
+            - zenith : overhead angle of the sun, unit=degrees
+
+    See Also
+    --------
+    update_caster_elevation
+
+    Notes
+    -----
+    The nomenclature is as follows:
+
+        .. code-block:: text
+
+          * sun
+           \
+            \ <-- sun trace
+             \
+             |\ <-- caster
+             | \
+             |  \                    ^ Z
+             |   \                   |
+         ----┴----+  <-- casted      └-> {X,Y}
+    """
     if type(dxyt) in (pd.core.frame.DataFrame,):
         update_casted_elevation_pd(dxyt, Z, geoTransform)
     #todo : make the same function for recordarray
@@ -360,6 +500,31 @@ def update_casted_elevation_pd(dxyt, Z, geoTransform):
     return dxyt
 
 def update_glacier_id(dh, R, geoTransform):
+    """ include the glacier id (as given by R), where the shadow is casted on.
+    This collumn has the name 'glacier_id'.
+
+    Parameters
+    ----------
+    dh : {numpy.array, numpy.recordarray, pandas.DataFrame}
+        array with photohypsometric information
+    R : numpy.array, size=(m,n), dtype=int
+        grid with glacier labels
+    geoTransform : tuple, size={(1,6), (1,8)}
+        affine transformation coefficients
+
+    Returns
+    -------
+    dh : pandas.DataFrame
+        DataFrame of coordinates and times, having at least the following
+        collumns:
+            - glacier_id : id of the glacier where the shadow is casted on
+                (the newly created collumn)
+            - timestamp : date stamp
+            - caster_x, caster_y : map coordinate of start of shadow
+            - casted_x, casted_y : map coordinate of end of shadow
+            - azimuth : sun orientation, unit=degrees
+            - zenith : overhead angle of the sun, unit=degrees
+    """
     if type(dh) in (pd.core.frame.DataFrame,):
         update_glacier_id_pd(dh, R, geoTransform)
     #todo : make the same function for recordarray
@@ -376,16 +541,8 @@ def update_glacier_id_pd(dh, R, geoTransform):
     dh.loc[:,'glacier_id'] = rgi_id
     return dh
 
-@loggg
-def clean_dhdt(dhdt):
-    if np.all([header in dhdt.columns for header in
-               ('G_1', 'G_2')]):
-        # only keep data points that are on the same glacier
-        dhdt = dhdt[dhdt['G_1']==dhdt['G_2']]
-    return dhdt
-
 def get_casted_elevation_difference(dh):
-    """
+    """ transform angles and locations, to spatial temporal elevation changes
 
     Parameters
     ----------
@@ -410,6 +567,22 @@ def get_casted_elevation_difference(dh):
     See Also
     --------
     read_conn_files_to_stack, get_hypsometric_elevation_change
+
+    Notes
+    -----
+    The nomenclature is as follows:
+
+        .. code-block:: text
+
+          * sun
+           \
+            \ <-- sun trace
+             \
+             |\ <-- caster
+             | \
+             |  \                    ^ Z
+             |   \                   |
+         ----┴----+  <-- casted      └-> {X,Y}
     """
     if type(dh) in (np.recarray,):
         dxyt = get_casted_elevation_difference_rec(dh)
@@ -531,7 +704,60 @@ def get_casted_elevation_difference_np():
         dxyt = np.vstack((dxyt, dxyt_line))
     return dxyt
 
+@loggg
+def clean_dxyt(dxyt):
+    """ since dhdt is glacier centric, connections between shadow casts that are
+    siturated on different glaciers, are remove by this function
+
+    Parameters
+    ----------
+    dxyt : {numpy.array, numpy.recordarray}, size=(m,n)
+        data array with the following collumns:
+            - X_1, Y_1 : map coordinate at instance t_1
+            - T_1 : date stamp
+            - X_2, Y_2 : map coordinate at instance t_2
+            - T_2 : date stamp
+            - dH_12 : estimated elevation change, between t_1 & t_2
+        optional:
+            - Z_1, Z_2 : elevation at instance/location _1 and _2
+            - G_1, G_2 : glacier id at instance/location _1 and _2
+
+    Returns
+    -------
+    dxyt : {numpy.array, numpy.recordarray}, size=(k,n)
+    """
+    if np.all([header in dxyt.columns for header in
+               ('G_1', 'G_2')]):
+        # only keep data points that are on the same glacier
+        dxyt = dxyt[dxyt['G_1']==dxyt['G_2']]
+    return dxyt
+
 def get_relative_hypsometric_network(dxyt, Z, geoTransform):
+    """ create design matrix from photohypsometric data collection
+
+    Parameters
+    ----------
+    dxyt : {numpy.array, numpy.recordarray}, size=(m,n)
+        data array with the following collumns:
+            - X_1, Y_1 : map coordinate at instance t_1
+            - T_1 : date stamp
+            - X_2, Y_2 : map coordinate at instance t_2
+            - T_2 : date stamp
+            - dH_12 : estimated elevation change, between t_1 & t_2
+        optional:
+            - Z_1, Z_2 : elevation at instance/location _1 and _2
+    Z : numpy.array, size=(m,n)
+        array with elevation data
+    geoTransform : tuple, size={(1,6), (1,8)}
+        georeference transform of the array 'Z'
+
+    Returns
+    -------
+    posts : numpy.array, size=m,2
+        measurement array with map locations
+    A : numpy.array, size=m,k
+        design matrix with elevation differences
+    """
 
     if type(dxyt) in (np.recarray,):
         i_1,j_1 = map2pix(geoTransform, dxyt['X_1'], dxyt['Y_1'])
@@ -566,13 +792,13 @@ def get_hypsometric_elevation_change(dxyt, Z=None, geoTransform=None):
     ----------
     dxyt : {numpy.array, numpy.recordarray}
         data array with the following collumns:
-            - x_1, y_1 : map coordinate at instance t_1
-            - t_1 : date stamp
-            - x_2, y_2 : map coordinate at instance t_2
-            - t_2 : date stamp
-            - dh_12 : estimated elevation change, between t_1 & t_2
+            - X_1, Y_1 : map coordinate at instance t_1
+            - T_1 : date stamp
+            - X_2, Y_2 : map coordinate at instance t_2
+            - T_2 : date stamp
+            - dH_12 : estimated elevation change, between t_1 & t_2
         optional:
-            - z_1, z_2 : elevation at instance/location _1 and _2
+            - Z_1, Z_2 : elevation at instance/location _1 and _2
     Z : numpy.array, size=(m,n)
         array with elevation data
     geoTransform : tuple, size={(1,6), (1,8)}

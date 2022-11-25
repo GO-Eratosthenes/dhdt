@@ -1,8 +1,13 @@
+import os
+
 import numpy as np
+import pandas
 
 from scipy.optimize import curve_fit
 from scipy.interpolate import CubicSpline
+from skimage.filters import threshold_otsu
 
+from ..generic.debugging import loggg
 from ..generic.mapping_tools import get_max_pixel_spacing, map2pix
 from ..generic.handler_im import bilinear_interpolation, simple_nearest_neighbor
 from ..generic.data_tools import \
@@ -104,7 +109,7 @@ def refine_cast_location(I, M, geoTransform, x_casted, y_casted, azimuth,
 
     # estimate infliction point
     if line_I.shape[0]<4: # shadow cast line is too small
-        return x_casted, y_casted, 0
+        return x_casted, y_casted
 
     if method in ('curve fitting','curve_fit'):
         try:
@@ -116,9 +121,9 @@ def refine_cast_location(I, M, geoTransform, x_casted, y_casted, azimuth,
         except:
             infl_point, point_cov = 0,0
     elif method in ('spline', 'cubic_spline'):
-        qnt = 0.5 if kwargs.get('quantile') is None else kwargs.get('quantile')
+#        qnt = 0.5 if kwargs.get('quantile') is None else kwargs.get('quantile')
 #        spli = UnivariateSpline(rng, line_I-np.quantile(line_I,qnt), k=3)
-        spli = CubicSpline(rng, line_I-np.quantile(line_I,qnt))
+        spli = CubicSpline(rng, line_I-threshold_otsu(line_I))
         crossings = spli.roots()
         # only select upwards roots
         UP = np.sign(spli(crossings, 1))==1
@@ -137,5 +142,174 @@ def refine_cast_location(I, M, geoTransform, x_casted, y_casted, azimuth,
 
     x_refine = x_casted + np.sin(az_rad)*infl_point
     y_refine = y_casted + np.cos(az_rad)*infl_point
-    return x_refine, y_refine, point_cov
+    return x_refine, y_refine
 
+@loggg
+def update_casted_location(dh, S, M, geoTransform, extent=120.):
+    """ update the cast location to sub-pixel level, by looking at the intensity
+    profile along the sun trace.
+
+    Parameters
+    ----------
+    dh : pandas.DataFrame
+        array with photohypsometric information
+    S : numpy.array, size=(m,n), dtype={integer,float}
+        grid with intensities, mostly related to illumination/shadowing
+    M : numpy.array, size=(m,n), dtype={integer,boolean}
+        mask of the rough shadow polygon, where True denotes a shade
+    geoTransform : tuple, size={(1,6), (1,8)}
+        affine transformation coefficients
+    extent : {float, integer}, unit=meters
+        amount of data used along the trace line.
+
+    Returns
+    -------
+    dh : pandas.DataFrame
+        array with photohypsometric information
+
+    Notes
+    -----
+    The nomenclature is as follows:
+
+        .. code-block:: text
+
+          * sun
+           \
+            \ <-- sun trace
+             \
+             |\ <-- caster
+             | \
+             |  \                    ^ Z
+             |   \                   |
+         ----┴----+  <-- casted      └-> {X,Y}
+    """
+    assert type(dh) in (pandas.core.frame.DataFrame, ), \
+        ('please provide a pandas dataframe')
+    assert np.all([header in dh.columns for header in
+                  ('caster_X', 'caster_Y', 'casted_X', 'casted_Y')])
+
+    if not 'casted_X_refine' in dh.columns: dh['casted_X_refine'] = None
+    if not 'casted_Y_refine' in dh.columns: dh['casted_Y_refine'] = None
+
+    for cnt in range(dh.shape[0]):
+        x, y = dh.iloc[cnt]['casted_X'], dh.iloc[cnt]['casted_Y']
+        x_t, y_t = dh.iloc[cnt]['caster_X'], dh.iloc[cnt]['caster_Y']
+        az = dh.iloc[cnt]['azimuth']
+
+        x_new, y_new = refine_cast_location(S, M, geoTransform, x, y, az,
+                                            x_t, y_t, extent=extent)
+        dh.loc[cnt, 'casted_X_refine'] = x_new
+        dh.loc[cnt, 'casted_Y_refine'] = y_new
+    return dh
+
+def update_list_with_refined_casted(dh, file_dir, file_name='conn.txt'):
+    """ write
+
+    Parameters
+    ----------
+    dh : pandas.DataFrame
+        array with photohypsometric information
+    file_dir : string
+        directory where the file should be situated
+    file_name : string, default='conn.txt'
+        name of the file to export the data columns to
+
+    Notes
+    -----
+    The nomenclature is as follows:
+
+        .. code-block:: text
+
+          * sun
+           \
+            \ <-- sun trace
+             \
+             |\ <-- caster
+             | \
+             |  \                    ^ Z
+             |   \                   |
+         ----┴----+  <-- casted      └-> {X,Y}
+
+    The angles related to the sun are as follows:
+
+        .. code-block:: text
+
+          surface normal              * sun
+          ^                     ^    /
+          |                     |   /
+          |-- zenith angle      |  /
+          | /                   | /|
+          |/                    |/ | elevation angle
+          └----                 └------ {X,Y}
+
+        The azimuth angle declared in the following coordinate frame:
+
+        .. code-block:: text
+
+                 ^ North & Y
+                 |
+            - <--|--> +
+                 |
+                 +----> East & X
+
+    The text file has at least the following columns:
+
+        .. code-block:: text
+
+            * conn.txt
+            ├ caster_X        <- map location of the start of the shadow trace
+            ├ caster_Y
+            ├ casted_X
+            ├ casted_Y        <- map location of the end of the shadow trace
+            ├ casted_X_refine
+            ├ casted_Y_rifine <- refined location of the end of the shadow trace
+            ├ azimuth         <- argument of the illumination direction
+            └ zenith          <- off-normal angle of the sun without atmosphere
+
+    See Also
+    --------
+    update_casted_location
+    """
+    col_order = ('caster_X', 'caster_Y', 'casted_X', 'casted_Y',
+                 'casted_X_refine', 'casted_Y_refine',
+                 'azimuth', 'zenith')
+    col_frmt = ('{:+8.2f}', '{:+8.2f}', '{:+8.2f}', '{:+8.2f}',
+                '{:+8.2f}', '{:+8.2f}',
+                '{:+3.4f}', '{:+3.4f}')
+    assert type(dh) in (pandas.core.frame.DataFrame, ), \
+        ('please provide a pandas dataframe')
+    assert np.all([header in dh.columns for header in col_order])
+
+    # write to file
+    f = open(os.path.join(file_dir, file_name), 'w')
+
+    # if timestamp is give, add this to the
+    timestamps = dh['timestamp'].unique()
+    if len(timestamps)==1:
+        print('# time: '+np.datetime_as_string(timestamps[0], unit='D'),
+              file=f)
+    else:
+        col_order = ('timestamp',) + col_order
+        col_frmt = ('place_holder',) + col_order
+    col_order += ('zenith_refrac',)
+    col_frmt = col_frmt + ('{:+3.4f}',)
+    dh_sel = dh[dh.columns.intersection(list(col_order))]
+
+    # add header
+    col_idx = dh_sel.columns.get_indexer(list(col_order))
+    IN = col_idx!=-1
+    print('# '+' '.join(tuple(np.array(col_order)[IN])), file=f)
+    col_idx = col_idx[IN]
+
+    # write rows of dataframe into text file
+    for k in range(dh_sel.shape[0]):
+        line = ''
+        for idx,val in enumerate(col_idx):
+            if col_order[val] == 'timestamp':
+                line += np.datetime_as_string(dh_sel.iloc[k,val], unit='D')
+            else:
+                line += col_frmt[idx].format(dh_sel.iloc[k,val])
+            line += ' '
+        print(line[:-1], file=f) # remove last spacer
+    f.close()
+    return

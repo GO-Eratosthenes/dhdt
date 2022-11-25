@@ -331,7 +331,7 @@ def peak_confidence(C, radius=1):
     ----------
     C : numpy.array, size=(m,n), dtype=float
         correlation or similarity surface
-    radius : integer, default=1
+    radius : integer, {x ∈ ℕ | x ≥ 1}, default=1
         how far away should the sampling set be taken
 
     Returns
@@ -415,9 +415,9 @@ def hessian_spread(C, intI, intJ):
     ----------
     C : numpy.array, size=(m,n), dtype=float
         array with correlation values
-    intI : integer
+    intI : integer, {x ∈ ℕ | x ≥ 0}
         location in rows of highest value in search space
-    intJ : integer
+    intJ : integer, {x ∈ ℕ | x ≥ 0}
         location in collumns of highest value in search space
 
     Returns
@@ -494,9 +494,9 @@ def gauss_spread(C, intI, intJ, dI, dJ, est='dist'):
     ---------
     C : numpy.array, size=(m,n), dtype=float
         array with correlation values
-    intI : integer
+    intI : integer, {x ∈ ℕ | x ≥ 0}
         location in rows of highest value in search space
-    intJ : integer
+    intJ : integer, {x ∈ ℕ | x ≥ 0}
         location in collumns of highest value in search space
     dI : float
         sub-pixel bias of top location along the row axis

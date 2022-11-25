@@ -13,9 +13,9 @@ def datetime2doy(dt):
 
     Returns
     -------
-    year : integer
+    year : integer, {x ∈ ℕ}
         calender year
-    doy : integer
+    doy : integer, {x ∈ ℕ}
         day of year
     """
     year = dt.astype('datetime64[Y]').astype(int)+1970
@@ -28,9 +28,9 @@ def doy2dmy(doy,year):
 
     Parameters
     ----------
-    year : integer
+    year : integer, {x ∈ ℕ}
         calender year
-    doy : integer
+    doy : integer, {x ∈ ℕ}
         day of year
 
     Returns
