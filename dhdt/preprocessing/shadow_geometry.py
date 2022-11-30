@@ -158,7 +158,7 @@ def get_shadow_polygon(M, t_siz):
     ----------
     M : numpy.array, size=(m,n)
         grid with intensity values
-    t_size : integer
+    t_size : integer, {x ∈ ℕ | x ≥ 1}
         window size of the kernel
 
     Returns
@@ -211,7 +211,7 @@ def find_valley(values, base, neighbors=2):
         vector with number of occurances
     base : np.array, size=(m,1), dtype=float
         vector with central values
-    neighbors : integer, default=2
+    neighbors : integer, {x ∈ ℕ | x ≥ 1}, default=2
         number of neighbors needed in order to be a valley
 
     Returns
@@ -608,7 +608,7 @@ def find_polygon_intersect(ridge_i,ridge_j,polygoon,sun_az,sun_zn,
         collumn coordinate of a location within the image that is a caster
     ridge_j : integer
         row coordinate of a location within the image that is a caster
-    polygoon : rasterio shape
+    polygon : rasterio shape
         polgon of a not illuminated region
     sun_az : float, unit=degrees
         argument of the illumination

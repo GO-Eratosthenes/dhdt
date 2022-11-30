@@ -113,9 +113,9 @@ def shape2raster(shp_fname,im_fname,geoTransform,rows,cols,spatialRef,
         path and filename of output file
     geoTransform : tuple, size=(1,6)
         affine transformation coefficients
-    rows : integer
+    rows : integer, {x ∈ ℕ | x ≥ 0}
         number of rows in the image 
-    cols : integer
+    cols : integer, {x ∈ ℕ | x ≥ 0}
         number of collumns in the image
     aoi : string
         attribute of interest. The default is 'RGIId'

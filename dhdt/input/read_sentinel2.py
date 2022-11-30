@@ -564,7 +564,7 @@ def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
                  |
             - <--|--> +
                  |
-                 +----> East & x
+                 └----> East & x
 
     The angles related to the satellite are as follows:
 
@@ -576,7 +576,7 @@ def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
           |-- zenith angle      |  /  v
           | /                   | /|
           |/                    |/ | elevation angle
-          +----- surface        +------
+          └----- surface        └------
 
     The metadata is scattered over the file structure of Sentinel-2, L1C
 
@@ -740,7 +740,7 @@ def read_mean_sun_angles_s2(path, fname='MTD_TL.xml'):
                  |
             - <--|--> +
                  |
-                 +----> East & x
+                 └----> East & x
 
     The angles related to the sun are as follows:
 
@@ -752,7 +752,7 @@ def read_mean_sun_angles_s2(path, fname='MTD_TL.xml'):
           |-- zenith angle      |  /
           | /                   | /|
           |/                    |/ | elevation angle
-          +----                 +------
+          └----                 └------
 
     The metadata is scattered over the file structure of Sentinel-2, L1C
 

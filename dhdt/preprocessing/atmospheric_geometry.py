@@ -989,6 +989,37 @@ def refraction_angle_analytical(zn_0, n_0):
 @loggg
 def get_refraction_angle(dh, x_bar, y_bar, spatialRef, central_wavelength,
                          h, simple_refraction=True):
+    """ estimate the refraction angle
+
+    Parameters
+    ----------
+    dh : pandas.DataFrame
+        photohypsometric data collection, having at least the following columns:
+            - timestamp : date stamp
+            - caster_X, caster_Y : map coordinate of start of shadow
+            - caster_Z : elevation of the start of the shadow trace
+            - casted_X, casted_Y : map coordinate of end of shadow
+            - azimuth : sun orientation, unit=degrees
+            - zenith : overhead angle of the sun, unit=degrees
+    x_bar, y_bar : numpy.array, unit=meter
+        map location of interest
+    spatialRef : osgeo.osr.SpatialReference
+        projection system describtion
+    central_wavelength : {pandas.DataFrame, float}, unit=µm
+        central wavelengths of the spectral bands
+    h : numpy.array, unit=meter
+        altitudes of interest
+    simple_refraction : boolean, deault=True
+        - True : estimate refraction in the visible range
+        - False : more precise in a broader spectral range
+
+    Returns
+    -------
+    dh : pandas.DataFrame
+        photohypsometric data collection, with an addtional column, namely:
+            - zenith_refrac : overhead angle of the sun which does take the
+                              atmosphere into account, unit=degrees
+    """
     assert type(dh) in (pandas.core.frame.DataFrame, ), \
         ('please provide a pandas dataframe')
     assert np.all([header in dh.columns for header in
@@ -1022,8 +1053,80 @@ def get_refraction_angle(dh, x_bar, y_bar, spatialRef, central_wavelength,
     return dh
 
 def update_list_with_corr_zenith_pd(dh, file_dir, file_name='conn.txt'):
+    """
+
+    Parameters
+    ----------
+    dh : pandas.DataFrame
+        array with photohypsometric information
+    file_dir : string
+        directory where the file should be situated
+    file_name : string, default='conn.txt'
+        name of the file to export the data columns to
+
+    Notes
+    -----
+    The nomenclature is as follows:
+
+        .. code-block:: text
+
+          * sun
+           \
+            \ <-- sun trace
+             \
+             |\ <-- caster
+             | \
+             |  \                    ^ Z
+             |   \                   |
+         ----┴----+  <-- casted      └-> {X,Y}
+
+    The angles related to the sun are as follows:
+
+        .. code-block:: text
+
+          surface normal              * sun
+          ^                     ^    /
+          |                     |   /
+          |-- zenith angle      |  /
+          | /                   | /|
+          |/                    |/ | elevation angle
+          └----                 └------ {X,Y}
+
+        The azimuth angle declared in the following coordinate frame:
+
+        .. code-block:: text
+
+                 ^ North & Y
+                 |
+            - <--|--> +
+                 |
+                 +----> East & X
+
+    The text file has at least the following columns:
+
+        .. code-block:: text
+
+            * conn.txt
+            ├ caster_X      <- map location of the start of the shadow trace
+            ├ caster_Y
+            ├ casted_X
+            ├ casted_Y      <- map location of the end of the shadow trace
+            ├ azimuth       <- argument of the illumination direction
+            ├ zenith        <- off-normal angle of the sun without atmosphere
+            └ zenith_refrac <- off-normal angle of the sun with atmosphere
+
+    See Also
+    --------
+    get_refraction_angle
+    """
+    # organize how the collumns need to be organized in the text file
     col_order = ('caster_X', 'caster_Y', 'casted_X', 'casted_Y',
-                    'azimuth', 'zenith', 'zenith_refrac')
+                 'casted_X_refine', 'casted_Y_refine',
+                 'azimuth', 'zenith', 'zenith_refrac')
+    col_frmt = ('{:+8.2f}', '{:+8.2f}', '{:+8.2f}', '{:+8.2f}',
+                '{:+8.2f}', '{:+8.2f}',
+                '{:+3.4f}', '{:+3.4f}', '{:+3.4f}')
+
     assert np.all([header in dh.columns for header in
                    col_order+('timestamp',)])
 
@@ -1043,20 +1146,19 @@ def update_list_with_corr_zenith_pd(dh, file_dir, file_name='conn.txt'):
     print('# time: '+timestamp, file=f)
 
     # add header
-    print('# caster_X '+'caster_Y '+'casted_X '+'casted_Y '+\
-          'azimuth '+'zenith '+'zenith_refrac', file=f)
+    col_idx = dh_sel.columns.get_indexer(list(col_order))
+    IN = col_idx!=-1
+    print('# '+' '.join(tuple(np.array(col_order)[IN])), file=f)
+    col_idx = col_idx[IN]
+
     # write rows of dataframe into text file
     for k in range(dh_sel.shape[0]):
-        line = '{:+8.2f}'.format(dh_sel.iloc[k,0]) + ' '
-        line += '{:+8.2f}'.format(dh_sel.iloc[k,1]) + ' '
-        line += '{:+8.2f}'.format(dh_sel.iloc[k,2]) + ' '
-        line += '{:+8.2f}'.format(dh_sel.iloc[k,3]) + ' '
-        line += '{:+3.4f}'.format(dh_sel.iloc[k,4]) + ' '
-        line += '{:+3.4f}'.format(dh_sel.iloc[k,5]) + ' '
-        line += '{:+3.4f}'.format(dh_sel.iloc[k,6])
-        print(line, file=f)
+        line = ''
+        for idx,val in enumerate(col_idx):
+            line += col_frmt[idx].format(dh_sel.iloc[k,val])
+            line += ' '
+        print(line[:-1], file=f) # remove last spacer
     f.close()
-
     return
 
 def refraction_spherical_symmetric(zn_0, lat=None, h_0=None):

@@ -7,7 +7,8 @@ from scipy.optimize import fsolve
 from skimage.measure import find_contours
 
 # local functions
-from ..generic.mapping_tools import pol2cart, cart2pol, rot_mat
+from ..generic.mapping_tools import pol2cart, cart2pol
+from ..generic.attitude_tools import rot_mat
 from .matching_tools_frequency_filters import make_fourier_grid
 
 # radon > direction > sign > shear

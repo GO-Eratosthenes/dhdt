@@ -23,7 +23,7 @@ from .matching_tools_spatial_subpixel import \
     get_top_mass, get_top_centroid, get_top_blais, get_top_ren, \
     get_top_birchfield, get_top_equiangular, get_top_triangular, \
     get_top_esinc, get_top_paraboloid, get_top_2d_gaussian
-from .matching_tools_correlation_metrics import \
+from .matching_tools_spatial_metrics import \
     list_matching_metrics, get_correlation_metric, hessian_spread, gauss_spread
 from .matching_tools_differential import \
     affine_optical_flow, hough_optical_flow

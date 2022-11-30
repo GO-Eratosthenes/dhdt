@@ -106,7 +106,7 @@ def simple_optical_flow(I1, I2, window_size, sampleI, sampleJ,
         array with intensities
     I2 : numpy.array, size=(m,n)
         array with intensities
-    window_size: integer
+    window_size: integer, {x ∈ ℕ | x ≥ 1}
         kernel size of the neighborhood
     sampleI: numpy.array, size=(k,l)
         grid with image coordinates, its vertical coordinate in a pixel system
@@ -263,7 +263,7 @@ def affine_optical_flow(I1, I2, model='affine', iteration=10,
             * 'similarity' : scaling, rotation and translation
     episolar : numpy.array, size=(1,2)
         vector, for additional constrains [3].
-    iteration : integer
+    iteration : integer, {x ∈ ℕ | x ≥ 0}
         number of iterations used
 
     Returns

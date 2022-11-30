@@ -439,7 +439,7 @@ def annual_solar_graph(latitude=51.707524, longitude=6.244362, deg_sep=.5,
         longitude of the location of interest
     deg_sep : float, unit=degrees
         resolution of the solargraph grid
-    year : integer
+    year : integer, {x ∈ ℕ}
         year of interest
     sec_resol : float, unit=seconds, default=20
         resolution of sun location calculation
@@ -523,7 +523,7 @@ def annual_solar_population(latitude=51.707524, longitude=6.244362, deg_sep=.5,
         resolution of the solargraph grid, if a list is given
         the first element corresponds to the azimuth resolution,
         the second element corresponds to the zenith resolution
-    year : integer
+    year : integer, {x ∈ ℕ}
         year of interest
     poly : boolean, default=True
         estimate a polynomial through the sun's daily orbit
@@ -606,7 +606,7 @@ def annual_illumination(Z, geoTransform, spatialRef, deg_sep=[5,1], year=2018):
         coordinate reference system
     deg_sep : {float,list}, unit=degrees
         resolution of the solargraph grid
-    year : integer
+    year : integer, {x ∈ ℕ}
         year of interest
 
     Returns

@@ -1,7 +1,9 @@
 import numpy as np
 
 from scipy import ndimage
-
+from ..generic.mapping_tools import map2pix
+from ..generic.gis_tools import get_mask_boundary
+from ..processing.matching_tools import remove_posts_outside_image
 def get_d8_dir(V_x, V_y):
     """ get directional data of direct neighbors
 
@@ -99,6 +101,11 @@ def get_d8_offsets(shape, order='C'):
             0])     # no data value - stationary
     return d8_offset
 
+def get_d8_flow_towards(dir=0):
+    d8_to_you = np.mod(np.linspace(0,8,9)+4+dir, 8)
+    d8_to_you[-1] = 8
+    return d8_to_you
+
 def d8_flow(Class, V_x, V_y, iter=20, analysis=True): #todo: create colored polygon outputs
     """ re-organize labelled dataset by steering towards convergent zones
 
@@ -108,7 +115,7 @@ def d8_flow(Class, V_x, V_y, iter=20, analysis=True): #todo: create colored poly
         labelled array
     V_x, V_y :  numpy.array, size=(m,n)
         grids with horizontal and vertical directions
-    iter : integer, default=20
+    iter : integer, {x ∈ ℕ | x ≥ 0}, default=20
         number of iterations to be executed
     analysis : boolean
         keeps intermediate results, to see the evolution of the algorithm
@@ -117,11 +124,15 @@ def d8_flow(Class, V_x, V_y, iter=20, analysis=True): #todo: create colored poly
     -------
     Class_new : numpy.array, size=(m,n)
         newly evolved labelled array
+
+    See Also
+    --------
+    get_d8_dir, d8_flow
     """
 
     # admin
-    (m, n) = Class.shape
-    mn = m * n
+    m, n = C.shape[0:2]
+    mn = np.multiply(m, n)
     idx_offset = get_d8_offsets(Class.shape)
 
     # prepare grids
@@ -153,3 +164,117 @@ def d8_flow(Class, V_x, V_y, iter=20, analysis=True): #todo: create colored poly
         return Class_stack
     else:
         return Class_new
+
+def d8_catchment(V_x, V_y, geoTransform, x, y, disperse=True, flat=True):
+    """ estimate the catchment behind a seed point
+
+    Parameters
+    ----------
+    V_x, V_y :  numpy.array, size=(m,n)
+        grids with horizontal and vertical directions
+    geoTransform
+    x, y : {float, numpy.array}
+        map locations of the seeds
+
+    Returns
+    -------
+    C :  numpy.array, size=(m,n), dtype=boolean
+        grid with the specific catchments
+
+    See Also
+    --------
+    get_d8_dir, d8_flow
+    """
+    C = np.zeros_like(V_x, dtype=bool)
+
+    # admin
+    m, n = C.shape[0:2]
+    mn = np.multiply(m, n)
+    idx_offset = get_d8_offsets(C.shape)
+
+    # initiate seeds
+    i,j = map2pix(geoTransform, x,y)
+    i,j = np.round(i).astype(int).flatten(), np.round(j).astype(int).flatten()
+    i,j,_ = remove_posts_outside_image(C,i,j)
+    C[i,j] = True
+
+    # prepare grids
+    d8_flow = get_d8_dir(V_x, V_y)
+    # make the border non-moving, i.e.: 8
+    d8_flow[:,0], d8_flow[:,-1], d8_flow[0,:], d8_flow[-1,:] = 8, 8, 8, 8
+
+    idx = np.linspace(0, mn - 1, mn, dtype=int).reshape([m, n], order='C')
+
+    # create list to see which grids will point to the poi
+    d8_2_you = get_d8_flow_towards()
+
+    for i in range(2*np.ceil(np.hypot(m,n)).astype(int)):
+        # get boundary
+        Bnd = get_mask_boundary(C)
+        Bnd[:,0], Bnd[:,-1], Bnd[0,:], Bnd[-1,:] = False, False, False, False
+        sel_idx = idx[Bnd]  # pixel locations of interest
+
+        # get neighborhood of boundary
+        ngh_idx = np.add.outer(sel_idx, idx_offset)
+        ngh_d8 = np.take(d8_flow, ngh_idx, mode='clip')
+        ngh_2_you = np.repeat(np.atleast_2d(d8_2_you), ngh_d8.shape[0], axis=0)
+
+        # look if it flows to this cell
+        in_C = ngh_d8==ngh_2_you
+        if flat: #, or is flat
+            in_C = np.logical_or(in_C, ngh_d8==8)
+        if disperse:
+            ngh_2_you = np.repeat(np.atleast_2d(get_d8_flow_towards(dir=-1)),
+                                  ngh_d8.shape[0], axis=0)
+            in_C = np.logical_or(in_C, ngh_d8==ngh_2_you)
+            ngh_2_you = np.repeat(np.atleast_2d(get_d8_flow_towards(dir=+1)),
+                                  ngh_d8.shape[0], axis=0)
+            in_C = np.logical_or(in_C, ngh_d8==ngh_2_you)
+        in_C_idx = ngh_idx[in_C]
+
+        already_in_C = np.take(C, in_C_idx, mode='clip')
+        # stop iteration if no update is done
+        if np.all(already_in_C):
+            break
+        # update
+        np.put(C,in_C_idx,True, mode='clip')
+
+        # stop if all is full or empty
+        if np.logical_or(np.all(C), np.all(np.invert(C))):
+            break
+    return C
+
+#todo: stopping criteria
+def d8_streamflow(V_x, V_y, geoTransform, x, y):
+    C = np.zeros_like(V_x, dtype=bool)
+
+    # admin
+    m, n = C.shape[0:2]
+    mn = np.multiply(m, n)
+    idx_offset = get_d8_offsets(C.shape)
+
+    # initiate seeds
+    i, j = map2pix(geoTransform, x, y)
+    i, j = np.round(i).astype(int).flatten(), np.round(j).astype(int).flatten()
+    i, j, _ = remove_posts_outside_image(C, i, j)
+    C[i, j] = True
+
+    # prepare grids
+    d8_flow = get_d8_dir(V_x, V_y)
+    # make the border non-moving, i.e.: 8
+    d8_flow[:, 0], d8_flow[:, -1], d8_flow[0, :], d8_flow[-1, :] = 8, 8, 8, 8
+
+    d8_offset = np.take(idx_offset, d8_flow, axis=0)
+    idx = np.linspace(0, mn - 1, mn, dtype=int).reshape([m, n], order='C')
+
+    for i in range(10):
+        # get boundary
+        Bnd = get_mask_boundary(C)
+
+        sel_idx = idx[Bnd]  # pixel locations of interest
+        sel_off = d8_offset[Bnd]  # associated offset to use
+        downstream_idx = sel_idx + sel_off
+
+        # update
+        C.ravel()[downstream_idx] = C[Bnd]
+    return C

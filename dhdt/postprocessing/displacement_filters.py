@@ -40,7 +40,7 @@ def local_infilling_filter(I, tsize=5):
     ----------
     I : numpy.array, size=(m,n), dtype=float
         intensity array with no-data values
-    tsize : integer, unit=pixel
+    tsize : integer, {x ∈ ℕ | x ≥ 1}, unit=pixel
         size of the neighborhood
 
     Returns

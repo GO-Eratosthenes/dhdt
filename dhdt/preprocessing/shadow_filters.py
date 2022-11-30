@@ -120,7 +120,7 @@ def kuwahara_filter(I, tsize=5):
     ----------
     I : np.array, size=(m,n), dtype=float
         array with intensity values
-    tsize : integer
+    tsize : integer, {x ∈ ℕ | x ≥ 1}
         dimension of the kernel
 
     Returns
@@ -165,9 +165,9 @@ def iterative_median_filter(I, tsize=5, loop=50):
     ----------
     I : np.array, size=(m,n), dtype=float
         array with intensity values
-    tsize : integer
+    tsize : integer, {x ∈ ℕ | x ≥ 1}
         dimension of the kernel
-    loop : integer
+    loop : integer, {x ∈ ℕ | x ≥ 0}
         amount of iterations
 
     Returns
@@ -209,7 +209,7 @@ def fade_shadow_cast(Shw, az, t_size=9):
         image with mask of shadows
     az : float, unit=degrees
         illumination orientation
-    t_size : integer
+    t_size : integer, {x ∈ ℕ | x ≥ 1}
         buffer size of the Gaussian blur
 
     Returns
@@ -326,7 +326,7 @@ def anistropic_diffusion_scalar(I, iter=10, K=.15, s=.25, n=4):
     ----------
     I : np.array, size=(m,n), dtype={float,complex}, ndim={2,3}
         intensity array
-    iter : integer
+    iter : integer, {x ∈ ℕ | x ≥ 0}
         amount of iterations
     K : float, default=.15
         parameter based upon the noise level
