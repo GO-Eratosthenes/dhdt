@@ -373,7 +373,7 @@ def shadow_image_to_list(M, geoTransform, s2_path,
     if timestamp is not None:
         assert isinstance(timestamp, str), \
             ('please provide a string for the timestamp')
-    if timestamp is not None:
+    if crs is not None:
         if not isinstance(crs, str):
             crs = crs.ExportToWkt()
 
