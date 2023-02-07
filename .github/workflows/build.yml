@@ -1,6 +1,15 @@
 name: Build
 
-on: [push, pull_request]
+on:
+  push:
+    paths:
+      - 'dhdt/**'
+      - 'tests/**'
+      - requirements.txt
+      - 'setup.*'
+  pull_request:
+    branches:
+      - master
 
 jobs:
 

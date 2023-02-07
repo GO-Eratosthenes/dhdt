@@ -1,17 +1,48 @@
-# YAML 1.2
----
-cff-version: "1.1.0"
-title: "eratosthenes"
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: >-
+  dhdt: A photohypsometric Python library to estimate
+  glacier elevation change via optical remote sensing
+  imagery
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
 authors:
-  -
-    family-names: "Bas Altena"
-    given-names:
-    orcid: "https://orcid.org/0000-0000-0000-0000"
-date-released: 20??-MM-DD
-doi: <insert your DOI here>
-version: "0.1.0"
-repository-code: "https://github.com/GO-Eratosthenes/eratosthenes"
-identifiers:
+  - family-names: Altena
+    given-names: Bas
+    orcid: 'https://orcid.org/0000-0001-9025-0326'
+    affiliation: >-
+      Institute for Marine and Atmospheric research (IMAU),
+      Department of Physics, Faculty of Science, Utrecht
+      University & Space Accountants
+    city: Utrecht
+    country: NL
+    email: b.altena@uu.nl
+  - given-names: Francesco
+    family-names: Nattino
+    email: f.nattino@esciencecenter.nl
+    affiliation: Netherlands eScience Center
+    city: Amsterdam
+    country: NL
+    orcid: 'https://orcid.org/0000-0003-3286-0139'
+repository-code: 'https://github.com/GO-Eratosthenes/dhdt'
+url: 'https://dhdt.readthedocs.io'
+abstract: >-
+  dhdt is a modular geodetic imaging framework written in
+  Python. It uses data from imaging satellites to extract
+  (above) surface kinematics and elevation (change). This is
+  done via image matching techniques and geometric
+  principles.
 keywords:
-message: "If you use this software, please cite it using these metadata."
-license: "Apache Software License 2.0"
+  - Python
+  - glacier elevation change
+  - optical remote sensing
+  - geodetic imaging
+  - feature tracking
+license: Apache-2.0
+version: 0.1.0
+# date-released: '2023-XX-XX'  # update before first release
+# doi: '10.5281/zenodo.0000000'  # update after first release

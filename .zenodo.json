@@ -1,0 +1,27 @@
+{
+  "creators": [
+    {
+      "affiliation": "Institute for Marine and Atmospheric research (IMAU), Department of Physics, Faculty of Science, Utrecht University & Space Accountants",
+      "name": "Altena, Bas",
+      "orcid": "0000-0001-9025-0326"
+    },
+    {
+      "affiliation": "Netherlands eScience Center",
+      "name": "Nattino, Francesco",
+      "orcid": "0000-0003-3286-0139"
+    }
+  ],
+  "description": "dhdt is a modular geodetic imaging framework written in Python. It uses data from imaging satellites to extract (above) surface kinematics and elevation (change). This is done via image matching techniques and geometric principles.",
+  "keywords": [
+    "Python",
+    "glacier elevation change",
+    "optical remote sensing",
+    "geodetic imaging",
+    "feature tracking"
+  ],
+  "license": {
+    "id": "Apache-2.0"
+  },
+  "title": "dhdt: A photohypsometric Python library to estimate glacier elevation change via optical remote sensing imagery",
+  "version": "0.1.0"
+}
