@@ -446,11 +446,11 @@ def annual_solar_graph(latitude=51.707524, longitude=6.244362, deg_sep=.5,
 
     Returns
     -------
-    Sky : np.array, size=(k,l), dtype=integer
+    Sky : numpy.ndarray, size=(k,l), dtype=integer
         array with solargraph
-    az : np.array, size=(l,_), dtype=float, unit=degrees
+    az : numpy.ndarray, size=(l,_), dtype=float, unit=degrees
         azimuth values, that is the axis ticks of the solar graph
-    zenit : np.array, size=(k,_), dtype=float, unit=degrees
+    zenit : numpy.ndarray, size=(k,_), dtype=float, unit=degrees
         zenit values, that is the axis ticks of the solar graph
 
     See Also
@@ -532,11 +532,11 @@ def annual_solar_population(latitude=51.707524, longitude=6.244362, deg_sep=.5,
 
     Returns
     -------
-    Sol : np.array, size=(k,l), dtype=integer
+    Sol : numpy.ndarray, size=(k,l), dtype=integer
         array with solargraph occurance
-    az : np.array, size=(l,_), dtype=float, unit=degrees
+    az : numpy.ndarray, size=(l,_), dtype=float, unit=degrees
         azimuth values, that is the axis ticks of the solar graph
-    zn : np.array, size=(k,_), dtype=float, unit=degrees
+    zn : numpy.ndarray, size=(k,_), dtype=float, unit=degrees
         zenit values, that is the axis ticks of the solar graph
 
     See Also

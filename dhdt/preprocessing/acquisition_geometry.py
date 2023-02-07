@@ -12,18 +12,18 @@ def slope_along_perp(Z, Az, spac=10):
 
     Parameters
     ----------
-    Z : np.array, size=(m,n), units=meters
+    Z : numpy.ndarray, size=(m,n), units=meters
         elevation model
-    Az : {np.array, float}, units=degrees
+    Az : {numpy.ndarray, float}, units=degrees
         argument or azimuth angle of interest
     spac : float, units=meters
         spacing used for the elevation model
 
     Returns
     -------
-    Slp_para : np.array, size=(m,n), units=degrees
+    Slp_para : numpy.ndarray, size=(m,n), units=degrees
         slope in the along direction of the azimuth angle
-    Slp_perp : np.array, size=(m,n), units=degrees
+    Slp_perp : numpy.ndarray, size=(m,n), units=degrees
         slope in the perpendicular direction of the azimuth angle
     """
     dy, dx = np.gradient(Z, spac)
@@ -47,14 +47,14 @@ def get_ortho_offset(Z, dx, dy, obs_az, obs_zn, geoTransform):
         mis-registration
     obs_az : numpy.array, size=(m,n), unit=degrees
         azimuth angle of observation
-    obs_zn : np.array, size=(m,n), unit=degrees
+    obs_zn : numpy.ndarray, size=(m,n), unit=degrees
         zenith angle of observation
     geoTransform : tuple, size={(6,), (8,)}
         affine transformation coefficients of array Z
 
     Returns
     -------
-    dI, dJ : np.array, size=(m,n), unit=pixels
+    dI, dJ : numpy.ndarray, size=(m,n), unit=pixels
         terrain displacements
 
     Notes
@@ -121,7 +121,7 @@ def compensate_ortho_offset(I, Z, dx, dy, obs_az, obs_zn, geoTransform):
         mis-registration offset
     obs_az : numpy.array, size=(m,n), unit=degrees
         azimuth angle of observation
-    obs_zn : np.array, size=(m,n), unit=degrees
+    obs_zn : numpy.ndarray, size=(m,n), unit=degrees
         zenith angle of observation
     geoTransform1 : tuple
         affine transformation coefficients of array Z
@@ -154,11 +154,11 @@ def get_template_aspect_slope(Z,i_samp,j_samp,t_size,spac=10.):
 
     Parameters
     ----------
-    Z : np.array, size=(m,n), float, unit=meters
+    Z : numpy.ndarray, size=(m,n), float, unit=meters
         array with elevation values
-    i_samp : np.array, size=(k,l), integer, unit=pixels
+    i_samp : numpy.ndarray, size=(k,l), integer, unit=pixels
         array with collumn coordinates of the template centers
-    j_samp : np.array, size=(k,l), integer, unit=pixels
+    j_samp : numpy.ndarray, size=(k,l), integer, unit=pixels
         array with row coordinates of the template centers
     t_size : integer, {x ∈ ℕ | x ≥ 1}, unit=pixels
         size of the template
@@ -167,7 +167,7 @@ def get_template_aspect_slope(Z,i_samp,j_samp,t_size,spac=10.):
 
     Returns
     -------
-    Slope, Aspect : np.array, size=(k,l), float
+    Slope, Aspect : numpy.ndarray, size=(k,l), float
         mean slope and aspect angle in the template
 
     See Also
@@ -236,15 +236,15 @@ def get_template_acquisition_angles(Az,Zn,Det,i_samp,j_samp,t_size):
 
     Parameters
     ----------
-    Az : np.array, size=(m,n), float
+    Az : numpy.ndarray, size=(m,n), float
         array with sensor azimuth angles
-    Zn : np.array, size=(m,n), float
+    Zn : numpy.ndarray, size=(m,n), float
         array with sensor zenith angles
-    Det : np.array, size=(m,n), bool
+    Det : numpy.ndarray, size=(m,n), bool
         array with sensor detector ids
-    i_samp : np.array, size=(k,l), integer
+    i_samp : numpy.ndarray, size=(k,l), integer
         array with collumn coordinates of the template centers
-    j_samp : np.array, size=(k,l), integer
+    j_samp : numpy.ndarray, size=(k,l), integer
         array with row coordinates of the template centers
     t_size : integer, {x ∈ ℕ | x ≥ 1}, unit=pixels
         size of the template
