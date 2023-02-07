@@ -279,6 +279,8 @@ def create_rgi_raster(rgi_path, rgi_name, toi, rgi_out=None):
     rgi_out : string
         location where the shapefile should be positioned
 
+    Returns
+    -------
     rgi_fful : sting
         location and filename of the rater dataset
 

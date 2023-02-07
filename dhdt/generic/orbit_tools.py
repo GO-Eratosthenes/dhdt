@@ -89,12 +89,12 @@ def angular_momentum(xyz, uvw):
     h : numpy.array, unit=N·m·s
         angular momentum
     """
-    xyz, uvw = are_two_arrays_equal(xyz, uvw)
+    are_two_arrays_equal(xyz, uvw)
     h = np.cross(xyz, uvw)
     return h
 
 def estimate_inclination_via_xyz_uvw(xyz, uvw):
-    xyz, uvw = are_two_arrays_equal(xyz, uvw)
+    are_two_arrays_equal(xyz, uvw)
     h = angular_momentum(xyz, uvw)
     if h.ndim==2:
         h_mag = np.linalg.norm(h, axis=-1)
@@ -130,8 +130,8 @@ def estimate_inclination_from_traj(XYZ,T):
 
 def calculate_correct_mapping(Zn_grd, Az_grd, bnd, det, grdTransform, crs,
                               sat_dict=None):
-    Zn_grd,Az_grd = are_two_arrays_equal(Zn_grd,Az_grd)
-    bnd,det = are_two_arrays_equal(bnd, det)
+    are_two_arrays_equal(Zn_grd,Az_grd)
+    are_two_arrays_equal(bnd, det)
     grdTransform = correct_geoTransform(grdTransform)
     if not isinstance(crs, str):
         crs = crs.ExportToWkt()
@@ -169,7 +169,7 @@ def remap_observation_angles(Ltime, lat, lon, radius, inclination, period,
                              time_para, combos, X_grd, Y_grd, det_stack,
                              bnd_list, geoTransform, crs):
     lat,lon = lat_lon_angle_check(lat,lon)
-    X_grd,Y_grd = are_two_arrays_equal(X_grd,Y_grd)
+    are_two_arrays_equal(X_grd,Y_grd)
     geoTransform = correct_geoTransform(geoTransform)
 
     m,n = X_grd.shape()
@@ -223,7 +223,7 @@ def remap_observation_angles(Ltime, lat, lon, radius, inclination, period,
 
 def acquisition_angles(Px,Gx):
     """ given satellite and groujnd coordinates, estimate observation angles"""
-    Px, Gy = are_two_arrays_equal(Px, Gy)
+    are_two_arrays_equal(Px, Gy)
 
     major_axis,minor_axis = earth_axes()
     Vx = Px - Gx  # observation vector
@@ -335,7 +335,7 @@ def ground_vec(Lat, Lon, eccentricity=None, major_axis=None):
 
     """
     Lat, Lon = lat_lon_angle_check(Lat, Lon)
-    Lat,Lon = are_two_arrays_equal(Lat,Lon)
+    are_two_arrays_equal(Lat,Lon)
     if (major_axis is None) or (eccentricity is None):
         major_axis, flattening = wgs84_param()
         eccentricity = (2*flattening) - (flattening**2)
@@ -366,9 +366,9 @@ def _make_timing_system(IN,dX,dY,Ltime):
     return A, L
 
 def time_fitting(Ltime, Az, Zn, bnd, det, X, Y, geoTransform):
-    Zn,Az = are_two_arrays_equal(Zn,Az)
-    bnd,det = are_two_arrays_equal(bnd, det)
-    X,Y = are_two_arrays_equal(X,Y)
+    are_two_arrays_equal(Zn,Az)
+    are_two_arrays_equal(bnd, det)
+    are_two_arrays_equal(X,Y)
     geoTransform = correct_geoTransform(geoTransform)
 
     dX, dY = X - geoTransform[0], geoTransform[3] - Y
@@ -420,7 +420,7 @@ def orbital_fitting(Sat, Gx, lat=None, lon=None, radius=None, inclination=None,
     -------
 
     """
-    Sat, Gx = are_two_arrays_equal(Sat, Gx)
+    are_two_arrays_equal(Sat, Gx)
     if (inclination is None) and (sat_dict is not None):
         inclination = np.deg2rad(sat_dict['inclination'])
     if (period is None) and (sat_dict is not None):
@@ -576,7 +576,7 @@ def observation_calculation(ltime, Sat, Gx, radius, inclination,
     -------
     Vx : numpy.array, size=(m,3)
     """
-    Sat, Gx = are_two_arrays_equal(Sat, Gx)
+    are_two_arrays_equal(Sat, Gx)
 
     cta, gclat, gclon = _gc_calculation(ltime, period, inclination,
                                         omega_0, lon_0)
@@ -618,7 +618,7 @@ def pert_param(idx, pert, *args):
 def partial_obs(ltime, Sat, Gx, lat, lon, radius, inclination, period):
     """ numerical differentiation, via pertubation of the observation vector
     """
-    Sat, Gx = are_two_arrays_equal(Sat, Gx)
+    are_two_arrays_equal(Sat, Gx)
     P_0 = np.zeros((3, 4, ltime.size))
     omega_0,lon_0 = _omega_lon_calculation(lat, lon, inclination)
     Dx = observation_calculation(ltime, Sat, Gx, radius, inclination,
@@ -640,7 +640,7 @@ def partial_obs(ltime, Sat, Gx, lat, lon, radius, inclination, period):
     return P_0
 
 def partial_tim(ltime, Sat, Gx, lat, lon, radius, inclination, period):
-    Sat, Gx = are_two_arrays_equal(Sat, Gx)
+    are_two_arrays_equal(Sat, Gx)
     P_1 = np.zeros((3, 1, ltime.size))
     omega_0,lon_0 = _omega_lon_calculation(lat, lon, inclination)
     Dx = observation_calculation(ltime, Sat, Gx, radius, inclination,

@@ -486,8 +486,8 @@ def get_coordinates_of_template_centers(Grid, temp_size):
 
     Parameters
     ----------
-    Grid : {numpy.array, numpy.masked.array}, size=(m,n)
-        array with data values
+    Grid : {numpy.array, numpy.masked.array, tuple}, size=(m,n)
+        array with data values, or a geoTransform
     temp_size : positive integer
         size of the kernel in pixels
 
@@ -500,8 +500,9 @@ def get_coordinates_of_template_centers(Grid, temp_size):
 
     See Also
     --------
-    get_value_at_template_centers, prepare_grids,
-    ..generic.mapping_tools.pix2map
+    dhdt.processing.matching_tools.get_value_at_template_centers
+    dhdt.processing.matching_tools.prepare_grids
+    dhdt.generic.mapping_tools.pix2map
 
     Notes
     -----
@@ -520,13 +521,19 @@ def get_coordinates_of_template_centers(Grid, temp_size):
           based      v           based       |
 
     """
-    assert type(Grid) in (np.ma.core.MaskedArray, np.ndarray), \
-        ("please provide an array")
+
+    assert type(Grid) in (np.ma.core.MaskedArray, np.ndarray, tuple), \
+        ("please provide an array or tuple")
     assert type(temp_size)==int, ("please provide an integer")
 
+    if isinstance(Grid, tuple):
+        (m,n) = Grid[-2:]
+    else:
+        (m,n) = Grid.shape[:2]
+
     radius = np.floor(temp_size / 2).astype('int')
-    I_idx,J_idx = np.mgrid[radius:(Grid.shape[0]-radius):temp_size,
-                  radius:(Grid.shape[1]-radius):temp_size]
+    I_idx,J_idx = np.mgrid[radius:(m-radius):temp_size,
+                  radius:(n-radius):temp_size]
     return I_idx, J_idx
 
 def get_value_at_template_centers(Grid, temp_size):
@@ -547,7 +554,7 @@ def get_value_at_template_centers(Grid, temp_size):
 
     See Also
     --------
-    get_coordinates_of_template_centers
+    dhdt.processing.matching_tools.get_coordinates_of_template_centers
     """
     assert type(Grid) in (np.ma.core.MaskedArray, np.ndarray), \
         ("please provide an array")

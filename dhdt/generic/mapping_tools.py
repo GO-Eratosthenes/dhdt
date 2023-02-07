@@ -34,7 +34,7 @@ def cart2pol(x, y):
     pol2xyz : equivalent function, but for three dimensions
     cart2pol : inverse function
     """
-    x,y = are_two_arrays_equal(x, y)
+    are_two_arrays_equal(x, y)
     rho = np.hypot(x, y)
     phi = np.arctan2(y, x)
     return rho, phi
@@ -158,7 +158,7 @@ def pix2map(geoTransform, i, j):
 
     """
     geoTransform = correct_geoTransform(geoTransform)
-    i,j = are_two_arrays_equal(i,j)
+    are_two_arrays_equal(i,j)
 
     x = geoTransform[0] + \
         np.multiply(geoTransform[1], j) + np.multiply(geoTransform[2], i)
@@ -212,7 +212,7 @@ def map2pix(geoTransform, x, y):
 
     """
     geoTransform = correct_geoTransform(geoTransform)
-    x,y = are_two_arrays_equal(x, y)
+    are_two_arrays_equal(x, y)
 
     def _zero_div(a, b):
         return a/b if b else 0
@@ -266,7 +266,7 @@ def vel2pix(geoTransform, dx, dy):
 
     """
     geoTransform = correct_geoTransform(geoTransform)
-    dx, dy = are_two_arrays_equal(dx, dy)
+    are_two_arrays_equal(dx, dy)
 
     if geoTransform[2] == 0:
         dj = dx / geoTransform[1]
@@ -599,7 +599,7 @@ def ref_trans(geoTransform, dI, dJ):
           based      v           based       |
     """
     geoTransform = correct_geoTransform(geoTransform)
-    dI,dJ = are_two_arrays_equal(dI, dJ)
+    are_two_arrays_equal(dI, dJ)
     newTransform = (geoTransform[0]+ dJ*geoTransform[1] + dI*geoTransform[2],
                     geoTransform[1], geoTransform[2],
                     geoTransform[3]+ dJ*geoTransform[4] + dI*geoTransform[5],
@@ -776,7 +776,7 @@ def bilinear_interp_excluding_nodat(I, i_I, j_I, noData=-9999):
 
     """
     assert type(I)==np.ndarray, ("please provide an array")
-    i_I,j_I = are_two_arrays_equal(i_I, j_I)
+    are_two_arrays_equal(i_I, j_I)
     m, n = I.shape[0:2]
 
     i_prio, i_post = np.floor(i_I).astype(int), np.ceil(i_I).astype(int)
@@ -1149,7 +1149,7 @@ def make_same_size(Old,geoTransform_old, geoTransform_new, rows_new, cols_new):
 
 def create_offset_grid(I, dx, dy, geoTransform):
     geoTransform = correct_geoTransform(geoTransform)
-    dx,dy = are_two_arrays_equal(dx, dy)
+    are_two_arrays_equal(dx, dy)
     di, dj = vel2pix(geoTransform, dx, dy)
     if len(geoTransform)==8: # sometimes the image dimensions are also included
         mI, nI = geoTransform[-2], geoTransform[-1]
