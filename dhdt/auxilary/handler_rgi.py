@@ -1,5 +1,6 @@
 # functions to work with the Randolph Glacier Inventory
 import os
+import tempfile
 import numpy as np
 
 import geopandas
@@ -294,7 +295,6 @@ def create_rgi_raster(rgi_path, rgi_name, toi, rgi_out=None):
     if rgi_out is None:
         rgi_out = rgi_path
 
-
     geoTransform,crs = get_generic_s2_raster(toi)
     crs.AutoIdentifyEPSG()
     s2_epsg = crs.GetAttrValue('AUTHORITY',1)
@@ -306,14 +306,34 @@ def create_rgi_raster(rgi_path, rgi_name, toi, rgi_out=None):
     spatRef = lyr.GetSpatialRef()
     spatRef.AutoIdentifyEPSG()
     geom_epsg = spatRef.GetAttrValue('AUTHORITY',1)
-    if not s2_epsg is geom_epsg: # transform to same projection, if not the same
+    if not (s2_epsg is geom_epsg): # transform to same projection, if not the same
+
+        src_new = ogr.osr.SpatialReference()
+        src_new.ImportFromEPSG(int(s2_epsg))
+        drv = shp.GetDriver()
+        tmp_name = tempfile.NamedTemporaryFile(
+            suffix='.'+rgi_name.split('.')[-1]).name
+        ds = drv.CreateDataSource(tmp_name)
+        lyr_new = ds.CreateLayer("glaciers", srs=src_new,
+                                 geom_type=ogr.wkbMultiPolygon)
+        lyr_new.CreateField(ogr.FieldDefn("RGIId", ogr.OFTInteger))
 
         coordTrans = osr.CoordinateTransformation(spatRef, crs)
+        counter = 1
         for feat in lyr:
             geom = feat.GetGeometryRef()  # get the input geometry
             geom.Transform(coordTrans)    # reproject the geometry from ll to UTM
-            feat.SetGeometry(geom)
-        lyr.SetSpatialRef(crs)
+            geom.AssignSpatialReference(src_new)
+
+            feat_new = ogr.Feature(lyr_new.GetLayerDefn())
+                # create a new feature
+            feat_new.SetGeometry(geom)  # set the geometry and attribute
+            feat_new.SetField('RGIId', counter)
+                # assign RGIid, but does not seem to be explicit in version 7
+
+            lyr_new.CreateFeature(feat_new)  # add the feature to the geometry
+            counter += 1
+            feat_new = None  # dereference the features and get the next input feature
 
     # create raster environment
     rgi_ffull = os.path.join(rgi_out, toi + '-RGI.tif')
@@ -323,11 +343,17 @@ def create_rgi_raster(rgi_path, rgi_name, toi, rgi_out=None):
                            gdal.GDT_UInt16)
 
     target.SetGeoTransform(geoTransform[:6])
-    target.SetProjection(crs.ExportToWkt())
 
     # convert polygon to raster
-    gdal.RasterizeLayer(target, [1], lyr, None, options=["ATTRIBUTE=id"])
-    gdal.RasterizeLayer(target, [1], lyr, None, burn_values=[1])
+    if not (s2_epsg is geom_epsg):
+        target.SetProjection(src_new.ExportToWkt())
+        gdal.RasterizeLayer(target, [1], lyr_new, options=["ATTRIBUTE=RGIId"],
+                            burn_values=[1])
+        lyr_new = ds = None
+    else:
+        target.SetProjection(crs.ExportToWkt())
+        gdal.RasterizeLayer(target, [1], lyr, None, options=["ATTRIBUTE=RGIId"])
+        gdal.RasterizeLayer(target, [1], lyr, None, burn_values=[1])
     lyr = shp = None
     return rgi_ffull
 
@@ -383,20 +409,5 @@ def create_rgi_tile_s2(toi, geom_path=None, geom_out=None):
 
     geom_outpath = create_rgi_raster(geom_path, rgi_regions, toi,
                                      rgi_out=geom_out)
-
-    for rgi_name in rgi_regions:
-        fname_shp_utm = rgi_name[:-4] + '_utm' + str(utm_zone).zfill(2) + '.shp'
-        if not os.path.exists(os.path.join(rgi_path, fname_shp_utm)):
-        # project shapefile RGI to map projection
-            create_projected_rgi_shp(rgi_path, rgi_name,
-                                     utm_zone, northernHemisphere,
-                                     fname_shp_utm)
-
-    #todo: merge shapefiles of different regions, if neccessary
-
-    rgi_out_full = os.path.join(rgi_path, toi+'-RGI.tif')
-    if not os.path.exists(rgi_out_full):
-        create_rgi_raster(rgi_path, fname_shp_utm, toi, rgi_out)
-
     return geom_outpath
 
