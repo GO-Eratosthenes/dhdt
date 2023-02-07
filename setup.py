@@ -49,6 +49,6 @@ setup(
     install_requires=requirements,
     extras_require={
         'test': ['pytest', 'pytest-cov', 'pycodestyle'],
-        'dev':  ['prospector[with_pyroma]', 'yapf', 'isort'],
+        'dev':  ['yapf', 'isort', 'cffconvert'],
     }
 )

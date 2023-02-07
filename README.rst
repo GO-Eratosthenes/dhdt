@@ -47,7 +47,7 @@ have a look at the `contribution guidelines <CONTRIBUTING.rst>`_.
 License
 *******
 
-Copyright (c) 2020, Netherlands eScience Center, Utrecht University
+Copyright (c) 2023, Netherlands eScience Center, Utrecht University
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
