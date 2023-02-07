@@ -171,9 +171,9 @@ def pad_images_and_filter_coord_list(M1, M2, geoTransform1, geoTransform2,
 
     Parameters
     ----------
-    M1 : {numpy.array, numpy.masked.array}, size=(m,n), ndim={2,3}
+    M1 : {numpy.ndarray, numpy.masked.array}, size=(m,n), ndim={2,3}
         first image array
-    M2 : {numpy.array, numpy.masked.array}, size=(m,n), ndim={2,3}
+    M2 : {numpy.ndarray, numpy.masked.array}, size=(m,n), ndim={2,3}
         second image array
     geoTransform1 : tuple
         affine transformation coefficients of array M1
@@ -261,7 +261,7 @@ def pad_radius(I, radius, cval=0):
 
     Parameters
     ----------
-    I : {numpy.array, numpy.masked.array}, size=(m,n) or (m,n,b)
+    I : {numpy.ndarray, numpy.masked.array}, size=(m,n) or (m,n,b)
         data array
     radius : {positive integer, tuple}
         extra boundary to be added to the data array
@@ -315,7 +315,7 @@ def prepare_grids(im_stack, ds, cval=0):
 
     Parameters
     ----------
-    im_stack : {numpy.array, numpy.masked.array}, size(m,n,k)
+    im_stack : {numpy.ndarray, numpy.masked.array}, size(m,n,k)
         imagery array
     ds : integer
         size of the template, in pixels
@@ -324,7 +324,7 @@ def prepare_grids(im_stack, ds, cval=0):
 
     Returns
     -------
-    im_stack : numpy.array, size(m+ds,n+ds,k)
+    im_stack : numpy.ndarray, size(m+ds,n+ds,k)
         extended imagery array
     I_grd : np.array, size=(p,q)
         vertical image coordinates of the template centers
@@ -335,7 +335,7 @@ def prepare_grids(im_stack, ds, cval=0):
     assert type(im_stack) in (np.ma.core.MaskedArray, np.ndarray), \
         ("please provide an array")
     assert type(ds)==int, ("please provide an integer")
-    if im_stack.ndim==2: im_stack = im_stack[:,:,np.newaxis]
+    if im_stack.ndim==2: im_stack = np.atleast_3d(im_stack)
 
     # padding is needed to let all imagery be of the correct template size
     i_pad = int(np.ceil(im_stack.shape[0]/ds)*ds - im_stack.shape[0])
@@ -365,9 +365,9 @@ def make_templates_same_size(I1,I2):
     assert ns>=nt
 
     if I1.ndim>I2.ndim:
-        I2 = I2[:,:,np.newaxis]
+        I2 = np.atleast_3d(I2)
     elif I1.ndim<I2.ndim:
-        I2 = I2[:,:,np.newaxis]
+        I1 = np.atleast_3d(I1)
 
     md, nd = (ms-mt)//2, (ns-nt)//2
     if md==0 | nd==0: # I2[+0:-0, ... does not seem to work
@@ -390,14 +390,14 @@ def remove_posts_outside_image(I, i, j):
 
     Parameters
     ----------
-    I : numpy.array, size=(m,n)
+    I : numpy.ndarray, size=(m,n)
         grid of interest
-    i,j : numpy.array, size=(k,)
+    i,j : numpy.ndarray, size=(k,)
         post locations given in image coordinates
 
     Returns
     -------
-    i,j : numpy.array, size=(l,)
+    i,j : numpy.ndarray, size=(l,)
         filtered locations within the data array "I"
 
     See Also
@@ -415,7 +415,7 @@ def remove_posts_pairs_outside_image(I1, i1, j1, I2, i2, j2):
 
     Parameters
     ----------
-    I1 : numpy.array, size=(m,n)
+    I1 : numpy.ndarray, size=(m,n)
         raster array of interest, where point pairs are located
     i1,j1 : numpy.array, size=(k,)
         post locations of first pair, given in image coordinates

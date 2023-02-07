@@ -156,16 +156,16 @@ def get_shadow_polygon(M, t_siz):
 
     Parameters
     ----------
-    M : numpy.array, size=(m,n)
+    M : numpy.ndarray, size=(m,n)
         grid with intensity values
     t_size : integer, {x ∈ ℕ | x ≥ 1}
         window size of the kernel
 
     Returns
     -------
-    labels : numpy.array, size=(m,n)
+    labels : numpy.ndarray, size=(m,n)
         grid with numbered labels
-    super_pix : numpy.array, size=(m,n)
+    super_pix : numpy.ndarray, size=(m,n)
         grid with numbered superpixels
     """
     mn = np.ceil(np.divide(np.nanprod(M.shape), t_size))
@@ -272,7 +272,7 @@ def shadow_image_to_suntrace_list(M, geoTransform, Az, method='nearest'):
 
     Returns
     -------
-    suntrace_list : numpy.array, size=(k,4)
+    suntrace_list : numpy.ndarray, size=(k,4)
         list of coordinates with x,y coordinates of caster and casted
     """
     assert M.ndim>1, ('please provide a multi-dimensional array')
@@ -373,7 +373,7 @@ def shadow_image_to_list(M, geoTransform, s2_path,
     if timestamp is not None:
         assert isinstance(timestamp, str), \
             ('please provide a string for the timestamp')
-    if crs is not None:
+    if timestamp is not None:
         if not isinstance(crs, str):
             crs = crs.ExportToWkt()
 
@@ -435,14 +435,14 @@ def label_occluder_and_casted(labeling, sunAz):
 
     Parameters
     ----------
-    labeling : numpy.array, size=(m,n), dtype=integer
+    labeling : numpy.ndarray, size=(m,n), dtype=integer
         array with labelled polygons
-    sunAz : numpy.array, size=(m,n), dtype=integer
+    sunAz : numpy.ndarray, size=(m,n), dtype=integer
         band of azimuth values
 
     Returns
     -------
-    shadowIdx : numpy.array, size=(m,n), dtype=signed integers
+    shadowIdx : numpy.ndarray, size=(m,n), dtype=signed integers
         array with numbered pairs, where the caster is the positive number the
         casted is the negative number
     """

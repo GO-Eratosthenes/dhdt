@@ -240,9 +240,8 @@ def read_stack_l8(path, l8_df):
                 path, band=val)
         else: # stack others bands
             if im_stack.ndim==2:
-                im_stack = im_stack[...,np.newaxis]
-            band = read_band_l8(path, band=val)[0]
-            band = band[:,:,np.newaxis]
+                im_stack = np.atleast_3d(im_stack)
+            band = np.atleast_3d(read_band_l8(path, band=val)[0])
             im_stack = np.concatenate((im_stack, band), axis=2)
     return im_stack, spatialRef, geoTransform, targetprj
 

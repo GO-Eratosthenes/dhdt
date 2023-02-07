@@ -13,22 +13,22 @@ def project_along_flow(dX_raw,dY_raw,dX_prio,dY_prio,e_perp):
 
     Parameters
     ----------
-    dX_raw : numpy.array, size=(m,n), dtype=float
+    dX_raw : numpy.ndarray, size=(m,n), dtype=float
         raw horizontal displacement with mixed signal
-    dY_raw : numpy.array, size=(m,n), dtype=float
+    dY_raw : numpy.ndarray, size=(m,n), dtype=float
         raw vertical displacement with mixed signal
-    dX_prio : numpy.array, size=(m,n), dtype=float
+    dX_prio : numpy.ndarray, size=(m,n), dtype=float
         reference of horizontal displacement (a-priori knowledge)
-    dY_prio : numpy.array, size=(m,n), dtype=float
+    dY_prio : numpy.ndarray, size=(m,n), dtype=float
         reference of vertical displacement (a-priori knowledge)
-    e_perp : numpy.array, size=(2,1), float
+    e_perp : numpy.ndarray, size=(2,1), float
         vector in the perpendicular direction to the flightline (bearing).
 
     Returns
     -------
-    dX_proj : numpy.array, size=(m,n), dtype=float
+    dX_proj : numpy.ndarray, size=(m,n), dtype=float
         projected horizontal displacement in the same direction as reference.
-    dY_proj : numpy.array, size=(m,n), dtype=float
+    dY_proj : numpy.ndarray, size=(m,n), dtype=float
         projected vertical displacement in the same direction as reference.
     
     Notes
@@ -81,20 +81,20 @@ def rotate_variance(Theta, qii, qjj, rho):
 
     Parameters
     ----------
-    Theta : numpy.array, size=(m,n), unit=degrees
+    Theta : numpy.ndarray, size=(m,n), unit=degrees
         direction of interest
-    qii : numpy.array, size=(m,n), unit={meters, pixels}
+    qii : numpy.ndarray, size=(m,n), unit={meters, pixels}
         variance in vertical direction
-    qjj : numpy.array, size=(m,n), unit={meters, pixels}
+    qjj : numpy.ndarray, size=(m,n), unit={meters, pixels}
         variance in horizontal direction
-    rho : numpy.array, size=(m,n), unit=degrees
+    rho : numpy.ndarray, size=(m,n), unit=degrees
         orientation of the ellipse
 
     Returns
     -------
-    qii_r : numpy.array, size=(m,n), unit={meters, pixels}
+    qii_r : numpy.ndarray, size=(m,n), unit={meters, pixels}
         variance in given direction
-    qii_r : numpy.array, size=(m,n), unit={meters, pixels}
+    qii_r : numpy.ndarray, size=(m,n), unit={meters, pixels}
         variance in right angle direction
 
     See Also

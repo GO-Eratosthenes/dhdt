@@ -1,22 +1,23 @@
 import numpy as np
+import pandas as pd
 
 def get_midpoint_altitude(RGI, Z, roi=None):
     """ the mid-point altitude is a for the ELA [1]
 
     Parameters
     ----------
-    RGI : numpy.array, unit=meter
+    RGI : numpy.ndarray, unit=meter
         array with labelled glaciers
-    Z : numpy.array, unit=meter
+    Z : numpy.ndarray, unit=meter
         array with elevation
     roi : integer, {x ∈ ℕ | 1 ≥ x ≥ 19}
         the RGI id of the glacier of interest
 
     Returns
     -------
-    labels : numpy.array
+    labels : numpy.ndarray
         the RGI ids of the glacier of interest
-    altitude : numpy.array
+    altitude : numpy.ndarray
         mid-point altitudes of the glaciers given by "labels"
 
     Notes
@@ -46,11 +47,11 @@ def get_normalized_hypsometry(RGI, Z, dZ, bins=20):
 
     Parameters
     ----------
-    RGI : numpy.array, unit=meter
+    RGI : numpy.ndarray, unit=meter
         array with labelled glaciers
-    Z : numpy.array, unit=meter
+    Z : numpy.ndarray, unit=meter
         array with elevation
-    dZ : numpy.array, unit=meter
+    dZ : numpy.ndarray, unit=meter
         array with elevation change
     bins : integer, {x ∈ ℕ | x ≥ 1}, default=20
         amount of bins to use for the hypsometric estimation
@@ -100,9 +101,9 @@ def get_general_hypsometry(Z, dZ, interval=100., quant=.5):
 
     Parameters
     ----------
-    Z : numpy.array, unit=meter
+    Z : {numpy.array, pandas.Series}, unit=meter
         array with elevation
-    dZ : numpy.array, unit=meter
+    dZ : {numpy.array, pandas.Series}, unit=meter
         array with elevation change
     interval : {float, integer}, default=100, unit=meter
         bin interval for the hypsometry estimation
@@ -116,6 +117,9 @@ def get_general_hypsometry(Z, dZ, interval=100., quant=.5):
     hypsometry : numpy.array, unit=meter
         group statistics within the elevation interval
     """
+    if type(Z) is pd.core.series.Series: Z = Z.to_numpy()
+    if type(dZ) is pd.core.series.Series: dZ = dZ.to_numpy()
+
     assert len(set({Z.size, dZ.size})) == 1, \
         ('please provide arrays of the same size')
     assert isinstance(quant, float)

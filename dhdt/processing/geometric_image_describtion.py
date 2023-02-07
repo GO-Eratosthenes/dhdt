@@ -17,7 +17,7 @@ def get_radon_angle(I, num_dir=1, fitting='polynomial'):
 
     Parameters
     ----------
-    I : numpy.array, size=(m,n)
+    I : numpy.ndarray, size=(m,n)
         image with intensities
     num_dir : positive integer
         amount of directions to estimate

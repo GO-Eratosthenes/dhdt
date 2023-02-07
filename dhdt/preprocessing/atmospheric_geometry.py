@@ -111,12 +111,12 @@ def get_height_tropopause(lat):
 
     Parameters
     ----------
-    lat : {float, numpy.array}, unit=degrees, range=-90...+90
+    lat : {float, numpy.ndarray}, unit=degrees, range=-90...+90
         latitude of interest
 
     Returns
     -------
-    h_t : {float, numpy.array}, unit=meters
+    h_t : {float, numpy.ndarray}, unit=meters
         estimate of tropopause, that is the layer between the troposphere and
         the stratosphere
 
@@ -160,7 +160,7 @@ def get_T_sealevel(lat, method='noerdlinger'):
 
     Parameters
     ----------
-    lat : {float, numpy.array}, unit=degrees, range=-90...+90
+    lat : {float, numpy.ndarray}, unit=degrees, range=-90...+90
         latitude of interest
 
     Returns
@@ -1121,14 +1121,16 @@ def update_list_with_corr_zenith_pd(dh, file_dir, file_name='conn.txt'):
     """
     # organize how the collumns need to be organized in the text file
     col_order = ('caster_X', 'caster_Y', 'casted_X', 'casted_Y',
-                 'casted_X_refine', 'casted_Y_refine',
                  'azimuth', 'zenith', 'zenith_refrac')
     col_frmt = ('{:+8.2f}', '{:+8.2f}', '{:+8.2f}', '{:+8.2f}',
                 '{:+8.2f}', '{:+8.2f}',
                 '{:+3.4f}', '{:+3.4f}', '{:+3.4f}')
-
     assert np.all([header in dh.columns for header in
                    col_order+('timestamp',)])
+    col_order = list(col_order)
+    col_order.insert(4, 'casted_X_refine')
+    col_order.insert(5, 'casted_Y_refine')
+    col_order = tuple(col_order)
 
     timestamp = dh['timestamp'].unique()
     if timestamp.size !=1:

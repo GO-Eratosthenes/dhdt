@@ -14,16 +14,37 @@ def normalized_cross_corr(I1, I2):
 
     Parameters
     ----------
-    I1 : numpy.array, type=bool
-        binary array
-    I2 : numpy.array, type=bool
-        binary array
+    I1 : numpy.array, ndim=2, size=(m,n)
+        grid with intensities (template)
+    I2 : numpy.array, ndim=2, size=(k,l), {k>=m, l>=n}
+        grid with intensities (search space)
 
     Returns
     -------
     ccs : numpy.array
-        similarity surface, ccs: cross correlation surface        
+        similarity surface,
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from dhdt.processing.matching_tools import get_integer_peak_location
+    >>> from dhdt.generic.test_tools import create_sample_image_pair
+
+    >>> _,im2,ti,tj,im1 = create_sample_image_pair(d=2**4, max_range=1)
+    >>> C = normalized_cross_corr(im1,im2)
+    >>> di,dj,_,_ = get_integer_peak_location(C)
+
+    >>> assert(np.isclose(ti, di, atol=1))
+    >>> assert(np.isclose(ti, di, atol=1))
+
+    Notes
+    -----
+    The following nomenclature is used:
+
+    ccs: cross correlation surface
     """
+    assert I1.shape[0:2]<=I2.shape[0:2], \
+        ('search space (I2) should be at least as big as the template (I1)')
     ccs = match_template(I2, I1)
     return ccs
 
@@ -32,17 +53,25 @@ def cumulative_cross_corr(I1, I2):
 
     Parameters
     ----------
-    I1 : numpy.array, type=bool
-        binary array
-    I2 : numpy.array, type=bool
-        binary array
+    I1 : numpy.array, ndim=2, size=(m,n)
+        grid with intensities (template)
+    I2 : numpy.array, ndim=2, size=(k,l), {k>=m, l>=n}
+        grid with intensities (search space)
 
     Returns
     -------
     ccs : numpy.array
-        similarity surface, ccs: cross correlation surface     
+        similarity surface
+
+    Notes
+    -----
+    The following nomenclature is used:
+
+    ccs: cross correlation surface
     """   
-    if isinstance(I1, np.floating):        
+    assert I1.shape[0:2]<=I2.shape[0:2], \
+        ('search space (I2) should be at least as big as the template (I1)')
+    if isinstance(I1, np.floating):
         # get cut-off value
         cu = np.quantile(I1, 0.5)
         I1 = I1<cu
@@ -62,17 +91,25 @@ def sum_sq_diff(I1, I2):
 
     Parameters
     ----------
-    I1 : numpy.array, ndim=2
-        image with intensities (template)
-    I2 : numpy.array, ndim=2
-        image with intensities (search space)
+    I1 : numpy.array, ndim=2, size=(m,n)
+        grid with intensities (template)
+    I2 : numpy.array, ndim=2, size=(k,l), {k>=m, l>=n}
+        grid with intensities (search space)
 
     Returns
     -------
     ssd : numpy.array, ndim=2
-        dissimilarity surface, ssd: sum of squared differences
+        dissimilarity surface
+
+    Notes
+    -----
+    The following nomenclature is used:
+
+    ssd: sum of squared differences
     """
-    
+    assert I1.shape[0:2]<=I2.shape[0:2], \
+        ('search space (I2) should be at least as big as the template (I1)')
+
     t_size = I1.shape
     y = np.lib.stride_tricks.as_strided(I2,
                     shape=(I2.shape[0] - t_size[0] + 1,
@@ -90,15 +127,21 @@ def sum_sad_diff(I1, I2):
 
     Parameters
     ----------
-    I1 : numpy.array, ndim=2
-        image with intensities (template)
-    I2 : numpy.array, ndim=2
-        image with intensities (search space)
+    I1 : numpy.array, ndim=2, size=(m,n)
+        grid with intensities (template)
+    I2 : numpy.array, ndim=2, size=(k,l), {k>=m, l>=n}
+        grid with intensities (search space)
 
     Returns
     -------
     sad : numpy.array, ndim=2
-        dissimilarity surface, sad: sum of absolute difference
+        dissimilarity surface
+
+    Notes
+    -----
+    The following nomenclature is used:
+
+    sad: sum of absolute difference
     """
     
     t_size = I1.shape
@@ -129,10 +172,10 @@ def maximum_likelihood(I1,I2):
 
     Parameters
     ----------
-    I1 : numpy.array
-        image with intensities (template)
-    I2 : numpy.array
-        image with intensities (search space)
+    I1 : numpy.array, ndim=2, size=(m,n)
+        grid with intensities (template)
+    I2 : numpy.array, ndim=2, size=(k,l), {k>=m, l>=n}
+        grid with intensities (search space)
 
     Returns
     -------
@@ -157,10 +200,10 @@ def weighted_normalized_cross_correlation(I1,I2,W1=None,W2=None):
 
     Parameters
     ----------
-    I1 : numpy.array, size=(m,n)
-        image with intensities (template)
-    I2 : numpy.array, size=(k,l)
-        image with intensities (search space)
+    I1 : numpy.array, ndim=2, size=(m,n)
+        grid with intensities (template)
+    I2 : numpy.array, ndim=2, size=(k,l), {k>=m, l>=n}
+        grid with intensities (search space)
     W1 : numpy.array, size=(m,n), dtype={boolean,float}
         weighting matrix for the template
     W2 : numpy.array, size=(m,n), dtype={boolean,float}
@@ -256,6 +299,83 @@ def weighted_normalized_cross_correlation(I1,I2,W1=None,W2=None):
                      where=denom!=0, out=np.zeros_like(denom))
     support = elem_M12/(m1*n1)
     return wncc, support
+
+def cosine_similarity(I1, I2):
+    """ estimate the similarity of orientation imagery, via their dot product.
+    Going along via different names, such as Gradient Inner Product (GIP)[1] or
+    Cosine Similarity [2].
+
+    Parameters
+    ----------
+    I1 : numpy.array, size=(m,n), dtype=complex, {x ∈ ℂ | ║x║ = 1}
+        image with intensities (template), given as complex orientation image
+    I2 : numpy.array, size=(k,l), dtype=complex, {x ∈ ℂ | ║x║ = 1}
+        image with intensities (search space), as complex orientation image
+
+    Returns
+    -------
+    score : numpy.array, dtype=float, range=0...+1
+
+    See Also
+    --------
+    dhdt.processing.matching_tools_frequency_correlators.orientation_corr
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> from scipy import ndimage
+    >>> from dhdt.generic.test_tools import create_sample_image_pair
+    >>> from dhdt.generic.handler_im import get_grad_filters
+    >>> from dhdt.processing.matching_tools import get_integer_peak_location
+    >>> from dhdt.processing.matching_tools_frequency_filters import \
+            normalize_power_spectrum
+
+    >>> _,im2,ti,tj,im1 = create_sample_image_pair(d=2**4, max_range=1)
+
+    complex orientation imagery are used here, so these need to be transformed
+
+    >>> H_x = get_grad_filters(ftype='kroon', tsize=3, order=1)[0]
+    >>> H_y = np.transpose(H_x)
+    >>> G1 = ndimage.convolve(im2, H_x) + \
+             1j*ndimage.convolve(im2, H_y)
+    >>> G2 = ndimage.convolve(im1_big, H_x) + \
+             1j*ndimage.convolve(im1_big, H_y)
+    >>> G1, G2 = normalize_power_spectrum(G1), normalize_power_spectrum(G2)
+
+    now processing that actual processing can be done
+
+    >>> C = normalized_cross_corr(G1,G2)
+    >>> di,dj,_,_ = get_integer_peak_location(C)
+
+    >>> assert(np.isclose(ti, di, atol=1))
+    >>> assert(np.isclose(ti, di, atol=1))
+
+    References
+    ----------
+    .. [1] Glocker et al. "Optical flow estimation with uncertainties through
+       dynamic MRFs" IEEE conference on computer vision and pattern recognition,
+       2008.
+    .. [2] Dematteis et al., "Comparison of digital image correlation methods
+       and the impact of noise in geoscience applications" Remote sensing,
+       vol.13(2), pp.327, 2021.
+    """
+
+    assert np.iscomplexobj(I1), ('please provide a complex array')
+    assert np.iscomplexobj(I2), ('please provide a complex array')
+    assert I1.shape[0:2]<=I2.shape[0:2], \
+        ('search space (I2) should be at least as big as the template (I1)')
+
+    m1,n1 = I1.shape[0:2]
+
+    view_I2 = view_as_windows(I2, (m1, n1), 1)
+    view_I1 = np.repeat(np.repeat(I1[np.newaxis, np.newaxis, :],
+                                  view_I2.shape[0], axis=0),
+                        view_I2.shape[1], axis=1)
+
+    dot_product = view_I1*np.conj(view_I2)
+    score = np.abs(np.mean(np.mean(dot_product, axis=-2),
+                           axis=-1)).astype(np.float64)
+    return score
 
 # weighted sum of differences
 # sum of robust differences, see Li_03

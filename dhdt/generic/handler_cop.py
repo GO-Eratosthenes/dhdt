@@ -24,7 +24,7 @@ import shapely.geometry
 from .handler_www import get_file_from_ftps
 from .mapping_io import read_geo_info
 from .mapping_tools import get_bbox, get_shape_extent
-from .handler_sentinel2 import get_crs_from_mgrs_tile
+from .handler_sentinel2 import get_crs_from_mgrs_tile, _check_mgrs_code
 
 def get_itersecting_DEM_tile_names(index, geometry):
     """
@@ -161,11 +161,13 @@ def make_copDEM_geojson(cop_path, cop_file='mapping.csv',
 
     - CopDEM : Copernicus DEM
     - DEM : digital elevation model
-    - EPSG :
+    - EPSG : european petroleum survey group (a coordinate refenence database)
     - WGS : World Geodetic System
     - EGM : Earth Gravitational Model
     """
+    assert os.path.exists(cop_path), 'please provide correct folder'
     file_path = os.path.join(cop_path, cop_file)
+    assert os.path.exists(file_path), 'make sure file exist'
 
     # load file with ftp-addresses
     df = pandas.read_csv(file_path, delimiter=";", header=0)
@@ -244,16 +246,19 @@ def make_copDEM_mgrs_tile(mgrs_tile, im_path, im_name, tile_path, cop_path,
     """
     if (len(sso) == 0) or (len(pw) == 0):
         raise Exception('No username or password were given')
+    mgrs_tile = _check_mgrs_code(mgrs_tile)
+    assert os.path.exists(im_path), 'please provide correct folder'
     assert os.path.exists(os.path.join(im_path, im_name)), \
         ('file does not seem to exist')
+    assert os.path.exists(tile_path), 'please provide correct folder'
     assert os.path.exists(os.path.join(tile_path, tile_name)), \
         ('file does not seem to exist')
 
     if out_path is None:
         out_path = cop_path
 
-    urls, tars = get_copDEM_s2_tile_intersect_list(tile_path, cop_path,
-       mgrs_tile, s2_file=tile_name, cop_file=cop_name,
+    urls, tars = get_copDEM_s2_tile_intersect_list(mgrs_tile,
+       tile_path, cop_path, s2_file=tile_name, cop_file=cop_name,
        map_file=map_name)
 
     crs = get_crs_from_mgrs_tile(mgrs_tile)
@@ -274,6 +279,9 @@ def get_copDEM_in_raster(geoTransform, crs, cop_path,
                          map_file='DGED-30.geojson',
                          sso='', pw=''):
     if not isinstance(crs, str): crs = crs.ExportToWkt()
+    assert os.path.exists(cop_path), 'please provide correct folder'
+    assert os.path.exists(os.path.join(cop_path, cop_file)), \
+        'make sure file exist'
 
     bbox = get_bbox(geoTransform).reshape((2, 2)).T.ravel()
     polygon = shapely.geometry.box(*bbox, ccw=True)
@@ -302,8 +310,8 @@ def get_copDEM_in_raster(geoTransform, crs, cop_path,
     Z_cop = np.ma.array(Z_cop, mask=Msk)
     return Z_cop
 
-def get_copDEM_s2_tile_intersect_list(s2_path, cop_path, s2_toi,
-                                      s2_file='sentinel2_tiles_world.shp',
+def get_copDEM_s2_tile_intersect_list(s2_toi, s2_path=None, cop_path=None,
+                                      s2_file='sentinel2_tiles_world.geojson',
                                       cop_file='mapping.csv',
                                       map_file='DGED-30.geojson',
                                       sso='', pw=''):
@@ -353,22 +361,29 @@ def get_copDEM_s2_tile_intersect_list(s2_path, cop_path, s2_toi,
     """
     assert bool(re.match("[0-9][0-9][A-Z][A-Z][A-Z]", s2_toi)), \
         ('please provide a correct MGRS tile code')
+    if s2_path is None:
+        rot_dir = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3])
+        s2_path = os.path.join(rot_dir, 'data')
+    if cop_path is None:
+        rot_dir = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3])
+        cop_dir = os.path.join(rot_dir, 'data')
 
-    # get dataframe of Sentinel-2 tiles
     file_path = os.path.join(s2_path, s2_file)
-    s2_df = geopandas.read_file(file_path)
+    assert os.path.exists(file_path), 'make sure file exist'
+
+    s2_df = geopandas.read_file(file_path) # get dataframe of Sentinel-2 tiles
     s2_df = s2_df[s2_df['Name'].isin([s2_toi])]
     assert (s2_df is not None), ('tile not present in shapefile')
 
     # get meta-data of CopDEM if it is not present
-    if not os.path.exists(os.path.join(cop_path,cop_file)):
+    if not os.path.exists(os.path.join(cop_dir,cop_file)):
         if (len(sso)==0) or (len(pw)==0):
             raise Exception('No username or password were given')
-        _ = get_copDEM_filestructure(cop_path, sso, pw)
-        make_copDEM_geojson(cop_path, cop_file=cop_file,
+        _ = get_copDEM_filestructure(cop_dir, sso, pw)
+        make_copDEM_geojson(cop_dir, cop_file=cop_file,
                             out_file=map_file)
     # read CopDEM meta-data
-    cop_df = geopandas.read_file(os.path.join(cop_path, map_file))
+    cop_df = geopandas.read_file(os.path.join(cop_dir, map_file))
 
     cop_oi = cop_df[cop_df.intersects(s2_df['geometry'].item())]
 
@@ -452,7 +467,7 @@ def mosaic_tiles(dem_tiles_filenames, bbox, crs, geoTransform):
         shape_im = geoTransform[-2:]
     else:
         shape_im = get_shape_extent(bbox.reshape((2,2)).T.ravel(),
-                                 geoTransform)
+                                    geoTransform)
 
     # geoTransform needs to be converted to Affine model
     afn = Affine.from_gdal(*geoTransform[:6])

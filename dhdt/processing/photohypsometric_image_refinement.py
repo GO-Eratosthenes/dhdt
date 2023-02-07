@@ -76,6 +76,10 @@ def refine_cast_location(I, M, geoTransform, x_casted, y_casted, azimuth,
         refined map coordinate of the cast shadow edge
 
     """
+    if np.any((np.isnan(x_casted), np.isnan(y_casted), np.isnan(x_caster),
+               np.isnan(y_caster), np.isnan(azimuth))):
+        return x_casted, y_casted
+
     I,M = get_data_and_mask(I,M)
     are_two_arrays_equal(I, M)
 
@@ -140,9 +144,12 @@ def refine_cast_location(I, M, geoTransform, x_casted, y_casted, azimuth,
         y_hgh = four_pl_curve(local_x, a, b[0], -c[0], d)
         infl_point = np.interp(-c[0], local_x, rng)
 
-    x_refine = x_casted + np.sin(az_rad)*infl_point
-    y_refine = y_casted + np.cos(az_rad)*infl_point
-    return x_refine, y_refine
+    if np.isnan(az_rad) or np.isnan(infl_point):
+        return x_casted, y_casted
+    else:
+        x_refine = x_casted + np.sin(az_rad)*infl_point
+        y_refine = y_casted + np.cos(az_rad)*infl_point
+        return x_refine, y_refine
 
 @loggg
 def update_casted_location(dh, S, M, geoTransform, extent=120.):
@@ -191,15 +198,25 @@ def update_casted_location(dh, S, M, geoTransform, extent=120.):
     if not 'casted_X_refine' in dh.columns: dh['casted_X_refine'] = None
     if not 'casted_Y_refine' in dh.columns: dh['casted_Y_refine'] = None
 
-    for cnt in range(dh.shape[0]):
-        x, y = dh.iloc[cnt]['casted_X'], dh.iloc[cnt]['casted_Y']
-        x_t, y_t = dh.iloc[cnt]['caster_X'], dh.iloc[cnt]['caster_Y']
-        az = dh.iloc[cnt]['azimuth']
+    # create pointers for iloc
+    idx_caster_x, idx_caster_y = dh.columns.get_loc("caster_X"), \
+                                 dh.columns.get_loc("caster_Y")
+    idx_casted_x, idx_casted_y = dh.columns.get_loc("casted_X"), \
+                                 dh.columns.get_loc("casted_Y")
+    idx_refine_x, idx_refine_y = dh.columns.get_loc("casted_X_refine"), \
+                                 dh.columns.get_loc("casted_Y_refine")
 
+    idx_azimuth = dh.columns.get_loc("azimuth")
+    for cnt in range(dh.shape[0]):
+        x, y = dh.iloc[cnt, idx_casted_x], dh.iloc[cnt, idx_casted_y]
+        x_t, y_t = dh.iloc[cnt, idx_caster_x], dh.iloc[cnt, idx_caster_y]
+        az = dh.iloc[cnt, idx_azimuth]
+        if np.any((np.isnan(x), np.isnan(y), np.isnan(x_t), np.isnan(y_t),
+                   np.isnan(az))):
+            continue
         x_new, y_new = refine_cast_location(S, M, geoTransform, x, y, az,
                                             x_t, y_t, extent=extent)
-        dh.loc[cnt, 'casted_X_refine'] = x_new
-        dh.loc[cnt, 'casted_Y_refine'] = y_new
+        dh.iloc[cnt, idx_refine_x], dh.iloc[cnt, idx_refine_y] = x_new, y_new
     return dh
 
 def update_list_with_refined_casted(dh, file_dir, file_name='conn.txt'):
@@ -218,8 +235,7 @@ def update_list_with_refined_casted(dh, file_dir, file_name='conn.txt'):
     -----
     The nomenclature is as follows:
 
-        .. code-block:: text
-
+    .. code-block:: text
           * sun
            \
             \ <-- sun trace
@@ -232,8 +248,7 @@ def update_list_with_refined_casted(dh, file_dir, file_name='conn.txt'):
 
     The angles related to the sun are as follows:
 
-        .. code-block:: text
-
+    .. code-block:: text
           surface normal              * sun
           ^                     ^    /
           |                     |   /
@@ -242,15 +257,14 @@ def update_list_with_refined_casted(dh, file_dir, file_name='conn.txt'):
           |/                    |/ | elevation angle
           └----                 └------ {X,Y}
 
-        The azimuth angle declared in the following coordinate frame:
+    The azimuth angle declared in the following coordinate frame:
 
-        .. code-block:: text
-
-                 ^ North & Y
-                 |
-            - <--|--> +
-                 |
-                 +----> East & X
+    .. code-block:: text
+             ^ North & Y
+             |
+        - <--|--> +
+             |
+             +----> East & X
 
     The text file has at least the following columns:
 
@@ -262,7 +276,7 @@ def update_list_with_refined_casted(dh, file_dir, file_name='conn.txt'):
             ├ casted_X
             ├ casted_Y        <- map location of the end of the shadow trace
             ├ casted_X_refine
-            ├ casted_Y_rifine <- refined location of the end of the shadow trace
+            ├ casted_Y_refine <- refined location of the end of the shadow trace
             ├ azimuth         <- argument of the illumination direction
             └ zenith          <- off-normal angle of the sun without atmosphere
 
@@ -308,7 +322,12 @@ def update_list_with_refined_casted(dh, file_dir, file_name='conn.txt'):
             if col_order[val] == 'timestamp':
                 line += np.datetime_as_string(dh_sel.iloc[k,val], unit='D')
             else:
-                line += col_frmt[idx].format(dh_sel.iloc[k,val])
+                elem = dh_sel.iloc[k,val]
+                if elem is None: # refinement or refraction seem to have an error
+                    # find
+                    ori_name = '_'.join(dh_sel.columns[val].split('_')[0:2])
+                else:
+                    line += col_frmt[idx].format(elem)
             line += ' '
         print(line[:-1], file=f) # remove last spacer
     f.close()

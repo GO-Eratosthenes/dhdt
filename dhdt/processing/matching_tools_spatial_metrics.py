@@ -32,7 +32,7 @@ def get_correlation_metric(C, metric='peak_abs'):
 
     Parameters
     ----------
-    C : numpy.array, size=(m,n)
+    C : numpy.ndarray, size=(m,n)
         grid with correlation scores
     metric : string
         abbreviation for the metric type to be calculated, for the options see
@@ -82,7 +82,7 @@ def primary_peak_ratio(C):
 
     Parameters
     ----------
-    C : numpy.array, size=(m,n), dtype=float
+    C : numpy.ndarray, size=(m,n), dtype=float
         correlation or similarity surface
 
     Returns
@@ -122,7 +122,7 @@ def primary_peak_margin(C):
 
     Parameters
     ----------
-    C : numpy.array, size=(m,n), dtype=float
+    C : numpy.ndarray, size=(m,n), dtype=float
         correlation or similarity surface
 
     Returns
@@ -155,7 +155,7 @@ def peak_winner_margin(C):
 
     Parameters
     ----------
-    C : numpy.array, size=(m,n), dtype=float
+    C : numpy.ndarray, size=(m,n), dtype=float
         correlation or similarity surface
 
     Returns
@@ -183,7 +183,7 @@ def num_of_peaks(C, filtering=True):
 
     Parameters
     ----------
-    C : numpy.array, size=(m,n), dtype=float
+    C : numpy.ndarray, size=(m,n), dtype=float
         correlation or similarity surface
     filtering : boolean
         apply low-pass filtering, otherwise noise is also seen as a peak,
@@ -223,7 +223,7 @@ def peak_rms_ratio(C):
 
     Parameters
     ----------
-    C : numpy.array, size=(m,n), dtype=float
+    C : numpy.ndarray, size=(m,n), dtype=float
         correlation or similarity surface
 
     Returns
@@ -260,7 +260,7 @@ def peak_corr_energy(C):
 
     Parameters
     ----------
-    C : numpy.array, size=(m,n), dtype=float
+    C : numpy.ndarray, size=(m,n), dtype=float
         correlation or similarity surface
 
     Returns
@@ -291,7 +291,7 @@ def peak_to_noise(C):
 
     Parameters
     ----------
-    C : numpy.array, size=(m,n), dtype=float
+    C : numpy.ndarray, size=(m,n), dtype=float
         correlation or similarity surface
 
     Returns
@@ -329,7 +329,7 @@ def peak_confidence(C, radius=1):
 
     Parameters
     ----------
-    C : numpy.array, size=(m,n), dtype=float
+    C : numpy.ndarray, size=(m,n), dtype=float
         correlation or similarity surface
     radius : integer, {x ∈ ℕ | x ≥ 1}, default=1
         how far away should the sampling set be taken
@@ -372,7 +372,7 @@ def entropy_corr(C):
 
     Parameters
     ----------
-    C : numpy.array, size=(m,n), dtype=float
+    C : numpy.ndarray, size=(m,n), dtype=float
         correlation or similarity surface
 
     Returns
@@ -413,7 +413,7 @@ def hessian_spread(C, intI, intJ):
 
     Parameters
     ----------
-    C : numpy.array, size=(m,n), dtype=float
+    C : numpy.ndarray, size=(m,n), dtype=float
         array with correlation values
     intI : integer, {x ∈ ℕ | x ≥ 0}
         location in rows of highest value in search space
@@ -492,7 +492,7 @@ def gauss_spread(C, intI, intJ, dI, dJ, est='dist'):
 
     Parametes
     ---------
-    C : numpy.array, size=(m,n), dtype=float
+    C : numpy.ndarray, size=(m,n), dtype=float
         array with correlation values
     intI : integer, {x ∈ ℕ | x ≥ 0}
         location in rows of highest value in search space
@@ -513,7 +513,7 @@ def gauss_spread(C, intI, intJ, dI, dJ, est='dist'):
         standard deviation of the vertical and horizontal axis
     rho : float
         orientation of the Gaussian
-    hess : numpy.array, size=(4)
+    hess : numpy.ndarray, size=(4)
         estimate of the least squares computation
     frac :
         scaling of the correlation peak
@@ -612,9 +612,9 @@ def intensity_disparity(I1,I2):
 
     Parameters
     ----------
-    I1 : numpy.array, size=(m,n), dtype=float
+    I1 : numpy.ndarray, size=(m,n), dtype=float
         template with intensities
-    I2 : numpy.array, size=(m,n), dtype=float
+    I2 : numpy.ndarray, size=(m,n), dtype=float
         template with intensities
 
     Returns

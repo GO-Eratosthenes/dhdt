@@ -96,11 +96,11 @@ def get_pressure_from_grib_file(fname='download.grib'):
 
     Returns
     -------
-    lat, lon: {float, numpy.array}, size={1,k}, unit=degrees
+    lat, lon: {float, numpy.ndarray}, size={1,k}, unit=degrees
         location of datapoints
-    G, Rh, T : numpy.array, size={m,k,l}
+    G, Rh, T : numpy.ndarray, size={m,k,l}
         data arrays at a specific place and time
-    t : numpy.array, size={l}
+    t : numpy.ndarray, size={l}
         timestamp of the data arrays
     """
 

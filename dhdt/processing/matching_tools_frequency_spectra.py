@@ -8,7 +8,7 @@ def directional_spectrum(I, num_estimates=1): #todo: bring into correct framewor
 
     Parameters
     ----------
-    I : numpy.array, size=(m,n)
+    I : numpy.ndarray, size=(m,n)
         satellite image (prefferably with sun-glitter)
     num_estimates : integer
         amount of spectral peaks to be estimated

@@ -726,6 +726,15 @@ def merge_ids(dh_mother, dh_child, idx_uni):
             - zenith : unit=degrees, overhead angle of the sun
             - id : identification
     """
+    # look at cases where nog match or empty data are given
+    if idx_uni.shape[0]==0:
+        if dh_mother.shape[0]!=0:
+            return dh_mother
+        elif dh_child.shape[0]!=0:
+            return dh_child
+        else:
+            return None
+
     if type(dh_mother) in (pd.core.frame.DataFrame, ):
         dh_stack = merge_ids_pd(dh_mother, dh_child, idx_uni)
     elif type(dh_mother) in (np.recarray, ):

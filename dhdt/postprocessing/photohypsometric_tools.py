@@ -65,7 +65,7 @@ def get_timestamp_conn_file(conn_path, no_lines=6):
     assert os.path.exists(conn_path), ('please provide a correct location')
     timestamp=None
     with open(conn_path) as file:
-        lines = [next(file) for x in range(no_lines)]
+        lines = [next(file, '') for x in range(no_lines)]
 
     for line in lines:
         if line.startswith('#') and bool(re.search('time', line)):
@@ -96,7 +96,7 @@ def get_header_conn_file(conn_path, no_lines=6):
     assert os.path.exists(conn_path), ('please provide a correct location')
     header=None
     with open(conn_path) as file:
-        lines = [next(file) for x in range(no_lines)]
+        lines = [next(file, '') for x in range(no_lines)]
 
     for line in lines:
         if line.startswith('#'):
@@ -107,7 +107,7 @@ def read_conn_to_df(conn_path, conn_file='conn.txt'):
     if os.path.isdir(conn_path):
         conn_path = os.path.join(conn_path, conn_file)
     col_names = get_header_conn_file(conn_path)
-    dh = pd.read_csv(conn_path, delimiter=' ',
+    dh = pd.read_csv(conn_path, delim_whitespace=True,
                      header=None, names=col_names, comment='#')
 
     if 'timestamp' not in col_names:
@@ -551,6 +551,8 @@ def get_casted_elevation_difference(dh):
             - timestamp : unit=days, date stamp
             - caster_x,caster_y : unit=meter, map coordinate of start of shadow
             - casted_x,casted_y : unit=meter, map coordinate of end of shadow
+            - casted_x_refine,casted_y_refine : unit=meter, map coordinate of
+                end of shadow, though optimized.
             - azimuth : unit=degrees, sun orientation
             - zenith : unit=degrees, overhead angle of the sun
 
@@ -600,6 +602,12 @@ def get_casted_elevation_difference_pd(dh):
     else:
         zn_name = 'zenith_refrac'
 
+    if 'casted_X_refine' not in dh.columns:
+        warnings.warn('OBS: refined cast locations not present')
+        x_name, y_name = 'casted_X', 'casted_Y'
+    else:
+        x_name, y_name = 'casted_X_refine', 'casted_Y_refine'
+
     if 'glacier_id' not in dh.columns:
         names = ('X_1', 'Y_1', 'T_1', 'X_2', 'Y_2', 'T_2', 'dH_12')
         formats = [np.float64, np.float64, '<M8[D]',
@@ -622,7 +630,7 @@ def get_casted_elevation_difference_pd(dh):
 
         xy_1 = dh_ioi[['casted_X','casted_Y']].iloc[network_id[:,0]].to_numpy()
         xy_2 = dh_ioi[['casted_X','casted_Y']].iloc[network_id[:,1]].to_numpy()
-        xy_t = dh_ioi[['caster_X','caster_Y']].iloc[network_id[:,0]].to_numpy()
+        xy_t = dh_ioi[[x_name, y_name]].iloc[network_id[:,0]].to_numpy()
         zn_1 = dh_ioi[zn_name].iloc[network_id[:,0]].to_numpy()
         zn_2 = dh_ioi[zn_name].iloc[network_id[:,1]].to_numpy()
 

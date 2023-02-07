@@ -106,8 +106,7 @@ def cosi_corr(I1, I2, beta1=.35, beta2=.50, m=1e-4):
     return Qn, WS, m0
 
 def cosine_corr(I1, I2):
-    """
-    match two imagery through discrete cosine transformation
+    """ match two imagery through discrete cosine transformation
 
     Parameters
     ----------
@@ -124,7 +123,8 @@ def cosine_corr(I1, I2):
 
     See Also
     --------
-    create_complex_DCT, sign_only_corr
+    dhdt.processing.matching_tools_frequency_correlators.create_complex_DCT
+    dhdt.processing.matching_tools_frequency_correlators.sign_only_corr
 
     References
     ----------
@@ -255,7 +255,9 @@ def phase_only_corr(I1, I2):
 
     See Also
     --------
-    phase_corr, symmetric_phase_corr, amplitude_comp_corr
+    dhdt.processing.matching_tools_frequency_correlators.phase_corr
+    dhdt.processing.matching_tools_frequency_correlators.symmetric_phase_corr
+    dhdt.processing.matching_tools_frequency_correlators.amplitude_comp_corr
 
     Notes
     -----
@@ -373,7 +375,7 @@ def projected_phase_corr(I1, I2, M1=np.array(()), M2=np.array(())):
 
     See Also
     --------
-    phase_corr
+    dhdt.processing.matching_tools_frequency_correlators.phase_corr
 
     References
     ----------
@@ -442,7 +444,7 @@ def sign_only_corr(I1, I2): # to do
 
     See Also
     --------
-    cosine_corr
+    dhdt.processing.matching_tools_frequency_correlators.cosine_corr
 
     References
     ----------
@@ -715,7 +717,9 @@ def gradient_corr(I1, I2):
 
     See Also
     --------
-    normalized_gradient_corr, phase_corr, orientation_corr
+    dhdt.processing.matching_tools_frequency_correlators.normalized_gradient_corr
+    dhdt.processing.matching_tools_frequency_correlators.phase_corr
+    dhdt.processing.matching_tools_frequency_correlators.orientation_corr
 
     Notes
     -----
@@ -819,7 +823,9 @@ def normalized_gradient_corr(I1, I2):
 
     See Also
     --------
-    gradient_corr, phase_corr, windrose_corr
+    dhdt.processing.matching_tools_frequency_correlators.gradient_corr
+    dhdt.processing.matching_tools_frequency_correlators.phase_corr
+    dhdt.processing.matching_tools_frequency_correlators.windrose_corr
 
     Notes
     -----
@@ -928,7 +934,9 @@ def orientation_corr(I1, I2):
 
     See Also
     --------
-    phase_corr, windrose_corr
+    dhdt.processing.matching_tools_frequency_correlators.phase_corr
+    dhdt.processing.matching_tools_frequency_correlators.windrose_corr
+    dhdt.processing.matching_tools_spatial_correlators.cosine_similarity
 
     Notes
     -----
@@ -1038,7 +1046,9 @@ def windrose_corr(I1, I2):
 
     See Also
     --------
-    binary_orientation_corr, orientation_corr, phase_only_corr
+    dhdt.processing.matching_tools_frequency_correlators.binary_orientation_corr
+    dhdt.processing.matching_tools_frequency_correlators.orientation_corr
+    dhdt.processing.matching_tools_frequency_correlators.phase_only_corr
 
     Notes
     -----
@@ -1115,7 +1125,8 @@ def phase_corr(I1, I2):
 
     See Also
     --------
-    orientation_corr, cross_corr
+    dhdt.processing.matching_tools_frequency_correlators.orientation_corr
+    dhdt.processing.matching_tools_frequency_correlators.cross_corr
 
     Notes
     -----
@@ -1206,7 +1217,7 @@ def gaussian_transformed_phase_corr(I1, I2):
 
     See Also
     --------
-    phase_corr
+    dhdt.processing.matching_tools_frequency_correlators.phase_corr
 
     Notes
     -----
@@ -1297,7 +1308,8 @@ def upsampled_cross_corr(S1, S2, upsampling=2):
 
     See Also
     --------
-    pad_dft, upsample_dft
+    dhdt.processing.matching_tools_frequency_correlators.pad_dft
+    dhdt.processing.matching_tools_frequency_correlators.upsample_dft
 
     References
     ----------
@@ -1369,7 +1381,8 @@ def cross_corr(I1, I2):
 
     See Also
     --------
-    phase_corr, upsampled_cross_corr
+    dhdt.processing.matching_tools_frequency_correlators.phase_corr
+    dhdt.processing.matching_tools_frequency_correlators.upsampled_cross_corr
 
     Notes
     -----
@@ -1457,7 +1470,8 @@ def binary_orientation_corr(I1, I2):
 
     See Also
     --------
-    orientation_corr, phase_only_corr
+    dhdt.processing.matching_tools_frequency_correlators.orientation_corr
+    dhdt.processing.matching_tools_frequency_correlators.phase_only_corr
 
     Notes
     -----
@@ -1534,6 +1548,11 @@ def masked_corr(I1, I2, M1=np.array(()), M2=np.array(())):
     -------
     NCC : numpy.array, size=(m,n)
         correlation surface
+
+    See Also
+    --------
+    dhdt.processing.matching_tools_spatial_correlators.normalized_cross_corr
+    dhdt.processing.matching_tools_spatial_correlators.weighted_normalized_cross_corr
 
     References
     ----------

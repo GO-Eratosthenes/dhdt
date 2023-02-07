@@ -2,14 +2,16 @@
 import os
 import numpy as np
 
+import geopandas
+
 from osgeo import ogr, osr, gdal
 
-from dhdt.generic.unit_conversion import deg2arg
-from dhdt.generic.handler_www import url_exist, get_zip_file
-from dhdt.generic.handler_sentinel2 import get_utmzone_from_mgrs_tile, \
-    get_generic_s2_raster
+from ..generic.handler_www import url_exist, get_zip_file, get_tar_file
+from ..generic.handler_sentinel2 import get_utmzone_from_tile_code, \
+    get_generic_s2_raster, get_geom_for_tile_code, get_bbox_from_tile_code, \
+    _check_mgrs_code
 
-def rgi_code2url(rgi_num):
+def rgi_code2url(rgi_num, version=7):
     """
     Given an RGI-number, give the location of its shapefiles on GLIMS-website
 
@@ -30,43 +32,58 @@ def rgi_code2url(rgi_num):
     RGI : Randolph glacier inventory
     UTM : universal transverse Mercator
     """
-    urls = (
-        'rgi60_files/01_rgi60_Alaska.zip',
-        'rgi60_files/02_rgi60_WesternCanadaUS.zip',
-        'rgi60_files/03_rgi60_ArcticCanadaNorth.zip',
-        'rgi60_files/04_rgi60_ArcticCanadaSouth.zip',
-        'rgi60_files/05_rgi60_GreenlandPeriphery.zip',
-        'rgi60_files/06_rgi60_Iceland.zip',
-        'rgi60_files/07_rgi60_Svalbard.zip',
-        'rgi60_files/08_rgi60_Scandinavia.zip',
-        'rgi60_files/09_rgi60_RussianArctic.zip',
-        'rgi60_files/10_rgi60_NorthAsia.zip',
-        'rgi60_files/11_rgi60_CentralEurope.zip',
-        'rgi60_files/12_rgi60_CaucasusMiddleEast.zip',
-        'rgi60_files/13_rgi60_CentralAsia.zip',
-        'rgi60_files/14_rgi60_SouthAsiaWest.zip',
-        'rgi60_files/15_rgi60_SouthAsiaEast.zip',
-        'rgi60_files/16_rgi60_LowLatitudes.zip',
-        'rgi60_files/17_rgi60_SouthernAndes.zip',
-        'rgi60_files/18_rgi60_NewZealand.zip',
-        'rgi60_files/19_rgi60_AntarcticSubantarctic.zip'
-        )
+
+
+    if version==6:
+        urls = (
+            'rgi60_files/01_rgi60_Alaska.zip',
+            'rgi60_files/02_rgi60_WesternCanadaUS.zip',
+            'rgi60_files/03_rgi60_ArcticCanadaNorth.zip',
+            'rgi60_files/04_rgi60_ArcticCanadaSouth.zip',
+            'rgi60_files/05_rgi60_GreenlandPeriphery.zip',
+            'rgi60_files/06_rgi60_Iceland.zip',
+            'rgi60_files/07_rgi60_Svalbard.zip',
+            'rgi60_files/08_rgi60_Scandinavia.zip',
+            'rgi60_files/09_rgi60_RussianArctic.zip',
+            'rgi60_files/10_rgi60_NorthAsia.zip',
+            'rgi60_files/11_rgi60_CentralEurope.zip',
+            'rgi60_files/12_rgi60_CaucasusMiddleEast.zip',
+            'rgi60_files/13_rgi60_CentralAsia.zip',
+            'rgi60_files/14_rgi60_SouthAsiaWest.zip',
+            'rgi60_files/15_rgi60_SouthAsiaEast.zip',
+            'rgi60_files/16_rgi60_LowLatitudes.zip',
+            'rgi60_files/17_rgi60_SouthernAndes.zip',
+            'rgi60_files/18_rgi60_NewZealand.zip',
+            'rgi60_files/19_rgi60_AntarcticSubantarctic.zip'
+            )
+    else:
+        urls = tuple('RGI'+str(n).zfill(2)+'.tar.gz' for n in range(19))
     rgi_url = ()
-    for i in range(0,len(rgi_num)):
-        rgi_url += ('https://www.glims.org/RGI/' + urls[rgi_num[i]-1],)
+    for i in rgi_num:
+        if isinstance(i, str): i = int(i)
+        if version == 6:
+            url_root = 'https://www.glims.org/RGI/'
+        else:
+            url_root = '/'.join(('https://cluster.klima.uni-bremen.de',
+                                 '~fmaussion','misc','rgi7_data',
+                                 'l3_rgi7a_tar'))
+        rgi_url += ('/'.join((url_root, urls[i])),)
     return rgi_url
 
-def which_rgi_region(rgi_path, poi, rgi_file='00_rgi60_O1Regions.shp'):
+def which_rgi_region(poi, version=7, rgi_dir=None, rgi_file=None):
     """
     Discover which Randolph Glacier Inventory (RGI) region is used
     for a given coordinate, and if not present in directory, download this data
 
     Parameters
     ----------
-    rgi_path : string
-        location where the geospatial files of the RGI are situated
-    poi : numpy.array, unit=degrees
+    poi : {numpy.array, string}, unit=degrees
         location of interest, given in lat lon
+        MGRS tile code
+    version : {6,7}
+        version of the glacier inventory
+    rgi_dir : string
+        location where the geospatial files of the RGI are situated
     rgi_file : string
         file name of the shapefile that describes the RGI regions
 
@@ -74,6 +91,8 @@ def which_rgi_region(rgi_path, poi, rgi_file='00_rgi60_O1Regions.shp'):
     -------
     rgi_file : list
         list with strings of filenames
+    rgi_dump : string
+        location where the geometric files are situated
 
     Notes
     -----
@@ -84,65 +103,86 @@ def which_rgi_region(rgi_path, poi, rgi_file='00_rgi60_O1Regions.shp'):
     - RGI : Randolph glacier inventory
     - POI : point of interest
     """
+    assert isinstance(version, int), 'please provide an integer'
+    assert version in (6,7,), 'only version 6 and 7 are supported'
+    if (version==7) and (rgi_dir is None):
+        rot_dir = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3])
+        rgi_dir = os.path.join(rot_dir, 'data')
+    if (version==7) and (rgi_file is None):
+        rgi_file = '00_rgi70_O1Regions.geojson'
+    else:
+        assert isinstance(rgi_file, str), 'please provide a string'
 
-    if np.ndim(poi)==1:
-        # lon in range -180:180
-        poi[1] = deg2arg(poi[1])
-        poi = np.flip(poi) # given in lon lat....
-        
-        point = ogr.Geometry(ogr.wkbPoint)
-        point.AddPoint(poi[0], poi[1])
+    if isinstance(poi, str):
+        poi = _check_mgrs_code(poi)
+        toi = get_geom_for_tile_code(poi)
 
-        # Get the RGI gegions
-        rgi_full = os.path.join(rgi_path, rgi_file)
-        assert os.path.exists(rgi_full), ('please make sure ' + rgi_file +
-                                          ' is present')
-        rgiShp = ogr.Open(rgi_full)
-        rgiLayer = rgiShp.GetLayer()
+    rgi_full = os.path.join(rgi_dir, rgi_file)
+    rgi_reg = geopandas.read_file(rgi_full)
 
-        rgi_list = ()
-        # loop through the regions and see if there is an intersection
-        for i in range(0, rgiLayer.GetFeatureCount()):
-            # Get the input Feature
-            rgiFeature = rgiLayer.GetFeature(i)
-            geom = rgiFeature.GetGeometryRef()
-            
-            if point.Within(geom):
-                rgi_list += (rgiFeature.GetField('RGI_CODE'),)
-                print('it seems the region you are interest in falls within '+
-                      rgiFeature.GetField('FULL_NAME'))
-                
-    else: # polygon based
-        print('not yet implemented!')
+    if isinstance(poi, np.ndarray):
+        pnt = geopandas.GeoDataFrame(index=[0], crs='epsg:4326',
+            geometry=geopandas.GeoSeries.from_xy([poi[0]],[poi[1]]))
+    else:
+        pnt = geopandas.GeoDataFrame(index=[0], crs='epsg:4326',
+            geometry=geopandas.GeoSeries.from_wkt([toi]))
 
-    
+    roi = rgi_reg.sjoin(pnt)
+    # spatial join
+    rgi_list = roi['o1region'].values.tolist()
+
     if len(rgi_list)==0:
         print('selection not in Randolph glacier region')
-    else:
-        rgi_url = rgi_code2url(rgi_list)
-        # does RGI region exist?
-        
-        rgi_file = ()
-        for i in range(0, len(rgi_url)):
-            rgi_reg = rgi_url[i]
-            rgi_zip = rgi_reg.split('/')[-1]
-            rgi_shp = rgi_zip[:-4] + '.shp'
+        return
+
+    rgi_url = rgi_code2url(rgi_list)
+    # does RGI region exist?
+
+    rgi_file = ()
+    for i, rgi_reg in enumerate(rgi_url):
+        rgi_zip = rgi_reg.split('/')[-1]
+        rgi_fil = rgi_zip.split('.')[0]
+        if version == 6:
+            rgi_fil += '.shp'
+        else:
+            rgi_fil += '.geojson'
+
+        dir_entries = os.scandir(rgi_dir)
+        found_rgi = False
+        for entry in dir_entries:
+            if entry.name == rgi_fil:
+                print(entry.name + ' is found in the folder')
+                rgi_file += (rgi_fil, )
+                found_rgi = True
+
+        # appearantly the file is not present
+        if not(url_exist(rgi_reg)):
+            continue
+
+        print('downloading RGI region')
+        if version == 6:
+            get_zip_file(rgi_reg, rgi_dir)
+        else:
+            shp_files = get_tar_file(rgi_reg, rgi_dir)
+            shp_file = [f for f in shp_files if '.shp' in f]
+            # transform shapefiles to geojson
+            rgi_dat = geopandas.read_file(os.path.join(rgi_dir,
+                                                       shp_file[0]))
+
+            header = rgi_dat.keys()
+            head_drop = [k for k in header if not k in ('glac_id','geometry',)]
+            rgi_dat.drop(head_drop, axis=1, inplace=True)
+
+            rgi_dat.to_file(os.path.join(rgi_dir, rgi_fil), driver='GeoJSON')
+
+            # remove files/directory of shapefiles
+            for f in list(reversed(shp_files)):
+                if '.' in f:
+                    os.remove(os.path.join(rgi_dir, f))
+                else:
+                    os.rmdir(os.path.join(rgi_dir, f))
             
-            dir_entries = os.scandir(rgi_path)
-            found_rgi = False
-            for entry in dir_entries:
-                if entry.name == rgi_shp:
-                    print(entry.name + ' is found in the folder')
-                    rgi_file += (rgi_shp, )
-                    found_rgi = True
-                
-            # appearantly the file is not present
-            if (url_exist(rgi_reg) and not(found_rgi)):
-                print('downloading RGI region')
-                get_zip_file(rgi_reg, rgi_path)
-                rgi_file += (rgi_shp, )
-            
-    return rgi_file
+    return rgi_file, rgi_dir
 
 def create_projected_rgi_shp(rgi_path, rgi_name, utm_zone, northernHemisphere,
                              rgi_out):
@@ -238,6 +278,9 @@ def create_rgi_raster(rgi_path, rgi_name, toi, rgi_out=None):
     rgi_out : string
         location where the shapefile should be positioned
 
+    rgi_fful : sting
+        location and filename of the rater dataset
+
     Notes
     -----
     The following nomenclature is used:
@@ -246,18 +289,36 @@ def create_rgi_raster(rgi_path, rgi_name, toi, rgi_out=None):
     S2 : Sentinel-2
     TOI : tile of interest
     """
+    assert os.path.isdir(rgi_path), 'make sure folder location exists'
+    if isinstance(rgi_name, tuple): rgi_name = rgi_name[0]
     if rgi_out is None:
         rgi_out = rgi_path
 
+
     geoTransform,crs = get_generic_s2_raster(toi)
+    crs.AutoIdentifyEPSG()
+    s2_epsg = crs.GetAttrValue('AUTHORITY',1)
 
     # read shapefile
     shp = ogr.Open(os.path.join(rgi_path, rgi_name))
     lyr = shp.GetLayer()
 
+    spatRef = lyr.GetSpatialRef()
+    spatRef.AutoIdentifyEPSG()
+    geom_epsg = spatRef.GetAttrValue('AUTHORITY',1)
+    if not s2_epsg is geom_epsg: # transform to same projection, if not the same
+
+        coordTrans = osr.CoordinateTransformation(spatRef, crs)
+        for feat in lyr:
+            geom = feat.GetGeometryRef()  # get the input geometry
+            geom.Transform(coordTrans)    # reproject the geometry from ll to UTM
+            feat.SetGeometry(geom)
+        lyr.SetSpatialRef(crs)
+
     # create raster environment
+    rgi_ffull = os.path.join(rgi_out, toi + '-RGI.tif')
     driver = gdal.GetDriverByName('GTiff')
-    target = driver.Create(os.path.join(rgi_out, toi + '-RGI.tif'),
+    target = driver.Create(rgi_ffull,
                            int(geoTransform[6]), int(geoTransform[7]), 1,
                            gdal.GDT_UInt16)
 
@@ -265,31 +326,29 @@ def create_rgi_raster(rgi_path, rgi_name, toi, rgi_out=None):
     target.SetProjection(crs.ExportToWkt())
 
     # convert polygon to raster
-    gdal.RasterizeLayer(target, [1], lyr, None, options=["ATTRIBUTE=RGIId"])
+    gdal.RasterizeLayer(target, [1], lyr, None, options=["ATTRIBUTE=id"])
     gdal.RasterizeLayer(target, [1], lyr, None, burn_values=[1])
     lyr = shp = None
-    return
+    return rgi_ffull
 
-def create_rgi_tile_s2(rgi_path, poi, toi, rgi_out=None):
+def create_rgi_tile_s2(toi, geom_path=None, geom_out=None):
     """
     Creates a raster file with the extent of a generic Sentinel-2 tile, that is
     situated at a specific location
 
     Parameters
     ----------
-    rgi_path : string
-        directory where the RGI shapefiles are located
-    poi : numpy.array, unit=degrees
-        location of interest, given in lat lon
     toi : string
         MGRS tile code of the Sentinel-2 scene
-    rgi_out : string
-        location where the shapefile should be positioned
+    geom_path : string
+        directory where the glacier geometry files are located
+    geom_out : string
+        location where the glacier geometry files should be positioned
 
     Returns
     -------
-    rgi_outpath : string
-        location and filename of the RGI raster
+    geom_outpath : string
+        location and filename of the glacier raster
 
     See Also
     --------
@@ -306,14 +365,24 @@ def create_rgi_tile_s2(rgi_path, poi, toi, rgi_out=None):
     - S2 : Sentinel-2
     - TOI : tile of interest
     """
-    if rgi_out is None:
-        rgi_out = rgi_path
+    if geom_out is None: # place glacier data in generic data folder
+        geom_out = geom_path
 
-    rgi_regions = which_rgi_region(rgi_path, poi)
+    bbox = get_bbox_from_tile_code(toi)
+    poi = np.mean(bbox.reshape((2, 2)), axis=1)
 
-    utm_zone = get_utmzone_from_mgrs_tile(toi)
+    # search in which region the glacier is situated, and download its
+    # geometric data, if this in not present on the local machine
+    rgi_regions,rgi_dump = which_rgi_region(poi, rgi_dir=geom_path)
+
+    if geom_path is None:
+        geom_path = rgi_dump
+
+    utm_zone = get_utmzone_from_tile_code(toi)
     northernHemisphere = True if np.sign(poi[1]) == 1 else False
 
+    geom_outpath = create_rgi_raster(geom_path, rgi_regions, toi,
+                                     rgi_out=geom_out)
 
     for rgi_name in rgi_regions:
         fname_shp_utm = rgi_name[:-4] + '_utm' + str(utm_zone).zfill(2) + '.shp'
@@ -329,5 +398,5 @@ def create_rgi_tile_s2(rgi_path, poi, toi, rgi_out=None):
     if not os.path.exists(rgi_out_full):
         create_rgi_raster(rgi_path, fname_shp_utm, toi, rgi_out)
 
-    return rgi_out_full
+    return geom_outpath
 

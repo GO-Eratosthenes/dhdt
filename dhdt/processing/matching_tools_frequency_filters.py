@@ -165,7 +165,8 @@ def local_coherence(Q, ds=1):
     C = np.abs(C) / np.sum(IN)
     return C
 
-def make_fourier_grid(Q, indexing='ij', system='radians', shift=True):
+def make_fourier_grid(Q, indexing='ij', system='radians', shift=True,
+                      axis='center'):
     """
     The four quadrants of the coordinate system of the discrete Fourier 
     transform are flipped. This function gives its coordinate system as it 
@@ -226,14 +227,20 @@ def make_fourier_grid(Q, indexing='ij', system='radians', shift=True):
         ("please provide an array")
     (m,n) = Q.shape
     if indexing=='ij':
-        (I_grd,J_grd) = np.meshgrid(np.arange(0,m)-(m//2),
-                                    np.arange(0,n)-(n//2),
-                                    indexing='ij')
+        if axis in ('center',):
+            (I_grd, J_grd) = np.meshgrid(np.arange(0,m), np.arange(0,n),
+                                         indexing='ij')
+        else:
+            (I_grd,J_grd) = np.meshgrid(np.arange(0,m)-(m//2),
+                                        np.arange(0,n)-(n//2),
+                                        indexing='ij')
         F_1, F_2 = I_grd/m, J_grd/n
     else:
-        fy = np.flip((np.linspace(0,m,m)-(m/2)) /m)
-        fx = (np.linspace(0,n,n)-(n/2)) /n
-            
+        fy, fx = np.linspace(0,m,m), np.linspace(0,n,n)
+        if axis in ('center',):
+            fy, fx = fy-(m//2), fx-(n//2)
+        fy, fx = np.flip(fy)/m, fx/n
+
         F_1 = np.repeat(fx[np.newaxis,:],m,axis=0)
         F_2 = np.repeat(fy[:,np.newaxis],n,axis=1)
 
@@ -388,7 +395,7 @@ def gradient_fourier(I):
     dIdx_1, dIdx_2 : numpy.array, size=(m,n), dtype=float
         first order derivative along both axis
     """
-    m, n = I.shape[0], I.shape[1]
+    m, n = I.shape[0:2]
 
     x_1 = np.linspace(0, 2*np.pi, m, endpoint=False)
     dx = x_1[1] - x_1[0]

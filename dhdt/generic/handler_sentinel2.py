@@ -1,5 +1,6 @@
-import glob
 import os
+import re
+import glob
 import time
 
 from xml.etree import ElementTree
@@ -99,19 +100,19 @@ def get_s2_dict(s2_df):
                                 ' to find the proper file locations')
 
     s2_folder = list(filter(lambda x: '.SAFE' in x,
-                            s2_df.filepath[0].split('/')))[0]
+                            s2_df.filepath[0].split(os.sep)))[0]
     if s2_folder[:3] in 'S2A':
         s2_dict = list_platform_metadata_s2a()
     else:
         s2_dict = list_platform_metadata_s2b()
 
     im_path = s2_df.filepath[0]
-    root_path = '/'.join(im_path.split('/')[:-4])
+    root_path = os.sep.join(im_path.split(os.sep)[:-4])
 
     ds_folder = list(filter(lambda x: 'DS' in x[:2],
                             os.listdir(os.path.join(root_path,
                                                     'DATASTRIP'))))[0]
-    tl_path = '/'.join(im_path.split('/')[:-2])
+    tl_path = os.sep.join(im_path.split(os.sep)[:-2])
     s2_dict.update({'full_path': root_path,
                     'MTD_DS_path': os.path.join(root_path,
                                                 'DATASTRIP', ds_folder),
@@ -131,9 +132,18 @@ def list_platform_metadata_s2a():
         'constellation': 'sentinel',
         'launch_date': '+2015-06-23',
         'orbit': 'sso',
+        'mass': 1129.541, # [kg]
         'inclination': 98.5621, # https://www.n2yo.com/satellite/?s=40697
-        'revolutions_per_day': 14.30824258387262}
+        'revolutions_per_day': 14.30824258387262,
+        'J': np.array([[558, 30, -30],[30, 819, 30],[-30, 30, 1055]])}
     return s2a_dict
+
+def _check_mgrs_code(tile_code):
+    assert isinstance(tile_code, str), 'please provide a string'
+    tile_code = tile_code.upper()
+    assert bool(re.match("[0-9][0-9][A-Z][A-Z][A-Z]", tile_code)), \
+        ('please provide a correct MGRS tile code')
+    return tile_code
 
 def list_platform_metadata_s2b():
     s2b_dict = {
@@ -144,49 +154,136 @@ def list_platform_metadata_s2b():
         'launch_date': '+2017-03-07',
         'orbit': 'sso',
         'inclination': 98.5664,
-        'revolutions_per_day': 14.30818491298178}
+        'revolutions_per_day': 14.30818491298178,
+        'J': np.array([[558, 30, -30],[30, 819, 30],[-30, 30, 1055]])}
     return s2b_dict
 
-def get_bbox_from_tile_code(tile_code, shp_dir=None, shp_name=None):
-    if shp_dir is None:
-        shp_dir = '/Users/Alten005/surfdrive/Eratosthenes/SatelliteTiles'
-    if shp_name is None: shp_name='sentinel2_tiles_world.shp'
+def get_bbox_from_tile_code(tile_code, geom_dir=None, geom_name=None):
+    """  get the bounds of a certain MGRS tile
+
+    Parameters
+    ----------
+    tile_code : string, e.g.: '05VMG'
+        MGRS tile coding
+    geom_dir : string
+        directory where geometric metadata about Sentinel-2 is situated
+    geom_name : string
+        filename of metadata, e.g.: 'sentinel2_tiles_world.geojson'
+
+    Returns
+    -------
+    bbox : numpy.array, size=(1,4), dtype=float
+        bounding box, in the following order: min max X, min max Y
+    """
+    tile_code = _check_mgrs_code(tile_code)
+    if geom_dir is None:
+        rot_dir = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3])
+        geom_dir = os.path.join(rot_dir, 'data')
+    else:
+        assert os.path.exists(geom_dir), 'please provide correct folder'
+    if geom_name is None: geom_name='sentinel2_tiles_world.geojson'
 
     tile_code = tile_code.upper()
-    shp_path = os.path.join(shp_dir,shp_name)
+    geom_path = os.path.join(geom_dir,geom_name)
 
-    mgrs = geopandas.read_file(shp_path)
+    mgrs = geopandas.read_file(geom_path)
 
-    toi = mgrs[mgrs['Name']==tile_code]
-    return toi
+    toi = mgrs[mgrs['Name']==tile_code].total_bounds
+    bbox = np.array([toi[0], toi[2], toi[1], toi[3]])
+    return bbox
 
-#todo for OGR geometry
-def get_geom_for_tile_code(tile_code, shp_dir=None, shp_name=None):
-    if shp_dir is None:
-        shp_dir = '/Users/Alten005/surfdrive/Eratosthenes/SatelliteTiles'
-    if shp_name is None: shp_name='sentinel2_tiles_world.shp'
+def get_geom_for_tile_code(tile_code, geom_dir=None, geom_name=None):
+    """ get the geometry of a certain MGRS tile
 
-    tile_code = tile_code.upper()
-    shp_path = os.path.join(shp_dir,shp_name)
+    Parameters
+    ----------
+    tile_code : string, e.g.: '05VMG'
+        MGRS tile coding
+    geom_dir : string
+        directory where geometric metadata about Sentinel-2 is situated
+    geom_name : string
+        filename of metadata, e.g.: 'sentinel2_tiles_world.geojson'
 
-    # open the shapefile of the coast
-    shp = ogr.Open(shp_path)
+    Returns
+    -------
+    wkt : string
+        well known text of the geometry, i.e.: 'POLYGON ((x y, x y, x y))'
+
+    Notes
+    -----
+    The tile structure is a follows "AABCC"
+        * "AA" utm zone number, starting from the East, with steps of 8 degrees
+        * "B" latitude zone, starting from the South, with steps of 6 degrees
+
+    The following acronyms are used:
+
+    - CRS : coordinate reference system
+    - MGRS : US military grid reference system
+    - s2 : Sentinel-2
+    - WKT : well known text
+    """
+    tile_code = _check_mgrs_code(tile_code)
+    if geom_dir is None:
+        rot_dir = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3])
+        geom_dir = os.path.join(rot_dir, 'data')
+    else:
+        assert os.path.exists(geom_dir), 'please provide correct folder'
+    if geom_name is None: geom_name='sentinel2_tiles_world.geojson'
+
+    geom_path = os.path.join(geom_dir,geom_name)
+
+    shp = ogr.Open(geom_path)
     lyr = shp.GetLayer()
 
     geom = None
-    for feature in lyr:
-        if feature.GetField('Name') == tile_code:
-            geom = feature.GetGeometryRef()
-            time.sleep(0.3)
-    time.sleep(1)
-    lyr = None
+    feat = lyr.GetNextFeature()
+    while feat:
+        if feat.GetField('Name') == tile_code:
+            geom = feat.GetGeometryRef()
+            time.sleep(.3)
+            break
+        feat = lyr.GetNextFeature()
+    time.sleep(1) #todo: why is a delay needed?
+    shp = lyr = None
 
     if geom is None:
         print('MGRS tile code does not seem to exist')
-    return geom
+    return geom.ExportToWkt()
 
 def get_generic_s2_raster(tile_code, spac=10):
+    """ create spatial metadata of a Sentinel-2, so no downloading is needed.
+
+    Parameters
+    ----------
+    tile_code : string
+        mgrs tile coding, which is also given in the filename ("TXXXXX")
+    spac : integer, {10,20,60}, unit=m
+        pixel spacing of the raster
+
+    Returns
+    -------
+    geoTransform : tuple, size=(8,)
+        georeference transform of an image.
+    crs : osgeo.osr.SpatialReference() object
+        coordinate reference system (CRS)
+
+    Notes
+    -----
+    The tile structure is a follows "AABCC"
+        * "AA" utm zone number, starting from the East, with steps of 8 degrees
+        * "B" latitude zone, starting from the South, with steps of 6 degrees
+
+    The following acronyms are used:
+
+    - CRS : coordinate reference system
+    - MGRS : US military grid reference system
+    - s2 : Sentinel-2
+    """
+    assert spac in (10,20,60,), 'please provide correct pixel resolution'
+
+    tile_code = _check_mgrs_code(tile_code)
     geom = get_geom_for_tile_code(tile_code)
+    geom = ogr.CreateGeometryFromWkt(geom)
 
     points = geom.Boundary().GetPointCount()
     bnd = geom.Boundary()
@@ -198,7 +295,7 @@ def get_generic_s2_raster(tile_code, spac=10):
     spatRef = osr.SpatialReference()
     spatRef.ImportFromEPSG(4326) # WGS84
 
-    utm_zone = get_utmzone_from_mgrs_tile(tile_code)
+    utm_zone = get_utmzone_from_tile_code(tile_code)
     northernHemisphere = True if np.sign(np.mean(lat)) == 1 else False
     proj = osr.SpatialReference()
     proj.SetWellKnownGeogCS('WGS84')
@@ -211,9 +308,11 @@ def get_generic_s2_raster(tile_code, spac=10):
     # bounding box in projected coordinate system
     x,y = np.round(x/spac)*spac, np.round(y/spac)*spac
 
+    spac = float(spac)
     geoTransform = (np.min(x), +spac, 0.,
                     np.max(y), 0., -spac,
-                    np.round(np.ptp(y)/spac), np.round(np.ptp(x)/spac))
+                    int(np.round(np.ptp(y)/spac)),
+                    int(np.round(np.ptp(x)/spac)))
     crs = get_crs_from_mgrs_tile(tile_code)
     return geoTransform, crs
 
@@ -230,8 +329,6 @@ def get_array_from_xml(treeStruc):
             Trow = np.stack((Trow, Trow), 0)
             Tn = np.stack((Tn, Trow[1, :]), 0)
         else:
-            # Trow = np.stack((Trow, Trow),0)
-            # Tn = np.concatenate((Tn, [Trow[1,:]]),0)
             Tn = np.concatenate((Tn, [Trow]), 0)
     return Tn
 
@@ -304,7 +401,7 @@ def get_s2_granule_id(fname, s2_df):
     root = get_root_of_table(fname)
 
     for im_loc in root.iter('IMAGE_FILE'):
-        granule_id = im_loc.text.split('/')[1]
+        granule_id = im_loc.text.split(os.sep)[1]
     return granule_id
 
 def meta_S2string(S2str):
@@ -355,6 +452,7 @@ def meta_S2string(S2str):
     return S2time, S2orbit, S2tile
 
 def get_S2_folders(im_path):
+    assert os.path.exists(im_path), 'please specify a folder'
     S2_list = [x for x in os.listdir(im_path)
                if (os.path.isdir(os.path.join(im_path,x))) & (x[0:2]=='S2')]
     return S2_list
@@ -369,8 +467,77 @@ def get_utm_from_S2_tiles(tile_list):
     utm_list = list(set(utm_list))
     return utm_list
 
-def get_utmzone_from_mgrs_tile(tile_code):
+def get_utmzone_from_tile_code(tile_code):
+    """
+
+    Parameters
+    ----------
+    tile_code : string, e.g.: '05VMG'
+        MGRS tile coding
+
+    Returns
+    -------
+    utmzone : integer
+        code used to denote the number of the projection column of UTM
+
+    See Also
+    --------
+    .get_epsg_from_mgrs_tile, .get_crs_from_mgrs_tile
+
+    Notes
+    -----
+    The tile structure is a follows "AABCC"
+        * "AA" utm zone number, starting from the East, with steps of 8 degrees
+        * "B" latitude zone, starting from the South, with steps of 6 degrees
+
+    The following acronyms are used:
+
+    - CRS : coordinate reference system
+    - MGRS : US military grid reference system
+    - UTM : universal transverse mercator
+    - WGS : world geodetic system
+    """
+    tile_code = _check_mgrs_code(tile_code)
     return int(tile_code[:2])
+
+def get_epsg_from_mgrs_tile(tile_code):
+    """
+
+    Parameters
+    ----------
+    tile_code : string, e.g.: '05VMG'
+        MGRS tile coding
+
+    Returns
+    -------
+    epsg : integer
+        code used to denote a certain database entry
+
+    See Also
+    --------
+    .get_utmzone_from_mgrs_tile, .get_crs_from_mgrs_tile
+
+    Notes
+    -----
+    The tile structure is a follows "AABCC"
+        * "AA" utm zone number, starting from the East, with steps of 8 degrees
+        * "B" latitude zone, starting from the South, with steps of 6 degrees
+
+    The following acronyms are used:
+
+    - CRS : coordinate reference system
+    - EPSG : european petroleum survey group (a coordinate refenence database)
+    - MGRS : US military grid reference system
+    - UTM : universal transverse mercator
+    - WGS : world geodetic system
+    """
+    tile_code = _check_mgrs_code(tile_code)
+    utm_num = get_utmzone_from_tile_code(tile_code)
+    epsg_code = 32600 + utm_num
+
+    # N to X are in the Northern hemisphere
+    if tile_code[2] < 'N': epsg_code += 100
+    return epsg_code
 
 def get_crs_from_mgrs_tile(tile_code):
     """
@@ -385,17 +552,18 @@ def get_crs_from_mgrs_tile(tile_code):
     crs : osgeo.osr.SpatialReference
         target projection system
 
+    See Also
+    --------
+    .get_utmzone_from_mgrs_tile, .get_utmzone_from_mgrs_tile
+
     Notes
     -----
     The tile structure is a follows "AABCC"
         * "AA" utm zone number, starting from the East, with steps of 8 degrees
         * "B" latitude zone, starting from the South, with steps of 6 degrees
     """
-    utm_num = get_utmzone_from_mgrs_tile(tile_code)
-    epsg_code = 32600 + utm_num
-
-    # N to X are in the Northern hemisphere
-    if tile_code[2] < 'N': epsg_code += 100
+    tile_code = _check_mgrs_code(tile_code)
+    epsg_code = get_epsg_from_mgrs_tile(tile_code)
 
     crs = osr.SpatialReference()
     crs.ImportFromEPSG(epsg_code)

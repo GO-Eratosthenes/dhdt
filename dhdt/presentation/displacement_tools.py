@@ -15,13 +15,13 @@ def plot_displacement_vectors(X, Y, U, V, U_err, V_err, rho_err, ax=None,
 
     Parameters
     ----------
-    X,Y : numpy.array, size=(m,n)
+    X,Y : numpy.ndarray, size=(m,n)
         grid with horizontal and vertical coordinates
-    U,V : numpy.array, size=(m,n)
+    U,V : numpy.ndarray, size=(m,n)
         grid with horizontal and vertical displacements
-    U_err,V_err : numpy.array, size=(m,n)
+    U_err,V_err : numpy.ndarray, size=(m,n)
         grid with horizontal and vertical precision estimate
-    rho_err : numpy.array, size=(m,n)
+    rho_err : numpy.ndarray, size=(m,n)
         grid with orientation of error ellipse
     scaling : list of floats, default=(10.,100.)
         scaling of the displacement vectors and the error ellipses
@@ -29,7 +29,7 @@ def plot_displacement_vectors(X, Y, U, V, U_err, V_err, rho_err, ax=None,
         the interval of sampling over the grid
     dots : boolean, default=True
         plot starting position of the vector
-    M : numpy.array, size=(m,n), dtype=bool, default=None
+    M : numpy.ndarray, size=(m,n), dtype=bool, default=None
         mask specifying which data in the grid to exclude, hence True specify
         data not to include
     """
@@ -79,13 +79,13 @@ def disco_displacement(V_abs, fpath, fname, Msk=None,
 
     Parameters
     ----------
-    V_abs : numpy.array, size=(m,n), dtype={integer,float}
+    V_abs : numpy.ndarray, size=(m,n), dtype={integer,float}
         array with speed, that is absolute velocity
     fpath : string
         direction to put imagery data
     fname : string
         naming of the files
-    Msk : numpy.array, size=(m,n), dtype={integer,float}
+    Msk : numpy.ndarray, size=(m,n), dtype={integer,float}
         array with locations with correct entities in V_abs
     cmap : string
         specifying a colormap

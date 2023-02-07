@@ -59,7 +59,7 @@ def flow_anim(V_x, V_y, geoTransform, M=np.array([]),
             rgb = np.dstack(((color[0].astype(float)*Seed).astype(np.uint8),
                              (color[1].astype(float)*Seed).astype(np.uint8),
                              (color[2].astype(float)*Seed).astype(np.uint8)))
-            rgba = np.dstack((rgb, (255*Seed[:,:,np.newaxis]).astype(np.uint8)))
+            rgba = np.dstack((rgb, np.atleast_3d(255*Seed).astype(np.uint8)))
             img = Image.fromarray(rgba)
             outputname = prefix + str(im_count).zfill(4) + '.png'
             img.save(outputname)

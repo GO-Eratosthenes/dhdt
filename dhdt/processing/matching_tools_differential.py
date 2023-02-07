@@ -18,18 +18,18 @@ def create_differential_data(I1,I2):
 
     Parameters
     ----------
-    I1 : numpy.array, size=(m,n), type=float
+    I1 : numpy.ndarray, size=(m,n), type=float
         array with image intensities
-    I2 : numpy.array, size=(m,n), type=float
+    I2 : numpy.ndarray, size=(m,n), type=float
         array with image intensities
 
     Returns
     -------
-    I_di : numpy.array, size=(m,n), type=float
+    I_di : numpy.ndarray, size=(m,n), type=float
         vertical gradient of first image
-    I_dj : numpy.array, size=(m,n), type=float
+    I_dj : numpy.ndarray, size=(m,n), type=float
         horizontal gradient of first image
-    I_dt : numpy.array, size=(m,n), type=float
+    I_dt : numpy.ndarray, size=(m,n), type=float
         temporal gradient between first and second image
 
     Notes
@@ -102,28 +102,28 @@ def simple_optical_flow(I1, I2, window_size, sampleI, sampleJ,
 
     Parameters
     ----------
-    I1 : numpy.array, size=(m,n)
+    I1 : numpy.ndarray, size=(m,n)
         array with intensities
-    I2 : numpy.array, size=(m,n)
+    I2 : numpy.ndarray, size=(m,n)
         array with intensities
     window_size: integer, {x ∈ ℕ | x ≥ 1}
         kernel size of the neighborhood
-    sampleI: numpy.array, size=(k,l)
+    sampleI: numpy.ndarray, size=(k,l)
         grid with image coordinates, its vertical coordinate in a pixel system
-    sampleJ: numpy.array, size=(k,l)
+    sampleJ: numpy.ndarray, size=(k,l)
         grid with image coordinates, its horizontical coordinate
     sigma: float
         smoothness for gaussian image blur
 
     Returns
     -------
-    Ugrd : numpy.array, size=(k,l)
+    Ugrd : numpy.ndarray, size=(k,l)
         vertical displacement estimate, in "ij"-coordinate system
-    Vgrd : numpy.array, size=(k,l)
+    Vgrd : numpy.ndarray, size=(k,l)
         vertical displacement estimate, in "ij"-coordinate system
-    Ueig : numpy.array, size=(k,l)
+    Ueig : numpy.ndarray, size=(k,l)
         eigenvalue of system of equation for vertical estimate
-    Veig : numpy.array, size=(k,l)
+    Veig : numpy.ndarray, size=(k,l)
         eigenvalue of system of equation for horizontal estimate
 
     See Also
@@ -246,9 +246,9 @@ def affine_optical_flow(I1, I2, model='affine', iteration=10,
 
     Parameters
     ----------
-    I1 : numpy.array, size=(m,n)
+    I1 : numpy.ndarray, size=(m,n)
         array with intensities
-    I2 : numpy.array, size=(m,n)
+    I2 : numpy.ndarray, size=(m,n)
         array with intensities
     preprocessing : {None, 'hist_equal'}
         preprocessing steps to apply to the input imagery
@@ -261,7 +261,7 @@ def affine_optical_flow(I1, I2, model='affine', iteration=10,
             * 'simple' : translation only
             * 'affine' : affine transformation and translation
             * 'similarity' : scaling, rotation and translation
-    episolar : numpy.array, size=(1,2)
+    episolar : numpy.ndarray, size=(1,2)
         vector, for additional constrains [3].
     iteration : integer, {x ∈ ℕ | x ≥ 0}
         number of iterations used

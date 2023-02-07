@@ -3,4 +3,4 @@ tutorials
 
 .. nbgallery::
    tutorials/dispersion
-   tutorials/dispersion
+   tutorials/25042022

@@ -125,7 +125,7 @@ def read_band_as_l1(path, band='3N'):
 
     Returns
     -------
-    data : numpy.array, size=(_,_)
+    data : numpy.ndarray, size=(_,_)
         array of the band image
     spatialRef : string
         projection
@@ -200,7 +200,7 @@ def read_stack_as_l1(path, as_df):
 
     Returns
     -------
-    im_stack : numpy.array, size=(_,_,_)
+    im_stack : numpy.ndarray, size=(_,_,_)
         array of the band image
     spatialRef : string
         projection
@@ -232,9 +232,8 @@ def read_stack_as_l1(path, as_df):
                 read_band_as(path, band=boi)
         else: # stack others bands
             if im_stack.ndim==2:
-                im_stack = im_stack[:,:,np.newaxis]
-            band = read_band_as(path, band=boi)[0]
-            band = band[...,np.newaxis]
+                im_stack = np.atleast_3d(im_stack)
+            band = np.atleast_3d(read_band_as(path, band=boi)[0])
             im_stack = np.concatenate((im_stack, band), axis=2)
     return im_stack, spatialRef, geoTransform, targetprj
 
@@ -252,9 +251,8 @@ def read_stack_as_l3(as_df):
                 f_path)
         else:
             if im_stack.ndim==2:
-                im_stack = im_stack[...,np.newaxis]
-            band = read_geo_image(f_path)[0]
-            band = band[...,np.newaxis]
+                im_stack = np.atleast_3d(im_stack)
+            band = np.atleast_3d(read_geo_image(f_path)[0])
             im_stack = np.concatenate((im_stack, band), axis=2)
 
     # create masked array, if this is not already done so

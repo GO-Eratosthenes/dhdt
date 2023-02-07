@@ -131,9 +131,9 @@ def estimate_translation_of_two_subsets(I1, I2, M1, M2, correlator='lucas_kan',
 
     Parameters
     ----------
-    I1,I2 : numpy.array, size=(m,n), dtype={float,integer}
+    I1,I2 : numpy.ndarray, size=(m,n), dtype={float,integer}
         grids with intensities
-    M1,M2 : numpy.array, size=(m,n), dtype=bool
+    M1,M2 : numpy.ndarray, size=(m,n), dtype=bool
         labelled array corresponding to I1,I2. Hence True denotes exclusion.
     correlator : string, default='lucas_kanade'
         methodology to use to correlate I1 and I2
@@ -189,20 +189,20 @@ def match_translation_of_two_subsets(I1_sub,I2_sub,correlator,subpix,
 
     Parameters
     ----------
-    I1_sub : numpy.array, size={(m,n),(k,l)}, dtype={float,integer}, ndim={2,3}
+    I1_sub : numpy.ndarray, size={(m,n),(k,l)}, dtype={float,integer}, ndim={2,3}
         grid with intensities, a.k.a. template to locate
-    I2_sub : numpy.array, size=(m,n), dtype={float,integer}, ndim={2,3}
+    I2_sub : numpy.ndarray, size=(m,n), dtype={float,integer}, ndim={2,3}
         grid with intensities, a.k.a. search space
     correlator : string
         methodology to use to correlate I1 and I2
     subpix : string
         methodology to refine the to sub-pixel localization
-    M1_sub,M2_sub :  numpy.array, size=(m,n), dtype=bool
+    M1_sub,M2_sub :  numpy.ndarray, size=(m,n), dtype=bool
         labels corresponding to I1_sub,I2_sub. Hence True denotes exclusion.
 
     Returns
     -------
-    {Q,C} : numpy.array, size={(m,n),(k,l)}, dtype={complex,float}, ndim=2
+    {Q,C} : numpy.ndarray, size={(m,n),(k,l)}, dtype={complex,float}, ndim=2
         cross-correlation spectra or function
 
     See Also
@@ -301,11 +301,11 @@ def estimate_subpixel(QC, subpix, m0=np.zeros((1, 2)), **kwargs):
 
     Parameters
     ----------
-    QC : numpy.array, size=(m,n), dtype={complex,float}, ndim=2
+    QC : numpy.ndarray, size=(m,n), dtype={complex,float}, ndim=2
         cross-correlation spectra or function
     subpix : string
         methodology to refine the to sub-pixel localization
-    m0 : numpy.array, size=(1,2), dtype=integer
+    m0 : numpy.ndarray, size=(1,2), dtype=integer
         row, collumn location of the peak of the cross-correlation function
 
     Returns
@@ -399,7 +399,7 @@ def estimate_precision(C, di, dj, method='gaussian'):
 
     Parameters
     ----------
-    C : numpy.array, size=(m,n)
+    C : numpy.ndarray, size=(m,n)
         cross correlation function
     di,dj : float
         locational estimate of the cross-correlation peak, this can also be

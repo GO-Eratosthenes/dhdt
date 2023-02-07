@@ -367,13 +367,13 @@ def anistropic_diffusion_scalar(I, iter=10, K=.15, s=.25, n=4):
                         diffusion_strength_1(I_l, K) * I_l
                         )
         else:
-            I_update = (np.tile(diffusion_strength_1(I_u, K)[:, :, np.newaxis],
+            I_update = (np.tile(np.atleast_3d(diffusion_strength_1(I_u, K)),
                                 (1, 1, b)) * I_u +
-                        np.tile(diffusion_strength_1(I_r, K)[:, :, np.newaxis],
+                        np.tile(np.atleast_3d(diffusion_strength_1(I_r, K)),
                                 (1, 1, b)) * I_r +
-                        np.tile(diffusion_strength_1(I_d, K)[:, :, np.newaxis],
+                        np.tile(np.atleast_3d(diffusion_strength_1(I_d, K)),
                                 (1, 1, b)) * I_d +
-                        np.tile(diffusion_strength_1(I_l, K)[:, :, np.newaxis],
+                        np.tile(np.atleast_3d(diffusion_strength_1(I_l, K)),
                                 (1, 1, b)) * I_l)
         del I_u, I_d, I_r, I_l
 
@@ -390,13 +390,13 @@ def anistropic_diffusion_scalar(I, iter=10, K=.15, s=.25, n=4):
                           diffusion_strength_1(I_ll, K) * I_ll +
                           diffusion_strength_1(I_ul, K) * I_ul)
             else: # extent the diffusion parameter to all bands
-                I_xtra = (np.tile(diffusion_strength_1(I_ur,K)[:,:,np.newaxis],
+                I_xtra = (np.tile(np.atleast_3d(diffusion_strength_1(I_ur,K)),
                                   (1,1,b)) * I_ur +
-                          np.tile(diffusion_strength_1(I_lr,K)[:,:,np.newaxis],
+                          np.tile(np.atleast_3d(diffusion_strength_1(I_lr,K)),
                                   (1,1,b)) * I_lr +
-                          np.tile(diffusion_strength_1(I_ll,K)[:,:,np.newaxis],
+                          np.tile(np.atleast_3d(diffusion_strength_1(I_ll,K)),
                                   (1,1,b)) * I_ll +
-                          np.tile(diffusion_strength_1(I_ul,K)[:,:,np.newaxis],
+                          np.tile(np.atleast_3d(diffusion_strength_1(I_ul,K)),
                                   (1,1,b)) * I_ul)
             I_update += I_xtra
         I_new[1:-1,1:-1] += s*I_update
@@ -418,7 +418,7 @@ def L0_smoothing(I, lamb=2E-2, kappa=2., beta_max=1E5):
 
     Parameters
     ----------
-    I : numpy.array, size={(m,n), (m,n,b)}, dtype=float
+    I : numpy.ndarray, size={(m,n), (m,n,b)}, dtype=float
         grid with intensity values
     lamb : float, default=.002
     kappa : float, default=2.
@@ -426,7 +426,7 @@ def L0_smoothing(I, lamb=2E-2, kappa=2., beta_max=1E5):
 
     Returns
     -------
-    I : numpy.array, size={(m,n), (m,n,b)}, dtype=float
+    I : numpy.ndarray, size={(m,n), (m,n,b)}, dtype=float
         modified intensity image
 
     References
@@ -445,15 +445,15 @@ def L0_smoothing(I, lamb=2E-2, kappa=2., beta_max=1E5):
     D_2 = np.abs(dx_F) ** 2 + np.abs(dy_F) ** 2
 
     if b>1:
-        dx, dy = np.tile(dx[..., np.newaxis], (1,1,b)), \
-                 np.tile(dy[..., np.newaxis], (1,1,b))
-        D_2 = np.tile(D_2[...,np.newaxis], (1,1,b))
+        dx, dy = np.tile(np.atleast_3d(dx), (1,1,b)),
+                 np.tile(np.atleast_3d(dy), (1,1,b))
+        D_2 = np.tile(np.atleast_3d(D_2), (1,1,b))
 
     beta = 2*lamb
     while beta < beta_max:
         D_1 = 1 + beta*D_2
 
-        h = np.roll(signal.fftconvolve(I,dx, mode='same'), -1, axis=1)
+        h = np.roll(signal.fftconvolve(I, dx, mode='same'), -1, axis=1)
         v = np.roll(signal.fftconvolve(I, dy, mode='same'), -1, axis=0)
 
         t = (h**2 + v**2)<(lamb/beta)
@@ -471,7 +471,7 @@ def L0_smoothing(I, lamb=2E-2, kappa=2., beta_max=1E5):
                                   -np.diff(h, 1, 1)), axis=1)
             N_2 += np.concatenate((np.array(v[-1,...]-v[0,...], ndmin=3),
                                    -np.diff(v,1,0)), axis=0)
-            N_2 = np.tile(np.sum(N_2, axis=2)[...,np.newaxis], (1,1,b))
+            N_2 = np.tile(np.atleast_3d(np.sum(N_2, axis=2)), (1,1,b))
         I_F = np.divide( N_1 + beta*np.fft.fft2(N_2) ,D_1)
         I = np.real(np.fft.ifft2(I_F))
         beta *= kappa

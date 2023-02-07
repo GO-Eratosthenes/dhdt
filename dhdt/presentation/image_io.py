@@ -76,9 +76,10 @@ def output_image(data, outputname, cmap='bone', compress=95):
 
     if np.any(OUT):
         if outputname[-4:] == '.jpg': # whiten the NaN values
-            rgb[np.tile(OUT[:,:,np.newaxis], (1,1,3))] = 255
+            rgb[np.tile(np.atleast_3d(OUT), (1,1,3))] = 255
         else:
-            rgb = np.dstack((rgb, np.uint8(np.invert(OUT).astype('float')*255)[:,:,np.newaxis]))
+            out = np.atleast_3d(np.uint8(np.invert(OUT).astype('float')*255))
+            rgb = np.dstack((rgb, out))
     img = Image.fromarray(rgb)
     img.save(outputname, quality=compress)
     return

@@ -60,7 +60,7 @@ def create_sample_image_pair(d=2**7, max_range=1, integer=False, ndim=1):
         im1 = mat_to_gray(im1[...,0], im1[...,0]==0)
     else:
         ndim = np.maximum(im1.shape[-1], ndim)
-    mI,nI = im1.shape[0], im1.shape[1]
+    mI,nI = im1.shape[0:2]
 
     scalar_mul = 2*np.minimum(d // 2, max_range)
 

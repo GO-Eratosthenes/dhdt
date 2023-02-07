@@ -5,8 +5,12 @@ import numpy as np
 import pandas as pd
 
 # geospatial libaries
-from osgeo import gdal, osr
+from osgeo import gdal, osr, ogr
 from xml.etree import ElementTree
+from netCDF4 import Dataset
+
+from .unit_check import correct_geoTransform, is_crs_an_srs
+from .mapping_tools import pix_centers
 
 def read_geo_info(fname):
     """ This function takes as input the geotiff name and the path of the
@@ -42,9 +46,10 @@ def read_geo_info(fname):
     img = gdal.Open(fname)
     spatialRef = img.GetProjection()
     geoTransform = img.GetGeoTransform()
+    geoTransform = tuple(float(x) for x in geoTransform)
     targetprj = osr.SpatialReference(wkt=img.GetProjection())
-    rows = img.RasterYSize    
-    cols = img.RasterXSize
+    rows = int(img.RasterYSize)
+    cols = int(img.RasterXSize)
     bands = img.RasterCount
 
     geoTransform += (rows, cols,)
@@ -71,7 +76,7 @@ def read_geo_image(fname, boi=np.array([]), no_dat=None):
         data array of the band
     spatialRef : string
         osr.SpatialReference in well known text
-    geoTransform : tuple, size=(6,1)
+    geoTransform : tuple, size=(8,)
         affine transformation coefficients.
     targetprj : osgeo.osr.SpatialReference() object
         coordinate reference system (CRS)
@@ -110,7 +115,7 @@ def read_geo_image(fname, boi=np.array([]), no_dat=None):
             if no_dat is not None:
                 band = np.ma.array(band, mask=band==no_dat)
             data = band if counter == 0 else np.dstack((data,
-                                                        band[:,:,np.newaxis]))
+                                                        np.atleast_3d(band)))
     else:
         num_bands = img.RasterCount
         assert (np.max(boi)+1)<=num_bands, 'bands of interest is out of range'
@@ -119,9 +124,9 @@ def read_geo_image(fname, boi=np.array([]), no_dat=None):
             no_dat = img.GetRasterBand(counter+1).GetNoDataValue()
             np.putmask(band, band==no_dat, np.nan)
             data = band if counter==0 else np.dstack((data,
-                                                      band[:, :, np.newaxis]))
+                                                      np.atleast_3d(band)))
     spatialRef = img.GetProjection()
-    geoTransform = img.GetGeoTransform() + data.shape[:2]
+    geoTransform = tuple(float(x) for x in img.GetGeoTransform())+data.shape[:2]
     targetprj = osr.SpatialReference(wkt=img.GetProjection())
     return data, spatialRef, geoTransform, targetprj
 
@@ -172,15 +177,12 @@ def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes',
     >>> I_ones = np.zeros(I.shape, dtype=bool)
     >>> make_geo_im(I_ones, geoTransformM, spatialRefM, ‘ones.tif’)
     """
-    drv = gdal.GetDriverByName("GTiff")  # export image
-    
-    if I.ndim == 3:
-        bands=I.shape[2]
-    else:
-        bands = 1
+    if not isinstance(crs, str): crs = crs.ExportToWkt()
+    R = correct_geoTransform(R)
+    bands = I.shape[2] if I.ndim == 3 else 1
 
-    # make it type dependent
-    if I.dtype == 'float64':
+    drv = gdal.GetDriverByName("GTiff")  # export image
+    if I.dtype == 'float64':     # make it type dependent
         ds = drv.Create(fName,xsize=I.shape[1], ysize=I.shape[0],bands=bands,
                         eType=gdal.GDT_Float64)
     elif I.dtype == 'float32':
@@ -195,7 +197,6 @@ def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes',
     else:
         ds = drv.Create(fName, xsize=I.shape[1], ysize=I.shape[0], bands=bands,
                         eType=gdal.GDT_Int32)
-
     # set metadata in datasource
     ds.SetMetadata({'TIFFTAG_SOFTWARE':'dhdt v0.1',
                     'TIFFTAG_ARTIST':'bas altena and team Atlas',
@@ -208,8 +209,6 @@ def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes',
     if len(R)!=6: R = R[:6]
 
     ds.SetGeoTransform(R)
-    if not isinstance(crs, str):
-        crs = crs.ExportToWkt()
     ds.SetProjection(crs)
     if I.ndim == 3:
         for count in np.arange(1,I.shape[2]+1,1):
@@ -221,6 +220,8 @@ def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes',
     else:
         ds.GetRasterBand(1).WriteArray(I)
         ds.GetRasterBand(1).SetNoDataValue(no_dat)
+    if (ds is None):
+        print(gdal.GetLastErrorMsg())
     ds = None
     del ds
 
@@ -256,6 +257,7 @@ def make_multispectral_vrt(df, fpath=None, fname='multispec.vrt'):
                                        srcNodata=0)
     my_vrt = gdal.BuildVRT(ffull, [f+'.jp2' for f in df['filepath']],
                            options=vrt_options)
+    if (my_vrt is None): print(gdal.GetLastErrorMsg())
     my_vrt = None
 
     # modify the vrt-file to include band names
@@ -265,4 +267,118 @@ def make_multispectral_vrt(df, fpath=None, fname='multispec.vrt'):
         description = ElementTree.SubElement(band, "Description")
         description.text = df.common_name[idx]
     tree.write(ffull) # update the file on disk
+    return
+
+def make_nc_image(I, R, crs, fName):
+    if not isinstance(crs, str): crs = crs.ExportToWkt()
+
+    X,Y = pix_centers(R, make_grid=False)
+
+    dsout = Dataset(fName, "w", format="NETCDF4")
+
+    if is_crs_an_srs(crs):
+        nc_struct = ('times', 'nor', 'eas')
+        nor = dsout.createDimension('nor', Y.size[0])
+        nor = dsout.createVariable('nor', 'f4', ('nor',))
+        nor.standard_name = 'northing'
+        nor.units = 'metres_north'
+        nor.axis = "Y"
+        nor[:] = Y
+
+        eas = dsout.createDimension('east', X.size[0])
+        eas = dsout.createVariable('east', 'f4', ('eas',))
+        eas.standard_name = 'easting'
+        eas.units = 'metres_east'
+        eas.axis = "X"
+        eas[:] = X
+    else:
+        nc_struct = nc_struct = ('times', 'lat', 'lon')
+        lat = dsout.createDimension('lat', Y.size[0])
+        lat = dsout.createVariable('lat', 'f4', ('lat',))
+        lat.standard_name = 'latitude'
+        lat.units = 'degrees_north'
+        lat.axis = "Y"
+        lat[:] = Y
+
+        lon = dsout.createDimension('lon', X.size[0])
+        lon = dsout.createVariable('lon', 'f4', ('lon',))
+        lon.standard_name = 'longitude'
+        lon.units = 'degrees_east'
+        lon.axis = "X"
+        lon[:] = X
+
+    time = dsout.createDimension('time', 0)
+    times = dsout.createVariable('time', 'f4', ('time',))
+    times.standard_name = 'time'
+    times.long_name = 'time'
+    times.units = 'hours since 1970-01-01 00:00:00'
+    times.calendar = 'gregorian'
+
+    if np.iscomplexobj(I):
+        U = dsout.createVariable(
+            'U', 'f4', nc_struct,
+            zlib=True, complevel=9, least_significant_digit=1, fill_value=-9999
+        )
+        U[:] = np.real(I[np.newaxis(),...])
+        U.standard_name = 'horizontal_velocity'
+        U.units = 'm/s'
+        U.setncattr('grid_mapping', 'spatial_ref')
+
+        V = dsout.createVariable(
+            'V', 'f4', nc_struct,
+            zlib=True, complevel=9, least_significant_digit=1, fill_value=-9999
+        )
+        V[:] = np.imag(I[np.newaxis(),...])
+        V.standard_name = 'vertical_velocity'
+        V.units = 'm/s'
+        V.setncattr('grid_mapping', 'spatial_ref')
+    else:
+        I = dsout.createVariable(
+            'I', 'f4', nc_struct,
+            zlib=True, complevel=9, least_significant_digit=1, fill_value=-9999
+        )
+        I[:] = I[np.newaxis(),...]
+        I.setncattr('grid_mapping', 'spatial_ref')
+
+    proj = dsout.createVariable('spatial_ref', 'i4')
+    proj.spatial_ref = crs
+    return
+
+def make_im_from_geojson(geoTransform, crs, out_name, geom_name, out_dir=None,
+                         geom_dir=None, aoi=None):
+    geoTransform = correct_geoTransform(geoTransform)
+    if not isinstance(crs, str): crs = crs.ExportToWkt()
+    if out_dir is None: out_dir = os.getcwd()
+    if geom_dir is None:
+        rot_dir = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3])
+        geom_dir = os.path.join(rot_dir, 'data')
+
+    out_path = os.path.join(out_dir, out_name)
+    geom_path = os.path.join(geom_dir, geom_name)
+    assert os.path.exists(geom_path), 'file does not seem to exist'
+
+    # read shapefile
+    shp = ogr.Open(geom_path)
+    lyr = shp.GetLayer()
+
+    # create raster environment
+    driver = gdal.GetDriverByName('GTiff')
+    if aoi is not None:
+        target = driver.Create(out_path, geoTransform[6], geoTransform[7],
+                               bands=1, eType=gdal.GDT_UInt16)
+    else:
+        target = driver.Create(out_path, geoTransform[6], geoTransform[7],
+                               bands=1, eType=gdal.GDT_Byte)
+
+    target.SetGeoTransform(geoTransform[:6])
+    target.SetProjection(crs)
+
+    # get attributes
+    if aoi is not None:
+        assert isinstance(aoi, str), 'please provide a string'
+        gdal.RasterizeLayer(target, [1], lyr, None,
+                            options=["ATTRIBUTE="+aoi])
+    # convert polygon to raster
+    gdal.RasterizeLayer(target, [1], lyr, None, burn_values=[1])
+    lyr = shp = None
     return

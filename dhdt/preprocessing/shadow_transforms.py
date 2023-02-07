@@ -39,22 +39,22 @@ def apply_shadow_transform(method, Blue, Green, Red, RedEdge, Near, Shw,
         * 'shi' : shade index
         * 'sp' : shadow probabilities
         * 'nri' : normalized range shadow index
-    Blue : numpy.array, size=(m,n)
+    Blue : numpy.ndarray, size=(m,n)
         blue band of satellite image
-    Green : numpy.array, size=(m,n)
+    Green : numpy.ndarray, size=(m,n)
         green band of satellite image
-    Red : numpy.array, size=(m,n)
+    Red : numpy.ndarray, size=(m,n)
         red band of satellite image
-    RedEdge : numpy.array, size=(m,n)
+    RedEdge : numpy.ndarray, size=(m,n)
         red edge band of satellite image
-    Near : numpy.array, size=(m,n)
+    Near : numpy.ndarray, size=(m,n)
         near-infrared band of satellite image
-    Shw : numpy.array, size=(m,n)
+    Shw : numpy.ndarray, size=(m,n)
         synthetic shading from for example a digital elevation model
 
     Returns
     -------
-    M : numpy.array, size=(m,n)
+    M : numpy.ndarray, size=(m,n)
         shadow enhanced satellite image
 
     See Also

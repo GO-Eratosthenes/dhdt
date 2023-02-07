@@ -4,6 +4,7 @@ import os
 import warnings
 
 from xml.etree import ElementTree
+from osgeo import osr
 
 import numpy as np
 import pandas as pd
@@ -291,11 +292,10 @@ def read_stack_s2(s2_df):
             im_stack, spatialRef, geoTransform, targetprj = read_band_s2(full_path)
         else: # stack others bands
             if im_stack.ndim==2:
-                im_stack = im_stack[...,np.newaxis]
-            band = read_band_s2(full_path)[0]
+                im_stack = np.atleast_3d(im_stack)
+            band = np.atleast_3d(read_band_s2(full_path)[0])
             if im_scaling[idx]!=1: # resize image to higher res.
                 band = resize(band, (im_stack.shape[0], im_stack.shape[1]), order=3)
-            band = band[...,np.newaxis]
             im_stack = np.concatenate((im_stack, band), axis=2)
 
     # in the meta data files there is no mention of its size, hence include
@@ -303,6 +303,112 @@ def read_stack_s2(s2_df):
     if len(geoTransform)==6:
          geoTransform = geoTransform + (im_stack.shape[0], im_stack.shape[1])
     return im_stack, spatialRef, geoTransform, targetprj
+
+def get_image_size_s2_from_root(root, resolution=10):
+    geom_info = None
+    for child in root:
+        if child.tag[-14:] == 'Geometric_Info':
+            geom_info = child
+    assert(geom_info is not None), ('metadata not in xml file')
+
+    frame = None
+    for tile in geom_info:
+        if tile.tag == 'Tile_Geocoding':
+            frame = tile
+    assert(frame is not None), ('metadata not in xml file')
+
+    m,n = None,None
+    for box in frame:
+        if (box.tag=='Size') and \
+            (box.attrib['resolution']==str(resolution)):
+            for field in box:
+                if field.tag=='NROWS':
+                    m = int(field.text)
+                elif field.tag=='NCOLS':
+                    n = int(field.text)
+    return m, n
+
+def get_ul_coord_s2_from_root(root, resolution=10):
+    geom_info = None
+    for child in root:
+        if child.tag[-14:] == 'Geometric_Info':
+            geom_info = child
+    assert(geom_info is not None), ('metadata not in xml file')
+
+    frame = None
+    for tile in geom_info:
+        if tile.tag == 'Tile_Geocoding':
+            frame = tile
+    assert(frame is not None), ('metadata not in xml file')
+
+    m,n = None,None
+    for box in frame:
+        if (box.tag=='Geoposition') and \
+            (box.attrib['resolution']==str(resolution)):
+            for field in box:
+                if field.tag=='ULX':
+                    ul_x = int(field.text)
+                elif field.tag=='ULY':
+                    ul_y = int(field.text)
+    return ul_x, ul_y
+
+def get_geotransform_s2_from_root(root, resolution=10):
+    geom_info = None
+    for child in root:
+        if child.tag[-14:] == 'Geometric_Info':
+            geom_info = child
+    assert(geom_info is not None), ('metadata not in xml file')
+
+    frame = None
+    for tile in geom_info:
+        if tile.tag == 'Tile_Geocoding':
+            frame = tile
+    assert(frame is not None), ('metadata not in xml file')
+
+    for box in frame:
+        if (box.tag=='Geoposition') and \
+            (box.attrib['resolution']==str(resolution)):
+            for field in box:
+                if field.tag == 'ULX':
+                    ul_X = float(field.text)
+                elif field.tag == 'ULY':
+                    ul_Y = float(field.text)
+                elif field.tag == 'XDIM':
+                    d_X = float(field.text)
+                elif field.tag == 'YDIM':
+                    d_Y = float(field.text)
+        elif (box.tag=='Size') and \
+            (box.attrib['resolution']==str(resolution)):
+            for field in box:
+                if field.tag == 'NROWS':
+                    m = int(field.text)
+                elif field.tag == 'NCOLS':
+                    n = int(field.text)
+    geoTransform = (ul_X, d_X, 0., ul_Y, 0., d_Y, m, n)
+    return geoTransform
+
+def get_crs_s2_from_root(root):
+    geom_info = None
+    for child in root:
+        if child.tag[-14:] == 'Geometric_Info':
+            geom_info = child
+    assert(geom_info is not None), ('metadata not in xml file')
+
+    frame = None
+    for tile in geom_info:
+        if tile.tag == 'Tile_Geocoding':
+            frame = tile
+    assert(frame is not None), ('metadata not in xml file')
+
+    epsg = None
+    for field in frame:
+        if field.tag == 'HORIZONTAL_CS_CODE':
+            epsg = field.text
+            epsg_int = int(epsg.split(':')[1])
+
+    crs = osr.SpatialReference()
+    crs.ImportFromEPSG(epsg_int)
+    return crs
 
 def read_geotransform_s2(path, fname='MTD_TL.xml', resolution=10):
     """
@@ -345,6 +451,27 @@ def read_geotransform_s2(path, fname='MTD_TL.xml', resolution=10):
         ├ INSPIRE.xml
         └ MTD_MSIL1C.xml <- metadata about the product
 
+    The metadata structure is as follows:
+        .. code-block:: text
+
+        * MTD_TL.xml
+        └ n1:Level-1C_Tile_ID
+           ├ n1:General_Info
+           ├ n1:Geometric_Info
+           │  ├ Tile_Geocoding
+           │  │  ├ HORIZONTAL_CS_NAME
+           │  │  ├ HORIZONTAL_CS_CODE
+           │  │  ├ Size : resolution={"10","20","60"}
+           │  │  │  ├ NROWS
+           │  │  │  └ NCOLS
+           │  │  └ Geoposition
+           │  │     ├ ULX
+           │  │     ├ ULY
+           │  │     ├ XDIM
+           │  │     └ YDIM
+           │  └ Tile_Angles
+           └ n1:Quality_Indicators_Info
+
     The following acronyms are used:
 
     - DS : datastrip
@@ -355,17 +482,12 @@ def read_geotransform_s2(path, fname='MTD_TL.xml', resolution=10):
     - MSI : multi spectral instrument
     - L1C : product specification,i.e.: level 1, processing step C
     """
+    assert (resolution in (10, 20, 60)), ('please provide correct resolution')
     if not os.path.exists(os.path.join(path, fname)):
         return None
     root = get_root_of_table(path, fname)
 
-    # image dimensions
-    for meta in root.iter('Geoposition'):
-        res = float(meta.get('resolution'))
-        if res == resolution:
-            ul_X,ul_Y= float(meta[0].text), float(meta[1].text)
-            d_X, d_Y = float(meta[2].text), float(meta[3].text)
-    geoTransform = (ul_X, d_X, 0., ul_Y, 0., d_Y)
+    geoTransform = get_geotransform_s2_from_root(root, resolution=resolution)
     return geoTransform
 
 def get_local_bbox_in_s2_tile(fname_1, s2dir):
@@ -379,6 +501,38 @@ def get_local_bbox_in_s2_tile(fname_1, s2dir):
     bbox_i, bbox_j = map2pix(s2Transform, bbox_xy[0:2], bbox_xy[2::])
     bbox_ij = np.concatenate((np.flip(bbox_i), bbox_j)).astype(int)
     return bbox_ij
+
+def get_sun_angles_s2_from_root(root, angle='Zenith'):
+    assert angle in ('Zenith','Azimuth',), \
+        ('please provide correct angle name')
+    geom_info = None
+    for child in root:
+        if child.tag[-14:] == 'Geometric_Info':
+            geom_info = child
+    assert(geom_info is not None), ('metadata not in xml file')
+
+    grids = None
+    for tile in geom_info:
+        if tile.tag == 'Tile_Angles':
+            frame = tile
+            for instance in frame:
+                if instance.tag=='Sun_Angles_Grid':
+                    grids = instance
+    assert(grids is not None), ('metadata not in xml file')
+
+    Ang, col_step, row_step = None, None, None
+    for box in grids:
+        if (box.tag==angle):
+            for field in box:
+                if field.tag == 'Values_List':
+                    Ang = get_array_from_xml(field)
+                elif field.tag == 'COL_STEP':
+                    col_step = int(field.text)
+                elif field.tag == 'ROW_STEP':
+                    row_step = int(field.text)
+
+    assert(Ang is not None), ('metadata does not seem to be present')
+    return Ang, col_step, row_step
 
 def read_sun_angles_s2(path, fname='MTD_TL.xml'):
     """ This function reads the xml-file of the Sentinel-2 scene and extracts
@@ -472,6 +626,28 @@ def read_sun_angles_s2(path, fname='MTD_TL.xml'):
             ├ INSPIRE.xml
             └ MTD_MSIL1C.xml <- metadata about the product
 
+    The metadata structure looks like:
+
+        .. code-block:: text
+            * MTD_TL.xml
+            └ n1:Level-1C_Tile_ID
+               ├ n1:General_Info
+               ├ n1:Geometric_Info
+               │  ├ Tile_Geocoding
+               │  └ Tile_Angles
+               │     ├ Sun_Angles_Grid
+               │     │  ├ Zenith
+               │     │  │  ├ COL_STEP
+               │     │  │  ├ ROW_STEP
+               │     │  │  └ Values_List
+               │     │  └ Azimuth
+               │     │     ├ COL_STEP
+               │     │     ├ ROW_STEP
+               │     │     └ Values_List
+               │     ├ Mean_Sun_Angle
+               │     └ Viewing_Incidence_Angles_Grids
+               └ n1:Quality_Indicators_Info
+
     The following acronyms are used:
 
     - s2 : Sentinel-2
@@ -487,47 +663,83 @@ def read_sun_angles_s2(path, fname='MTD_TL.xml'):
         return None, None
     root = get_root_of_table(path, fname)
 
-    # image dimensions
-    for meta in root.iter('Size'):
-        res = float(meta.get('resolution'))
-        if res == 10:  # take 10 meter band
-            mI = float(meta[0].text)
-            nI = float(meta[1].text)
-
-    # get Zenith array
-    Zenith = root[1][1][0][0][2]
-    Zn = get_array_from_xml(Zenith)
-    znSpac = float(root[1][1][0][0][0].text)
-    znSpac = np.stack((znSpac, float(root[1][1][0][0][1].text)), 0)
-    znSpac = np.divide(znSpac, 10)  # transform from meters to pixels
+    mI,nI = get_image_size_s2_from_root(root)
+    Zn = get_sun_angles_s2_from_root(root, angle='Zenith')[0]
 
     zi = np.linspace(0 - 10, mI + 10, np.size(Zn, axis=0))
     zj = np.linspace(0 - 10, nI + 10, np.size(Zn, axis=1))
     Zi, Zj = np.meshgrid(zi, zj)
     Zij = np.dstack([Zi, Zj]).reshape(-1, 2)
-    del zi, zj, Zi, Zj, znSpac
+    del zi, zj, Zi, Zj
 
-    iGrd = np.arange(0, mI)
-    jGrd = np.arange(0, nI)
+    iGrd, jGrd = np.arange(0, mI), np.arange(0, nI)
     Igrd, Jgrd = np.meshgrid(iGrd, jGrd)
 
     Zn = griddata(Zij, Zn.reshape(-1), (Igrd, Jgrd), method="linear")
 
     # get Azimuth array
-    Azimuth = root[1][1][0][1][2]
-    Az = get_array_from_xml(Azimuth)
-    azSpac = float(root[1][1][0][1][0].text)
-    azSpac = np.stack((azSpac, float(root[1][1][0][1][1].text)), 0)
+    Az = get_sun_angles_s2_from_root(root, angle='Azimuth')[0]
 
     ai = np.linspace(0 - 10, mI + 10, np.size(Az, axis=0))
     aj = np.linspace(0 - 10, nI + 10, np.size(Az, axis=1))
     Ai, Aj = np.meshgrid(ai, aj)
     Aij = np.dstack([Ai, Aj]).reshape(-1, 2)
-    del ai, aj, Ai, Aj, azSpac
+    del ai, aj, Ai, Aj
 
     Az = griddata(Aij, Az.reshape(-1), (Igrd, Jgrd), method="linear")
     del Igrd, Jgrd, Zij, Aij
     return Zn, Az
+
+def get_view_angles_s2_from_root(root):
+    geom_info = None
+    for child in root:
+        if child.tag[-14:] == 'Geometric_Info':
+            geom_info = child
+    assert (geom_info is not None), ('metadata not in xml file')
+
+    frame = None
+    for tile in geom_info:
+        if tile.tag == 'Tile_Angles':
+            frame = tile
+    assert (frame is not None), ('metadata not in xml file')
+
+    Az_grd,Zn_grd = None, None
+    bnd, det = None, None
+    col_step, row_step = None, None
+    for instance in frame:
+        if instance.tag == 'Viewing_Incidence_Angles_Grids':
+            boi, doi = np.atleast_1d(int(instance.attrib['bandId'])), \
+                       np.atleast_1d(int(instance.attrib['detectorId']))
+            for box in instance:
+                if box.tag in ('Zenith', 'Azimuth'):
+                    for field in box:
+                        if field.tag == 'Values_List':
+                            Grd = np.atleast_3d(get_array_from_xml(field))
+                    if box.tag == 'Zenith':
+                        if Zn_grd is None:
+                            Zn_grd = Grd
+                        else:
+                            Zn_grd = np.dstack((Zn_grd, Grd))
+                    else:
+                        if Az_grd is None:
+                            Az_grd = Grd
+                        else:
+                            Az_grd = np.dstack((Az_grd, Grd))
+            bnd = boi if bnd is None else np.hstack((bnd, boi))
+            det = doi if det is None else np.hstack((det, doi))
+
+    # create geotransform
+    for field in box:
+        if field.tag == 'COL_STEP':
+            dx = float(field.text)
+        elif field.tag == 'ROW_STEP':
+            dy = float(field.text)
+    ul_x,ul_y = get_ul_coord_s2_from_root(root)
+
+    geoTransform = (ul_x, dx, 0, ul_y, 0, -dy,
+                    Zn_grd.shape[0], Zn_grd.shape[1])
+
+    return Az_grd, Zn_grd, bnd, det, geoTransform
 
 def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
                         boi_df=None):
@@ -599,6 +811,28 @@ def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
             ├ manifest.safe
             ├ INSPIRE.xml
             └ MTD_MSIL1C.xml <- metadata about the product
+
+    The metadata structure looks like:
+
+        .. code-block:: text
+            * MTD_TL.xml
+            └ n1:Level-1C_Tile_ID
+               ├ n1:General_Info
+               ├ n1:Geometric_Info
+               │  ├ Tile_Geocoding
+               │  └ Tile_Angles
+               │     ├ Sun_Angles_Grid
+               │     ├ Mean_Sun_Angle
+               │     └ Viewing_Incidence_Angles_Grids
+               │        ├ Zenith
+               │        │  ├ COL_STEP
+               │        │  ├ ROW_STEP
+               │        │  └ Values_List
+               │        └ Azimuth
+               │           ├ COL_STEP
+               │           ├ ROW_STEP
+               │           └ Values_List
+               └ n1:Quality_Indicators_Info
 
     The following acronyms are used:
 
@@ -874,7 +1108,7 @@ def read_detector_mask(path_meta, boi, geoTransform):
 
     det_stack = None
     if len(geoTransform)>6: # also image size is given
-        msk_dim = (geoTransform[-2], geoTransform[-1], len(boi))
+        msk_dim = (int(geoTransform[-2]), int(geoTransform[-1]), len(boi))
         det_stack = np.zeros(msk_dim, dtype='int8')  # create stack
 
     for i in range(len(boi)):
@@ -913,7 +1147,7 @@ def read_detector_mask(path_meta, boi, geoTransform):
             msk = read_geo_image(im_meta)[0]
             if det_stack is None:
                 det_stack = np.zeros((*msk.shape[:2], len(boi)), dtype='int8')
-            det_stack[:,:,i] = msk
+            det_stack[...,i] = msk
 
     det_stack = np.ma.array(det_stack, mask=det_stack==0)
     return det_stack
@@ -1119,6 +1353,7 @@ def get_timing_stack_s2(s2_df, det_stack,
         tim_stack[:, :, band_id] = tim_band
     return tim_stack, cross_grd
 
+#todo: robustify
 def get_xy_poly_from_gml(gml_struct,idx):
     # get detector number from meta-data
     det_id = gml_struct[idx].attrib
@@ -1133,6 +1368,7 @@ def get_xy_poly_from_gml(gml_struct,idx):
     pos_arr = np.array(pos_row).reshape((int(len(pos_row) / pos_dim), pos_dim))
     return pos_arr, det_num
 
+#todo: robustify
 def get_msk_dim_from_gml(gml_struct, geoTransform):
     assert isinstance(geoTransform, tuple)
     # find dimensions of array through its map extent in metadata
@@ -1445,6 +1681,57 @@ def get_flight_path_s2(ds_path, fname='MTD_DS.xml', s2_dict=None):
     >>> path_det = os.path.join(S2_dir, S2_name, 'DATASTRIP', datastrip_id[17:-7])
 
     >>> sat_tim, sat_xyz, sat_err, sat_uvw = get_flight_path_s2(path_det)
+
+    Notes
+    -----
+    The metadata structure of MTD_DS looks like:
+
+    .. code-block:: text
+        * MTD_DS.xml
+        └ n1:Level-1C_DataStrip_ID
+           ├ n1:General_Info
+           ├ n1:Image_Data_Info
+           ├ n1:Satellite_Ancillary_Data_Info
+           │  ├ Time_Correlation_Data_List
+           │  ├ Ephemeris
+           │  │  ├ GPS_Number_List
+           │  │  ├ GPS_Points_List
+           │  │  │  └ GPS_Point
+           │  │  │     ├ POSITION_VALUES
+           │  │  │     ├ POSITION_ERRORS
+           │  │  │     ├ VELOCITY_VALUES
+           │  │  │     ├ VELOCITY_ERRORS
+           │  │  │     ├ GPS_TIME
+           │  │  │     ├ NSM
+           │  │  │     ├ QUALITY_INDEX
+           │  │  │     ├ GDOP
+           │  │  │     ├ PDOP
+           │  │  │     ├ TDOP
+           │  │  │     ├ NOF_SV
+           │  │  │     └ TIME_ERROR
+           │  │  └ AOCS_Ephemeris_List
+           │  ├ Attitudes
+           │  ├ Thermal_Data
+           │  └ ANC_DATA_REF
+           │
+           ├ n1:Quality_Indicators_Info
+           └ n1:Auxiliary_Data_Info
+
+    The following acronyms are used:
+
+    - AOCS : attitude and orbit control system
+    - CAMS : Copernicus atmosphere monitoring service
+    - DEM : digital elevation model
+    - GDOP : geometric dilution of precision
+    - GPS : global positioning system
+    - GRI : global reference image
+    - IERS : international earth rotation and reference systems service
+    - IMT : instrument measurement time
+    - NSM : navigation solution method
+    - NOF SV : number of space vehicles
+    - PDOP : position dilution of precision
+    - TDOP : time dilution of precision
+
     """
     if isinstance(ds_path,dict):
         # only dictionary is given, which already has all metadata within
@@ -1530,20 +1817,90 @@ def get_flight_orientation_s2(ds_path, fname='MTD_DS.xml', s2_dict=None):
 
     for att in root.iter('Corrected_Attitudes'):
         sat_time = np.empty((len(att)), dtype='datetime64[ns]')
-        sat_angles = np.zeros((len(att),4))
+        sat_quat = np.zeros((len(att),4))
         counter = 0
         for idx, val in enumerate(att):
-            # 'QUATERNION_VALUES'
-            qang =  np.fromstring(val[0].text, dtype=float, sep=' ')
-            # 'GPS_TIME'
-            gps_tim = np.datetime64(val[2].text, 'ns')
-            sat_time[idx] = gps_tim
-            sat_angles[idx,:] = qang
+
+            for field in val:
+                if field.tag == 'QUATERNION_VALUES':
+                    sat_quat[idx, :] = np.fromstring(field.text,
+                                                     dtype=float, sep=' ')
+                elif field.tag == 'GPS_TIME':
+                    sat_time[idx] = np.datetime64(field.text, 'ns')
     if s2_dict is None:
-        return sat_time, sat_angles
+        return sat_time, sat_quat
     else: # include into dictonary
-        s2_dict.update({'imu_quat': sat_angles, 'imu_time': sat_time})
+        s2_dict.update({'imu_quat': sat_quat, 'imu_time': sat_time})
         return s2_dict
+
+def get_raw_imu_s2(ds_path, fname='MTD_DS.xml'):
+
+
+
+    return
+
+def get_raw_str_s2(ds_path, fname='MTD_DS.xml'):
+
+    root = get_root_of_table(ds_path, fname)
+
+    anci_info = None
+    for child in root:
+        if child.tag[-19:] == 'Ancillary_Data_Info':
+            anci_info = child
+    assert(anci_info is not None), ('metadata not in xml file')
+
+    anci_data = None
+    for child in anci_info:
+        if child.tag == 'Attitudes':
+            anci_data = child
+    assert(anci_data is not None), ('metadata not in xml file')
+
+    anci_list = None
+    for child in anci_data:
+        if child.tag == 'Raw_Attitudes':
+            anci_list = child
+    assert(anci_list is not None), ('metadata not in xml file')
+
+    str_list = None
+    for child in anci_list:
+        if child.tag == 'STR_List':
+            str_list = child
+    assert(str_list is not None), ('metadata not in xml file')
+
+    sat_time, sat_ang, sat_quat, sat_str = None, None, None, None
+    for str in str_list:
+        id = int(str.attrib['strId'][-1])
+
+        att_list = None
+        for entity in str:
+            if entity.tag=='Attitude_Data_List':
+                att_list = entity
+        if att_list is not None:
+            str_time = np.empty((len(att_list)), dtype='datetime64[ns]')
+            str_ang = np.zeros((len(att_list), 3))
+            str_quat = np.zeros((len(att_list), 4))
+            for idx, att in enumerate(att_list):
+                for field in att:
+                    if field.tag == 'QUATERNION_VALUES':
+                        str_quat[idx,:] = np.fromstring(field.text,
+                                                        dtype=float, sep=' ')
+                    elif field.tag == 'ANGULAR_RATE':
+                        str_ang[idx] = np.fromstring(field.text,
+                                                     dtype=float, sep=' ')
+                    elif field.tag == 'GPS_TIME':
+                        str_time[idx] = np.datetime64(field.text, 'ns')
+            str_id = id*np.ones_like(str_ang[:,0])
+
+        if sat_time is None:
+            sat_time, sat_ang = str_time.copy(), str_ang.copy()
+            sat_quat, sat_str = str_quat.copy(), str_id.copy()
+        else:
+            sat_time = np.hstack((sat_time, str_time))
+            sat_ang = np.vstack((sat_ang, str_ang))
+            sat_quat = np.vstack((sat_quat, str_quat))
+            sat_str = np.hstack((sat_str, str_id))
+
+    return sat_time, sat_ang, sat_quat, sat_str
 
 def get_integration_and_sampling_time_s2(ds_path, fname='MTD_DS.xml',
                                          s2_dict=None): #todo: create s2_dict methodology
@@ -1618,6 +1975,184 @@ def get_integration_and_sampling_time_s2(ds_path, fname='MTD_DS.xml',
         integration_tim[band_idx] = int_tim
 
     return line_tim, integration_tim
+
+def get_intrinsic_temperatures_s2(ds_path, fname='MTD_DS.xml'):
+    """
+    Notes
+    -----
+    The metadata structure looks like:
+
+    .. code-block:: text
+        * MTD_DS.xml
+        └ n1:Level-1C_DataStrip_ID
+           ├ n1:General_Info
+           ├ n1:Image_Data_Info
+           ├ n1:Satellite_Ancillary_Data_Info
+           │  ├ Time_Correlation_Data_List
+           │  │  └ Time_Correlation_Data
+           │  │     ├ NSM
+           │  │     ├ QUALITY_INDEX
+           │  │     ├ TDOP
+           │  │     ├ IMT
+           │  │     ├ GPS_TIME
+           │  │     └ UTC_TIME
+           │  ├ Ephemeris
+           │  │  ├ GPS_Number_List
+           │  │  │  └ Gps_Number
+           │  │  │     ├ GPS_TIME_START
+           │  │  │     └ GPS_TIME_END
+           │  │  ├ GPS_Points_List
+           │  │  │  └ GPS_Point
+           │  │  │     ├ POSITION_VALUES
+           │  │  │     ├ POSITION_ERRORS
+           │  │  │     ├ VELOCITY_VALUES
+           │  │  │     ├ VELOCITY_ERRORS
+           │  │  │     ├ GPS_TIME
+           │  │  │     ├ NSM
+           │  │  │     ├ QUALITY_INDEX
+           │  │  │     ├ GDOP
+           │  │  │     ├ PDOP
+           │  │  │     ├ TDOP
+           │  │  │     ├ NOF_SV
+           │  │  │     └ TIME_ERROR
+           │  │  └ AOCS_Ephemeris_List
+           │  │     └ AOCS_Ephemeris
+           │  │        ├ VALID_FLAG
+           │  │        ├ OPSOL_QUALITY
+           │  │        ├ POSITION_VALUES
+           │  │        ├ VELOCITY_VALUES
+           │  │        ├ GPS_TIME
+           │  │        └ ORBIT_ANGLE
+           │  ├ Attitudes
+           │  │  ├ Corrected_Attitudes
+           │  │  │  └ Values
+           │  │  │     ├ QUATERNION_VALUES
+           │  │  │     ├ QUATERNION_VALIDITY
+           │  │  │     ├ GPS_TIME
+           │  │  │     ├ INUSE_FLAGS
+           │  │  │     ├ AOCS_MODE
+           │  │  │     ├ AOCS_SUBMODE
+           │  │  │     ├ INNOVATION_STR1
+           │  │  │     ├ INNOVATION_STR2
+           │  │  │     └ ATTITUDE_QUALITY_INDICATOR
+           │  │  └ Raw_Attitudes
+           │  │     ├ STR_List
+           │  │     │  ├ STR strId="STR1"
+           │  │     │  │  ├ Attitude_Data_List
+           │  │     │  │  │  └ Attitude_Data
+           │  │     │  │  │     ├ QUATERNION_VALUES
+           │  │     │  │  │     ├ ANGULAR_RATE
+           │  │     │  │  │     ├ GPS_TIME
+           │  │     │  │  │     ├ JULIAN_DATE
+           │  │     │  │  │     ├ ATTITUDE_QUALITY
+           │  │     │  │  │     ├ RATE_QUALITY
+           │  │     │  │  │     └ VALIDITY_RATE
+           │  │     │  │  └ Status_And_Health_Data_List
+           │  │     │  ├ STR strId="STR2"
+           │  │     │  └ STR strId="STR3"
+           │  │     └ IMU_List
+           │  │        └ IMU imuId={"IMU1","IMU2","IMU3","IMU4"}
+           │  │           └ Value
+           │  │              ├ FILTERED_ANGLE
+           │  │              ├ RAW_ANGLE
+           │  │              ├ GPS_TIME
+           │  │              ├ Temperatures
+           │  │              │  ├ ORGANISER
+           │  │              │  ├ SIA
+           │  │              │  ├ OPTICAL_SOURCE
+           │  │              │  ├ BOARD
+           │  │              │  ├ VOLTAGE_OFFSET
+           │  │              │  ├ VOLTAGE
+           │  │              │  ├ ACQUISITION
+           │  │              │  ├ VALIDITY
+           │  │              │  └ TIME
+           │  │              ├ TIME
+           │  │              ├ ACQUISITION
+           │  │              ├ VALIDITY
+           │  │              ├ HEALTH_STATUS_BITS
+           │  │              └ HEALTH_STATUS_BITS_VALIDITY
+           │  ├ Thermal_Data
+           │  │  ├ FPA_List
+           │  │  │  ├ FPA fpaId={"VNIR","SWIR"}
+           │  │  │  │  └ Value
+           │  │  │  │     ├ T
+           │  │  │  │     └ GPS_TIME
+           │  │  │  └ FEE fpaId={"VNIR","SWIR"}
+           │  │  │     └ Value
+           │  │  │        ├ T
+           │  │  │        └ GPS_TIME
+           │  │  ├ Mirror_List
+           │  │  │  └ Mirror mirrorId={"1","2","3"}
+           │  │  │     └ Value
+           │  │  │        ├ T
+           │  │  │        └ GPS_TIME
+           │  │  ├ ThSensor_List
+           │  │  │  └ ThSensor sensorId={"+X-Z","-X-Z","+Y","-Y"}
+           │  │  │     └ Value
+           │  │  │        ├ T
+           │  │  │        └ GPS_TIME
+           │  │  ├ Splitter_List
+           │  │  │  └ Splitter splitterId={"bot+X","top+X"}
+           │  │  │     └ Value
+           │  │  │        ├ T
+           │  │  │        └ GPS_TIME
+           │  │  ├ CSM_Diffuser_List
+           │  │  │  └ CSM_Diffuser diffuserId={"0","1","2"}
+           │  │  │     └ Value
+           │  │  │        ├ T
+           │  │  │        └ GPS_TIME
+           │  │  ├ IMU_Sensorplate_List
+           │  │  │  └ IMU_Sensorplate
+           │  │  │     ├ T
+           │  │  │     └ GPS_TIME
+           │  │  ├ STR_Sensorplate_List
+           │  │  │  └ STR_Sensorplate sensorplateId={"0","1","2"}
+           │  │  │     └ Value
+           │  │  │        ├ T
+           │  │  │        └ GPS_TIME
+           │  │  ├ STR_Baseplate_List
+           │  │  │  └ STR_Baseplate
+           │  │  │     ├ T
+           │  │  │     └ GPS_TIME
+           │  │  └ STR_Backplate_List
+           │  │     └ STR_Backplate
+           │  │        ├ T
+           │  │        └ GPS_TIME
+           │  └ ANC_DATA_REF
+           │
+           ├ n1:Quality_Indicators_Info
+           └ n1:Auxiliary_Data_Info
+              ├ IERS_Bulletin
+              ├ GIPP_List
+              ├ ECMWF_DATA_REF
+              ├ CAMS_DATA_REF
+              ├ PRODUCTION_DEM_TYPE
+              ├ IERS_BULLETIN_FILENAME
+              └ GRI_List
+    The following acronyms are used:
+
+    - AOCS : attitude and orbit control system
+    - CAMS : Copernicus atmosphere monitoring service
+    - CSM :
+    - ECMWF : European centre for medium-range weather forecasts
+    - DEM : digital elevation model
+    - FEE : front end electronic
+    - FPA : focal plane assembly
+    - GDOP : geometric dilution of precision
+    - GEMS : global monitoring for environment and security
+    - GPS : global positioning system
+    - GRI : global reference image
+    - IERS : international earth rotation and reference systems service
+    - IMT : instrument measurement time
+    - IMU : inertial measurement unit
+    - NSM : navigation solution method
+    - NOF SV : number of space vehicles
+    - PDOP : position dilution of precision
+    - SIA : Sagnac interferometer assembly
+    - STR : star tracker
+    - TDOP : time dilution of precision
+    - VLORF : Viewing local orbital reference frame
+    """
 
 def get_view_angles_s2(Det, boi, s2_dict, Z=None):
 

@@ -109,7 +109,7 @@ def make_2D_Gaussian(size, fwhm=3):
     
     x = np.linspace(-(size[0]-1)/2,+(size[0]-1)/2, size[0], float)
     y = np.linspace(-(size[1]-1)/2,+(size[1]-1)/2, size[0], float)
-    y = y[:,np.newaxis]
+    y = np.atleast_2d(y)
     M = np.exp(-4*np.log(2) * (x**2 + y**2) / fwhm**2)
     return M
 
@@ -365,3 +365,7 @@ def normalized_sampling_histogram(I):
     # transform to centers
     base = base[:-1] + np.diff(base)
     return values, base
+
+def generalized_histogram_thres():
+    asd
+    return asd

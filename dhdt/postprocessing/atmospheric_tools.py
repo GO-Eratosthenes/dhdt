@@ -97,7 +97,7 @@ def oro_precip(Z, geoTransform, spatialRef, u_wind, v_wind,
     f_cor = calculate_coriolis(lat)
 
     # pad raster
-    m,n = Z.shape[0], Z.shape[1]
+    m,n = Z.shape[0:2]
     m_pow2, n_pow2 = 2**np.ceil(np.log2(m)), 2**np.ceil(np.log2(n))
     dm, dn = (m_pow2-m).astype(int), (n_pow2-n).astype(int)
     mn_pad = ((dm//2, dm-dm//2), (dn//2, dn-dn//2))

@@ -4,6 +4,16 @@ import numpy as np
 from scipy import ndimage, linalg
 from scipy.interpolate import griddata
 
+def _check_same_im(I1,I2):
+
+    assert ((I1.ndim>=2) and (I2.ndim>=2)), \
+        'please provide grids'
+    assert len(set({I1.shape[0], I2.shape[0]}))==1,\
+         'please provide arrays of the same size'
+    assert len(set({I1.shape[1], I2.shape[1]}))==1,\
+         'please provide arrays of the same size'
+    return I1, I2
+
 def conv_2Dfilter(I, kernel):
 
     sub_shape = tuple(map(lambda i,j: i-j+1, I.shape, kernel.shape))
@@ -296,10 +306,10 @@ def bilinear_interpolation(I, di, dj):
                   (dj-j0)*(di-i0)
 
     if I.ndim==3:
-        wa = np.repeat(wa[:, :, np.newaxis], I.shape[2], axis=2)
-        wb = np.repeat(wb[:, :, np.newaxis], I.shape[2], axis=2)
-        wc = np.repeat(wc[:, :, np.newaxis], I.shape[2], axis=2)
-        wd = np.repeat(wd[:, :, np.newaxis], I.shape[2], axis=2)
+        wa = np.repeat(np.atleast_3d(wa), I.shape[2], axis=2)
+        wb = np.repeat(np.atleast_3d(wb), I.shape[2], axis=2)
+        wc = np.repeat(np.atleast_3d(wc), I.shape[2], axis=2)
+        wd = np.repeat(np.atleast_3d(wd), I.shape[2], axis=2)
 
     I_new = wa*Ia + wb*Ib + wc*Ic + wd*Id
     return I_new
