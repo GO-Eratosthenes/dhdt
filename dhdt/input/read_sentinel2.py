@@ -347,9 +347,9 @@ def get_ul_coord_s2_from_root(root, resolution=10):
             (box.attrib['resolution']==str(resolution)):
             for field in box:
                 if field.tag=='ULX':
-                    ul_x = int(field.text)
+                    ul_x = float(field.text)
                 elif field.tag=='ULY':
-                    ul_y = int(field.text)
+                    ul_y = float(field.text)
     return ul_x, ul_y
 
 def get_geotransform_s2_from_root(root, resolution=10):
@@ -736,7 +736,7 @@ def get_view_angles_s2_from_root(root):
             dy = float(field.text)
     ul_x,ul_y = get_ul_coord_s2_from_root(root)
 
-    geoTransform = (ul_x, dx, 0, ul_y, 0, -dy,
+    geoTransform = (ul_x, dx, 0., ul_y, 0., -dy,
                     Zn_grd.shape[0], Zn_grd.shape[1])
 
     return Az_grd, Zn_grd, bnd, det, geoTransform

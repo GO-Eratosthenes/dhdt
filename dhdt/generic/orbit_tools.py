@@ -349,7 +349,7 @@ def ground_vec(Lat, Lon, eccentricity=None, major_axis=None):
     return Gx
 
 def _make_timing_system(IN,dX,dY,Ltime):
-    dX,dY,Ltime = are_three_arrays_equal(dX,dY,Ltime)
+    are_three_arrays_equal(dX,dY,Ltime)
     DX,DY,LT = dX[IN], dY[IN], Ltime[IN]
 
     lt = np.array([LT, DX*LT, DY*LT, DX*DY*LT])
