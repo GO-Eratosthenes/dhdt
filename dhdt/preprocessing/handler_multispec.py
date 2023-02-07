@@ -185,13 +185,13 @@ def read_shadow_bands(sat_path, band_num):
 
     Returns
     -------
-    Blue : np.array, size=(m,n), dtype=integer
+    Blue : numpy.ndarray, size=(m,n), dtype=integer
         blue band of satellite image
-    Green : np.array, size=(m,n), dtype=integer
+    Green : numpy.ndarray, size=(m,n), dtype=integer
         green band of satellite image
-    Red : np.array, size=(m,n), dtype=integer
+    Red : numpy.ndarray, size=(m,n), dtype=integer
         red band of satellite image
-    Near : np.array, size=(m,n), dtype=integer
+    Near : numpy.ndarray, size=(m,n), dtype=integer
         near-infrared band of satellite image   
     crs : string
         osr.SpatialReference in well known text
@@ -202,7 +202,7 @@ def read_shadow_bands(sat_path, band_num):
     Pan : 
         Panchromatic band
         
-        * np.array, size=(m,n), integer, 
+        * numpy.ndarray, size=(m,n), integer,
         * None if band does not exist
 
     """

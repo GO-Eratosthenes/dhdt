@@ -7,14 +7,14 @@ def mat_to_gray(I, notI=None, vmin=None, vmax=None):
 
     Parameters
     ----------
-    I : np.array, size=(m,n), dtype={integer,float}
+    I : numpy.ndarray, size=(m,n), dtype={integer,float}
         matrix of integers with data
-    notI : np.array, size=(m,n), dtype=bool
+    notI : numpy.ndarray, size=(m,n), dtype=bool
         matrix assigning which is a no data. The default is None.
 
     Returns
     -------
-    Inew : np.array, size=(m,n), dtype=float, range=0...1
+    Inew : numpy.ndarray, size=(m,n), dtype=float, range=0...1
         array with normalized intensity values
 
     See Also
@@ -57,14 +57,14 @@ def gamma_adjustment(I, gamma=1.0):
 
     Parameters
     ----------
-    I : np.array, size=(m,n), dtype=integer
+    I : numpy.ndarray, size=(m,n), dtype=integer
         array with intensity values
     gamma : float
         power law parameter
 
     Returns
     -------
-    I_new : np.array, size=(_,_)
+    I_new : numpy.ndarray, size=(m,n)
         array with transform
     """
     if I.dtype.type == np.uint8:
@@ -98,15 +98,15 @@ def gompertz_adjustment(I, a=None, b=None):
 
     Parameters
     ----------
-    I : np.array, size=(m,n), dtype=integer
+    I : numpy.ndarray, size=(m,n), dtype=integer
         array with intensity values
     a,b : float
         parameters for the Gompertz function
 
     Returns
     -------
-    I_new : np.array, size=(m,n)
-        array with transform
+    I_new : numpy.ndarray, size=(m,n)
+        grid with transform
     """
     if I.dtype.type == np.uint8:
         if (a is None) or (b is None):
@@ -125,13 +125,13 @@ def log_adjustment(I):
 
     Parameters
     ----------
-    I : np.array, size=(m,n)
-        array with intensity values
+    I : numpy.ndarray, size=(m,n)
+        grid with intensity values
 
     Returns
     -------
-    I_new : np.array, size=(_,_)
-        array with transform
+    I_new : numpy.ndarray, size=(m,n)
+        grid with transform
     """
     if I.dtype.type == np.uint8:
         radio_range = 2**8-1
@@ -151,13 +151,13 @@ def hyperbolic_adjustment(I, intercept):
 
     Parameters
     ----------
-    I : np.array, size=(m,n), dtype=float
-        array with intensity values
+    I : numpy.ndarray, size=(m,n), dtype=float
+        grid with intensity values
 
     Returns
     -------
-    I_new : np.array, size=(m,n), dtype=float, range=-1...+1
-        array with transform
+    I_new : numpy.ndarray, size=(m,n), dtype=float, range=-1...+1
+        grid with transform
     """
 
     bottom = np.min(I)
@@ -172,13 +172,13 @@ def inverse_tangent_transformation(x):
 
     Parameters
     ----------
-    x : np.array, size=(m,n)
-        array with intensity values
+    x : numpy.ndarray, size=(m,n)
+        grid with intensity values
 
     Returns
     -------
-    fx : np.array, size=(_,_)
-        array with transform
+    fx : numpy.ndarray, size=(_,_)
+        grid with transform
 
     Examples
     --------
@@ -197,12 +197,12 @@ def get_histogram(img):
 
     Parameters
     ----------
-    img : np.array, size=(m,n)
+    img : numpy.ndarray, size=(m,n)
         gray scale image array
 
     Returns
     -------
-    hist : np.array, size={(2**8,2), (2**16,2)}
+    hist : numpy.ndarray, size={(2**8,2), (2**16,2)}
         histogram array
     """
     assert img.ndim==2, ('please provide a 2D array')
@@ -221,12 +221,12 @@ def normalize_histogram(img):
 
     Parameters
     ----------
-    img : np.array, size=(m,n), dtype={uint8,unit16}
+    img : numpy.ndarray, size=(m,n), dtype={uint8,unit16}
         image array
 
     Returns
     -------
-    new_img : np.array, size=(m,n), dtype={uint8,unit16}
+    new_img : numpy.ndarray, size=(m,n), dtype={uint8,unit16}
         transfrormed image
 
     See Also

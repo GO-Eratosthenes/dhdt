@@ -69,7 +69,7 @@ def nan_resistant_conv2(I, kernel, size='same', cval=np.nan):
 
     Returns
     -------
-    U : np.array
+    U : numpy.ndarray
 
     References
     ----------

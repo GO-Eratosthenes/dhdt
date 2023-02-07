@@ -35,14 +35,14 @@ def estimate_surface_normals(Z, spac=10.):
 
     Parameters
     ----------
-    Z : np.array, size=(m,n)
+    Z : numpy.ndarray, size=(m,n)
         array with elevation values
     spac : float
         spacing between posts, (isotropic spacing is assumed, that is a square grid)
 
     Returns
     -------
-    normal : np.array, size=(m,n,3)
+    normal : numpy.ndarray, size=(m,n,3)
         array with unit vectors of the surface normal
     """
     dy, dx = np.gradient(Z, spac)
