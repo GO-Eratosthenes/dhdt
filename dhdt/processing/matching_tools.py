@@ -542,14 +542,14 @@ def get_value_at_template_centers(Grid, temp_size):
 
     Parameters
     ----------
-    Grid : {numpy.array, numpy.masked.array}, size=(m,n)
+    Grid : {numpy.array, numpy.masked.array}, size=(m,n), ndim={2,3}
         array with data values
     temp_size : integer
         size of the kernel in pixels
 
     Returns
     -------
-    grid_centers_values : np.array, size=(k,l)
+    grid_centers_values : np.array, size=(k,l), ndim={2,3}
         value of the pixel in the kernels' center
 
     See Also
@@ -561,7 +561,16 @@ def get_value_at_template_centers(Grid, temp_size):
     assert type(temp_size)==int, ("please provide an integer")
 
     Iidx, Jidx = get_coordinates_of_template_centers(Grid, temp_size)
-    grid_centers_values = Grid[Iidx, Jidx]
+    if (Grid.ndim == 3):
+        m,n = Iidx.shape
+        b = Grid.shape[2]
+        Iidx, Jidx = np.tile(np.atleast_3d(Iidx), (1,1,b)), \
+                     np.tile(np.atleast_3d(Jidx), (1,1,b))
+        Kidx = np.ones((m,n,b))
+        Kidx = np.einsum('k,ijk->ijk',np.linspace(0,b-1,b),Kidx).astype(int)
+        grid_centers_values = Grid[Iidx, Jidx, Kidx]
+    else:
+        grid_centers_values = Grid[Iidx, Jidx]
 
     return grid_centers_values
 

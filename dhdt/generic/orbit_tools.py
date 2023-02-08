@@ -1,6 +1,7 @@
 from osgeo import osr
 
 import numpy as np
+import pandas as pd
 
 from .mapping_tools import pix_centers, map2ll, ecef2llh, ll2map
 from .unit_check import correct_geoTransform, are_two_arrays_equal, \
@@ -130,6 +131,45 @@ def estimate_inclination_from_traj(XYZ,T):
 
 def calculate_correct_mapping(Zn_grd, Az_grd, bnd, det, grdTransform, crs,
                               sat_dict=None):
+    """
+
+    Parameters
+    ----------
+    Zn_grd, Az_grd : {numpy.ndarray, numpy.masked.array}, size=(k,l,h)
+        observation angles of the different detectors/bands
+    bnd : numpy.ndarray, size=(h,)
+        number of the band, corresponding to the third dimension of 'Zn_grd'
+    det : numpy.ndarray, size=(h,)
+        number of the detector, corresponding to the third dimension of 'Zn_grd'
+    grdTransform : tuple, size=(8,)
+        geotransform of the grid of 'Zn_grd' and 'Az_grd'
+    crs : osgeo.osr.SpatialReference() object
+        coordinate reference system (CRS)
+    sat_dict : dictonary
+        metadata of the satellite platform, preferably having the following
+        elements:
+            * 'inclination'
+            * 'revolutions_per_day'
+            * 'altitude'
+
+    Returns
+    -------
+    Ltime : numpy.ndarray, size=(p,), unit=seconds
+        asd
+    lat, lon : float, unit=degrees
+        ground location of the satelite at time 0
+    radius : float, unit=metre
+        distance away from Earths' center
+    inclination : unit=degrees
+        tilt of the orbital plane in relation to the equator
+    period : float, unit=seconds
+        time it takes to complete one revolution
+    time_para : numpy.ndarray, size=(p,b)
+        polynomial fitting parameters for the different bands (b)
+    combos : numpy.ndarray, size=(h,2)
+        combinations of band and detector pairs,
+        corresponding to the third dimension of 'Zn_grd'
+    """
     are_two_arrays_equal(Zn_grd,Az_grd)
     are_two_arrays_equal(bnd, det)
     grdTransform = correct_geoTransform(grdTransform)
@@ -168,26 +208,39 @@ def calculate_correct_mapping(Zn_grd, Az_grd, bnd, det, grdTransform, crs,
 def remap_observation_angles(Ltime, lat, lon, radius, inclination, period,
                              time_para, combos, X_grd, Y_grd, det_stack,
                              bnd_list, geoTransform, crs):
+    if type(bnd_list) in (pd.core.frame.DataFrame,):
+        bnd_list = np.asarray(bnd_list['bandid'])
+        bnd_list -= 1 # numbering of python starts at 0
     lat,lon = lat_lon_angle_check(lat,lon)
     are_two_arrays_equal(X_grd,Y_grd)
     geoTransform = correct_geoTransform(geoTransform)
 
-    m,n = X_grd.shape()
+    m,n = X_grd.shape
     #bnd_list = np.asarray(sat_df['bandid'])
 
     omega_0,lon_0 = _omega_lon_calculation(np.deg2rad(lat), np.deg2rad(lon),
                                            inclination)
 
     # reconstruct observation angles and sensing time
-    T, Zn, Az = np.zeros((m,n,bnd_list.size)), np.zeros((m,n,bnd_list.size)), \
-                np.zeros((m, n, bnd_list.size))
-    X_pix, Y_pix = pix_centers(geoTransform, make_grid=True)
+    b = bnd_list.size
+    if type(det_stack) in (np.ma.core.MaskedArray,):
+        T, Zn, Az = np.ma.zeros((m,n,b)), np.ma.zeros((m,n,b)), \
+                    np.ma.zeros((m,n,b))
+    else:
+        T, Zn, Az = np.zeros((m,n,b)), np.zeros((m,n,b)), \
+                    np.zeros((m,n,b))
     for idx, bnd in enumerate(bnd_list):
         doi = combos[:,0]==bnd
-        dT, Zen, Azi = np.zeros((m,n)), np.zeros((m,n)), np.zeros((m,n))
+        if type(det_stack) in (np.ma.core.MaskedArray,):
+            dT, Zen, Azi = -9999.*np.ma.ones((m,n)), \
+                           -9999.*np.ma.ones((m,n)),\
+                           -9999.*np.ma.ones((m,n))
+        else:
+            dT, Zen, Azi = np.zeros((m,n)), np.zeros((m,n)), np.zeros((m,n))
+
         for cnt, sca in enumerate(combos[doi,1]):
             IN = det_stack[...,idx]==sca
-            dX, dY = X_pix[IN]-geoTransform[0], geoTransform[3]-Y_pix[IN]
+            dX, dY = X_grd[IN]-geoTransform[0], geoTransform[3]-Y_grd[IN]
 
             # time stamps
             coef_id = np.where(np.logical_and(combos[:,0]==bnd,
@@ -200,7 +253,7 @@ def remap_observation_angles(Ltime, lat, lon, radius, inclination, period,
             Px = orbital_calculation(dt, radius, inclination, period,
                                      omega_0, lon_0) # satellite vector
 
-            ll_pix = map2ll(np.stack((X_pix[IN], Y_pix[IN]), axis=1), crs)
+            ll_pix = map2ll(np.stack((X_grd[IN], Y_grd[IN]), axis=1), crs)
             Gx = np.transpose(ground_vec(ll_pix[:, 0], ll_pix[:, 1]))  # ground vector
             del ll_pix, dt
 
@@ -208,22 +261,28 @@ def remap_observation_angles(Ltime, lat, lon, radius, inclination, period,
             Zen[IN], Azi[IN] = zn, az
             del Px,Gx
         # put estimates in stack
+
+        if type(det_stack) in (np.ma.core.MaskedArray,):
+            dT, Zen, Azi = np.ma.array(dT, mask=dT==-9999.), \
+                           np.ma.array(Zen, mask=Zen == -9999.), \
+                           np.ma.array(Azi, mask=Azi == -9999.)
         T[...,idx], Zn[...,idx], Az[...,idx] = dT, Zen, Azi
         del Zen, Azi
 
-    # find correct absolute timing
+    return Zn, Az, T
+
+def get_absolute_timing(lat,lon,T,sat_dict):
     Tbias = []
 
     sat_llh = ecef2llh(sat_dict['gps_xyz'])
 
     print('.')
 #    T, combos
-
-    return Zn, Az, T
+    return T_bias
 
 def acquisition_angles(Px,Gx):
-    """ given satellite and groujnd coordinates, estimate observation angles"""
-    are_two_arrays_equal(Px, Gy)
+    """ given satellite and ground coordinates, estimate observation angles"""
+    are_two_arrays_equal(Px, Gx)
 
     major_axis,minor_axis = earth_axes()
     Vx = Px - Gx  # observation vector
