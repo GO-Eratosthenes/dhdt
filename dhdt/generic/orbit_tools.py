@@ -268,7 +268,6 @@ def remap_observation_angles(Ltime, lat, lon, radius, inclination, period,
                            np.ma.array(Azi, mask=Azi == -9999.)
         T[...,idx], Zn[...,idx], Az[...,idx] = dT, Zen, Azi
         del Zen, Azi
-
     return Zn, Az, T
 
 def get_absolute_timing(lat,lon,sat_dict):

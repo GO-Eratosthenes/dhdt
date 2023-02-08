@@ -311,31 +311,40 @@ def construct_correlation_peak(I, di, dj, fwhm=3., origin='center'):
 
 # testing functions
 def test_phase_plane_localization(Q, di, dj, tolerance=1.):
+    """ test if an estimate is within bounds
+
+    Parameters
+    ----------
+    Q : numpy.array, size=(m,n), dtype=complex
+        cross-power spectrum
+    di,dj : {float, integer}, unit=pixels
+        displacement estimation
+    tolerance : float
+        absolute tolerance that is allowed
+    """
     C = np.fft.fftshift(np.real(np.fft.ifft2(Q)))
     di_hat,dj_hat,_,_ = get_integer_peak_location(C)
 
     assert np.isclose(np.round(di), di_hat, tolerance)
     assert np.isclose(np.round(dj), dj_hat, tolerance)
-
-    return (di-di_hat, dj-dj_hat)
+    return
 
 def test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=.1):
     assert np.isclose(di, di_hat, tolerance)
     assert np.isclose(dj, dj_hat, tolerance)
-
-    return (di_hat-di, dj_hat-dj)
+    return
 
 def test_phase_direction(theta, di, dj, tolerance=5):
-    tolerance = np.radians(tolerance)
-    theta = np.radians(theta)
+    tolerance = np.deg2radrad(tolerance)
+    theta = np.deg2rad(theta)
     theta_tilde = np.arctan2(di, dj)
 
     # convert to complex domain, so angular difference can be done
     a,b = 1j*np.sin(theta), 1j*np.sin(theta_tilde)
     a += np.cos(theta)
     b += np.cos(theta_tilde)
-
     assert np.isclose(a,b, tolerance)
+    return
 
 def test_normalize_power_spectrum(Q, tolerance=.001):
     # trigonometric version
@@ -345,3 +354,4 @@ def test_normalize_power_spectrum(Q, tolerance=.001):
 
     Qd = normalize_power_spectrum(Q)
     assert np.all(np.isclose(Qd,Qn, tolerance))
+    return

@@ -93,7 +93,7 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
           * 'refine' : move template to first estimate, and refine matching
           * 'stacking' : matching several bands and combine the result, see
                          also [2] for more details
-    boi : np.array
+    boi : numpy.array
         list of bands of interest
 
     Returns
@@ -217,9 +217,6 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
                 di,dj = np.zeros(b), np.zeros(b)
             m0 = np.array([di, dj])
 
-#            if np.logical_and(np.all(I1_sub!=0), np.all(I2_sub!=0)):
-#                print('all data in arrays')
-
             if processing in ['refine']: # reposition second template
                 if correlator in frequency_based:
                     I2_new = create_template_off_center(I2,
@@ -247,8 +244,6 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
                 si,sj,rho = estimate_precision(QC, di,dj,
                                                method='gaussian')
             score = estimate_match_metric(QC, di=di, dj=dj, metric=metric)
-#            if score>.7:
-#                print('.')
 
         # transform from local image to metric map system
         x2_new,y2_new = pix2map(geoTransformPad2,
@@ -263,13 +258,14 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
         else:
             X2_grd[idx_grd[0],idx_grd[1]] = x2_new
             Y2_grd[idx_grd[0],idx_grd[1]] = y2_new
-        if precision_estimate:
-            match_metric[idx_grd[0],idx_grd[1],0] = score
-            match_metric[idx_grd[0],idx_grd[1],1] = si
-            match_metric[idx_grd[0],idx_grd[1],2] = sj
-            match_metric[idx_grd[0],idx_grd[1],3] = rho
-        else:
-            match_metric[idx_grd[0],idx_grd[1]] = score
+
+        if not precision_estimate:
+            match_metric[idx_grd[0], idx_grd[1]] = score
+            continue
+        match_metric[idx_grd[0],idx_grd[1],0] = score
+        match_metric[idx_grd[0],idx_grd[1],1] = si
+        match_metric[idx_grd[0],idx_grd[1],2] = sj
+        match_metric[idx_grd[0],idx_grd[1],3] = rho
 
     if X2_grd.shape[2]==1:
         X2_grd,Y2_grd = np.squeeze(X2_grd), np.squeeze(Y2_grd)

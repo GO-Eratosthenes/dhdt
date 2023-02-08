@@ -18,6 +18,7 @@ def estimate_albedo(I, unit='angles', normalize=True):
     Returns
     -------
     albedo : unit=[], range=0...1
+        surface relfectivity
 
     References
     ----------
@@ -60,12 +61,23 @@ def linear_fourier_surface_estimation(I, tilt, slant):
 
     Parameters
     ----------
-    I
-    tilt
-    slant
+    I : numpy.array, size=(m,n)
+        grid with intensity values
+    tilt : float, unit=degrees, range=0...90
+        the angle between the illumination vector and Z-axis
+    slant : float, unit=degrees, range=-180...+180
+        the argument of the illumination projected onto the plane
+    iter : integer
+        maximum amount of iterations
 
     Returns
     -------
+    Z: numpy.array, size=(m,n)
+        grid with elevation values
+
+    See Also
+    --------
+    dhdt.processing.photoclinometric_functions.linear_reflectance_surface_estimation
 
     References
     ----------
@@ -85,7 +97,27 @@ def linear_fourier_surface_estimation(I, tilt, slant):
     return Z
 
 def global_surface_estimation(I, sun, albedo, kappa=1E3, iter=2.5E3):
+    """
 
+    Parameters
+    ----------
+    I : numpy.array, size=(m,n)
+        grid with intensity values
+    sun : numpy.array, size=(3,1), dtype=float, range=0...1
+        unit vector in the direction of the sun.
+    albedo : unit=[], range=0...1
+        surface reflectivity
+    kappa : float, default=1E3
+        smoothness parameter
+    iter : integer
+        maximum amount of iterations
+
+    Returns
+    -------
+    Z: numpy.array, size=(m,n)
+        grid with elevation values
+
+    """
     p,q = np.zeros_like(I), np.zeros_like(I)    # first order derivatives
     w = .25* np.ones((3,3))
     w.flat[::2] = 0
@@ -128,14 +160,23 @@ def linear_reflectance_surface_estimation(I, tilt, slant, iter=2.5E2):
 
     Parameters
     ----------
-    I
-    tilt
-    slant
-    iter
+    I : numpy.array, size=(m,n)
+        grid with intensity values
+    tilt : float, unit=degrees, range=0...90
+        the angle between the illumination vector and Z-axis
+    slant : float, unit=degrees, range=-180...+180
+        the argument of the illumination projected onto the plane
+    iter : integer
+        maximum amount of iterations
 
     Returns
     -------
-    Z
+    Z: numpy.array, size=(m,n)
+        grid with elevation values
+
+    See Also
+    --------
+    dhdt.processing.photoclinometric_functions.linear_fourier_surface_estimation
 
     References
     ----------
