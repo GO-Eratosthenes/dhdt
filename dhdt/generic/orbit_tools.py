@@ -271,13 +271,27 @@ def remap_observation_angles(Ltime, lat, lon, radius, inclination, period,
 
     return Zn, Az, T
 
-def get_absolute_timing(lat,lon,T,sat_dict):
-    Tbias = []
+def get_absolute_timing(lat,lon,sat_dict):
+    assert isinstance(sat_dict, dict), 'please provide a dictionary'
+    assert ('gps_xyz' in sat_dict.keys()), 'please include GPS metadata'
+    assert ('gps_tim' in sat_dict.keys()), 'please include GPS metadata'
+    lat, lon = lat_lon_angle_check(lat, lon)
 
+    cen_ll = np.array([lat, lon])
     sat_llh = ecef2llh(sat_dict['gps_xyz'])
+    ll_diff = sat_llh[:,:2] - cen_ll[None, :]
+    ll_dist = np.linalg.norm(ll_diff, axis=1)
 
-    print('.')
-#    T, combos
+    min_idx = np.argmin(ll_dist)
+    # sub-grid interpolation
+    dd = np.divide(ll_dist[min_idx+1]-ll_dist[min_idx-1],
+                   2*((2*ll_dist[min_idx])
+                      - ll_dist[min_idx-1] - ll_dist[min_idx+1]))
+
+    T = sat_dict['gps_tim']
+
+    dT = np.abs(T[min_idx]-T[int(min_idx+np.sign(dd))])
+    T_bias = T[min_idx] + dd*dT
     return T_bias
 
 def acquisition_angles(Px,Gx):
@@ -573,7 +587,7 @@ def orbital_fitting(Sat, Gx, lat=None, lon=None, radius=None, inclination=None,
         counter += 1
         print('RMS Orbit Fit (meters): ', orbrss)
         print('RMS Time Fit (seconds): ', rmstime)
-    lat_bar, lon_bar = np.rad2deg(lat_bar), np.rad2deg(lon_bar)
+    lat_bar, lon_bar = np.rad2deg(lat_bar[0]), np.rad2deg(lon_bar[0])
     return Ltime, lat_bar, lon_bar, radius, inclination, period
 
 def _omega_lon_calculation(lat, lon, inclination):

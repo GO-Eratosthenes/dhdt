@@ -385,10 +385,10 @@ def get_top_parabolic(C, top=np.array([]), ds=1):
 
     # estimate sub-pixel along each axis
     if ds==1: # use direct neighbours
-        ddi = (C[di+1,dj] - C[di-1,dj]) / \
-            2*( (2*C[di,dj]) -C[di-1,dj] -C[di+1,dj])
-        ddj = (C[di,dj+1] - C[di,dj-1]) / \
-            2*( (2*C[di,dj]) -C[di,dj-1] -C[di,dj+1])
+        ddi = np.divide(C[di+1,dj] - C[di-1,dj],
+                        2*( (2*C[di,dj]) -C[di-1,dj] -C[di+1,dj]))
+        ddj = np.divide((C[di,dj+1] - C[di,dj-1]) ,
+                        2*( (2*C[di,dj]) -C[di,dj-1] -C[di,dj+1]))
     else: # use five points, from [3]
         ddi = np.divide( 7*( (2*C[di+2,dj]) +C[di+1,dj]
                             -C[di-1,dj] -(2*C[di-2,dj])),
@@ -445,14 +445,18 @@ def get_top_equiangular(C, top=np.array([])):
         return 0,0, i_int,j_int
     # estimate sub-pixel along each axis
     if C[di+1,dj]<C[di-1,dj]:
-        ddi = .5* (C[di+1,dj]-C[di-1,dj])/(C[di,dj]-C[di-1,dj])
+        ddi = .5* np.divide(C[di+1,dj]-C[di-1,dj],
+                            C[di,dj]  -C[di-1,dj])
     else:
-        ddi = .5* (C[di+1,dj]-C[di-1,dj])/(C[di,dj]-C[di+1,dj])
+        ddi = .5* np.divide(C[di+1,dj]-C[di-1,dj],
+                            C[di,dj]  -C[di+1,dj])
 
     if C[di,dj+1]<C[di,dj-1]:
-        ddj = .5* (C[di,dj+1]-C[di,dj-1])/(C[di,dj]-C[di,dj-1])
+        ddj = .5* np.divide(C[di,dj+1]-C[di,dj-1],
+                            C[di,dj]  -C[di,dj-1])
     else:
-        ddj = .5* (C[di,dj+1]-C[di,dj-1])/(C[di,dj]-C[di,dj+1])
+        ddj = .5* np.divide(C[di,dj+1]-C[di,dj-1],
+                            C[di,dj]  -C[di,dj+1])
 
     return ddi,ddj, i_int,j_int
 
@@ -550,11 +554,13 @@ def get_top_ren(C, top=np.array([])):
 
     # estimate sub-pixel along each axis
     D_i = C[di+1,dj] - C[di-1,dj]
-    ddi = np.sign(D_i)/(1 + ( C[di,dj] / np.abs(D_i) ))
-
+    ddi = np.divide(np.sign(D_i),
+                    1 + np.divide(C[di,dj], np.abs(D_i))
+                    )
     D_j = C[di,dj+1] - C[di,dj-1]
-    ddj = np.sign(D_j)/(1 + ( C[di,dj] / np.abs(D_j) ))
-
+    ddj = np.divide(np.sign(D_j),
+                    1 + np.divide(C[di,dj], np.abs(D_j))
+                    )
     return ddi,ddj, i_int,j_int
 
 def get_top_triangular(C, top=np.array([])):
@@ -599,12 +605,12 @@ def get_top_triangular(C, top=np.array([])):
     I_m,I_p = C[di-1,dj], C[di+1,dj]
     I_min,I_max = np.amin([I_m, I_p]), np.amax([I_m, I_p])
     I_sign = 2*(I_p>I_m)-1
-    ddi = I_sign * (1- (I_max-I_min)/(C[di,dj]-I_min) )
+    ddi = I_sign * np.divide(1- (I_max-I_min), C[di,dj]-I_min)
 
     I_m,I_p = C[di,dj-1], C[di,dj+1]
     I_min,I_max = np.amin([I_m, I_p]), np.amax([I_m, I_p])
     I_sign = 2*(I_p>I_m)-1
-    ddj = I_sign * (1- (I_max-I_min)/(C[di,dj]-I_min) )
+    ddj = I_sign * np.divide(1- (I_max-I_min), C[di,dj]-I_min)
 
     return ddi, ddj, i_int,j_int
 
@@ -726,8 +732,8 @@ def get_top_2d_gaussian(C, top=np.array([])):
     c_20 = (1/6)*np.sum(((3*Isub**2) -2)*Clog)
     c_02 = (1/6)*np.sum(((3*Jsub**2) -2)*Clog)
 
-    ddj = ((c_11*c_10)-(2*c_01*c_20))/((4*c_20*c_02)-(c_11**2))
-    ddi = ((c_11*c_01)-(2*c_10*c_02))/((4*c_20*c_02)-(c_11**2))
+    ddj = np.divide((c_11*c_10)-(2*c_01*c_20), (4*c_20*c_02)-(c_11**2))
+    ddi = np.divide((c_11*c_01)-(2*c_10*c_02), (4*c_20*c_02)-(c_11**2))
 
     return ddi,ddj, i_int,j_int
 
@@ -782,9 +788,6 @@ def get_top_paraboloid(C, top=np.array([])):
     b = a_4 + a_5 - a_1 - a_1
     c = a_2 + a_3 - a_1 - a_1
 
-    ddj = (-a*(a_4-a_5) + b*(a_2-a_3)) / \
-        ((2*a*a) - (2*b*c))
-    ddi = (-a*(a_2-a_3) + b*(a_4-a_5)) / \
-        ((2*a*a) - (2*b*c))
-
+    ddj = np.divide( -a*(a_4-a_5) + b*(a_2-a_3), (2*a*a) - (2*b*c))
+    ddi = np.divide( -a*(a_2-a_3) + b*(a_4-a_5), (2*a*a) - (2*b*c))
     return ddi,ddj, i_int,j_int
