@@ -12,7 +12,8 @@ from scipy import ndimage
 
 from .attitude_tools import rot_mat
 from .handler_im import get_grad_filters
-from .unit_check import correct_geoTransform, are_two_arrays_equal
+from .unit_check import correct_geoTransform, are_two_arrays_equal, \
+    correct_floating_parameter
 
 def cart2pol(x, y):
     """ transform Cartesian coordinate(s) to polar coordinate(s)
@@ -158,7 +159,10 @@ def pix2map(geoTransform, i, j):
 
     """
     geoTransform = correct_geoTransform(geoTransform)
-    are_two_arrays_equal(i,j)
+    if type(i) in (np.ma.core.MaskedArray, np.ndarray):
+        are_two_arrays_equal(i, j)
+    else: # if only a float is given
+        i,j = correct_floating_parameter(i), correct_floating_parameter(j)
 
     x = geoTransform[0] + \
         np.multiply(geoTransform[1], j) + np.multiply(geoTransform[2], i)
@@ -212,7 +216,11 @@ def map2pix(geoTransform, x, y):
 
     """
     geoTransform = correct_geoTransform(geoTransform)
-    are_two_arrays_equal(x, y)
+
+    if type(x) in (np.ma.core.MaskedArray, np.ndarray):
+        are_two_arrays_equal(x, y)
+    else: # if only a float is given
+        x,y = correct_floating_parameter(x), correct_floating_parameter(y)
 
     def _zero_div(a, b):
         return a/b if b else 0
@@ -266,7 +274,10 @@ def vel2pix(geoTransform, dx, dy):
 
     """
     geoTransform = correct_geoTransform(geoTransform)
-    are_two_arrays_equal(dx, dy)
+    if type(dx) in (np.ma.core.MaskedArray, np.ndarray):
+        are_two_arrays_equal(dx, dy)
+    else:
+        dx,dy = correct_floating_parameter(dx), correct_floating_parameter(dy)
 
     if geoTransform[2] == 0:
         dj = dx / geoTransform[1]
@@ -599,7 +610,8 @@ def ref_trans(geoTransform, dI, dJ):
           based      v           based       |
     """
     geoTransform = correct_geoTransform(geoTransform)
-    are_two_arrays_equal(dI, dJ)
+    dI, dJ = correct_floating_parameter(dI), correct_floating_parameter(dJ)
+
     newTransform = (geoTransform[0]+ dJ*geoTransform[1] + dI*geoTransform[2],
                     geoTransform[1], geoTransform[2],
                     geoTransform[3]+ dJ*geoTransform[4] + dI*geoTransform[5],
@@ -645,7 +657,12 @@ def ref_scale(geoTransform, scaling):
 def ref_update(geoTransform, rows, cols):
     geoTransform = correct_geoTransform(geoTransform)
     rows, cols = int(rows), int(cols)
-    geoTransform = geoTransform + (rows, cols,)
+    if len(geoTransform)==6:
+        geoTransform = geoTransform + (rows, cols,)
+    elif len(geoTransform)==8: # replace last elements
+        gt_list = list(geoTransform)
+        gt_list[-2:] = [rows, cols]
+        geoTransform = tuple(gt_list)
     return geoTransform
 
 def aff_trans_template_coord(A, t_radius, fourier=False):

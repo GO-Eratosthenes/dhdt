@@ -14,9 +14,11 @@ def list_platform_metadata_tr():
         'COSPAR': '1999-068A',
         'NORAD': 25994,
         'instruments': {'ASTER','MODIS','MISR'},
-        'launch': '1999-12-18',
+        'launch_date': '1999-12-18',
         'constellation': 'landsat',
         'orbit': 'sso',
+        'mass': 4864.,  # [kg]
+        'inclination': 98.1105,  # https://www.n2yo.com/satellite/?s=25994
         'equatorial_crossing_time': '10:30'}
     return tr_dict
 

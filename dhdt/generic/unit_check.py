@@ -46,6 +46,19 @@ def correct_geoTransform(geoTransform):
         assert all(n>=0 for n in geoTransform[-2:])
     return geoTransform
 
+def correct_floating_parameter(a):
+    # it is possible that a numpy array is given
+    if type(a) in (np.ma.core.MaskedArray, np.ndarray):
+        assert a.size==1, 'please provide one parameter'
+        a = a[0]
+    if type(a) in (list, tuple):
+        assert len(a)==1, 'please provide one parameter'
+        a = a[0]
+
+    assert isinstance(a, (int, float)), 'please provide an integer'
+    if isinstance(a, int): a = float(a)
+    return a
+
 def are_two_arrays_equal(A, B):
     assert type(A) in (np.ma.core.MaskedArray, np.ndarray), \
         ('please provide an array')

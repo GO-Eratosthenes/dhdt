@@ -445,7 +445,7 @@ def L0_smoothing(I, lamb=2E-2, kappa=2., beta_max=1E5):
     D_2 = np.abs(dx_F) ** 2 + np.abs(dy_F) ** 2
 
     if b>1:
-        dx, dy = np.tile(np.atleast_3d(dx), (1,1,b)),
+        dx, dy = np.tile(np.atleast_3d(dx), (1,1,b)),\
                  np.tile(np.atleast_3d(dy), (1,1,b))
         D_2 = np.tile(np.atleast_3d(D_2), (1,1,b))
 
