@@ -1,6 +1,6 @@
 modules
 =======
 
-.. include:: generic.rst
-.. include:: input.rst
-.. include:: preprocessing.rst
+.. include:: modules/generic.rst
+.. include:: modules/input.rst
+.. include:: modules/preprocessing.rst

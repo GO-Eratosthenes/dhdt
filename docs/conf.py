@@ -41,7 +41,10 @@ import dhdt
 extensions = ['nbsphinx', 'sphinx.ext.autodoc', 'sphinx.ext.napoleon','sphinx_gallery.load_style']
 
 #nbsphinx_thumbnails = {
-#    'gallery/shd-tran': '_thumbnails/shd-tran.jpg',
+#    'gallery/std-matc': '_thumbnails/std-matc.png',
+#    'gallery/shd-enhc': '_thumbnails/shd-enhc.png',
+#    'gallery/shd-tran': '_thumbnails/shd-tran.png',
+#    'gallery/shd-det': '_thumbnails/shd-det.png',
 #    'gallery/*-rst': '_static/copy-button.svg',
 #}
 
