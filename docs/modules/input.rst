@@ -4,7 +4,7 @@ input
 read Sentinel-2 (meta)data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 Sentinel-2 is a high-resolution (10-60 m) multi-spectral satellite constellation
-from European Spavce Agency and the European Union. The following functions make
+from European Space Agency and the European Union. The following functions make
 is easier to read such data.
 
 .. automodule:: dhdt.input.read_sentinel2

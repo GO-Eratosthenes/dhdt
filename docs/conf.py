@@ -39,6 +39,12 @@ import dhdt
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['nbsphinx', 'sphinx.ext.autodoc', 'sphinx.ext.napoleon','sphinx_gallery.load_style']
+
+#nbsphinx_thumbnails = {
+#    'gallery/shd-tran': '_thumbnails/shd-tran.jpg',
+#    'gallery/*-rst': '_static/copy-button.svg',
+#}
+
 suppress_warnings = ['ref.citation', 'ref.ref']
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
