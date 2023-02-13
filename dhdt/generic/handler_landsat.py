@@ -4,6 +4,19 @@ from osgeo import ogr, osr, gdal
 
 import geopandas
 
+def get_wrs_url(version=2):
+    """ get the location where the geometric data of Landsats path-row
+    footprints are situated
+
+    References
+    ----------
+    .. [1] https://www.usgs.gov/media/files/landsat-wrs-2-descending-path-row-shapefile
+    """
+    wrs_url = 'https://d9-wret.s3.us-west-2.amazonaws.com/assets/palladium/' + \
+              'production/s3fs-public/atoms/files/' + \
+              'WRS2_descending_' + str(version) + '.zip'
+    return wrs_url
+
 def get_bbox_from_path_row(path, row,
                            shp_dir='/Users/Alten005/surfdrive/Eratosthenes/SatelliteTiles',
                            shp_name='wrs2_descending.shp'):

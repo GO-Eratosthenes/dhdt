@@ -16,7 +16,9 @@ def list_platform_metadata_l7():
         'instruments': {'ETM+'},
         'launch': '1999-04-15',
         'constellation': 'landsat',
-        'orbit': 'sso'}
+        'orbit': 'sso',
+        'revolutions_per_day': 14 + 9/16,
+    }
     return l7_dict
 
 def list_platform_metadata_l8():
@@ -28,6 +30,7 @@ def list_platform_metadata_l8():
         'constellation': 'landsat',
         'launch': '2013-02-11',
         'orbit': 'sso',
+        'revolutions_per_day': 14 + 9/16,
         'equatorial_crossing_time': '10:11'}
     return l8_dict
 
@@ -39,6 +42,7 @@ def list_platform_metadata_l9():
         'constellation': 'landsat',
         'launch': '2021-09-27',
         'orbit': 'sso',
+        'revolutions_per_day': 14 + 9/16,
         'equatorial_crossing_time': '10:00'}
     return l9_dict
 

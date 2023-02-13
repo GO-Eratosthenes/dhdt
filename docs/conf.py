@@ -38,13 +38,19 @@ import dhdt
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['nbsphinx', 'sphinx.ext.autodoc', 'sphinx.ext.napoleon','sphinx_gallery.load_style']
+extensions = [
+	'nbsphinx', 
+	'sphinx.ext.autodoc', 
+	'sphinx.ext.napoleon',
+	'sphinx_gallery.load_style'
+]
 
 nbsphinx_thumbnails = {
-#    'tutorials/std-matc': '_static/std-matc.png',
+    'tutorials/std-matc': '_static/std-matc.png',
     'tutorials/shadow-enhancement': '_static/shd-enhc.png',
     'tutorials/shadow-finding': '_static/shd-det.png',
     'tutorials/shadow-detection': '_static/shd-tran.png',
+    'tutorials/copDEM-for-s2-tile': '_static/s2-cop.png',
 #    'gallery/*-rst': '_static/copy-button.svg',
 }
 

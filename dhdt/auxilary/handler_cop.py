@@ -128,7 +128,7 @@ def get_copDEM_filestructure(tmp_path, cds_sso, cds_pw,
     References
     ----------
     .. [1] https://www.dgiwg.org/dgiwg-standards/250
-    .. [2] https://spacedata.copernicus.eu/cop-dem-faq
+    .. [2] https://spacedata.copernicus.eu/
     """
     cds_path = get_cds_path_copDEM(type=type, resolution=resolution,
                                    year=year, version=version)
@@ -420,6 +420,10 @@ def download_and_mosaic_through_ftps(file_list, tmp_path, cds_url, cds_path,
     dem_clip : DataArray object
         retiled DEM
     """
+    print('Great you use CopernicusDEM, if you do use this data for ' +
+          'products, publications, repositories, etcetera. \n' +
+          'Please make sure you cite via the following doi: ' +
+          'https://doi.org/10.5270/ESA-c5d3d65')
     with tempfile.TemporaryDirectory(dir=tmp_path) as tmpdir:
     
         for file_name in file_list:
@@ -432,7 +436,6 @@ def download_and_mosaic_through_ftps(file_list, tmp_path, cds_url, cds_path,
             tar_file.extractall(members=copDEM_files(tar_file), 
                                 path=tmpdir)
             tar_file.close()
-            
             
         dem_tiles_filename = pathlib.Path(tmpdir).glob("**/*_DEM.tif")
         dem_clip = mosaic_tiles(dem_tiles_filename, bbox, crs, geoTransform)
