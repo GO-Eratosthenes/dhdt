@@ -5,7 +5,7 @@ import ftps
 import rioxarray
 
 from dhdt.generic.handler_www import get_file_from_ftps
-from dhdt.generic.handler_cop import \
+from dhdt.auxilary.handler_cop import \
     get_copDEM_s2_tile_intersect_list, download_and_mosaic_through_ftps, \
     get_cds_path_copDEM, get_cds_url
 from dhdt.generic.mapping_io import read_geo_info

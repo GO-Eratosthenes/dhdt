@@ -21,10 +21,10 @@ from affine import Affine
 import shapely.geometry
 
 # import local functions
-from .handler_www import get_file_from_ftps
-from .mapping_io import read_geo_info
-from .mapping_tools import get_bbox, get_shape_extent
-from .handler_sentinel2 import get_crs_from_mgrs_tile, _check_mgrs_code
+from dhdt.generic.handler_www import get_file_from_ftps
+from dhdt.generic.mapping_io import read_geo_info
+from dhdt.generic.mapping_tools import get_bbox, get_shape_extent
+from dhdt.generic.handler_sentinel2 import get_crs_from_mgrs_tile, _check_mgrs_code
 
 def get_itersecting_DEM_tile_names(index, geometry):
     """
