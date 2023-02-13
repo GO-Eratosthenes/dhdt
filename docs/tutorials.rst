@@ -2,5 +2,6 @@ tutorials
 =========
 
 .. nbgallery::
-   tutorials/dispersion
-   tutorials/25042022
+   tutorials/shadow-detection
+   tutorials/shadow-enhancement
+   tutorials/shadow-finding

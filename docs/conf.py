@@ -40,13 +40,14 @@ import dhdt
 # ones.
 extensions = ['nbsphinx', 'sphinx.ext.autodoc', 'sphinx.ext.napoleon','sphinx_gallery.load_style']
 
-#nbsphinx_thumbnails = {
-#    'gallery/std-matc': '_thumbnails/std-matc.png',
-#    'gallery/shd-enhc': '_thumbnails/shd-enhc.png',
-#    'gallery/shd-tran': '_thumbnails/shd-tran.png',
-#    'gallery/shd-det': '_thumbnails/shd-det.png',
+nbsphinx_thumbnails = {
+#    'tutorials/std-matc': '_static/std-matc.png',
+    'tutorials/shadow-enhancement': '_static/shd-enhc.png',
+    'tutorials/shadow-finding': '_static/shd-det.png',
+    'tutorials/shadow-detection': '_static/shd-tran.png',
 #    'gallery/*-rst': '_static/copy-button.svg',
-#}
+}
+
 
 suppress_warnings = ['ref.citation', 'ref.ref']
 # Add any paths that contain templates here, relative to this directory.

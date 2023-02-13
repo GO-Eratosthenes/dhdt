@@ -3,6 +3,7 @@ preprocessing
 
 image transforms
 ~~~~~~~~~~~~~~~~
+functions adjusting the gray scale of an image
 
 .. automodule:: dhdt.preprocessing.image_transforms
     :members:
