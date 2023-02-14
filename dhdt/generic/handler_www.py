@@ -57,6 +57,7 @@ def get_file_from_www(full_url, dump_dir=os.getcwd()):
     """
     assert url_exist(full_url)
     file_name = full_url.split('/')[-1]
+    os.makedirs(dump_dir, exist_ok=True)
 
     # download data
     urllib.request.urlretrieve(full_url, os.path.join(dump_dir, file_name))
