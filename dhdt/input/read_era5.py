@@ -14,16 +14,16 @@ from ..generic.unit_conversion import \
 
 # https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-pressure-levels
 
-def get_space_time_id(date, lat, lon, full=True):
+def get_space_time_id(date, ϕ, λ, full=True):
     """
 
     Parameters
     ----------
     date : np.datetime64
         times of interest
-    lat : float, unit=degrees, range=-90...+90
+    ϕ : float, unit=degrees, range=-90...+90
         central latitude of interest
-    lon : float, unit=degrees, range=-180...+180
+    λ : float, unit=degrees, range=-180...+180
         central longitude of interest
     full : boolean
         give the whole date, otherwise only the year will be given
@@ -35,13 +35,13 @@ def get_space_time_id(date, lat, lon, full=True):
     """
 
     # construct part of string about the location
-    fname = str(np.floor(np.abs(lat)).astype(int)).zfill(2)
-    fname += 'S' if lat<0 else 'N'
-    fname += f'{1 - lat%1:.3f}'[2:]
+    fname = str(np.floor(np.abs(ϕ)).astype(int)).zfill(2)
+    fname += 'S' if ϕ<0 else 'N'
+    fname += f'{1 - ϕ%1:.3f}'[2:]
 
-    fname += '-' + str(np.floor(np.abs(lon)).astype(int)).zfill(3)
-    fname += 'W' if lon<0 else 'E'
-    fname += f'{1 - lon % 1:.3f}'[2:]
+    fname += '-' + str(np.floor(np.abs(λ)).astype(int)).zfill(3)
+    fname += 'W' if λ<0 else 'E'
+    fname += f'{1 - λ % 1:.3f}'[2:]
 
     # construct part of string about the date
     year, month, day = datetime2calender(date)
@@ -96,7 +96,7 @@ def get_pressure_from_grib_file(fname='download.grib'):
 
     Returns
     -------
-    lat, lon: {float, numpy.ndarray}, size={1,k}, unit=degrees
+    ϕ, λ: {float, numpy.ndarray}, size={1,k}, unit=degrees
         location of datapoints
     G, Rh, T : numpy.ndarray, size={m,k,l}
         data arrays at a specific place and time
@@ -119,7 +119,7 @@ def get_pressure_from_grib_file(fname='download.grib'):
             G = np.zeros((m,n,1),
                          dtype=np.float64)
             Rh, T = np.zeros_like(G), np.zeros_like(G)
-            lat, lon = grb['latitudes'], grb['longitudes']
+            ϕ, λ = grb['latitudes'], grb['longitudes']
             t = np.array([toi])
 
         t_IN = t==toi # is date already visited before
@@ -142,7 +142,7 @@ def get_pressure_from_grib_file(fname='download.grib'):
 
 #    if t.size==1:
 #        G, Rh, T = np.squeeze(G), np.squeeze(Rh), np.squeeze(T)
-    return lat, lon, G, Rh, T, t
+    return ϕ, λ, G, Rh, T, t
 
 def get_wind_from_grib_file(fname='download.grib', pres_level=1000):
     pres_levels = get_era5_pressure_levels()
@@ -157,7 +157,7 @@ def get_wind_from_grib_file(fname='download.grib', pres_level=1000):
         if T is None:
             T = np.zeros((len(pres_levels), grb['numberOfDataPoints']))
             Rh, U, V = np.zeros_like(T), np.zeros_like(T), np.zeros_like(T)
-            lat, lon = grb['latitudes'], grb['longitudes']
+            ϕ, λ = grb['latitudes'], grb['longitudes']
 
         if grb['parameterName']=='Geopotential':
             U[idx,:] = grb['values']
@@ -168,7 +168,7 @@ def get_wind_from_grib_file(fname='download.grib', pres_level=1000):
         elif grb['parameterName']=='Temperature':
             T[idx,:] = grb['values']
     grbs.close()
-    return lat, lon, U, V, Rh, T
+    return ϕ, λ, U, V, Rh, T
 
 def get_era5_atmos_profile(date, x, y, spatialRef,
                            z=10**np.linspace(0,5,100)):
@@ -187,7 +187,7 @@ def get_era5_atmos_profile(date, x, y, spatialRef,
 
     Returns
     -------
-    lat, lon : np.array(), unit=degrees
+    ϕ, λ : np.array(), unit=degrees
         latitude and longitude of the ERA5 nodes
     z : np.array, unit=meter
         altitudes of interest
@@ -237,8 +237,8 @@ def get_era5_atmos_profile(date, x, y, spatialRef,
     # convert from mapping coordinates to lat, lon
     ll = map2ll(np.stack((x, y)).T, spatialRef)
 
-    lat_min, lon_min = np.min(ll[:,0]), np.min(ll[:,1])
-    lat_max, lon_max = np.max(ll[:,0]), np.max(ll[:,1])
+    ϕ_min, λ_min = np.min(ll[:,0]), np.min(ll[:,1])
+    ϕ_max, λ_max = np.max(ll[:,0]), np.max(ll[:,1])
 
     fname = get_space_time_id(date, np.mean(ll[:,0]), np.mean(ll[:,1]))
     fname += '.grib' # using grib-data format
@@ -260,13 +260,12 @@ def get_era5_atmos_profile(date, x, y, spatialRef,
                 str(hour+1).zfill(2)+':00',
             ],
             'area': [
-                lat_max, lon_min, lat_min,
-                lon_max,
+                ϕ_max, λ_min, ϕ_min, λ_max,
             ],
         },
         fname)
 
-    lat, lon, G, Rh, T, t = get_pressure_from_grib_file(fname=fname)
+    ϕ, λ, G, Rh, T, t = get_pressure_from_grib_file(fname=fname)
     os.remove(fname)
 
     # extract atmospheric profile, see also
@@ -288,18 +287,18 @@ def get_era5_atmos_profile(date, x, y, spatialRef,
     Pres = hpa2pascal(Pres)
     fracHum = RelHum/100
     t = datenum2datetime(t)
-    return lat, lon, z, Temp, Pres, fracHum, t
+    return ϕ, λ, z, Temp, Pres, fracHum, t
 
-def get_era5_monthly_surface_wind(lat,lon,year):
+def get_era5_monthly_surface_wind(ϕ,λ,year):
 
     fname = get_space_time_id(np.array([year-1970]).astype('datetime64[Y]')[0],
-                              lat, lon, full=False)
+                              ϕ, λ, full=False)
     fname += '.grib' # using grib-data format
 
     # era5 reanalysis grid is in .25[deg]
     deg_xtr = .5
-    lat_min, lat_max = lat-deg_xtr, lat+deg_xtr
-    lon_min, lon_max = lon-deg_xtr, lon+deg_xtr
+    ϕ_min, ϕ_max = ϕ-deg_xtr, ϕ+deg_xtr
+    λ_min, λ_max = λ-deg_xtr, λ+deg_xtr
 
     # retrieve data
     c = cdsapi.Client()
@@ -317,11 +316,11 @@ def get_era5_monthly_surface_wind(lat,lon,year):
             'month': ['01', '02', '03', '04', '05', '06',
                       '07', '08', '09', '10', '11', '12', ],
             'area': [
-                lat_max, lon_min, lat_min, lon_max,
+                ϕ_max, λ_min, ϕ_min, λ_max,
             ],
         },
         fname)
-    lat, lon, U, V, Rh, T = get_wind_from_grib_file(fname=fname)
+    ϕ, λ, U, V, Rh, T = get_wind_from_grib_file(fname=fname)
     os.remove(fname)
 
     return U,V, Rh, T

@@ -7,7 +7,7 @@ from matplotlib.patches import Ellipse
 from .image_io import output_image
 from ..generic.mapping_tools import covar2err_ellipse
 
-def plot_displacement_vectors(X, Y, U, V, U_err, V_err, rho_err, ax=None,
+def plot_displacement_vectors(X, Y, U, V, U_err, V_err, ρ_err, ax=None,
                               scaling=(10, 100), sampling=10, dots=True,
                               M=None):
     """
@@ -21,7 +21,7 @@ def plot_displacement_vectors(X, Y, U, V, U_err, V_err, rho_err, ax=None,
         grid with horizontal and vertical displacements
     U_err,V_err : numpy.ndarray, size=(m,n)
         grid with horizontal and vertical precision estimate
-    rho_err : numpy.ndarray, size=(m,n)
+    ρ_err : numpy.ndarray, size=(m,n)
         grid with orientation of error ellipse
     scaling : list of floats, default=(10.,100.)
         scaling of the displacement vectors and the error ellipses
@@ -59,12 +59,12 @@ def plot_displacement_vectors(X, Y, U, V, U_err, V_err, rho_err, ax=None,
                  '-k', alpha=.5)
 
         # orientation of the ellipse
-        lam_1,lam_2,theta = covar2err_ellipse(U_err[idxs[0][cnt],idxs[1][cnt]],
+        lam_1,lam_2,θ = covar2err_ellipse(U_err[idxs[0][cnt],idxs[1][cnt]],
                                               V_err[idxs[0][cnt],idxs[1][cnt]],
-                                              rho_err[idxs[0][cnt],idxs[1][cnt]]
+                                              ρ_err[idxs[0][cnt],idxs[1][cnt]]
                                               )
         ell = Ellipse((X_end, Y_end), width=lam_1*scaling[1],
-                      height=lam_2*scaling[1], angle=theta,
+                      height=lam_2*scaling[1], angle=θ,
                       facecolor='none', edgecolor='black')
         ax.add_patch(ell)
     return ax

@@ -25,9 +25,9 @@ def cart2pol(x, y):
 
     Returns
     -------
-    rho : {float, numpy.ndarray}
+    ρ : {float, numpy.ndarray}
         radius of the vector
-    phi : {float, numpy.ndarray}, unit=radians
+    φ : {float, numpy.ndarray}, unit=radians
         argument of the vector
 
     See Also
@@ -36,18 +36,18 @@ def cart2pol(x, y):
     cart2pol : inverse function
     """
     are_two_arrays_equal(x, y)
-    rho = np.hypot(x, y)
-    phi = np.arctan2(y, x)
-    return rho, phi
+    ρ = np.hypot(x, y)
+    φ = np.arctan2(y, x)
+    return ρ, φ
 
-def pol2cart(rho, phi):
+def pol2cart(ρ, φ):
     """ transform polar coordinate(s) to Cartesian coordinate(s)
 
     Parameters
     ----------
-    rho : {float, numpy.ndarray}
+    ρ : {float, numpy.ndarray}
         radius of the vector
-    phi : {float, numpy.ndarray}, unit=radians
+    φ : {float, numpy.ndarray}, unit=radians
         argument of the vector
 
     Returns
@@ -60,10 +60,10 @@ def pol2cart(rho, phi):
     pol2xyz : equivalent function, but for three dimensions
     cart2pol : inverse function
     """
-    rho, phi = are_two_arrays_equal(rho, phi)
+    are_two_arrays_equal(ρ, φ)
 
-    x = rho * np.cos(phi)
-    y = rho * np.sin(phi)
+    x = ρ * np.cos(φ)
+    y = ρ * np.sin(φ)
     return x, y
 
 def pol2xyz(Az, Zn):
@@ -319,8 +319,8 @@ def ecef2llh(xyz):
     llh = np.stack(llh, axis=0)
     return llh
 
-def get_utm_zone_simple(lon):
-    return ((np.floor((lon + 180) / 6) % 60) + 1).astype(int)
+def get_utm_zone_simple(λ):
+    return ((np.floor((λ + 180) / 6) % 60) + 1).astype(int)
 
 def ll2map(ll, spatialRef):
     """ transforms angles to map coordinates (that is 2D) in a projection frame
@@ -426,21 +426,21 @@ def rot_covar(V, R):
     V_r = R @ V @ np.transpose(R)
     return V_r
 
-def covar2err_ellipse(sigma_1, sigma_2, rho):
+def covar2err_ellipse(sigma_1, sigma_2, ρ):
     """ parameter transform from co-variance matrix to standard error-ellipse
 
     Parameters
     ----------
     sigma_1, sigma_2 : float
         variance along each axis
-    rho : float
+    ρ : float
         dependency between axis
 
     Returns
     -------
     lambda_2, lambda_2 : float
         variance along major and minor axis
-    theta : float, unit=degrees
+    θ : float, unit=degrees
         orientation of the standard ellipse
 
     References
@@ -452,25 +452,25 @@ def covar2err_ellipse(sigma_1, sigma_2, rho):
     # intermediate variables
     s1s2_min = sigma_1**2 - sigma_2**2
     s1s2_plu = sigma_1**2 + sigma_2**2
-    s1s2r = sigma_1 * sigma_2 * rho
+    s1s2r = sigma_1 * sigma_2 * ρ
     lamb = np.sqrt(np.divide(s1s2_min**2,4) + s1s2r)
     lambda_1 = s1s2_plu/2 + lamb                            # eq.5 in [1]
     lambda_2 = s1s2_plu/2 - lamb
-    theta = np.rad2deg(np.arctan2(2*s1s2r, s1s2_min) / 2)   # eq.6 in [1]
-    return lambda_1, lambda_2, theta
+    θ = np.rad2deg(np.arctan2(2*s1s2r, s1s2_min) / 2)   # eq.6 in [1]
+    return lambda_1, lambda_2, θ
 
-def rotate_variance(Theta, qii, qjj, rho):
+def rotate_variance(θ, qii, qjj, ρ):
     qii_r, qjj_r = np.zeros_like(qii), np.zeros_like(qjj)
-    for iy, ix in np.ndindex(Theta.shape):
-        if ~np.isnan(Theta[iy,ix]) and ~np.isnan(rho[iy,ix]):
+    for iy, ix in np.ndindex(θ.shape):
+        if ~np.isnan(θ[iy,ix]) and ~np.isnan(ρ[iy,ix]):
             # construct co-variance matrix
             try:
-                qij = rho[iy,ix]*np.sqrt(qii[iy,ix])*np.sqrt(qjj[iy,ix])
+                qij = ρ[iy,ix]*np.sqrt(qii[iy,ix])*np.sqrt(qjj[iy,ix])
             except:
                 breakpoint
             V = np.array([[qjj[iy,ix], qij],
                           [qij, qii[iy,ix]]])
-            R = rot_mat(Theta[iy, ix])
+            R = rot_mat(θ[iy, ix])
             V_r = rot_covar(V, R)
             qii_r[iy, ix], qjj_r[iy, ix] = V_r[1][1], V_r[0][0]
         else:
@@ -680,15 +680,16 @@ def aff_trans_template_coord(A, t_radius, fourier=False):
     Y_aff = X * A[1, 0] + Y * A[1, 1]
     return X_aff, Y_aff
 
-def rot_trans_template_coord(theta, t_radius):
+def rot_trans_template_coord(θ, t_radius):
     x = np.arange(-t_radius, t_radius + 1)
     y = np.arange(-t_radius, t_radius + 1)
 
     X = np.repeat(x[np.newaxis, :], y.shape[0], axis=0)
     Y = np.repeat(y[:, np.newaxis], x.shape[0], axis=1)
 
-    X_r = +np.cos(np.deg2rad(theta)) * X + np.sin(np.deg2rad(theta)) * Y
-    Y_r = -np.sin(np.deg2rad(theta)) * X + np.cos(np.deg2rad(theta)) * Y
+    θ = np.deg2rad(θ)
+    X_r = +np.cos(θ) * X + np.sin(θ) * Y
+    Y_r = -np.sin(θ) * X + np.cos(θ) * Y
     return X_r, Y_r
 
 def pix_centers(geoTransform, rows=None, cols=None, make_grid=True):

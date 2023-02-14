@@ -287,16 +287,16 @@ def get_generic_s2_raster(tile_code, spac=10):
 
     points = geom.Boundary().GetPointCount()
     bnd = geom.Boundary()
-    lon, lat = np.zeros(points), np.zeros(points)
+    λ, ϕ = np.zeros(points), np.zeros(points)
     for p in np.arange(points):
-        lon[p],lat[p],_ = bnd.GetPoint(int(p))
+        λ[p],ϕ[p],_ = bnd.GetPoint(int(p))
     del geom, bnd
     # specify coordinate system
     spatRef = osr.SpatialReference()
     spatRef.ImportFromEPSG(4326) # WGS84
 
     utm_zone = get_utmzone_from_tile_code(tile_code)
-    northernHemisphere = True if np.sign(np.mean(lat)) == 1 else False
+    northernHemisphere = True if np.sign(np.mean(ϕ)) == 1 else False
     proj = osr.SpatialReference()
     proj.SetWellKnownGeogCS('WGS84')
     proj.SetUTM(utm_zone, northernHemisphere)
@@ -304,7 +304,7 @@ def get_generic_s2_raster(tile_code, spac=10):
     coordTrans = osr.CoordinateTransformation(spatRef, proj)
     x,y = np.zeros(points), np.zeros(points)
     for p in np.arange(points):
-        x[p],y[p],_ = coordTrans.TransformPoint(lat[p], lon[p])
+        x[p],y[p],_ = coordTrans.TransformPoint(ϕ[p], λ[p])
     # bounding box in projected coordinate system
     x,y = np.round(x/spac)*spac, np.round(y/spac)*spac
 

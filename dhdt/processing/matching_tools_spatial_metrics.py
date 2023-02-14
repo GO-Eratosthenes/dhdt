@@ -473,15 +473,15 @@ def hessian_spread(C, intI, intJ):
 
     C_noise = np.maximum(1-C[intI,intJ], 0.)
 
-    psi = dC_ij**2 - dC_ii*dC_jj
-    denom = psi**2
-    cov_ii = np.divide(-C_noise * psi * dC_ii +
+    ψ = dC_ij**2 - dC_ii*dC_jj
+    denom = ψ**2
+    cov_ii = np.divide(-C_noise * ψ * dC_ii +
                        C_noise**2 * (dC_ii**2 + dC_ij**2),
                        denom, out=np.zeros_like(denom), where=denom!=0)
-    cov_jj = np.divide(-C_noise * psi * dC_jj +
+    cov_jj = np.divide(-C_noise * ψ * dC_jj +
                        C_noise**2 * (dC_jj**2 + dC_ij**2),
                        denom, out=np.zeros_like(denom), where=denom!=0)
-    cov_ij = np.divide((C_noise * psi -
+    cov_ij = np.divide((C_noise * ψ -
                        C_noise**2 * (dC_ii + dC_jj)) * dC_ij,
                        denom, out=np.zeros_like(denom), where=denom!=0)
     return cov_ii, cov_jj, cov_ij
@@ -511,7 +511,7 @@ def gauss_spread(C, intI, intJ, dI, dJ, est='dist'):
     -------
     cov_ii, cov_jj : float
         standard deviation of the vertical and horizontal axis
-    rho : float
+    ρ : float
         orientation of the Gaussian
     hess : numpy.ndarray, size=(4)
         estimate of the least squares computation
@@ -596,16 +596,16 @@ def gauss_spread(C, intI, intJ, dI, dJ, est='dist'):
 
     # convert to parameters
     denom = np.sqrt(np.abs(hess[0] * hess[2]))
-    rho = np.divide(0.5 * hess[1] , denom, where=denom!=0)
-    cov_ii = -2 * (1 - rho) * hess[0]
+    ρ = np.divide(0.5 * hess[1] , denom, where=denom!=0)
+    cov_ii = -2 * (1 - ρ) * hess[0]
     if cov_ii!=0: cov_ii = np.divide(1, cov_ii)
-    cov_jj = -2 * (1 - rho) * hess[2]
+    cov_jj = -2 * (1 - ρ) * hess[2]
     if cov_jj!=0: cov_jj = np.divide(1, cov_jj)
 
     # deviations can be negative
-    if np.iscomplex(rho) or np.iscomplex(cov_ii) or np.iscomplex(cov_jj):
+    if np.iscomplex(ρ) or np.iscomplex(cov_ii) or np.iscomplex(cov_jj):
         return 0, 0, 0
-    return cov_ii, cov_jj, rho, hess, frac
+    return cov_ii, cov_jj, ρ, hess, frac
 
 def intensity_disparity(I1,I2):
     """

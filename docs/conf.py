@@ -50,7 +50,7 @@ nbsphinx_thumbnails = {
     'tutorials/shadow-enhancement': '_static/shd-enhc.png',
     'tutorials/shadow-finding': '_static/shd-det.png',
     'tutorials/shadow-detection': '_static/shd-tran.png',
-    'tutorials/copDEM-for-s2-tile': '_static/s2-cop.png',
+    'tutorials/CopDEM-sen2': '_static/s2-cop.png',
 #    'gallery/*-rst': '_static/copy-button.svg',
 }
 

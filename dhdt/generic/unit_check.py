@@ -8,12 +8,29 @@ def zenit_angle_check(zn):
     zn = np.minimum(zn, 90.)
     return zn
 
-def lat_lon_angle_check(lat,lon):
-    lat = np.maximum(lat, -90.)
-    lat = np.minimum(lat, +90.)
+def lat_lon_angle_check(ϕ,λ):
+    """
 
-    lon = deg2arg(lon)
-    return lat, lon
+    Parameters
+    ----------
+    ϕ : float, unit=degrees, range=-90...+90
+        latitude
+    λ : float, unit=degrees
+        longitude
+
+    Returns
+    -------
+    ϕ : float
+        latitude
+    λ : float
+        longitude
+
+    """
+    ϕ = np.maximum(ϕ, -90.)
+    ϕ = np.minimum(ϕ, +90.)
+
+    λ = deg2arg(λ)
+    return ϕ, λ
 
 def is_crs_an_srs(crs):
     """ is the coordinate reference system given in degrees, or a spatial

@@ -26,7 +26,7 @@ def get_radon_angle(I, num_dir=1, fitting='polynomial'):
 
     Returns
     -------
-    theta : np.array, float, unit=degree
+    θ : np.array, float, unit=degree
         predominant direction(s) of the image
     score : np.array, float
         relative strength of the directional signal
@@ -38,10 +38,10 @@ def get_radon_angle(I, num_dir=1, fitting='polynomial'):
        ice-cap" The cryosphere, vol.12(5) pp.1563-1577, 2018.
     .. [2] https://www.runmycode.org/companion/view/2711
     """
-    theta = np.linspace(-90, +90, 36, endpoint=False)
+    θ = np.linspace(-90, +90, 36, endpoint=False)
     circle = low_pass_circle(I)
     np.putmask(I,~circle,0)
-    sinogram = radon(I, theta, circle=True)
+    sinogram = radon(I, θ, circle=True)
 
     if len(np.unique(I))==I.size:
         breakpoint
@@ -52,19 +52,19 @@ def get_radon_angle(I, num_dir=1, fitting='polynomial'):
                                    sino_std,
                                    np.roll(sino_std, +1))), axis=0)
     if fitting in ['polynomial']:
-        theta_x = np.linspace(-90, +90, 360, endpoint=False)
-        poly = np.poly1d(np.polyfit(theta, sino_med, 12))
+        θ_x = np.linspace(-90, +90, 360, endpoint=False)
+        poly = np.poly1d(np.polyfit(θ, sino_med, 12))
         breakpoint
     else:
         # local peaks
         idx, properties = find_peaks(sino_std,distance=3)
         idx = idx[:num_dir]
-        theta_hat, score = theta[idx], sino_std[idx]
-    return theta_hat, score
+        θ_hat, score = θ[idx], sino_std[idx]
+    return θ_hat, score
 
 def radon_orientation(I, geoTransform, X_grd, Y_grd,
                       temp_radius=7, num_dir=1, fitting='polynomial'):
-    Theta, Score = np.zeros_like(X_grd), np.zeros_like(X_grd)
+    Θ, Score = np.zeros_like(X_grd), np.zeros_like(X_grd)
 
     # todo
 #    if num_dir>1:
@@ -89,11 +89,11 @@ def radon_orientation(I, geoTransform, X_grd, Y_grd,
         except:
             print('.')
 
-        theta, score = get_radon_angle(I_sub, num_dir=num_dir, fitting=fitting)
+        θ, score = get_radon_angle(I_sub, num_dir=num_dir, fitting=fitting)
         # write results
-        if theta.size>0:
-            Theta[idx_grd[0], idx_grd[1]] = theta
+        if Θ.size>0:
+            Θ[idx_grd[0], idx_grd[1]] = θ
             Score[idx_grd[0], idx_grd[1]] = score
-    return Theta, Score
+    return Θ, Score
 
 # get_orientation_of_two_subsets(I1_sub, I2_sub)

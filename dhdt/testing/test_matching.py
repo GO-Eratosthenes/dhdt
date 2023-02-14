@@ -334,15 +334,15 @@ def test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=.1):
     assert np.isclose(dj, dj_hat, tolerance)
     return
 
-def test_phase_direction(theta, di, dj, tolerance=5):
+def test_phase_direction(θ, di, dj, tolerance=5):
     tolerance = np.deg2radrad(tolerance)
-    theta = np.deg2rad(theta)
-    theta_tilde = np.arctan2(di, dj)
+    θ = np.deg2rad(θ)
+    θ_tilde = np.arctan2(di, dj)
 
     # convert to complex domain, so angular difference can be done
-    a,b = 1j*np.sin(theta), 1j*np.sin(theta_tilde)
-    a += np.cos(theta)
-    b += np.cos(theta_tilde)
+    a,b = 1j*np.sin(θ), 1j*np.sin(θ_tilde)
+    a += np.cos(θ)
+    b += np.cos(θ_tilde)
     assert np.isclose(a,b, tolerance)
     return
 

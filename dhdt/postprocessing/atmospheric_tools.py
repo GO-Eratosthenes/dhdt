@@ -3,8 +3,15 @@ import numpy as np
 from ..input.read_era5 import get_era5_monthly_surface_wind
 from ..generic.mapping_tools import get_mean_map_lat_lon
 
-def calculate_coriolis(lat):
-    return 2 * 7.2921e-5 * np.sin(np.deg2rad(lat))
+def calculate_coriolis(ϕ):
+    """
+
+    Parameters
+    ----------
+    ϕ : float, unit=degrees, range=-90...+90
+        latitude
+    """
+    return 2 * 7.2921e-5 * np.sin(np.deg2rad(ϕ))
 
 def water_vapour_scale_height(T_0, alpha=0.0065, R_v=461, L=2.5E6):
     """
@@ -34,7 +41,7 @@ def water_vapour_scale_height(T_0, alpha=0.0065, R_v=461, L=2.5E6):
 
 def oro_precip(Z, geoTransform, spatialRef, u_wind, v_wind,
                conv_time=1000, fall_time=1000, nm=1E-2, T_0=0,
-               lapse_rate=-5.8E-3, lapse_rate_m=-6.5E-3,ref_rho=7.4E-3):
+               lapse_rate=-5.8E-3, lapse_rate_m=-6.5E-3,ref_ρ=7.4E-3):
     """ estimate the orographic precipitation pattern from an elevation model,
     based upon [1]
 
@@ -60,7 +67,7 @@ def oro_precip(Z, geoTransform, spatialRef, u_wind, v_wind,
         environmental lapse rate
     lapse_rate_m : float, unit=K km-1, default=-6.5E-3
         moist adiabatic lapse rate
-    ref_rho : float, unit=kg m**3, default=7.4E-3
+    ref_ρ : float, unit=kg m**3, default=7.4E-3
         reference saturation water vapor density, i.e. at the surface
 
     Returns
@@ -87,14 +94,14 @@ def oro_precip(Z, geoTransform, spatialRef, u_wind, v_wind,
     """
 
     # sensitivity uplift factor, unit=kg m**3
-    C_w = np.divide(ref_rho*lapse_rate_m, lapse_rate)
+    C_w = np.divide(ref_ρ*lapse_rate_m, lapse_rate)
 
     # vertical height scale of water in the atmosphere, unit=m
     H_w = water_vapour_scale_height(T_0)
 
     # estimate coriolis force
-    lat = get_mean_map_lat_lon(geoTransform, spatialRef)[0]
-    f_cor = calculate_coriolis(lat)
+    ϕ = get_mean_map_lat_lon(geoTransform, spatialRef)[0]
+    f_cor = calculate_coriolis(ϕ)
 
     # pad raster
     m,n = Z.shape[0:2]
@@ -117,9 +124,9 @@ def oro_precip(Z, geoTransform, spatialRef, u_wind, v_wind,
 
     # numerical stability, dividing by zero is not recommended
     np.putmask(mf_num, mf_num<0, 0.)
-    err = np.finfo(float).eps
-    np.putmask(mf_den, (mf_den<+err) & (mf_den>=0), err)
-    np.putmask(mf_den, (mf_den>-err) & (mf_den<0), -err)
+    ɛ = np.finfo(float).eps
+    np.putmask(mf_den, (mf_den < +ɛ) & (mf_den>=0), +ɛ)
+    np.putmask(mf_den, (mf_den > -ɛ) & (mf_den<0), -ɛ)
 
     dir = np.ones_like(Z)
     np.putmask(dir, sigma<0, -1)
@@ -141,7 +148,7 @@ def oro_precip(Z, geoTransform, spatialRef, u_wind, v_wind,
     return P
 
 def annual_precip(Z, geoTransform, spatialRef, year=2018):
-    lat,lon = get_mean_map_lat_lon(geoTransform, spatialRef)
-    U,V,Rh,T = get_era5_monthly_surface_wind(lat, lon, year)
+    ϕ,λ = get_mean_map_lat_lon(geoTransform, spatialRef)
+    U,V,Rh,T = get_era5_monthly_surface_wind(ϕ, λ, year)
 
     return

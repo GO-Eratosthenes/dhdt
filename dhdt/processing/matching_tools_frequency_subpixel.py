@@ -263,19 +263,19 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
             k += 1
 
         # optimize weighting matrix
-        #phi = np.abs(QC*np.conjugate(QC))/2
+        #φ = np.abs(QC*np.conjugate(QC))/2
         C = 1j*-np.sin(Fx*m[1] + Fy*m[0])
         C += np.cos(Fx*m[1] + Fy*m[0])
         QC = (Q-C)**2 # np.abs(Q-C)#np.abs(Q-C)
         dXY = np.abs(np.multiply(W, QC))
         W = W*(1-(dXY/4))**n
-#        phi = np.multiply(2*W,\
+#        φ = np.multiply(2*W,\
 #                          (1 - np.multiply(np.real(Q),
 #                                           +np.cos(Fx*m[1] + Fy*m[0])) - \
 #                           np.multiply(np.imag(Q),
 #                                       -np.sin(Fx*m[1] + Fy*m[0]))))
-        #W = np.multiply(W, (1-(phi/4))**n)
-#    snr = 1 - (np.sum(phi)/(4*np.sum(W)))
+        #W = np.multiply(W, (1-(φ/4))**n)
+#    snr = 1 - (np.sum(φ)/(4*np.sum(W)))
     snr = 0
     m = -1*m
     return (m, snr)
@@ -1196,7 +1196,7 @@ def phase_radon(Q, coord_system='ij'):
 
     Returns
     -------
-    theta,rho : float
+    θ,ρ : float
         magnitude and direction of displacement
 
     See Also
@@ -1231,8 +1231,8 @@ def phase_radon(Q, coord_system='ij'):
     W = np.fft.fftshift(raised_cosine(Q, beta=1e-5)).astype(bool)
     Q[~W] = 0 # make circular domain
 
-    theta = np.linspace(0., 180., max(m,n), endpoint=False)
-    R = radon(np.angle(Q), theta) # sinogram
+    θ = np.linspace(0., 180., max(m,n), endpoint=False)
+    R = radon(np.angle(Q), θ) # sinogram
 
     #plt.imshow(R[:half,:]), plt.show()
     #plt.imshow(np.flipud(R[half:,:])), plt.show()
@@ -1240,22 +1240,23 @@ def phase_radon(Q, coord_system='ij'):
     R_fold = np.abs(np.multiply(R[:half,:], R[half:,:]))
     radon_score = np.sum(R_fold, axis=0)
     score_idx = np.argmax(radon_score)
-    theta = theta[score_idx]
+    θ = θ[score_idx]
     del R_fold, radon_score, score_idx
 
     # peaks can also be seen
     # plt.plot(R[:,score_idx]), plt.show()
 
     # estimate magnitude
-    Q_rot = ndimage.rotate(Q, -theta,
+    Q_rot = ndimage.rotate(Q, -θ,
                              axes=(1, 0), reshape=False, output=None,
                              order=3, mode='constant')
     rho = np.abs(phase_difference_1d(Q_rot, axis=1))
     if coord_system=='ij':
-        di,dj = np.sin(np.radians(theta))*rho, -np.cos(np.radians(theta))*rho
+        θ = np.deg2rad(θ)
+        di,dj = np.sin(θ)*rho, -np.cos(θ)*rho
         return di, dj
     else: # do polar coordinates
-        return theta, rho
+        return θ, rho
 
 
 #def phase_binairy_stripe():

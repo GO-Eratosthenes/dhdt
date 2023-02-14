@@ -103,10 +103,10 @@ def get_ortho_offset(Z, dx, dy, obs_az, obs_zn, geoTransform):
     dZ = Z-Z_dij
 
     # estimate orthorectification compensation
-    ortho_rho = np.tan(np.deg2rad(obs_zn))*dZ
+    ortho_ρ = np.tan(np.deg2rad(obs_zn))*dZ
 
-    dI = -np.cos(np.deg2rad(obs_az[0,0]))*ortho_rho
-    dJ = +np.sin(np.deg2rad(obs_az))*ortho_rho
+    dI = -np.cos(np.deg2rad(obs_az[0,0]))*ortho_ρ
+    dJ = +np.sin(np.deg2rad(obs_az))*ortho_ρ
     return dI, dJ
 
 def compensate_ortho_offset(I, Z, dx, dy, obs_az, obs_zn, geoTransform):

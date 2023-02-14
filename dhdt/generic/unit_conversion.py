@@ -243,16 +243,16 @@ def gon2deg(ang):
     ang *= 360/400
     return ang
 
-def deg2compass(theta):
+def deg2compass(θ):
     """ adjust angle to be in bounds of a positive argument angle,like a compass
 
     Parameters
     ----------
-    theta : unit=degrees
+    θ : unit=degrees
 
     Returns
     -------
-    theta : unit=degrees, range=0...+360
+    θ : unit=degrees, range=0...+360
 
     See Also
     --------
@@ -270,18 +270,18 @@ def deg2compass(theta):
                  |
                  +----> East & x
     """
-    return theta % 360
+    return θ % 360
 
-def deg2arg(theta):
+def deg2arg(θ):
     """ adjust angle to be in bounds of an argument angle
 
     Parameters
     ----------
-    theta : unit=degrees
+    θ : unit=degrees
 
     Returns
     -------
-    theta : unit=degrees, range=-180...+180
+    θ : unit=degrees, range=-180...+180
 
     See Also
     --------
@@ -299,4 +299,4 @@ def deg2arg(theta):
                  |
                  +----> East & x
     """
-    return ((theta + 180) % 360) -180
+    return ((θ + 180) % 360) -180

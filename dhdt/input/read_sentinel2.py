@@ -1233,7 +1233,7 @@ def get_timing_mask(s2_df, geoTransform, spatialRef):
     s2_dict = get_s2_dict(s2_df)
     # get_bearing_from_detector_mask
     toi = read_sensing_time_s2(s2_dict['MTD_TL_path'])
-    psi = get_flight_bearing_from_gnss_s2(s2_dict['MTD_DS_path'],
+    ψ = get_flight_bearing_from_gnss_s2(s2_dict['MTD_DS_path'],
                                           spatialRef, toi)
     line_period = read_detector_time_s2(s2_dict['MTD_DS_path'], s2_df=s2_df)[3]
     s2_dict = get_flight_orientation_s2(s2_dict['MTD_DS_path'],
@@ -1257,20 +1257,20 @@ def get_timing_mask(s2_df, geoTransform, spatialRef):
                                indexing='xy')
 
     # create timing grid and orthogonal frame
-    t_grd = -np.sin(np.deg2rad(psi)) * x_grd + np.cos(np.deg2rad(psi)) * y_grd
+    t_grd = -np.sin(np.deg2rad(ψ)) * x_grd + np.cos(np.deg2rad(ψ)) * y_grd
     t_grd *= line_period / np.timedelta64(1, 's')
-    o_grd = -np.cos(np.deg2rad(psi)) * x_grd - np.sin(np.deg2rad(psi)) * y_grd
+    o_grd = -np.cos(np.deg2rad(ψ)) * x_grd - np.sin(np.deg2rad(ψ)) * y_grd
 
     # get relative timing through detector angles
     Zn, Az = read_view_angles_s2(s2_dict['MTD_TL_path'],
                                  boi_df=s2_df, det_stack=det_stack)
 
-    vX,vY,vZ = pol2xyz(Az - (psi + 270), Zn)
+    vX,vY,vZ = pol2xyz(Az - (ψ + 270), Zn)
 
-    Theta = np.rad2deg(np.arctan2(vX, vZ))  # along-track angles
-    Phi = np.rad2deg(np.arctan2(vX, vZ))  # across-track angles
+    θ = np.rad2deg(np.arctan2(vX, vZ))  # along-track angles
+    Φ = np.rad2deg(np.arctan2(vX, vZ))  # across-track angles
 
-    dT = (np.tan(np.deg2rad(Theta)) * h_bar) / v_bar
+    dT = (np.tan(np.deg2rad(θ)) * h_bar) / v_bar
 
     det_bias = np.pad(np.mean((np.diff(det_time, axis=0) /
                                np.timedelta64(1, 's'))[:, 0::2], axis=1),
@@ -1288,7 +1288,7 @@ def get_timing_mask(s2_df, geoTransform, spatialRef):
 
     o_grd -= o_min
     Across = np.mod(o_grd, o_mod)
-    return dT, Across, Phi, s2_dict
+    return dT, Across, Φ, s2_dict
 
 def get_timing_stack_s2(s2_df, det_stack,
                         spac=10, sat_height=750E3, sat_velo=7.5):
@@ -1323,7 +1323,7 @@ def get_timing_stack_s2(s2_df, det_stack,
     assert isinstance(s2_df, pd.DataFrame), ('please provide a dataframe')
 
     # get_bearing_from_detector_mask
-    psi = get_flight_bearing_from_detector_mask_s2(det_stack[:, :, 0])
+    ψ = get_flight_bearing_from_detector_mask_s2(det_stack[:, :, 0])
 
     # construct grid
     x_grd, y_grd = np.meshgrid(np.linspace(1, det_stack.shape[1],
@@ -1331,10 +1331,10 @@ def get_timing_stack_s2(s2_df, det_stack,
                                np.linspace(1, det_stack.shape[0],
                                            det_stack.shape[0]),
                                indexing='xy')
-    t_grd = -np.sin(np.deg2rad(psi)) * x_grd + np.cos(np.deg2rad(psi)) * y_grd
+    t_grd = -np.sin(np.deg2rad(ψ)) * x_grd + np.cos(np.deg2rad(ψ)) * y_grd
     t_grd *= line_period.astype('float')
 
-    cross_grd = -np.cos(np.deg2rad(psi))*x_grd - np.sin(np.deg2rad(psi))*y_grd
+    cross_grd = -np.cos(np.deg2rad(ψ))*x_grd - np.sin(np.deg2rad(ψ))*y_grd
     cross_grd *= spac # convert from pixels to meters
 
     cross_parallax_timing = (1E9 * s2_df.crossdetector_parallax * sat_height /
@@ -1536,7 +1536,7 @@ def get_flight_bearing_from_detector_mask_s2(Det):
 
     Returns
     -------
-    psi : float, unit=degrees
+    ψ : float, unit=degrees
         general bearing of the satellite
     """
     if Det.ndim==3:
@@ -1551,14 +1551,14 @@ def get_flight_bearing_from_detector_mask_s2(Det):
 
     L, Lab_num = label(D_tr, structure=[[1, 1, 1], [1, 1, 1], [1, 1, 1]])
 
-    psi = np.zeros(Lab_num)
+    ψ = np.zeros(Lab_num)
     for i in range(Lab_num):
         [i_x, j_x] = np.where(L == i + 1)
-        psi[i] = np.rad2deg(np.arctan2(np.min(j_x) - np.max(j_x),
+        ψ[i] = np.rad2deg(np.arctan2(np.min(j_x) - np.max(j_x),
                                        np.min(i_x) - np.max(i_x)))
-    psi = np.rad2deg(np.arctan2(np.median(np.sin(np.deg2rad(psi))),
-                                np.median(np.cos(np.deg2rad(psi)))))
-    return psi
+    ψ = np.rad2deg(np.arctan2(np.median(np.sin(np.deg2rad(ψ))),
+                                np.median(np.cos(np.deg2rad(ψ)))))
+    return ψ
 
 # use the detector start and finish to make a selection for the flight line
 def get_flight_bearing_from_gnss_s2(path, spatialRef, rec_tim,

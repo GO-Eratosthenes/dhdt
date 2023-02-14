@@ -400,7 +400,7 @@ def get_density_fraction(lat, h_0, alpha=0.0065, R=8314.36, M_t=28.825):
 
     Returns
     -------
-    rho_frac : float
+    ρ_frac : float
         fraction of density in relation to density as sea-level
 
     Notes
@@ -425,14 +425,14 @@ def get_density_fraction(lat, h_0, alpha=0.0065, R=8314.36, M_t=28.825):
     g = 9.784 * (1 - (2.6E-3 * np.cos(np.deg2rad(2 * lat))) - (2.8E-7 * h_0))
 
     Gamma = np.divide(M_t*g, R*alpha) - 1               # eq. A6 in [1]
-    rho_frac_t = T_frac_0**Gamma                        # eq. A5 in [1]
+    ρ_frac_t = T_frac_0**Gamma                        # eq. A5 in [1]
 
     # estimate parameters of the tropopause
     h_t, T_t = get_height_tropopause(lat), h_t*alpha + T_sl
 
-    rho_frac_s = T_frac_0**Gamma * \
+    ρ_frac_s = T_frac_0**Gamma * \
         np.exp(h_0-h_t) * np.divide(M_t*g, R*T_t)       # eq. A7 in [1]
-    return rho_frac_t, rho_frac_s
+    return ρ_frac_t, ρ_frac_s
 
 def get_simple_density_fraction(lat):
     """ The density fraction is related to latitude through a least squares fit
@@ -458,8 +458,8 @@ def get_simple_density_fraction(lat):
        ISPRS journal of photogrammetry and remote sensing, vol.54, pp.360-373,
        1999.
     """
-    rho_frac = 1.14412 - 0.185488*np.cos(np.deg2rad(lat))   # eq. A11 in [1]
-    return rho_frac
+    ρ_frac = 1.14412 - 0.185488*np.cos(np.deg2rad(lat))   # eq. A11 in [1]
+    return ρ_frac
 
 def refractive_index_broadband_vapour(sigma):
     """
@@ -616,7 +616,7 @@ def get_density_air(T,P,fH, moist=True, CO2=450, M_w=0.018015, R=8.314510,
 
     Returns
     -------
-    rho : float, unit=kg m3
+    ρ : float, unit=kg m3
         density of moist air
 
     Notes
@@ -645,30 +645,30 @@ def get_density_air(T,P,fH, moist=True, CO2=450, M_w=0.018015, R=8.314510,
 
     Z = compressability_moist_air(P, T, x_w)
     if moist is True: # calculate moisture component
-        rho = np.divide(x_w*P*M_a, Z*R*T)*\
+        ρ = np.divide(x_w*P*M_a, Z*R*T)*\
               (1 - x_w*(1-np.divide(M_w, M_a)) )
     else:
-        rho = np.divide((1-x_w)*P*M_a, Z*R*T)*\
+        ρ = np.divide((1-x_w)*P*M_a, Z*R*T)*\
               (1 - x_w*(1-np.divide(M_w, M_a)) ) # eq. 4 in [1]
-    return rho
+    return ρ
 
-def ciddor_eq5(rho_a, rho_w, n_axs, n_ws, rho_axs, rho_ws):
+def ciddor_eq5(ρ_a, ρ_w, n_axs, n_ws, ρ_axs, ρ_ws):
     """ estimating the refractive index through summation
 
     Parameters
     ----------
-    rho_a : {numpy.array, float}, unit=kg m-3
+    ρ_a : {numpy.array, float}, unit=kg m-3
         density of dry air
-    rho_w : (numpy.array, float}, unit=kg m-3
+    ρ_w : (numpy.array, float}, unit=kg m-3
         density of moist air
     n_axs : numpy.array, size=(k,)
         refractive index for dry air at sea level at a specific wavelength
     n_ws : numpy.array, size=(k,)
         refractive index for standard moist air at sea level for a specific
         wavelength
-    rho_axs : float, unit=kg m-3
+    ρ_axs : float, unit=kg m-3
         density of standard dry air at sea level
-    rho_ws : float, unit=kg m-3
+    ρ_ws : float, unit=kg m-3
         density of standard moist air at sea level
 
     Returns
@@ -683,26 +683,26 @@ def ciddor_eq5(rho_a, rho_w, n_axs, n_ws, rho_axs, rho_ws):
     """
     # eq. 4 in [1]
     n_prop = 1 + \
-             np.multiply(np.divide(rho_a, rho_axs), n_axs) + \
-             np.multiply(np.divide(rho_w, rho_ws), n_ws)
+             np.multiply(np.divide(ρ_a, ρ_axs), n_axs) + \
+             np.multiply(np.divide(ρ_w, ρ_ws), n_ws)
 
     return n_prop
 
-def ciddor_eq6(rho_a, rho_w, n_axs, n_ws, rho_axs, rho_ws):
+def ciddor_eq6(ρ_a, ρ_w, n_axs, n_ws, ρ_axs, ρ_ws):
     """ estimating the refractive index through the Lorenz-Lorentz relation
 
     Parameters
     ----------
-    rho_a : float, unit=kg m-3
+    ρ_a : float, unit=kg m-3
         density of dry air
-    rho_w : float, unit=kg m-3
+    ρ_w : float, unit=kg m-3
     n_axs : float
         refractive index for dry air at sea level
     n_ws : float
         refractive index for standard moist air at sea level
-    rho_axs : float, unit=kg m-3
+    ρ_axs : float, unit=kg m-3
         density of standard dry air at sea level
-    rho_ws : float, unit=kg m-3
+    ρ_ws : float, unit=kg m-3
         density of standard moist air at sea level
 
     Returns
@@ -720,8 +720,8 @@ def ciddor_eq6(rho_a, rho_w, n_axs, n_ws, rho_axs, rho_ws):
     L_a = np.divide( n_axs**2 -1, n_axs**2 +2)                  # eq.6 in [2]
     L_w = np.divide( n_ws**2 - 1, n_ws**2 + 2)                  # eq.6 in [2]
 
-    L = np.multiply.outer( np.divide(rho_a, rho_axs), L_a) + \
-        np.multiply.outer( np.divide(rho_w, rho_ws), L_w)       # eq.7 in [2]
+    L = np.multiply.outer( np.divide(ρ_a, ρ_axs), L_a) + \
+        np.multiply.outer( np.divide(ρ_w, ρ_ws), L_w)           # eq.7 in [2]
 
     n_LL = np.sqrt(np.divide( (1 + 2*L), (1 - L)))              # eq. 8 in [2]
                                                                 # eq. 4 in [1]

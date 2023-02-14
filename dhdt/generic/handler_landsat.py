@@ -65,8 +65,8 @@ def get_LS_footprint(wrs_path, poi, roi):
         points = ring.GetPointCount()
         ll_footp = np.zeros((points,2), dtype=float)
         for p in range(points):
-            (lon, lat, _) = ring.GetPoint(p)
-            ll_footp[p,0], ll_footp[p,1] = lon, lat
+            (λ, ϕ, _) = ring.GetPoint(p)
+            ll_footp[p,0], ll_footp[p,1] = λ, ϕ
             
     spatialRef = wrsLayer.GetSpatialRef()        
     return ll_footp, spatialRef
