@@ -146,7 +146,8 @@ def read_nc_image(fname, layer_name):
 
 # output functions
 def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes',
-              no_dat=np.nan, sun_angles='az:360-zn:90', date_created='-0276-00-00'):
+                no_dat=np.nan, sun_angles='az:360-zn:90',
+                date_created='-0276-00-00'):
     """ Create georeferenced tiff file (a GeoTIFF)
 
     Parameters
@@ -183,20 +184,22 @@ def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes',
 
     drv = gdal.GetDriverByName("GTiff")  # export image
     if I.dtype == 'float64':     # make it type dependent
-        ds = drv.Create(fName,xsize=I.shape[1], ysize=I.shape[0],bands=bands,
-                        eType=gdal.GDT_Float64)
+        gdal_dtype = gdal.GDT_Float64
+        predictor = "3"
     elif I.dtype == 'float32':
-        ds = drv.Create(fName,xsize=I.shape[1], ysize=I.shape[0],bands=bands,
-                        eType=gdal.GDT_Float32)
-    elif I.dtype == 'bool':
-        ds = drv.Create(fName, xsize=I.shape[1], ysize=I.shape[0], bands=bands,
-                        eType=gdal.GDT_Byte)
-    elif I.dtype == 'uint8':
-        ds = drv.Create(fName, xsize=I.shape[1], ysize=I.shape[0], bands=bands,
-                        eType=gdal.GDT_Byte)
+        gdal_dtype = gdal.GDT_Float32
+        predictor = "3"
+    elif I.dtype in ('bool', 'uint8'):
+        gdal_dtype = gdal.GDT_Byte
+        predictor = "2"
     else:
-        ds = drv.Create(fName, xsize=I.shape[1], ysize=I.shape[0], bands=bands,
-                        eType=gdal.GDT_Int32)
+        gdal_dtype = gdal.GDT_Int32
+        predictor = "2"
+
+    ds = drv.Create(fName,xsize=I.shape[1], ysize=I.shape[0],bands=bands,
+                    eType=gdal_dtype, options=['TFW=YES', 'COMPRESS=LZW',
+                                               "PREDICTOR=" + predictor])
+
     # set metadata in datasource
     ds.SetMetadata({'TIFFTAG_SOFTWARE':'dhdt v0.1',
                     'TIFFTAG_ARTIST':'bas altena and team Atlas',

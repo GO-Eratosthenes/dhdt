@@ -193,9 +193,11 @@ def get_zip_file(zip_url, dump_dir=os.getcwd()):
     
     zf = zipfile.ZipFile(dump_dir + "tempfile.zip")
     zf.extractall(path = dump_dir)
-    zf.close()    
+    zip_names = zf.namelist()
+    zf.close()
 
     os.remove(dump_dir + 'tempfile.zip')
+    return zip_names
 
 def bulk_download_and_mosaic(url_list, dem_path, sat_tile, bbox, crs, new_res=10):
 
