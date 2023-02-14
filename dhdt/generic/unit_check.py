@@ -47,7 +47,7 @@ def is_crs_an_srs(crs):
         is the reference system a mapping system
     """
     if not isinstance(crs, str): crs = crs.ExportToWkt()
-    return crs.find('"degree"')==-1
+    return crs.find('"metre"')!=-1
 
 def correct_geoTransform(geoTransform):
     assert isinstance(geoTransform, tuple), 'geoTransform should be a tuple'
