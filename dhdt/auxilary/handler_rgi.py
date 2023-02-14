@@ -113,6 +113,7 @@ def which_rgi_region(poi, version=7, rgi_dir=None, rgi_file=None):
         rgi_file = '00_rgi70_O1Regions.geojson'
     else:
         assert isinstance(rgi_file, str), 'please provide a string'
+    if not os.path.isdir(rgi_dir): os.makedirs(rgi_dir)
 
     if isinstance(poi, str):
         poi = _check_mgrs_code(poi)

@@ -352,6 +352,7 @@ def make_im_from_geojson(geoTransform, crs, out_name, geom_name, out_dir=None,
     geoTransform = correct_geoTransform(geoTransform)
     if not isinstance(crs, str): crs = crs.ExportToWkt()
     if out_dir is None: out_dir = os.getcwd()
+    if not os.path.isdir(out_dir): os.makedirs(out_dir)
     if geom_dir is None:
         rot_dir = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3])
         geom_dir = os.path.join(rot_dir, 'data')

@@ -34,6 +34,8 @@ def get_file_from_ftps(url, user, password,
     """
     if dump_dir[-1]!=os.sep:
         dump_dir += os.sep
+    if not os.path.isdir(dump_dir): os.makedirs(dump_dir)
+
     client = ftps.FTPS('ftps://' +user+ ':' +password+ '@' +url)
     client.list()
     client.download( os.path.join(file_path, file_name),
@@ -55,7 +57,11 @@ def get_file_from_www(full_url, dump_dir=os.getcwd()):
     --------
     get_file_from_protected_www
     """
+    assert isinstance(full_url, str), 'please provide a string'
+    assert isinstance(dump_dir, str), 'please provide a string'
     assert url_exist(full_url)
+    if not os.path.isdir(dump_dir): os.makedirs(dump_dir)
+
     file_name = full_url.split('/')[-1]
 
     # download data
@@ -81,6 +87,10 @@ def get_file_from_protected_www(full_url, dump_dir=os.getcwd(),
     --------
     get_file_from_www
     """
+    assert user is not None, 'please provide username'
+    assert password is not None, 'please provide a password'
+    if not os.path.isdir(dump_dir): os.makedirs(dump_dir)
+
     file_name = full_url.split('/')[-1]
     with requests.Session() as session:
         r1 = session.request('get', full_url)
@@ -129,6 +139,7 @@ def get_bz2_file(bz2_url, dump_dir=os.getcwd()):
     bz2_names : list
         list of strings of file names within the compressed folder
     """
+    if not os.path.isdir(dump_dir): os.makedirs(dump_dir)
     assert url_exist(bz2_url)
     zip_name = bz2_url.split('/')[-1]
 
@@ -163,6 +174,7 @@ def get_tar_file(tar_url, dump_dir=os.getcwd()):
     tar_names : list
         list of strings of file names within the compressed folder
     """
+    if not os.path.isdir(dump_dir): os.makedirs(dump_dir)
     assert url_exist(tar_url)
 
     ftp_stream = urllib.request.urlopen(tar_url)
@@ -186,6 +198,8 @@ def get_zip_file(zip_url, dump_dir=os.getcwd()):
     zip_names : list
         list of strings of file names within the compressed folder
     """
+    if not os.path.isdir(dump_dir): os.makedirs(dump_dir)
+
     zip_resp = urllib.request.urlopen(zip_url)
     temp_zip = open(dump_dir + 'tempfile.zip', "wb") 
     temp_zip.write(zip_resp.read())
