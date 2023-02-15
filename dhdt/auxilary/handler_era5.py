@@ -8,8 +8,8 @@ import cdsapi
 # https://cds.climate.copernicus.eu/api-how-to
 
 # local libraries
-from ..generic.mapping_tools import map2ll
-from ..generic.unit_conversion import \
+from dhdt.generic.mapping_tools import map2ll
+from dhdt.generic.unit_conversion import \
     datetime2calender, datenum2datetime, hpa2pascal
 
 # https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-pressure-levels

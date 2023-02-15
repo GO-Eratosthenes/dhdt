@@ -78,7 +78,7 @@ def meta_LSstring(LSstr):  # generic
     LSrow = int(LSsplit[2][3:7])
     return LStime, LSpath, LSrow
 
-def get_LS_footprint(wrs_path, poi, roi):
+def get_ls_footprint(wrs_path, poi, roi):
     # Get the WRS footprints in lat-lon
     wrsShp = ogr.Open(wrs_path)
     wrsLayer = wrsShp.GetLayer()

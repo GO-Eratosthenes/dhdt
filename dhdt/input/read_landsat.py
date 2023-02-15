@@ -100,9 +100,9 @@ def list_central_wavelength_oli():
     make a selection by name:
 
     >>> boi = ['red', 'green', 'blue', 'near infrared']
-    >>> l8_df = list_central_wavelength_oli()
-    >>> l8_df = l8_df[l8_df['name'].isin(boi)]
-    >>> l8_df
+    >>> ls_df = list_central_wavelength_oli()
+    >>> ls_df = ls_df[ls_df['name'].isin(boi)]
+    >>> ls_df
              wavelength  bandwidth  resolution   common_name  bandid
     B02         482         60          30           blue       2
     B03         561         57          30          green       3
@@ -111,8 +111,8 @@ def list_central_wavelength_oli():
 
     similarly you can also select by pixel resolution:
 
-    >>> l8_df = list_central_wavelength_l8()
-    >>> pan_df = l8_df[l8_df['resolution']==15]
+    >>> ls_df = list_central_wavelength_oli()
+    >>> pan_df = ls_df[ls_df['resolution']==15]
     >>> pan_df.index
     Index(['B08'], dtype='object')
 
@@ -182,7 +182,7 @@ def get_oli_relative_band_time():
     df = pd.DataFrame(d)
     return df
 
-def read_band_l8(path, band='B8'):
+def read_band_ls(path, band='B8'):
     """
     This function takes as input the Landsat8 band name and the path of the
     folder that the images are stored, reads the image and returns the data as
@@ -208,13 +208,13 @@ def read_band_l8(path, band='B8'):
 
     See Also
     --------
-    list_central_wavelength_l8
+    list_central_wavelength_ls
 
     Example
     -------
     >>> path = '/LC08_L1TP_018060_20200904_20200918_02_T1/'
     >>> band = '2'
-    >>> _,spatialRef,geoTransform,targetprj = read_band_l8(path, band)
+    >>> _,spatialRef,geoTransform,targetprj = read_band_ls(path, band)
 
     >>> spatialRef
    'PROJCS["WGS 84 / UTM zone 15N",GEOGCS["WGS 84",DATUM["WGS_1984", ...
@@ -236,20 +236,20 @@ def read_band_l8(path, band='B8'):
         read_geo_image(glob.glob(fname)[0])
     return data, spatialRef, geoTransform, targetprj
 
-def read_stack_l8(path, l8_df):
+def read_stack_ls(path, ls_df):
 
-    for idx, val in enumerate(l8_df.index):
+    for idx, val in enumerate(ls_df.index):
         if idx==0:
-            im_stack, spatialRef, geoTransform, targetprj = read_band_l8(
+            im_stack, spatialRef, geoTransform, targetprj = read_band_ls(
                 path, band=val)
         else: # stack others bands
             if im_stack.ndim==2:
                 im_stack = np.atleast_3d(im_stack)
-            band = np.atleast_3d(read_band_l8(path, band=val)[0])
+            band = np.atleast_3d(read_band_ls(path, band=val)[0])
             im_stack = np.concatenate((im_stack, band), axis=2)
     return im_stack, spatialRef, geoTransform, targetprj
 
-def read_view_angles_l8(path):
+def read_view_angles_ls(path):
 
     # ANGLE_SENSOR_AZIMUTH_BAND_4
     fname = os.path.join(path, '*VAA.TIF')
@@ -268,7 +268,7 @@ def read_view_angles_l8(path):
     Zn = np.divide(Zn, 1e2)
     return Zn, Az
 
-def get_sca_numbering_l8(ang, boi='BAND04'):
+def get_sca_numbering_ls(ang, boi='BAND04'):
     """
 
     Parameters
@@ -298,7 +298,7 @@ def get_sca_numbering_l8(ang, boi='BAND04'):
 
     See Also
     --------
-    read_metadata_l8
+    read_metadata_ls
 
     """
     # https://www.usgs.gov/media/files/lsds-1928-landsat-8-olitirs-solar-view-angle-generation-add
@@ -384,7 +384,7 @@ def get_sca_numbering_l8(ang, boi='BAND04'):
     Sca = np.array(img)
     return Sca
 
-def read_sun_angles_l8(path):
+def read_sun_angles_ls(path):
 
     # ANGLE_SOLAR_AZIMUTH_BAND_4
     fname = os.path.join(path, '*SAA.TIF')
@@ -399,7 +399,7 @@ def read_sun_angles_l8(path):
     Zn = read_geo_image(glob.glob(fname)[0])[0]
     return Zn, Az
 
-def read_metadata_l8(dir_path, suffix='MTL.txt'):
+def read_metadata_ls(dir_path, suffix='MTL.txt'):
     """ Convert Landsat MTL file to dictionary of metadata values """
 
     full_path = glob.glob(os.path.join(dir_path, '*'+suffix))[0]

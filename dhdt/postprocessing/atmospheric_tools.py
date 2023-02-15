@@ -1,6 +1,6 @@
 import numpy as np
 
-from ..input.read_era5 import get_era5_monthly_surface_wind
+from dhdt.auxilary.handler_era5 import get_era5_monthly_surface_wind
 from ..generic.mapping_tools import get_mean_map_lat_lon
 
 def calculate_coriolis(ϕ):
