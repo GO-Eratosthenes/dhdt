@@ -13,6 +13,7 @@ import warnings
 # geospatial libaries
 from osgeo import gdal
 
+
 def get_file_from_ftps(url, user, password,
                        file_path, file_name, dump_dir=os.getcwd()):
     """ Downloads a file from a ftps-server
@@ -41,7 +42,7 @@ def get_file_from_ftps(url, user, password,
     return
 
 
-def get_file_from_www(full_url, dump_dir=os.getcwd()):
+def get_file_from_www(full_url, dump_dir=os.getcwd(), overwrite=False):
     """ Downloads a file from a location given by the url
 
     Parameters
@@ -50,18 +51,27 @@ def get_file_from_www(full_url, dump_dir=os.getcwd()):
         depository where the file is situated
     dump_dir : string
         folder location where the data needs to be unpacked
+    overwrite : bool
+        if True and file exists, download it again, otherwise do nothing
+
+    Returns
+    -------
+    file_name : string
+        name of the downloaded file
 
     See Also
     --------
     get_file_from_protected_www
     """
-    assert url_exist(full_url)
     file_name = full_url.split('/')[-1]
-    os.makedirs(dump_dir, exist_ok=True)
+    file_path = os.path.join(dump_dir, file_name)
+    if not os.path.isfile(file_path) or overwrite:
+        assert url_exist(full_url), f"Non-existing URL: {full_url}"
+        os.makedirs(dump_dir, exist_ok=True)
+        # download data
+        urllib.request.urlretrieve(full_url, file_path)
+    return file_name
 
-    # download data
-    urllib.request.urlretrieve(full_url, os.path.join(dump_dir, file_name))
-    return
 
 def get_file_from_protected_www(full_url, dump_dir=os.getcwd(),
                                 user=None, password=None):
@@ -107,14 +117,10 @@ def url_exist(file_url):
     verdict : dtype=boolean
         verdict if present
     """
-    
-    try: 
-        urllib.request.urlopen(file_url).code == 200
-        return True
-    except:
-        return False
+    return urllib.request.urlopen(file_url).code == 200
 
-def get_bz2_file(bz2_url, dump_dir=os.getcwd()):
+
+def get_bz2_file(bz2_url, dump_dir=os.getcwd(), overwrite=False):
     """ Level-3 data of Terra ASTER is packed into bz2-files. This function
     downloads and unpacks such data
 
@@ -124,17 +130,16 @@ def get_bz2_file(bz2_url, dump_dir=os.getcwd()):
         depository where the file is situated
     dump_dir : string
         folder location where the data needs to be unpacked
+    overwrite : bool
+        if True and file exists, download it again, otherwise do nothing
 
     Returns
     -------
     bz2_names : list
         list of strings of file names within the compressed folder
     """
-    assert url_exist(bz2_url)
-    zip_name = bz2_url.split('/')[-1]
-
     # download data
-    urllib.request.urlretrieve(bz2_url, os.path.join(dump_dir, zip_name))
+    zip_name = get_file_from_www(bz2_url, dump_dir, overwrite)
 
     # decompress
     zipfile = bz2.BZ2File(os.path.join(dump_dir, zip_name))
@@ -149,7 +154,8 @@ def get_bz2_file(bz2_url, dump_dir=os.getcwd()):
     bz2_names = tar_file.getnames()
     return bz2_names
 
-def get_tar_file(tar_url, dump_dir=os.getcwd()):
+
+def get_tar_file(tar_url, dump_dir=os.getcwd(), overwrite=False):
     """ Downloads and unpacks compressed folder
 
     Parameters
@@ -158,21 +164,23 @@ def get_tar_file(tar_url, dump_dir=os.getcwd()):
         url of world wide web location
     dump_dir : string
         path to place the content
+    overwrite : bool
+        if True and file exists, download it again, otherwise do nothing
 
     Returns
     -------
-    tar_names : list
-        list of strings of file names within the compressed folder
+    tar_paths : list
+        list of strings of file paths within the compressed folder
     """
-    assert url_exist(tar_url)
-
-    ftp_stream = urllib.request.urlopen(tar_url)
-    tar_file = tarfile.open(fileobj=ftp_stream, mode="r|gz")
-    tar_file.extractall(path=dump_dir)
-    tar_names = tar_file.getnames()
+    tar_file = get_file_from_www(tar_url, dump_dir, overwrite)
+    tar_path = os.path.join(dump_dir, tar_file)
+    with tarfile.open(name=tar_path, mode="r:gz") as tf:
+        tar_names = tf.getnames()
+        tf.extractall(path=dump_dir)
     return tar_names
 
-def get_zip_file(zip_url, dump_dir=os.getcwd()):
+
+def get_zip_file(zip_url, dump_dir=os.getcwd(), overwrite=False):
     """ Downloads and unpacks compressed folder
 
     Parameters
@@ -181,20 +189,20 @@ def get_zip_file(zip_url, dump_dir=os.getcwd()):
         url of world wide web location
     dump_dir : string
         path to place the content
+    overwrite : bool
+        if True and file exists, download it again, otherwise do nothing
 
     Returns
     -------
     zip_names : list
         list of strings of file names within the compressed folder
     """
-    zip_resp = urllib.request.urlopen(zip_url)
-    temp_zip = open(dump_dir + 'tempfile.zip', "wb") 
-    temp_zip.write(zip_resp.read())
-    temp_zip.close()
-    
-    zf = zipfile.ZipFile(dump_dir + "tempfile.zip")
-    zf.extractall(path = dump_dir)
-    zf.close()    
+    zip_file = get_file_from_www(zip_url, dump_dir, overwrite)
+    with zipfile.ZipFile(os.path.join(dump_dir, zip_file)) as zf:
+        zip_names = zf.namelist()
+        zf.extractall(path=dump_dir)
+    return zip_names
+
 
     os.remove(dump_dir + 'tempfile.zip')
 
@@ -240,6 +248,7 @@ def bulk_download_and_mosaic(url_list, dem_path, sat_tile, bbox, crs, new_res=10
         for fn in tar_names:
             os.remove(os.path.join(dem_path,fn))
 
+
 def change_url_resolution(url_string,new_res):
     """ the file name can have the spatail resolution within, this function
     replaces this string
@@ -278,6 +287,7 @@ def change_url_resolution(url_string,new_res):
     
     gran_url_new = '/'.join(folders)
     return gran_url_new
+
 
 def reduce_duplicate_urls(url_list):
     """ because the shapefiles are in 2 meter, the tiles are 4 fold, therfore
