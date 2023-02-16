@@ -204,7 +204,34 @@ def get_zip_file(zip_url, dump_dir=os.getcwd(), overwrite=False):
     return zip_names
 
 
-    os.remove(dump_dir + 'tempfile.zip')
+def get_file_and_extract(full_url, dump_dir=os.getcwd(), overwrite=False):
+    """ Downloads and unpacks compressed folder
+
+    Parameters
+    ----------
+    full_url : string
+        url of world wide web location
+    dump_dir : string
+        path to place the content
+    overwrite : bool
+        if True and file exists, download it again, otherwise do nothing
+
+    Returns
+    -------
+    file_names : list
+        list of strings of file names within the compressed folder
+    """
+    if any(full_url.endswith(ext) for ext in ('.tar.gz', '.tgz')):
+        f = get_tar_file
+    elif full_url.endswith('.zip'):
+        f = get_zip_file
+    elif full_url.endswith('.bz2'):
+        f = get_bz2_file
+    else:
+        raise IndexError(f'Unknown extension: {full_url}')
+    return f(full_url, dump_dir, overwrite)
+
+
 
 def bulk_download_and_mosaic(url_list, dem_path, sat_tile, bbox, crs, new_res=10):
 
