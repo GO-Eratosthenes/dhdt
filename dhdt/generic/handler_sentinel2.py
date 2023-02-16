@@ -250,6 +250,31 @@ def get_geom_for_tile_code(tile_code, geom_dir=None, geom_name=None):
         print('MGRS tile code does not seem to exist')
     return geom.ExportToWkt()
 
+def get_tile_codes_from_geom(geom, geom_dir=None, geom_name=None):
+    """
+    Get the codes of the MGRS tiles intersecting a given geometry
+
+    Parameters
+    ----------
+    geom : {shapely.geometry, string}
+        geometry object or well known text, i.e.: 'POLYGON ((x y, x y, x y))'
+    geom_dir : string
+        directory where geometric metadata about Sentinel-2 is situated
+    geom_name : string
+        filename of metadata, e.g.: 'sentinel2_tiles_world.geojson'
+
+    Returns
+    -------
+    tile_codes : tuple
+        MGRS tile codes
+
+    See Also
+    --------
+    .get_geom_for_tile_code, .get_bbox_from_tile_code
+    """
+    raise NotImplemented('Function to be added when working on s2 tiling grid')
+
+
 def get_generic_s2_raster(tile_code, spac=10):
     """ create spatial metadata of a Sentinel-2, so no downloading is needed.
 
