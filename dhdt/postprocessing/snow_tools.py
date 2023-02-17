@@ -4,7 +4,7 @@ from dhdt.generic.unit_conversion import deg2compass
 from dhdt.processing.matching_tools_frequency_filters import gradient_fourier
 
 
-def drift_profile(Z, geoTransform, theta):
+def drift_profile(Z, geoTransform, θ):
     """
 
     Parameters
@@ -13,7 +13,7 @@ def drift_profile(Z, geoTransform, theta):
         grid with elevation values
     geoTransform : tuple, size={(1,6), (1,8)}
         georeference transform of the array 'Z'
-    theta : float, unit=degrees, range=-180...+180
+    θ : float, unit=degrees, range=-180...+180
         dominant wind direction
 
     Returns
@@ -26,7 +26,7 @@ def drift_profile(Z, geoTransform, theta):
        Proceedings of the 43rd annual western snow conference, pp.87-97, 1975.
     """
 
-    theta = deg2compass(theta)
+    θ = deg2compass(θ)
     # get scaling
     spac = np.hypot(geoTransform[1], geoTransform[2])
 

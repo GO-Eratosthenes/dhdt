@@ -812,29 +812,29 @@ def cross_shading_filter(Q, az_1, az_2): #todo
            London, 2015.
     """
     F_1, F_2 = make_fourier_grid(Q, indexing='xy', system='radians')
-    theta = np.angle(F_2 + 1j * F_1)
+    θ = np.angle(F_2 + 1j * F_1)
     az_1, az_2 = np.deg2rad(az_1), np.deg2rad(az_2)
 
-    def _get_angular_sel(theta, az_1, az_2):
-        c_theta, s_theta = np.cos(theta), np.sin(theta)
+    def _get_angular_sel(θ, az_1, az_2):
+        c_θ, s_θ = np.cos(θ), np.sin(θ)
         c_down, s_down = np.minimum(np.cos(az_1), np.cos(az_2)), \
                          np.minimum(np.sin(az_1), np.sin(az_2))
         c_up, s_up = np.maximum(np.cos(az_1), np.cos(az_2)), \
                      np.maximum(np.sin(az_1), np.sin(az_2))
-        OUT = np.logical_and(np.logical_and(np.less(c_down, c_theta),
-                                            np.less(c_theta, c_up)),
-                             np.logical_and(np.less(s_down, s_theta),
-                                            np.less(s_theta, s_up))
+        OUT = np.logical_and(np.logical_and(np.less(c_down, c_θ),
+                                            np.less(c_θ, c_up)),
+                             np.logical_and(np.less(s_down, s_θ),
+                                            np.less(s_θ, s_up))
                              )  # (4.42) in [1], pp.51
         return OUT
 
     W = np.ones_like(Q, dtype=float)
     down, up = az_2 - (3*np.pi/2), az_1 - (np.pi/2)
-    OUT1 = _get_angular_sel(theta, down, up)
+    OUT1 = _get_angular_sel(θ, down, up)
     np.putmask(W, OUT1, 0)
 
     down, up = az_2 - (np.pi/2), az_1 + (np.pi/2)
-    OUT2 = _get_angular_sel(theta, down, up)
+    OUT2 = _get_angular_sel(θ, down, up)
     np.putmask(W, OUT2, 0)
     return W
 

@@ -18,5 +18,5 @@ def estimate_principle_strain(E_xx, E_yy, E_xy):
 
     lamb = np.sqrt(np.divide(E_min,2)**2 + E_xy**2)
     E_max, E_min = E_plu/2 + lamb, E_plu/2 - lamb
-    Theta = np.rad2deg(np.arctan2(2*E_xy, E_min) / 2)
-    return Theta, E_max, E_min
+    θ = np.rad2deg(np.arctan2(2*E_xy, E_min) / 2)
+    return θ, E_max, E_min

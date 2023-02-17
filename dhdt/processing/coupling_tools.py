@@ -241,8 +241,8 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
 
             # get the similarity metrics
             if precision_estimate:
-                si,sj,rho = estimate_precision(QC, di,dj,
-                                               method='gaussian')
+                si,sj,ρ = estimate_precision(QC, di,dj,
+                                             method='gaussian')
             score = estimate_match_metric(QC, di=di, dj=dj, metric=metric)
 
         # transform from local image to metric map system
@@ -265,7 +265,7 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
         match_metric[idx_grd[0],idx_grd[1],0] = score
         match_metric[idx_grd[0],idx_grd[1],1] = si
         match_metric[idx_grd[0],idx_grd[1],2] = sj
-        match_metric[idx_grd[0],idx_grd[1],3] = rho
+        match_metric[idx_grd[0],idx_grd[1],3] = ρ
 
     if X2_grd.shape[2]==1:
         X2_grd,Y2_grd = np.squeeze(X2_grd), np.squeeze(Y2_grd)

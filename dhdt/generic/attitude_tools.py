@@ -43,12 +43,12 @@ def ordered_merge(t_0, t_1, x_0, x_1):
     return t_merge, x_merge
 
 # forward attitude functions
-def rot_mat(theta):
+def rot_mat(θ):
     """ build a 2x2 rotation matrix
 
     Parameters
     ----------
-    theta : float
+    θ : float
         angle in degrees
 
     Returns
@@ -74,16 +74,17 @@ def rot_mat(theta):
                  +----> East & x
 
     """
-    R = np.array([[+np.cos(np.radians(theta)), -np.sin(np.radians(theta))],
-                  [+np.sin(np.radians(theta)), +np.cos(np.radians(theta))]])
+    θ = np.deg2rad(θ)
+    R = np.array([[+np.cos(θ), -np.sin(θ)],
+                  [+np.sin(θ), +np.cos(θ)]])
     return R
 
-def euler_rot_x(psi):
+def euler_rot_x(ψ):
     """ create three dimensional rotation matrix, along X-axis
 
     Parameters
     ----------
-    psi : float, unit=degrees
+    ψ : float, unit=degrees
         amount of rotation
 
     Returns
@@ -93,15 +94,15 @@ def euler_rot_x(psi):
     """
 
     R_x = np.diag(3)
-    R_x[1:,1:] = rot_mat(psi)
+    R_x[1:,1:] = rot_mat(ψ)
     return R_x
 
-def euler_rot_y(theta):
+def euler_rot_y(θ):
     """ create three dimensional rotation matrix, along Y-axis
 
     Parameters
     ----------
-    theta : float, unit=degrees
+    θ : float, unit=degrees
         amount of rotation
 
     Returns
@@ -110,17 +111,17 @@ def euler_rot_y(theta):
         rotation matrix along the X-axis (2nd dimension)
     """
     R_y = np.diag(3)
-    R_2 = rot_mat(theta)
+    R_2 = rot_mat(θ)
     R_y[0,0],R_y[0,-1],R_y[-1,0],R_y[-1,-1] = R_2[0,0],R_2[0,-1],R_2[-1,0],\
                                               R_2[-1,-1]
     return R_y
 
-def euler_rot_z(phi):
+def euler_rot_z(φ):
     """ create three dimensional rotation matrix, along Z-axis
 
     Parameters
     ----------
-    phi : float, unit=degrees
+    φ : float, unit=degrees
         amount of rotation
 
     Returns
@@ -129,7 +130,7 @@ def euler_rot_z(phi):
         rotation matrix along the X-axis (3rd dimension)
     """
     R_z = np.diag(3)
-    R_z[:-1, :-1] = rot_mat(phi)
+    R_z[:-1, :-1] = rot_mat(φ)
     return R_z
 
 # backward attitude methods
@@ -143,24 +144,24 @@ def rot_2_euler(R):
 
     Returns
     -------
-    phi, theta, psi : float, unit=degrees
+    φ, θ, ψ : float, unit=degrees
         rotation angles
 
     Notes
     -----
     These angles go also by other definitions, namely
         phi : roll, rotation about the X-axis
-        theta : pitch, rotation about the Y-axis
-        psi : yaw, rotaion about the Z-axis
+        θ : pitch, rotation about the Y-axis
+        ψ : yaw, rotaion about the Z-axis
 
     References
     ----------
     .. [1] Kim, "Rigid body dynamics for beginners", 2013.
     """
-    phi = np.rad2deg(np.arctan2(R[1,2], R[2,2]))        # p.60 in [1]
-    theta = np.rad2deg(np.arcsin(-R[0,2]))              # eq.5.13 in [1]
-    psi = np.rad2deg(np.arctan2(R[0,1], R[0,0]))        # eq.5.14 in [1]
-    return phi, theta, psi
+    φ = np.rad2deg(np.arctan2(R[1,2], R[2,2]))        # p.60 in [1]
+    θ = np.rad2deg(np.arcsin(-R[0,2]))              # eq.5.13 in [1]
+    ψ = np.rad2deg(np.arctan2(R[0,1], R[0,0]))        # eq.5.14 in [1]
+    return φ, θ, ψ
 
 def quat_2_euler(q1, q2, q3, q4):
     """ convert to euler angels, rotating order is via Z->Y->X
@@ -172,26 +173,26 @@ def quat_2_euler(q1, q2, q3, q4):
 
     Returns
     -------
-    phi, theta, psi : {float, numpy.array}, unit=degrees
+    φ, θ, ψ : {float, numpy.array}, unit=degrees
         rotation angles
 
     Notes
     -----
     These angles go also by other definitions, namely
         phi : roll, rotation about the X-axis
-        theta : pitch, rotation about the Y-axis
-        psi : yaw, rotaion about the Z-axis
+        θ : pitch, rotation about the Y-axis
+        ψ : yaw, rotaion about the Z-axis
 
     References
     ----------
     .. [1] Kim, "Rigid body dynamics for beginners", 2013.
     """
-    phi = np.rad2deg(np.arctan2(2*(q2*q3 + q1*q4),
+    φ = np.rad2deg(np.arctan2(2*(q2*q3 + q1*q4),
                                 1-2*(q1**2+q2**2)))     # eq. 5.12 in [1]
-    theta = np.rad2deg(np.arcsin(2*(q2*q4 - q1*q3)))    # eq. 5.13 in [1]
-    psi = np.rad2deg(np.arctan2(2*(q1*q2 + q3*q4),
+    θ = np.rad2deg(np.arcsin(2*(q2*q4 - q1*q3)))    # eq. 5.13 in [1]
+    ψ = np.rad2deg(np.arctan2(2*(q1*q2 + q3*q4),
                                 1-2*(q2**2+q3**2)))     # eq. 5.14 in [1]
-    return phi, theta, psi
+    return φ, θ, ψ
 
 def get_rotation_angle(R):
     """ get the amount of rotation, along a fixed axis (i.e.: vector)
@@ -203,7 +204,7 @@ def get_rotation_angle(R):
 
     Returns
     -------
-    phi : float, unit=degrees
+    φ : float, unit=degrees
         amount of rotation, along a fixed axis
 
     See Also
@@ -214,9 +215,9 @@ def get_rotation_angle(R):
     ----------
     .. [1] Kuipers, "Quaternions and rotation sequences", 2002.
     """
-    phi = np.rad2deg(np.arccos(np.divide(np.trace(R) - 1,
+    φ = np.rad2deg(np.arccos(np.divide(np.trace(R) - 1,
                                          2))) # eq. 3.4 in [1], pp.57
-    return phi
+    return φ
 
 def get_rotation_vector(R):
     """ get the vector where rotation is applied around

@@ -35,6 +35,8 @@ def get_file_from_ftps(url, user, password,
     """
     if dump_dir[-1]!=os.sep:
         dump_dir += os.sep
+    if not os.path.isdir(dump_dir): os.makedirs(dump_dir)
+
     client = ftps.FTPS('ftps://' +user+ ':' +password+ '@' +url)
     client.list()
     client.download( os.path.join(file_path, file_name),
@@ -63,8 +65,12 @@ def get_file_from_www(full_url, dump_dir=os.getcwd(), overwrite=False):
     --------
     get_file_from_protected_www
     """
+    assert isinstance(full_url, str), 'please provide a string'
+    assert isinstance(dump_dir, str), 'please provide a string'
+
     file_name = full_url.split('/')[-1]
     file_path = os.path.join(dump_dir, file_name)
+
     if not os.path.isfile(file_path) or overwrite:
         assert url_exist(full_url), f"Non-existing URL: {full_url}"
         os.makedirs(dump_dir, exist_ok=True)
@@ -92,6 +98,10 @@ def get_file_from_protected_www(full_url, dump_dir=os.getcwd(),
     --------
     get_file_from_www
     """
+    assert user is not None, 'please provide username'
+    assert password is not None, 'please provide a password'
+    if not os.path.isdir(dump_dir): os.makedirs(dump_dir)
+
     file_name = full_url.split('/')[-1]
     with requests.Session() as session:
         r1 = session.request('get', full_url)

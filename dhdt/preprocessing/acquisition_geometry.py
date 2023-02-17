@@ -103,10 +103,10 @@ def get_ortho_offset(Z, dx, dy, obs_az, obs_zn, geoTransform):
     dZ = Z-Z_dij
 
     # estimate orthorectification compensation
-    ortho_rho = np.tan(np.deg2rad(obs_zn))*dZ
+    ortho_ρ = np.tan(np.deg2rad(obs_zn))*dZ
 
-    dI = -np.cos(np.deg2rad(obs_az[0,0]))*ortho_rho
-    dJ = +np.sin(np.deg2rad(obs_az))*ortho_rho
+    dI = -np.cos(np.deg2rad(obs_az[0,0]))*ortho_ρ
+    dJ = +np.sin(np.deg2rad(obs_az))*ortho_ρ
     return dI, dJ
 
 def compensate_ortho_offset(I, Z, dx, dy, obs_az, obs_zn, geoTransform):
@@ -303,22 +303,3 @@ def get_template_acquisition_angles(Az,Zn,Det,i_samp,j_samp,t_size):
         Azimuth[idx_i,idx_j] = azimuth_bar
         Zenith[idx_i,idx_j] = zenith_bar
     return Azimuth, Zenith
-
-def create_relative_time_grid(geoTransform, az, tsd):
-    assert len(geoTransform)>6, 'please provide a tuple with image dimensions'
-    x_grd,y_grd = np.meshgrid(np.arange(0, geoTransform[6], 1),
-                              np.arange(0, geoTransform[7], 1),
-                              indexing='xy')
-    y_grd = np.flipud(y_grd)
-
-    Dt = + np.sin(np.radians(az))*x_grd + np.cos(np.radians(az))*y_grd
-    Dt *= int(tsd)
-    Dt -= np.min(Dt)
-    Dt = np.round(Dt).astype(int).astype('timedelta64[ns]')
-    return Dt
-
-def make_timing_stack(samp_tim, det_stack, timing_det):
-
-    tim_stack = []
-
-    return tim_stack

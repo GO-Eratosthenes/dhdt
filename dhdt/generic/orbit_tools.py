@@ -124,10 +124,10 @@ def estimate_inclination_from_traj(XYZ,T):
     cov = np.dot(xyz.T, xyz)
     eig_val,eig_vec = np.linalg.eig(cov)
 
-    phi = np.rad2deg(np.arccos(np.dot(eig_vec[..., -1], np.array([0, 0, 1]))))
+    φ = np.rad2deg(np.arccos(np.dot(eig_vec[..., -1], np.array([0, 0, 1]))))
 
-    phi = None
-    return phi
+    φ = None
+    return φ
 
 def calculate_correct_mapping(Zn_grd, Az_grd, bnd, det, grdTransform, crs,
                               sat_dict=None):

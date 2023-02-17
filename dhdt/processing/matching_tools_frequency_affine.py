@@ -13,14 +13,14 @@ from .matching_tools_frequency_filters import make_fourier_grid
 
 # radon > direction > sign > shear
 
-def rotated_coord_system(I_grd, J_grd, theta):
+def rotated_coord_system(I_grd, J_grd, θ):
     """ create rotated coordinate system
 
     Parameters
     ----------
     I_grd, J_grd : np.array, size=(m,n), float
         grid with coordinates
-    theta : float, unit=angle
+    θ : float, unit=angle
         rotation angle
 
     Returns
@@ -29,7 +29,7 @@ def rotated_coord_system(I_grd, J_grd, theta):
         new sheared coordinate system
     """
     (m, n) = I_grd.shape
-    R = rot_mat(theta)
+    R = rot_mat(θ)
 
     stack_grd = np.vstack((I_grd.ravel(), J_grd.ravel())).T
 
@@ -67,45 +67,45 @@ def sheared_coord_system(I_grd, J_grd, shear):
     J_new = np.reshape(grd_new[1, :], (m, n))
     return I_new, J_new
 
-def sheared_cross_spectrum(Q, shear, theta):
+def sheared_cross_spectrum(Q, shear, θ):
     (m, n) = Q.shape
     F_1, F_2 = make_fourier_grid(Q, indexing='ij', system='pixel')
 
-    F_1r,F_2r = rotated_coord_system(F_1, F_2, +theta)
+    F_1r,F_2r = rotated_coord_system(F_1, F_2, +θ)
     F_1s,F_2s = sheared_coord_system(F_1r, F_2r, shear)
-    F_1n,F_2n = rotated_coord_system(F_1s, F_2s, -theta)
+    F_1n,F_2n = rotated_coord_system(F_1s, F_2s, -θ)
     return F_1n, F_2n
 
-def compute_E(cirus, theta):
+def compute_E(cirus, θ):
     # following Kadyrov '06
     a_0 = (1/8)*np.sum(cirus**4)
-    a_2 = (1/8)*np.sum(cirus**4 * np.cos(2*theta))
-    b_2 = (1/8)*np.sum(cirus**4 * np.sin(2*theta))              # (25)
+    a_2 = (1/8)*np.sum(cirus**4 * np.cos(2*θ))
+    b_2 = (1/8)*np.sum(cirus**4 * np.sin(2*θ))              # (25)
     
     ab_dist = np.hypot( a_2, b_2)
     cos_omega = np.divide( a_2, ab_dist)
     sin_omega = np.divide( a_2, ab_dist)      # (26)
     omega = np.arctan2(cos_omega, sin_omega)
     
-    phi_min, phi_max = (omega+np.pi)/2, omega/2                 # (27)
-    psi_min, psi_max = a_0 - ab_dist, a_0 + ab_dist             # (28)
+    φ_min, φ_max = (omega+np.pi)/2, omega/2                 # (27)
+    ψ_min, ψ_max = a_0 - ab_dist, a_0 + ab_dist             # (28)
     
-    a_tilde = np.sqrt(psi_max)*(np.cos(psi_max))**2 + \
-        np.sqrt(psi_min)*(np.cos(psi_min))**2
-    b_tilde = np.sqrt(psi_max)*np.sin(phi_max)*np.cos(phi_max) + \
-        np.sqrt(psi_min)*np.sin(phi_min)*np.cos(phi_min)
-    d_tilde = np.sqrt(psi_max)*(np.sin(psi_max))**2 + \
-        np.sqrt(psi_min)*(np.sin(psi_min))**2                   # (29)
-    D = np.power(psi_max*psi_min, 1./4)                         # (30)
+    a_tilde = np.sqrt(ψ_max)*(np.cos(ψ_max))**2 + \
+        np.sqrt(ψ_min)*(np.cos(ψ_min))**2
+    b_tilde = np.sqrt(ψ_max)*np.sin(φ_max)*np.cos(φ_max) + \
+        np.sqrt(ψ_min)*np.sin(φ_min)*np.cos(φ_min)
+    d_tilde = np.sqrt(ψ_max)*(np.sin(ψ_max))**2 + \
+        np.sqrt(ψ_min)*(np.sin(ψ_min))**2                   # (29)
+    D = np.power(ψ_max*ψ_min, 1./4)                         # (30)
     a,b,d = np.divide(a_tilde,D), np.divide(b_tilde,D), np.divide(d_tilde,D)
     
     E_inv = np.array([[a, b], [b, d]])
     E = np.linalg.inv(E_inv)
     return E
 
-def create_cirus_array(rho,theta,d):
+def create_cirus_array(ρ,θ,d):
     # polar to coordinates
-    (x1,y1) = pol2cart(rho, theta)
+    (x1,y1) = pol2cart(ρ, θ)
     xy = np.transpose(np.vstack((x1, y1)))
     xy += d # translate to center
      
@@ -168,12 +168,12 @@ def affine_binairy_center(B1, B2): #todo: docstring
     Q = np.array([[Q12, Q13], [Q22, Q23]])            
     return Q
 
-def compute_K_R(G, theta):
+def compute_K_R(G, θ):
     # following Kadyrov '06
-    K = np.hypot( G[0,0]*np.cos(theta) + G[0,1]*np.sin(theta),
-                  G[1,0]*np.cos(theta) + G[1,1]*np.sin(theta))
-    cos_R = np.divide( G[0,0]*np.cos(theta) + G[0,1]*np.sin(theta), K)
-    sin_R = np.divide( G[1,0]*np.cos(theta) + G[1,1]*np.sin(theta), K)
+    K = np.hypot( G[0,0]*np.cos(θ) + G[0,1]*np.sin(θ),
+                  G[1,0]*np.cos(θ) + G[1,1]*np.sin(θ))
+    cos_R = np.divide( G[0,0]*np.cos(θ) + G[0,1]*np.sin(θ), K)
+    sin_R = np.divide( G[1,0]*np.cos(θ) + G[1,1]*np.sin(θ), K)
     R = np.arctan2(cos_R, sin_R)
     return K, R
 
@@ -200,9 +200,9 @@ def mom_mat(I):
 def polygon2list(I, d):
     ij = find_contours(I,.5)[0]
     ij -= d
-    (rho, phi) = cart2pol(ij[:,1], ij[:,0])
-    phi = (phi + 2*np.pi) % (2*np.pi) # convert to 0 ... 2pi
-    return (rho, phi)
+    (ρ, φ) = cart2pol(ij[:,1], ij[:,0])
+    φ = (φ + 2*np.pi) % (2*np.pi) # convert to 0 ... 2pi
+    return (ρ, φ)
 
 def central_im_transform(I, Aff):
     (mI,nI) = I.shape

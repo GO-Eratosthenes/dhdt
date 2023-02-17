@@ -4,10 +4,12 @@ import glob
 import numpy as np
 import pandas as pd
 
+import datetime
+
 # geospatial libaries
 from osgeo import gdal, osr, ogr
 from xml.etree import ElementTree
-from netCDF4 import Dataset
+from netCDF4 import Dataset, date2num
 
 from .unit_check import correct_geoTransform, is_crs_an_srs
 from .mapping_tools import pix_centers
@@ -146,7 +148,8 @@ def read_nc_image(fname, layer_name):
 
 # output functions
 def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes',
-              no_dat=np.nan, sun_angles='az:360-zn:90', date_created='-0276-00-00'):
+                no_dat=np.nan, sun_angles='az:360-zn:90',
+                date_created='-0276-00-00'):
     """ Create georeferenced tiff file (a GeoTIFF)
 
     Parameters
@@ -183,20 +186,22 @@ def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes',
 
     drv = gdal.GetDriverByName("GTiff")  # export image
     if I.dtype == 'float64':     # make it type dependent
-        ds = drv.Create(fName,xsize=I.shape[1], ysize=I.shape[0],bands=bands,
-                        eType=gdal.GDT_Float64)
+        gdal_dtype = gdal.GDT_Float64
+        predictor = "3"
     elif I.dtype == 'float32':
-        ds = drv.Create(fName,xsize=I.shape[1], ysize=I.shape[0],bands=bands,
-                        eType=gdal.GDT_Float32)
-    elif I.dtype == 'bool':
-        ds = drv.Create(fName, xsize=I.shape[1], ysize=I.shape[0], bands=bands,
-                        eType=gdal.GDT_Byte)
-    elif I.dtype == 'uint8':
-        ds = drv.Create(fName, xsize=I.shape[1], ysize=I.shape[0], bands=bands,
-                        eType=gdal.GDT_Byte)
+        gdal_dtype = gdal.GDT_Float32
+        predictor = "3"
+    elif I.dtype in ('bool', 'uint8'):
+        gdal_dtype = gdal.GDT_Byte
+        predictor = "2"
     else:
-        ds = drv.Create(fName, xsize=I.shape[1], ysize=I.shape[0], bands=bands,
-                        eType=gdal.GDT_Int32)
+        gdal_dtype = gdal.GDT_Int32
+        predictor = "2"
+
+    ds = drv.Create(fName,xsize=I.shape[1], ysize=I.shape[0],bands=bands,
+                    eType=gdal_dtype, options=['TFW=YES', 'COMPRESS=LZW',
+                                               "PREDICTOR=" + predictor])
+
     # set metadata in datasource
     ds.SetMetadata({'TIFFTAG_SOFTWARE':'dhdt v0.1',
                     'TIFFTAG_ARTIST':'bas altena and team Atlas',
@@ -269,7 +274,8 @@ def make_multispectral_vrt(df, fpath=None, fname='multispec.vrt'):
     tree.write(ffull) # update the file on disk
     return
 
-def make_nc_image(I, R, crs, fName):
+def make_nc_image(I, R, crs, fName,
+                  date_created=datetime.datetime(2022,11,28)):
     if not isinstance(crs, str): crs = crs.ExportToWkt()
 
     X,Y = pix_centers(R, make_grid=False)
@@ -278,70 +284,74 @@ def make_nc_image(I, R, crs, fName):
 
     if is_crs_an_srs(crs):
         nc_struct = ('times', 'nor', 'eas')
-        nor = dsout.createDimension('nor', Y.size[0])
+        nor = dsout.createDimension('nor', Y.size)
         nor = dsout.createVariable('nor', 'f4', ('nor',))
         nor.standard_name = 'northing'
         nor.units = 'metres_north'
         nor.axis = "Y"
         nor[:] = Y
 
-        eas = dsout.createDimension('east', X.size[0])
-        eas = dsout.createVariable('east', 'f4', ('eas',))
+        eas = dsout.createDimension('eas', X.size)
+        eas = dsout.createVariable('eas', 'f4', ('eas',))
         eas.standard_name = 'easting'
         eas.units = 'metres_east'
         eas.axis = "X"
         eas[:] = X
     else:
         nc_struct = nc_struct = ('times', 'lat', 'lon')
-        lat = dsout.createDimension('lat', Y.size[0])
+        lat = dsout.createDimension('lat', Y.size)
         lat = dsout.createVariable('lat', 'f4', ('lat',))
         lat.standard_name = 'latitude'
         lat.units = 'degrees_north'
         lat.axis = "Y"
         lat[:] = Y
 
-        lon = dsout.createDimension('lon', X.size[0])
+        lon = dsout.createDimension('lon', X.size)
         lon = dsout.createVariable('lon', 'f4', ('lon',))
         lon.standard_name = 'longitude'
         lon.units = 'degrees_east'
         lon.axis = "X"
         lon[:] = X
 
-    time = dsout.createDimension('time', 0)
-    times = dsout.createVariable('time', 'f4', ('time',))
+    time = dsout.createDimension('times', 0)
+    times = dsout.createVariable('times', 'f4', ('times',))
     times.standard_name = 'time'
     times.long_name = 'time'
     times.units = 'hours since 1970-01-01 00:00:00'
-    times.calendar = 'gregorian'
+    times.calendar = 'standard'
+    times[:] = date2num(date_created,
+                        units=times.units, calendar=times.calendar)
 
     if np.iscomplexobj(I):
         U = dsout.createVariable(
             'U', 'f4', nc_struct,
-            zlib=True, complevel=9, least_significant_digit=1, fill_value=-9999
+            zlib=True, complevel=4, least_significant_digit=1, fill_value=-9999
         )
-        U[:] = np.real(I[np.newaxis(),...])
+        U[:] = np.real(I[np.newaxis,...])
         U.standard_name = 'horizontal_velocity'
         U.units = 'm/s'
         U.setncattr('grid_mapping', 'spatial_ref')
 
         V = dsout.createVariable(
             'V', 'f4', nc_struct,
-            zlib=True, complevel=9, least_significant_digit=1, fill_value=-9999
+            zlib=True, complevel=4, least_significant_digit=1, fill_value=-9999
         )
-        V[:] = np.imag(I[np.newaxis(),...])
+        V[:] = np.imag(I[np.newaxis,...])
         V.standard_name = 'vertical_velocity'
         V.units = 'm/s'
         V.setncattr('grid_mapping', 'spatial_ref')
     else:
         I = dsout.createVariable(
             'I', 'f4', nc_struct,
-            zlib=True, complevel=9, least_significant_digit=1, fill_value=-9999
+            zlib=True, complevel=4, least_significant_digit=1, fill_value=-9999
         )
         I[:] = I[np.newaxis(),...]
         I.setncattr('grid_mapping', 'spatial_ref')
 
     proj = dsout.createVariable('spatial_ref', 'i4')
     proj.spatial_ref = crs
+
+    dsout.close()
     return
 
 def make_im_from_geojson(geoTransform, crs, out_name, geom_name, out_dir=None,
@@ -349,6 +359,7 @@ def make_im_from_geojson(geoTransform, crs, out_name, geom_name, out_dir=None,
     geoTransform = correct_geoTransform(geoTransform)
     if not isinstance(crs, str): crs = crs.ExportToWkt()
     if out_dir is None: out_dir = os.getcwd()
+    if not os.path.isdir(out_dir): os.makedirs(out_dir)
     if geom_dir is None:
         rot_dir = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3])
         geom_dir = os.path.join(rot_dir, 'data')

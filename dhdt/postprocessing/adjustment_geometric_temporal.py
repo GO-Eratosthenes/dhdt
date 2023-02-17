@@ -76,18 +76,18 @@ def rot_covar(V, R):
     V_r = R @ V @ np.transpose(R)
     return V_r
 
-def rotate_variance(Theta, qii, qjj, rho):
+def rotate_variance(θ, qii, qjj, ρ):
     """ rotate the elements of the covariance into a direction of interest
 
     Parameters
     ----------
-    Theta : numpy.ndarray, size=(m,n), unit=degrees
+    θ : numpy.ndarray, size=(m,n), unit=degrees
         direction of interest
     qii : numpy.ndarray, size=(m,n), unit={meters, pixels}
         variance in vertical direction
     qjj : numpy.ndarray, size=(m,n), unit={meters, pixels}
         variance in horizontal direction
-    rho : numpy.ndarray, size=(m,n), unit=degrees
+    ρ : numpy.ndarray, size=(m,n), unit=degrees
         orientation of the ellipse
 
     Returns
@@ -102,36 +102,36 @@ def rotate_variance(Theta, qii, qjj, rho):
     rotate_disp_field : generic function, using a constant rotation
     """
     qii_r, qjj_r = np.zeros_like(qii), np.zeros_like(qjj)
-    for iy, ix in np.ndindex(Theta.shape):
-        if ~np.isnan(Theta[iy,ix]) and ~np.isnan(rho[iy,ix]):
+    for iy, ix in np.ndindex(θ.shape):
+        if ~np.isnan(θ[iy,ix]) and ~np.isnan(ρ[iy,ix]):
             # construct co-variance matrix
-            qij = rho[iy,ix]*\
+            qij = ρ[iy,ix]*\
                   np.sqrt(np.abs(qii[iy,ix]))*np.sqrt(np.abs(qjj[iy,ix]))
 
             V = np.array([[qjj[iy,ix], qij],
                           [qij, qii[iy,ix]]])
-            R = rot_mat(Theta[iy,ix])
+            R = rot_mat(θ[iy,ix])
             V_r = rot_covar(V, R)
             qii_r[iy, ix], qjj_r[iy, ix] = V_r[1][1], V_r[0][0]
         else:
             qii_r[iy,ix], qjj_r[iy,ix] = np.nan, np.nan
     return qii_r, qjj_r
 
-def rotate_disp_field(UV, theta):
+def rotate_disp_field(UV, θ):
     """ rotate a complex number through an angle
 
     Parameters
     ----------
     UV : numpy.array, size=(m,n), dtype=complex
         grid with displacements in complex form
-    theta : {numpy.array, float}, angle, unit=degrees
+    θ : {numpy.array, float}, angle, unit=degrees
         rotation angle
 
     UV_r :  numpy.array, size=(m,n), dtype=complex
         grid with rotated displacements in complex form
     """
     assert(UV.dtype is np.dtype('complex'))
-    UV_r = np.multiply(UV, np.exp(1j*np.deg2rad(theta)),
+    UV_r = np.multiply(UV, np.exp(1j*np.deg2rad(θ)),
                        out=UV, where=np.invert(np.isnan(UV)))
     return UV_r
 

@@ -228,15 +228,15 @@ def simple_optical_flow(I1, I2, window_size, sampleI, sampleJ,
             A = np.stack((Ix, Iy), axis=1)  # get A here
 
             # caluclate eigenvalues to see directional contrast distribution
-            epsilon = np.linalg.eigvals(np.matmul(A.T, A))
+            ɛ = np.linalg.eigvals(np.matmul(A.T, A))
             nu = np.matmul(np.linalg.pinv(A), -b)  # get velocity here
 
             if sampleI.ndim>1:
                 Ugrd[iGrd,jGrd], Vgrd[iGrd,jGrd] = nu[0][0],nu[1][0]
-                Ueig[iGrd,jGrd], Veig[iGrd,jGrd] = epsilon[0],epsilon[1]
+                Ueig[iGrd,jGrd], Veig[iGrd,jGrd] = ɛ[0],ɛ[1]
             else:
                 Ugrd, Vgrd = nu[1][0], nu[0][0]
-                Ueig, Veig = epsilon[1], epsilon[0]
+                Ueig, Veig = ɛ[1], ɛ[0]
 
     return Ugrd, Vgrd, Ueig, Veig
 
@@ -495,34 +495,34 @@ def hough_optical_flow(I1, I2, param_resol=100, sample_fraction=1,
 
     # create data
     abs_G = np.hypot(I_di, I_dj)
-    theta_G = np.arctan2(I_dj,I_di)
+    θ_G = np.arctan2(I_dj,I_di)
 
-    rho = np.divide(I_dt, abs_G, out=np.zeros_like(abs_G), where=abs_G!=0)
+    ρ = np.divide(I_dt, abs_G, out=np.zeros_like(abs_G), where=abs_G!=0)
 
     # remove flat contrast data or data with NaN's
     IN = np.logical_and(~np.logical_and(I_di == 0, I_dj == 0),
                         np.logical_or(Msk_1, Msk_2))
 
-    di, dj, score = hough_sinus(theta_G[IN], rho[IN],
+    di, dj, score = hough_sinus(θ_G[IN], ρ[IN],
                                 param_resol=param_resol,
                                 max_amp=max_amp,
                                 sample_fraction=sample_fraction,
                                 num_estimates=num_estimates,
                                 indexing='cartesian')
     # import matplotlib.pyplot as plt
-    # plt.hexbin(theta_G[IN], rho[IN], extent=(-3.14, +3.14, -1, +1)), plt.show()
+    # plt.hexbin(θ_G[IN], ρ[IN], extent=(-3.14, +3.14, -1, +1)), plt.show()
     return di,dj, score
 
-def hough_sinus(phi,rho,
+def hough_sinus(φ,ρ,
                 param_resol=100, max_amp=1, sample_fraction=1,
                 num_estimates=1, indexing='polar'):
     """ estimates parameters of sinus curve through the Hough transform
 
     Parameters
     ----------
-    phi : numpy.array, size=(m,n), unit=radians
+    φ : numpy.array, size=(m,n), unit=radians
         array with angle values, or argument of a polar expression
-    rho : numpy.array, size=(m,n)
+    ρ : numpy.array, size=(m,n)
         array with amplitude values
     param_resol : integer
         amount of bins for each axis to cover the Hough space
@@ -537,9 +537,9 @@ def hough_sinus(phi,rho,
 
     Returns
     -------
-    phi_H : float
+    φ_H : float
         estimated argument of the curve
-    rho_H : float
+    ρ_H : float
         estimated amplitude of the curve
     score_H : float, range=0...1
         probability of support of the estimate
@@ -549,14 +549,14 @@ def hough_sinus(phi,rho,
     .. [1] Guo & Lü, "Phase-shifting algorithm by use of Hough transform"
        Optics express vol.20(23) pp.26037-26049, 2012.
     """
-    are_two_arrays_equal(phi, rho)
+    are_two_arrays_equal(φ, ρ)
 
     normalize = True
-    phi,rho = phi.flatten(), rho.flatten()
+    φ,rho = φ.flatten(), ρ.flatten()
     if normalize:
-        rho -= np.nanmedian(rho)
+        ρ -= np.nanmedian(ρ)
 
-    sample_size = rho.size
+    sample_size = ρ.size
     if sample_fraction==1:
         idx = np.arange(0, sample_size)
     elif sample_fraction>1: # use the amount given by sample_fraction
@@ -573,9 +573,9 @@ def hough_sinus(phi,rho,
     democracy = np.zeros((param_resol, param_resol), dtype=np.float32)
 
     for counter in idx:
-        diff = rho[counter] - \
-               (u*+np.sin(phi[counter]) +
-                v*+np.cos(phi[counter]))
+        diff = ρ[counter] - \
+               (u*+np.sin(φ[counter]) +
+                v*+np.cos(φ[counter]))
         # Gaussian weighting
         vote = np.exp(-np.abs(diff*param_resol)/max_amp)
         #todo: outer product, to speed-up
@@ -611,31 +611,31 @@ def differential_stacking(I_st, id_1, id_2, dt):
         I_di, I_dj, I_dt = create_differential_data(I1, I2)
         # transform to Hough-space coordinates
         abs_grad = np.hypot(I_di, I_dj)
-        theta_grad = np.arctan2(I_dj, I_di)
+        θ_grad = np.arctan2(I_dj, I_di)
 
-        rho = np.divide(I_dt, abs_grad,
-                        out=np.zeros_like(abs_grad),
-                        where=abs_grad != 0)
-        theta = np.divide(theta_grad, 1.)  # Q_scaling[i])
-        theta *= dt[i]
+        ρ = np.divide(I_dt, abs_grad,
+                      out=np.zeros_like(abs_grad),
+                      where=abs_grad != 0)
+        θ = np.divide(θ_grad, 1.)  # Q_scaling[i])
+        θ *= dt[i]
 
         # bring into collection
         if i == 0:
-            diff_stack = np.array([rho.flatten(), theta.flatten()]).T
+            diff_stack = np.array([ρ.flatten(), θ.flatten()]).T
         else:
-            diff_stack = np.vstack((diff_stack, np.array([rho.flatten(),
-                                                          theta.flatten()]).T))
+            diff_stack = np.vstack((diff_stack, np.array([ρ.flatten(),
+                                                          θ.flatten()]).T))
     return diff_stack
 
     #todo: histogram goes quicker
-#    H,phi_h,rho_h = np.histogram2d(phi[idx], rho[idx],
-#                                   bins=24, range=[[-180, +180], [-max_amp, +max_amp]])
+#    H,φ_h,ρ_h = np.histogram2d(φ[idx], [idx],
+#                               bins=24, range=[[-180, +180], [-max_amp, +max_amp]])
 
     # import matplotlib.pyplot as plt
     # plt.figure()
     # plt.imshow(vote, extent=(-max_amp,+max_amp,-max_amp,+max_amp)), plt.show()
     # plt.figure()
-    # plt.hexbin(phi, rho, gridsize=32, extent=(-180,+180,-max_amp,+max_amp)),
+    # plt.hexbin(phi, ρ, gridsize=32, extent=(-180,+180,-max_amp,+max_amp)),
     # plt.show()
 
     # find multiple peaks if present and wanted
@@ -643,14 +643,14 @@ def differential_stacking(I_st, id_1, id_2, dt):
     score /= sample_size # normalize
 
     if indexing in ('polar', 'circular',):
-        rho_H, phi_H = np.zeros(num_estimates), np.zeros(num_estimates)
+        rho_H, φ_H = np.zeros(num_estimates), np.zeros(num_estimates)
         for cnt,sc in enumerate(score):
             if sc!=0:
                 rho_H[cnt] = np.sqrt( u[ind[cnt,0]][ind[cnt,1]]**2 +
                                  v[ind[cnt,0]][ind[cnt,1]]**2 )
-                phi_H[cnt] = np.arctan2(u[ind[cnt,0]][ind[cnt,1]],
+                φ_H[cnt] = np.arctan2(u[ind[cnt,0]][ind[cnt,1]],
                                    v[ind[cnt,0]][ind[cnt,1]])
-        return phi_H, rho_H, score
+        return φ_H, rho_H, score
     elif indexing in ('cartesian', 'xy',):
         u_H, v_H = np.zeros(num_estimates), np.zeros(num_estimates)
         for cnt,sc in enumerate(score):
@@ -659,12 +659,12 @@ def differential_stacking(I_st, id_1, id_2, dt):
                 v_H[cnt] = v[ind[cnt,0]][ind[cnt,1]]
 
         # A_H = np.sqrt(u_H ** 2 + v_H ** 2)
-        # phi_H = np.arctan2(u_H, v_H)
+        # φ_H = np.arctan2(u_H, v_H)
         # psi = np.linspace(-np.pi, +np.pi)
-        # curv = A_H * np.sin(psi + phi_H)
+        # curv = A_H * np.sin(psi + φ_H)
 
         # import matplotlib.pyplot as plt
-        # plt.hexbin(phi, rho, extent=(-3, +3, -1, +1), gridsize=32, cmap=plt.cm.gray_r),
+        # plt.hexbin(φ, rho, extent=(-3, +3, -1, +1), gridsize=32, cmap=plt.cm.gray_r),
         # plt.plot(psi, curv), plt.show()
         # plt.show(), plt.colorbar()
 

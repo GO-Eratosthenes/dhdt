@@ -5,3 +5,4 @@ tutorials
    tutorials/shadow-detection
    tutorials/shadow-enhancement
    tutorials/shadow-finding
+   tutorials/CopDEM-sen2

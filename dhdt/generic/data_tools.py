@@ -37,14 +37,14 @@ def gradient_descent(A, y, params, learning_rate=0.01, n_iters=100):
     n_samples, history = y.shape[0], np.zeros((n_iters))
 
     for i in range(n_iters):
-        err = np.squeeze(A @ params) - y
+        ɛ = np.squeeze(A @ params) - y
         
-        # err = (1 / (1 + err**2))*err
+        # ɛ = (1 / (1 + ɛ**2))*ɛ
         
-        # IN = np.abs(err)<=np.quantile(np.abs(err), quantile)
-        # err = err[IN]
-        # params = params - (learning_rate/n_samples) * A[IN,:].T @ err
-        params = params - (learning_rate/n_samples) * A.T @ err
+        # IN = np.abs(ɛ)<=np.quantile(np.abs(ɛ), quantile)
+        # ɛ = ɛ[IN]
+        # params = params - (learning_rate/n_samples) * A[IN,:].T @ ɛ
+        params = params - (learning_rate/n_samples) * A.T @ ɛ
         history[i] = compute_cost(A, y, params)
     if history[0]<history[-1]:
         print('no convergence')
@@ -122,14 +122,14 @@ def secant(A, y, J, params, n_iters=5, print_diagnostics=False):
         print('no convergence')
     return params, history    
 
-def estimate_sinus(phi, rho, bias=True):
+def estimate_sinus(φ, ρ, bias=True):
     """ least squares estimation of a sinus function
 
     Parameters
     ----------
-    phi : numpy.array, size=(m,), unit=degrees
+    φ : numpy.array, size=(m,), unit=degrees
         angle
-    rho : numpy.array, size=(m,)
+    ρ : numpy.array, size=(m,)
         amplitude
     bias : boolean
         estimate offset as well
@@ -143,19 +143,19 @@ def estimate_sinus(phi, rho, bias=True):
     bias : float
         offset of the curve
     """
-    assert phi.size>=2, 'please provide enough data points'
-    assert rho.size>=2, 'please provide enough data points'
+    assert φ.size>=2, 'please provide enough data points'
+    assert ρ.size>=2, 'please provide enough data points'
 
     # design matrix
     if bias==True:
-        A = np.vstack([np.sin(np.deg2rad(phi)),
-                       np.cos(np.deg2rad(phi)),
-                       np.ones(len(phi))]).T
+        A = np.vstack([np.sin(np.deg2rad(φ)),
+                       np.cos(np.deg2rad(φ)),
+                       np.ones(len(φ))]).T
     else:
-        A = np.vstack([np.sin(np.deg2rad(phi)),
-                       np.cos(np.deg2rad(phi))]).T
+        A = np.vstack([np.sin(np.deg2rad(φ)),
+                       np.cos(np.deg2rad(φ))]).T
 
-    x_hat = np.linalg.lstsq(A, rho, rcond=None)[0]
+    x_hat = np.linalg.lstsq(A, ρ, rcond=None)[0]
 
     phase_hat = np.rad2deg(np.arctan2(x_hat[0], x_hat[1]))
     amp_hat = np.hypot(x_hat[0], x_hat[1])
@@ -534,19 +534,19 @@ def hough_transf(x, y, w=None,
                                np.round(sample_size * sample_fraction).astype(np.int32),
                                replace=False)
 
-    rho_max = np.maximum(np.hypot(bnds[0], bnds[1]),
+    ρ_max = np.maximum(np.hypot(bnds[0], bnds[1]),
                          np.hypot(bnds[2], bnds[3]))
 
-    (theta, rho) = np.meshgrid(np.deg2rad(np.linspace(-90., +90., param_resol)),
-                               np.linspace(-rho_max, +rho_max, param_resol))
+    (θ, ρ) = np.meshgrid(np.deg2rad(np.linspace(-90., +90., param_resol)),
+                               np.linspace(-ρ_max, +ρ_max, param_resol))
     democracy = np.zeros((param_resol, param_resol), dtype=np.float32)
 
-    cos_th, sin_th = np.cos(theta), np.sin(theta)
+    cos_th, sin_th = np.cos(θ), np.sin(θ)
 
     for counter in idx:
-        diff = (cos_th * x[counter] + sin_th * y[counter]) - rho
+        diff = (cos_th * x[counter] + sin_th * y[counter]) - ρ
         # Gaussian weighting
-        vote = np.exp(-np.abs(diff * w[counter]) / rho_max)
+        vote = np.exp(-np.abs(diff * w[counter]) / ρ_max)
         np.putmask(vote, np.isnan(vote), 0)
         democracy += vote
 
@@ -557,7 +557,7 @@ def hough_transf(x, y, w=None,
     # transform to slope and intercept
     slope_hat = np.divide(-cos_th.flatten()[idx_flat],
                           +sin_th.flatten()[idx_flat])
-#    intercept_hat = np.divide(rho.flatten()[idx_flat],
+#    intercept_hat = np.divide(ρ.flatten()[idx_flat],
 #                              cos_th.flatten()[idx_flat]) # x-intercept
     intercept_hat = np.divide(rho.flatten()[idx_flat],
                               sin_th.flatten()[idx_flat]) # y-intercept

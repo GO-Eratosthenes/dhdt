@@ -4,6 +4,50 @@ from osgeo import ogr, osr, gdal
 
 import geopandas
 
+from dhdt.generic.handler_www import get_zip_file
+
+def get_wrs_url(version=2):
+    """ get the location where the geometric data of Landsats path-row
+    footprints are situated
+
+    References
+    ----------
+    .. [1] https://www.usgs.gov/media/files/landsat-wrs-2-descending-path-row-shapefile
+    """
+    assert isinstance(version, int), 'please provide an integer'
+    assert 0 < version < 3, 'please provide a correct version, i.e.: {1,2}'
+    wrs_url = 'https://d9-wret.s3.us-west-2.amazonaws.com/assets/palladium/' + \
+              'production/s3fs-public/atoms/files/' + \
+              'WRS' + str(version) + '_descending_0.zip'
+    return wrs_url
+
+def get_wrs_dataset(geom_dir, geom_name=None, version=2):
+
+    if geom_name is None:
+        geom_name = 'wrs' + str(version) + '.geojson'
+    ffull = os.path.join(geom_dir, geom_name)
+    if os.path.exists(ffull):
+        return ffull
+
+    wrs_url = get_wrs_url(version=version)
+    file_list = get_zip_file(wrs_url, dump_dir=geom_dir)
+
+    soi = 'WRS' + str(version) + '_descending.shp'
+    sfull = os.path.join(geom_dir,soi) # full path of shapefile of interest
+
+    wrs = geopandas.read_file(sfull)
+
+    header = wrs.keys()
+    head_drop = [k for k in header if not k in ('PATH', 'ROW','geometry',)]
+    wrs.drop(head_drop, axis=1, inplace=True)
+
+    # write out the geometry to a GeoJSON file
+    wrs.to_file(ffull, driver='GeoJSON')
+
+    for f in file_list:
+        os.remove(os.path.join(geom_dir, f))
+    return ffull
+
 def get_bbox_from_path_row(path, row,
                            shp_dir='/Users/Alten005/surfdrive/Eratosthenes/SatelliteTiles',
                            shp_name='wrs2_descending.shp'):
@@ -34,7 +78,7 @@ def meta_LSstring(LSstr):  # generic
     LSrow = int(LSsplit[2][3:7])
     return LStime, LSpath, LSrow
 
-def get_LS_footprint(wrs_path, poi, roi):
+def get_ls_footprint(wrs_path, poi, roi):
     # Get the WRS footprints in lat-lon
     wrsShp = ogr.Open(wrs_path)
     wrsLayer = wrsShp.GetLayer()
@@ -52,8 +96,8 @@ def get_LS_footprint(wrs_path, poi, roi):
         points = ring.GetPointCount()
         ll_footp = np.zeros((points,2), dtype=float)
         for p in range(points):
-            (lon, lat, _) = ring.GetPoint(p)
-            ll_footp[p,0], ll_footp[p,1] = lon, lat
+            (λ, ϕ, _) = ring.GetPoint(p)
+            ll_footp[p,0], ll_footp[p,1] = λ, ϕ
             
     spatialRef = wrsLayer.GetSpatialRef()        
     return ll_footp, spatialRef
