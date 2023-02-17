@@ -63,6 +63,10 @@ def list_central_wavelength_vssc():
               "B5": 'B5', "B6" : 'B6', "B7" : 'B7', "B8" : 'B8',
               "B9": 'B9', "B10":'B10', "B11":'B11', "B12":'B12',
               }
+    detector_id = {"B1": 1, "B2" : 1, "B3" : 4, "B4" : 4,
+                   "B5": 1, "B6" : 4, "B7" : 3, "B8" : 3,
+                   "B9": 3, "B10": 2, "B11": 2, "B12": 2,
+                  }
     common_name = {"B1": 'coastal',    "B2" : 'coastal',
                    "B3" : 'blue',      "B4" : 'green',
                    "B5" : 'stereo',    "B6" : 'stereo',
@@ -75,15 +79,18 @@ def list_central_wavelength_vssc():
          "full_width_half_max": pd.Series(full_width_half_max),
          "gsd": pd.Series(gsd),
          "common_name": pd.Series(common_name),
-         "bandid": pd.Series(bandid)
+         "bandid": pd.Series(bandid),
+         "detector_id": pd.Series(detector_id)
          }
     df = pd.DataFrame(d)
     return df
 
-def read_band_vn(path, band='00'):
+def read_band_vn(path, band=None):
 
-    if band!='00':
+    if isinstance(band, str):
         fname = os.path.join(path, '*SRE_'+band+'.tif')
+    elif isinstance(band,int):
+        fname = os.path.join(path, '*SRE_'+ str(band).zfill(2) + '.tif')
     else:
         fname = path
     f_full = glob.glob(fname)[0]
@@ -93,7 +100,50 @@ def read_band_vn(path, band='00'):
         read_geo_image(f_full)
 
     return data, spatialRef, geoTransform, targetprj
-    
+
+def read_stack_vn(vn_df):
+    """
+    read imagery data of interest into an three dimensional np.array
+
+    Parameters
+    ----------
+    vn_df : pandas.Dataframe
+        metadata and general multispectral information about the VSSC
+        instrument that is onboard VENµS
+
+    Returns
+    -------
+    im_stack : numpy.array, size=(_,_,_)
+        array of the band image
+    spatialRef : string
+        projection
+    geoTransform : tuple, size=(8,1)
+        affine transformation coefficients
+    targetprj : osr.SpatialReference object
+        spatial reference
+
+    """
+    assert isinstance(vn_df, pd.DataFrame), ('please provide a dataframe')
+    assert 'imagepath' in vn_df, ('please first run "get_vn_image_locations"' +
+                                 ' to find the proper file locations')
+
+    # start with the highest resolution
+    for val, idx in enumerate(vn_df.sort_values('bandid').index):
+        full_path = vn_df['imagepath'][idx]
+        if val == 0:
+            im_stack, spatialRef, geoTransform, targetprj = read_band_vn(full_path)
+        else:  # stack others bands
+            if im_stack.ndim == 2:
+                im_stack = np.atleast_3d(im_stack)
+            band = np.atleast_3d(read_band_vn(full_path)[0])
+            im_stack = np.concatenate((im_stack, band), axis=2)
+
+    # in the meta data files there is no mention of its size, hence include
+    # it to the geoTransform
+    if len(geoTransform) == 6:
+        geoTransform = geoTransform + (im_stack.shape[0], im_stack.shape[1])
+    return im_stack, spatialRef, geoTransform, targetprj
+
 # def read_sun_angles_vn(path)
 def read_view_angles_vn(path):
     assert isinstance(path, str)

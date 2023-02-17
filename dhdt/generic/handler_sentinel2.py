@@ -1,15 +1,16 @@
 import os
 import re
-import glob
 import time
 
-from xml.etree import ElementTree
 from osgeo import ogr, osr
 
 import numpy as np
 import pandas as pd
 
 import geopandas
+
+from dhdt.generic.handler_xml import get_root_of_table
+
 
 def get_s2_dict(s2_df):
     """
@@ -316,34 +317,6 @@ def get_generic_s2_raster(tile_code, spac=10):
     crs = get_crs_from_mgrs_tile(tile_code)
     return geoTransform, crs
 
-def get_array_from_xml(treeStruc):
-    """
-    Arrays within a xml structure are given line per line
-    Output is an array
-    """
-    for i in range(0, len(treeStruc)):
-        Trow = [float(s) for s in treeStruc[i].text.split(' ')]
-        if i == 0:
-            Tn = Trow
-        elif i == 1:
-            Trow = np.stack((Trow, Trow), 0)
-            Tn = np.stack((Tn, Trow[1, :]), 0)
-        else:
-            Tn = np.concatenate((Tn, [Trow]), 0)
-    return Tn
-
-def get_root_of_table(path, fname=None):
-    if fname is None:
-        full_name = path
-    else:
-        full_name = os.path.join(path, fname)
-    if not '*' in full_name:
-        assert os.path.exists(full_name), \
-            ('please provide correct path and file name')
-    dom = ElementTree.parse(glob.glob(full_name)[0])
-    root = dom.getroot()
-    return root
-
 def get_s2_image_locations(fname,s2_df):
     """
     The Sentinel-2 imagery are placed within a folder structure, where one
@@ -359,7 +332,7 @@ def get_s2_image_locations(fname,s2_df):
 
     Returns
     -------
-    im_paths : series, size=(k,)
+    s2_df_new : pandas.dataframe
         dataframe series with relative folder and file locations of the bands
     datastrip_id : string
         folder name of the metadata

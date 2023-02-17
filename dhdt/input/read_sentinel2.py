@@ -18,7 +18,8 @@ from scipy.ndimage import label
 from scipy.signal import convolve2d
 
 from ..generic.handler_sentinel2 import \
-    get_array_from_xml, get_root_of_table, get_s2_dict
+    get_s2_dict
+from ..generic.handler_xml import get_array_from_xml, get_root_of_table
 from ..generic.mapping_tools import \
     map2pix, ecef2map, ecef2llh, get_bbox, pol2xyz
 from ..generic.mapping_io import read_geo_image, read_geo_info

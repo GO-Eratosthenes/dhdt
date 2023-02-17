@@ -7,7 +7,7 @@ from xml.etree import ElementTree
 import numpy as np
 import pandas as pd
 
-from .read_sentinel2 import get_root_of_table
+from ..generic.handler_xml import get_root_of_table
 from ..generic.mapping_io import read_geo_image
 
 # dove-C
