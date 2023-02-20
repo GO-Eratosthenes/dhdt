@@ -1,6 +1,9 @@
 import numpy as np
 
-from ..generic.data_tools import gompertz_curve, s_curve
+from scipy import ndimage
+
+from dhdt.generic.data_tools import gompertz_curve
+from dhdt.generic.handler_im import get_grad_filters
 
 def mat_to_gray(I, notI=None, vmin=None, vmax=None):
     """ transform matix array  to float, omitting nodata values
@@ -301,7 +304,6 @@ def histogram_equalization(img, img_ref):
     new_img[~IN] = np.nan
     return new_img.reshape(mn)
 
-
 def cum_hist(img):
     """ compute the cumulative histogram of an image
 
@@ -342,7 +344,6 @@ def psuedo_inv(cumhist, val):
     """
     res = np.min(np.where(cumhist >= val))
     return res
-
 
 def general_midway_equalization(I):
     """ equalization of multiple imagery, based on [1]
@@ -434,3 +435,33 @@ def high_pass_im(Im, radius=10):
              If = np.fft.fft2(Im[...,i])
              Inew[...,i] = np.real(np.fft.ifft2(If * Hi))
         return Inew
+
+def multi_spectral_grad(I):
+    """ get the dominant multi-spectral gradient of the stack, stripped down
+    version of the fusion technique, described in [1].
+
+    Parameters
+    ----------
+    I : numpy.array, dim=3, dtype=float
+        stack of imagery
+
+    Returns
+    -------
+    grad_I : numpy.array, dim=2, dtype=complex
+        fused gradient of the image stack
+
+    References
+    ----------
+    .. [1] Socolinsky & Wolff, "Multispectral image visualization through
+       first-order fusion", IEEE transactions on image fusion, vol.11(8)
+       pp.923-931, 2002.
+    """
+    fx,fy = get_grad_filters(ftype='sobel', tsize=3, order=1)
+
+    Idx = ndimage.convolve(I, np.atleast_3d(fx))  # steerable filters
+    Idy = ndimage.convolve(I, np.atleast_3d(fy))
+
+    _,s,v = np.linalg.svd(np.stack((Idx,Idy), axis=-1),
+                          full_matrices=False)
+    grad_I = np.squeeze(s[...,0]*v[...,0] + 1j*s[...,0]*v[...,1])
+    return grad_I
