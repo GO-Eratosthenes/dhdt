@@ -13,25 +13,24 @@ from sklearn.neighbors import NearestNeighbors
 from scipy.spatial.distance import cdist
 from skimage import measure
 
-from ..generic.mapping_tools import pix2map, cast_orientation, ref_trans, \
+from dhdt.generic.unit_check import correct_geoTransform
+from dhdt.generic.mapping_tools import pix2map, cast_orientation, ref_trans, \
     aff_trans_template_coord, rot_trans_template_coord
-from ..generic.mapping_io import read_geo_image, read_geo_info
-from ..generic.handler_im import bilinear_interpolation, select_boi_from_stack
-
-from ..input.read_sentinel2 import \
+from dhdt.generic.mapping_io import read_geo_image, read_geo_info
+from dhdt.generic.handler_im import bilinear_interpolation, select_boi_from_stack
+from dhdt.input.read_sentinel2 import \
     read_sun_angles_s2, get_local_bbox_in_s2_tile
-
-from .matching_tools import \
+from dhdt.processing.matching_tools import \
     pad_images_and_filter_coord_list, pad_radius, get_integer_peak_location, \
     get_data_and_mask
-from .matching_tools_organization import \
+from dhdt.processing.matching_tools_organization import \
     list_spatial_correlators, list_peak_estimators, list_phase_estimators, \
     match_translation_of_two_subsets, estimate_subpixel, estimate_precision, \
     estimate_translation_of_two_subsets, list_frequency_correlators, \
     estimate_match_metric
-from .matching_tools_differential import \
+from dhdt.processing.matching_tools_differential import \
     affine_optical_flow, simple_optical_flow
-from .matching_tools_binairy_boundaries import \
+from dhdt.processing.matching_tools_binairy_boundaries import \
     beam_angle_statistics, cast_angle_neighbours, neighbouring_cast_distances
 
 
@@ -139,8 +138,8 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
     elif L2 is None: L2=np.array([])
     assert isinstance(L1, np.ndarray), "please provide an array"
     assert isinstance(L2, np.ndarray), "please provide an array"
-    assert isinstance(geoTransform1, tuple), 'geoTransform should be a tuple'
-    assert isinstance(geoTransform2, tuple), 'geoTransform should be a tuple'
+    geoTransform1, geoTransform2 = correct_geoTransform(geoTransform1), \
+                                   correct_geoTransform(geoTransform2)
     assert X_grd.shape == Y_grd.shape  # should be of the same size
     assert temp_radius <= search_radius, 'given search radius is too small'
 
@@ -148,9 +147,7 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
 
     I1, L1 = get_data_and_mask(I1, L1)
     I2, L2 = get_data_and_mask(I2, L2)
-
-    if X_grd.ndim==1: # sometimes a collumn is given instead of a grid
-        X_grd,Y_grd = X_grd[:,np.newaxis], Y_grd[:,np.newaxis]
+    X_grd,Y_grd = np.atleast_2d(X_grd), np.atleast_2d(Y_grd)
 
     correlator = correlator.lower()
     if (subpix is not None): subpix=subpix.lower()
@@ -808,102 +805,6 @@ def merge_ids_pd(dh_mother, dh_child, idx_uni):
 
     dh_stack = pd.concat([dh_mother, dh_child])
     return dh_stack
-
-def match_shadow_ridge(M1, M2, Az1, Az2, geoTransform1, geoTransform2,
-                        xy1, xy2, describ='BAS', K=5):
-
-    M1,M2,i1,j1,i2,j2 = pad_images_and_filter_coord_list(M1,M2,
-         geoTransform1, geoTransform2, np.vstack((xy1[:,0],xy2[:,0])).T,
-         np.vstack((xy1[:,1],xy2[:,1])).T, K, 2*K, same=False)
-
-    if describ in ['CAN', 'NCD']: # sun angles are needed
-        Az1 = np.pad(Az1, K,'constant', constant_values=0)
-        Az2 = np.pad(Az2, 2*K,'constant', constant_values=0)
-
-    ij2_corr = np.zeros((i1.shape[0],2)).astype(np.float64)
-    xy2_corr = np.zeros((i1.shape[0],2)).astype(np.float64)
-    corr_score = np.zeros((i1.shape[0],1)).astype(np.float16)
-    for counter in range(len(i1)):
-        M1_sub = M1[i1[counter] - K:i1[counter] + K + 1,
-                j1[counter] - K:j1[counter] + K + 1]
-        M2_sub = M2[i2[counter] - 2*K:i2[counter] + 2*K + 1,
-                j2[counter] - 2*K:j2[counter] + 2*K + 1]
-
-        if describ in ['CAN', 'NCD']:
-            Az1_sub = Az1[i1[counter],j1[counter]]
-            Az2_sub = Az2[i2[counter],j2[counter]]
-
-        contours = measure.find_contours(M1_sub!=0, level=0.5,
-                                        fully_connected='low',
-                                        positive_orientation='low', mask=None)
-        # find nearest contour and edge point
-        idx = 2*K # input a randomly large number
-        for i in range(0,len(contours)):
-            post_dist = np.sum((contours[i]-K+1)**2, axis=1)**.5
-            min_dist = np.min(post_dist)
-            if i == 0:
-                near = i
-                idx = np.argmin(post_dist)
-                near_dist = min_dist
-            elif min_dist < near_dist:
-                near = i
-                idx = np.argmin(post_dist)
-                near_dist = min_dist
-        contour = contours[near] # contour of interest
-        if describ == 'BAS':
-            doi = beam_angle_statistics(contour[:,0], contour[:,1],
-                                        K, xy_id=idx) # point describtor
-        elif describ in ['CAN', 'NCD']:
-            local_sun = np.array([np.cos(np.deg2rad(Az1_sub)),
-                                  np.sin(np.deg2rad(Az1_sub))])
-            if describ == 'CAN':
-                doi = cast_angle_neighbours(contour[:,0], contour[:,1],
-                                            local_sun, K, xy_id=idx) # point describtor
-            elif describ == 'NCD':
-                doi = neighbouring_cast_distances(contour[:,0], contour[:,1],
-                                                  local_sun, K, xy_id=idx)
-
-        contours = measure.find_contours(M2_sub!=0, level=0.5,
-                                        fully_connected='low',
-                                        positive_orientation='low', mask=None)
-
-        # loop through candidate contours and build describtor, then match
-        for i in range(0,len(contours)-1):
-            track = contours[i]
-            if describ == 'BAS':
-                toi = beam_angle_statistics(track[:,0], track[:,1], K)
-            elif describ in ['CAN', 'NCD']:
-                local_sun = np.array([np.cos(np.deg2rad(Az2_sub)),
-                                      np.sin(np.deg2rad(Az2_sub))])
-                if describ == 'CAN':
-                    toi = cast_angle_neighbours(track[:,0], track[:,1],
-                                                local_sun, K)
-                elif describ == 'NCD':
-                    toi = neighbouring_cast_distances(track[:,0], track[:,1],
-                                                      local_sun, K)
-
-            descr_dis = np.sum((toi-doi)**2, axis=1)**.5
-
-            min_dist = np.min(descr_dis)/len(doi)
-            if i == 0:
-                sim_score = min_dist
-                idx = np.argmin(descr_dis)
-                di,dj = track[idx,0], track[idx,1]
-            elif min_dist<sim_score:
-                sim_score = min_dist
-                idx = np.argmin(descr_dis)
-                di, dj = track[idx,0], track[idx,1]
-
-        corr_score[counter] = sim_score
-        ij2_corr[counter,0] = i2[counter] - di
-        ij2_corr[counter,1] = j2[counter] - dj
-
-        ij2_corr[counter,0] += 2*K # 2*K compensate for padding
-        ij2_corr[counter,1] += 2*K
-
-    xy2_corr[:,0], xy2_corr[:,1] = pix2map(geoTransform1, ij2_corr[:,0], ij2_corr[:,1])
-    return xy2_corr, corr_score
-# create file with approx shadow cast locations
 
 # refine by matching, and include correlation score
 def match_shadow_casts(M1, M2, L1, L2, geoTransform1, geoTransform2,
