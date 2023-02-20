@@ -44,3 +44,13 @@ following function makes reading such data easier.
 
 .. automodule:: dhdt.input.read_planetscope
     :members:
+
+read VENuS data
+~~~~~~~~~~~~~~~~~~~~~
+The VENuS satellite is a demonstration satellite, that acquires over specific
+pre-defined regions. It has a high repeat rate in the order of one or two days,
+if cloud cover permits. The following functions make reading of such data
+easier.
+
+.. automodule:: dhdt.input.read_venus
+    :members:

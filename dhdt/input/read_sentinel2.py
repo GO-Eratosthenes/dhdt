@@ -161,17 +161,28 @@ def list_central_wavelength_msi():
                   "B09": 813, "B10": 367, "B11": 246, "B12": 85,
                   } # these numbers are also given in the meta-data
     d = {
-         "center_wavelength": pd.Series(center_wavelength),
-         "full_width_half_max": pd.Series(full_width_half_max),
-         "gsd": pd.Series(gsd),
-         "across_pixel_size": pd.Series(across_pixel_size),
-         "along_pixel_size": pd.Series(along_pixel_size),
-         "focal_length": pd.Series(focal_length),
-         "common_name": pd.Series(common_name),
-         "bandid": pd.Series(bandid),
-         "field_of_view" : pd.Series(field_of_view),
-         "solar_illumination": pd.Series(solar_illumination),
-         "crossdetector_parallax": pd.Series(crossdetector_parallax)
+         "center_wavelength": pd.Series(center_wavelength,
+                                        dtype=np.dtype('float')),
+         "full_width_half_max": pd.Series(full_width_half_max,
+                                          dtype=np.dtype('float')),
+         "gsd": pd.Series(gsd,
+                          dtype=np.dtype('float')),
+         "across_pixel_size": pd.Series(across_pixel_size,
+                                        dtype=np.dtype('float')),
+         "along_pixel_size": pd.Series(along_pixel_size,
+                                       dtype=np.dtype('float')),
+         "focal_length": pd.Series(focal_length,
+                                   dtype=np.dtype('float')),
+         "common_name": pd.Series(common_name,
+                                  dtype=np.dtype('str')),
+         "bandid": pd.Series(bandid,
+                             dtype=np.dtype('int64')),
+         "field_of_view" : pd.Series(field_of_view,
+                                     dtype=np.dtype('float')),
+         "solar_illumination": pd.Series(solar_illumination,
+                                         dtype=np.dtype('float')),
+         "crossdetector_parallax": pd.Series(crossdetector_parallax,
+                                             dtype=np.dtype('float'))
     }
     df = pd.DataFrame(d)
     return df

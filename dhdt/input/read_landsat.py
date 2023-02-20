@@ -156,12 +156,18 @@ def list_central_wavelength_oli():
             "B11": 'lwir12',
             }
     d = {
-         "center_wavelength": pd.Series(center_wavelength),
-         "full_width_half_max": pd.Series(full_width_half_max),
-         "gsd": pd.Series(gsd),
-         "common_name": pd.Series(common_name),
-         "field_of_view": pd.Series(field_of_view),
-         "bandid": pd.Series(bandid)
+         "center_wavelength": pd.Series(center_wavelength,
+                                        dtype=np.dtype('float')),
+         "full_width_half_max": pd.Series(full_width_half_max,
+                                          dtype=np.dtype('float')),
+         "gsd": pd.Series(gsd,
+                          dtype=np.dtype('float')),
+         "common_name": pd.Series(common_name,
+                                  dtype=np.dtype('str')),
+         "field_of_view": pd.Series(field_of_view,
+                                    dtype=np.dtype('float')),
+         "bandid": pd.Series(bandid,
+                             dtype=np.dtype('int64'))
          }
     df = pd.DataFrame(d)
     return df
