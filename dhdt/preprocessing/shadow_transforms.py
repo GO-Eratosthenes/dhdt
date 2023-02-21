@@ -611,7 +611,8 @@ def normalized_difference_blue_water_index(Blue, Near):
     return NDBWI
 
 def combinational_shadow_index(Blue,Green,Red,Near):
-    """transform red, green, blue arrays to combined shadow index
+    """transform red, green, blue arrays to combined shadow index. See also
+    [Su19].
 
     Parameters
     ----------
@@ -635,7 +636,7 @@ def combinational_shadow_index(Blue,Green,Red,Near):
 
     References
     ----------
-    .. [1] Sun et al. "Combinational shadow index for building shadow
+    .. [Su19] Sun et al. "Combinational shadow index for building shadow
        extraction in urban areas from Sentinel-2A MSI imagery" International
        journal of applied earth observation and geoinformation, vol.78
        pp.53--65, 2019.
@@ -655,7 +656,8 @@ def combinational_shadow_index(Blue,Green,Red,Near):
     return CSI
 
 def normalized_sat_value_difference_index(Blue, Green, Red):
-    """transform red, green, blue arrays to normalized sat-value difference
+    """ transform red, green, blue arrays to normalized sat-value difference.
+    See also [Ma08].
 
     Parameters
     ----------
@@ -681,7 +683,7 @@ def normalized_sat_value_difference_index(Blue, Green, Red):
 
     References
     ----------
-    .. [1] Ma et al. "Shadow segmentation and compensation in high resolution
+    .. [Ma08] Ma et al. "Shadow segmentation and compensation in high resolution
        satellite images", Proceedings of IEEE IGARSS, pp.II-1036--II-1039,
        2008.
     """
@@ -693,7 +695,8 @@ def normalized_sat_value_difference_index(Blue, Green, Red):
     return NSVDI
 
 def shadow_identification(Blue, Green, Red):
-    """transform red, green, blue arrays to sat-value difference
+    """ transform red, green, blue arrays to sat-value difference, following
+    [Po03].
 
     Parameters
     ----------
@@ -719,7 +722,7 @@ def shadow_identification(Blue, Green, Red):
 
     References
     ----------
-    .. [1] Polidorio et al. "Automatic shadow segmentation in aerial color
+    .. [Po03] Polidorio et al. "Automatic shadow segmentation in aerial color
        images", Proceedings of the 16th Brazilian symposium on computer graphics
        and image processing, pp.270-277, 2003.
     """
@@ -730,7 +733,7 @@ def shadow_identification(Blue, Green, Red):
     return SI
 
 def shadow_index_liu(Blue, Green, Red):
-    """transform red, green, blue arrays to shadow index
+    """transform red, green, blue arrays to shadow index, see [LX13] and [Su19].
 
     Parameters
     ----------
@@ -748,13 +751,13 @@ def shadow_index_liu(Blue, Green, Red):
 
     References
     ----------
-    .. [1] Liu & Xie. "Study on shadow detection in high resolution remote
-           sensing image of PCA and HIS model", Remote sensing technology and
-           application, vol.28(1) pp. 78--84, 2013.
-    .. [2] Sun et al. "Combinational shadow index for building shadow
-           extraction in urban areas from Sentinel-2A MSI imagery"
-           International journal of applied earth observation and
-           geoinformation, vol.78 pp.53--65, 2019.
+    .. [LX13] Liu & Xie. "Study on shadow detection in high resolution remote
+       sensing image of PCA and HIS model", Remote sensing technology and
+       application, vol.28(1) pp. 78--84, 2013.
+    .. [Su19] Sun et al. "Combinational shadow index for building shadow
+       extraction in urban areas from Sentinel-2A MSI imagery" International
+       journal of applied earth observation and geoinformation, vol.78
+       pp.53--65, 2019.
     """
     are_three_arrays_equal(Blue,Green,Red)
 
@@ -770,7 +773,7 @@ def shadow_index_liu(Blue, Green, Red):
     return SI
 
 def specthem_ratio(Blue, Green, Red):
-    """transform red, green, blue arrays to specthem ratio
+    """transform red, green, blue arrays to specthem ratio, see [Si18].
 
     Parameters
     ----------
@@ -794,7 +797,7 @@ def specthem_ratio(Blue, Green, Red):
 
     References
     ----------
-    .. [1] Silva et al. "Near real-time shadow detection and removal in aerial
+    .. [Si18] Silva et al. "Near real-time shadow detection and removal in aerial
        motion imagery application" ISPRS journal of photogrammetry and remote
        sensing, vol.140 pp.104--121, 2018.
     """
@@ -807,7 +810,7 @@ def specthem_ratio(Blue, Green, Red):
     return Sr
 
 def shadow_detector_index(Blue, Green, Red):
-    """transform red, green, blue arrays to shadow detector index
+    """transform red, green, blue arrays to shadow detector index, see [MA17].
 
     Parameters
     ----------
@@ -825,7 +828,7 @@ def shadow_detector_index(Blue, Green, Red):
 
     References
     ----------
-    .. [1] Mustafa & Abedehafez. "Accurate shadow detection from
+    .. [MA17] Mustafa & Abedehafez. "Accurate shadow detection from
        high-resolution satellite images" IEEE geoscience and remote sensing
        letters, vol.14(4) pp.494--498, 2017.
     """
@@ -841,7 +844,8 @@ def shadow_detector_index(Blue, Green, Red):
     return SDI
 
 def sat_int_shadow_detector_index(Blue, RedEdge, Near):
-    """transform red, green, blue arrays to sat-int shadow detector index
+    """ transform red, green, blue arrays to sat-int shadow detector index, see
+    also [MA18].
 
     Parameters
     ----------
@@ -859,7 +863,7 @@ def sat_int_shadow_detector_index(Blue, RedEdge, Near):
 
     References
     ----------
-    .. [1] Mustafa & Abedelwahab. "Corresponding regions for shadow restoration
+    .. [MA18] Mustafa & Abedelwahab. "Corresponding regions for shadow restoration
        in satellite high-resolution images" International journal of remote
        sensing, vol.39(20) pp.7014--7028, 2018.
     """
@@ -870,7 +874,8 @@ def sat_int_shadow_detector_index(Blue, RedEdge, Near):
     return SISDI
 
 def mixed_property_based_shadow_index(Blue, Green, Red):
-    """transform Red Green Blue arrays to Mixed property-based shadow index
+    """ transform red, green, blue arrays to Mixed property-based shadow index,
+    see also [Ha18].
 
     Parameters
     ----------
@@ -888,7 +893,7 @@ def mixed_property_based_shadow_index(Blue, Green, Red):
 
     References
     ----------
-    .. [1] Han et al. "A mixed property-based automatic shadow detection
+    .. [Ha18] Han et al. "A mixed property-based automatic shadow detection
        approach for VHR multispectral remote sensing images" Applied sciences
        vol.8(10) pp.1883, 2018.
     """
@@ -899,7 +904,8 @@ def mixed_property_based_shadow_index(Blue, Green, Red):
     return MPSI
 
 def color_invariant(Blue, Green, Red):
-    """transform Red Green Blue arrays to color invariant (c3)
+    """ transform red, green, blue arrays to color invariant (c3), see also
+    [GS99] and [AA08].
 
     Parameters
     ----------
@@ -917,9 +923,9 @@ def color_invariant(Blue, Green, Red):
 
     References
     ----------
-    .. [1] Gevers & Smeulders. "Color-based object recognition" Pattern
+    .. [GS99] Gevers & Smeulders. "Color-based object recognition" Pattern
        recognition, vol.32 pp.453--464, 1999
-    .. [2] Arévalo González & G. Ambrosio. "Shadow detection in colour
+    .. [AA08] Arévalo González & Ambrosio. "Shadow detection in colour
        high‐resolution satellite images" International journal of remote
        sensing, vol.29(7) pp.1945--1963, 2008
     """
@@ -929,7 +935,8 @@ def color_invariant(Blue, Green, Red):
     return c3
 
 def modified_color_invariant(Blue, Green, Red, Near): #wip
-    """transform Red Green Blue arrays to color invariant (c3)
+    """ transform red, green, blue arrays to color invariant (c3), see also
+    [GS99] and [BA15].
 
     Parameters
     ----------
@@ -949,9 +956,9 @@ def modified_color_invariant(Blue, Green, Red, Near): #wip
 
     References
     ----------
-    .. [1] Gevers & Smeulders. "Color-based object recognition" Pattern
+    .. [GS99] Gevers & Smeulders. "Color-based object recognition" Pattern
        recognition, vol.32 pp.453--464, 1999
-    .. [2] Besheer & G. Abdelhafiz. "Modified invariant colour model for shadow
+    .. [BA15] Besheer & Abdelhafiz. "Modified invariant colour model for shadow
        detection" International journal of remote sensing, vol.36(24)
        pp.6214--6223, 2015.
     """
@@ -961,13 +968,13 @@ def modified_color_invariant(Blue, Green, Red, Near): #wip
     C3 = color_invariant(Blue, Green, Red)
     NDWI = normalized_difference_water_index(Green, Near)
 
-    # [2] Uses thresholding and boolean algebra,
+    # [BA15] Uses thresholding and boolean algebra,
     # but here multiplication is used, so a float is constructed
     MCI = np.multiply(C3, NDWI)
     return MCI
 
 def reinhard(Blue, Green, Red):
-    """transform Red Green Blue arrays to luminance
+    """ transform red, green, blue arrays to luminance, see also [Re01].
 
     Parameters
     ----------
@@ -985,7 +992,7 @@ def reinhard(Blue, Green, Red):
 
     References
     ----------
-    .. [1] Reinhard et al. "Color transfer between images" IEEE Computer
+    .. [Re01] Reinhard et al. "Color transfer between images" IEEE Computer
        graphics and applications vol.21(5) pp.34-41, 2001.
     """
     are_three_arrays_equal(Blue,Green,Red)
@@ -998,7 +1005,7 @@ def reinhard(Blue, Green, Red):
     return l
 
 def entropy_shade_removal(Ia, Ib, Ic, a=None):
-    """
+    """ Make use of Wiens' law to get illumination component, see also [Fi09].
 
     Parameters
     ----------
@@ -1018,7 +1025,7 @@ def entropy_shade_removal(Ia, Ib, Ic, a=None):
 
     References
     ----------
-    .. [1] Finlayson et al. "Entropy minimization for shadow removal"
+    .. [Fi09] Finlayson et al. "Entropy minimization for shadow removal"
        International journal of computer vision vol.85(1) pp.35-57 2009.
     """
     are_three_arrays_equal(Ia,Ib,Ic)
@@ -1053,7 +1060,8 @@ def entropy_shade_removal(Ia, Ib, Ic, a=None):
     return S,R
 
 def shade_index(*args):
-    """transform multi-spectral arrays to shade index
+    """ transform multi-spectral arrays to shade index, see also [HS10] and
+    [Al12].
 
     Parameters
     ----------
@@ -1073,10 +1081,10 @@ def shade_index(*args):
 
     References
     ----------
-    .. [1] Hogan & Smith, "Refinement of digital elvation models from shadowing
-       cues" IEEE computer society conference on computer vision and pattern
-       recognition, 2010.
-    .. [2] Altena, "Filling the white gap on the map: Photoclinometry for
+    .. [HS10] Hogan & Smith, "Refinement of digital elvation models from
+       shadowing cues" IEEE computer society conference on computer vision and
+       pattern recognition, 2010.
+    .. [Al12] Altena, "Filling the white gap on the map: Photoclinometry for
        glacier elevation modelling" MSc thesis TU Delft, 2012.
     """
     im_stack = np.stack(args, axis=2)
@@ -1165,7 +1173,8 @@ def fractional_range_shadow_index(*args):
     return SI
 
 def shadow_probabilities(Blue, Green, Red, Near, ae = 1e+1, be = 5e-1):
-    """transform blue, green, red and near infrared to shade probabilities
+    """transform blue, green, red and near infrared to shade probabilities, see
+    also [FS10] and [Rü13].
 
     Parameters
     ----------
@@ -1185,10 +1194,10 @@ def shadow_probabilities(Blue, Green, Red, Near, ae = 1e+1, be = 5e-1):
 
     References
     ----------
-    .. [1] Fredembach & Süsstrunk. "Automatic and accurate shadow detection
+    .. [FS10] Fredembach & Süsstrunk. "Automatic and accurate shadow detection
        from (potentially) a single image using near-infrared information" EPFL
        Tech Report 165527, 2010.
-    .. [2] Rüfenacht et al. "Automatic and accurate shadow detection using
+    .. [Rü13] Rüfenacht et al. "Automatic and accurate shadow detection using
        near-infrared information" IEEE transactions on pattern analysis and
        machine intelligence, vol.36(8) pp.1672-1678, 2013.
     """
@@ -1196,13 +1205,13 @@ def shadow_probabilities(Blue, Green, Red, Near, ae = 1e+1, be = 5e-1):
     are_two_arrays_equal(Blue,Near)
 
     Fk = np.amax(np.stack((Red, Green, Blue), axis=2), axis=2)
-    F = np.divide(np.clip(Fk, 0, 2), 2)     # (10) in [1]
-    L = np.divide(Red + Green + Blue, 3)    # (4) in [1]
+    F = np.divide(np.clip(Fk, 0, 2), 2)     # (10) in [FS10]
+    L = np.divide(Red + Green + Blue, 3)    # (4) in [FS10]
     del Red, Green, Blue, Fk
 
     Dvis = s_curve(1 - L, ae, be)
-    Dnir = s_curve(1 - Near, ae, be)        # (5) in [1]
-    D = np.multiply(Dvis, Dnir)             # (6) in [1]
+    Dnir = s_curve(1 - Near, ae, be)        # (5) in [FS10]
+    D = np.multiply(Dvis, Dnir)             # (6) in [FS10]
     del L, Near, Dvis, Dnir
 
     M = np.multiply(D, (1 - F))
