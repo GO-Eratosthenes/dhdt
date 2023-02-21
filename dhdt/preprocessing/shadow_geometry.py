@@ -5,7 +5,6 @@ import numpy as np
 from scipy import ndimage  # for image filtering
 from scipy import special  # for trigonometric functions
 
-from skimage import measure
 from skimage import segmentation  # for superpixels
 from skimage import color  # for labeling image
 from skimage.morphology import remove_small_objects # opening, disk, erosion, closing
@@ -14,7 +13,7 @@ from rasterio.features import shapes  # for raster to polygon
 
 from shapely.geometry import shape
 from shapely.geometry import Point, LineString
-from shapely.geos import TopologicalError  # for troubleshooting
+from shapely.errors import TopologicalError  # for troubleshooting
 
 from ..generic.mapping_io import read_geo_image, read_geo_info
 from ..generic.mapping_tools import \
@@ -23,7 +22,7 @@ from ..generic.filtering_statistical import normalized_sampling_histogram
 from ..input.read_sentinel2 import \
     read_sun_angles_s2, read_mean_sun_angles_s2, read_sensing_time_s2
 
-def vector_arr_2_unit(vec_arr):
+def _vector_arr_2_unit(vec_arr):
     n = np.linalg.norm(vec_arr, axis=2)
     vec_arr[..., 0] /= n
     vec_arr[..., 1] /= n
@@ -48,7 +47,7 @@ def estimate_surface_normals(Z, spac=10.):
     dy, dx = np.gradient(Z, spac)
 
     normal = np.dstack((-dx, dy, np.ones_like(Z)))
-    normal = vector_arr_2_unit(normal)
+    normal = _vector_arr_2_unit(normal)
     return normal
 
 def make_shadowing(dem_path, dem_file, im_path, im_name,
@@ -143,7 +142,7 @@ def make_shading(dem_path, dem_file, im_path, im_name,
 
     # convert to unit vectors
     sun = np.dstack((np.sin(Az), np.cos(Az), np.tan(Zn)))
-    sun = vector_arr_2_unit(sun)
+    sun = _vector_arr_2_unit(sun)
 
     normal = estimate_surface_normals(dem, geoTransform_im[1])
 

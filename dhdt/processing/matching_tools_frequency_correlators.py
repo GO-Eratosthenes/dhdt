@@ -239,7 +239,7 @@ def masked_cosine_corr(I1, I2, M1, M2): #todo
     return Q
 
 def phase_only_corr(I1, I2):
-    """ match two imagery through phase only correlation
+    r""" match two imagery through phase only correlation
 
     Parameters
     ----------
@@ -487,7 +487,7 @@ def sign_only_corr(I1, I2): # to do
     return C
 
 def symmetric_phase_corr(I1, I2):
-    """ match two imagery through symmetric phase only correlation (SPOF)
+    r""" match two imagery through symmetric phase only correlation (SPOF)
     also known as Smoothed Coherence Transform (SCOT)
 
     Parameters
@@ -700,7 +700,7 @@ def robust_corr(I1, I2):
     return Q
 
 def gradient_corr(I1, I2):
-    """ match two imagery through gradient correlation
+    r""" match two imagery through gradient correlation
 
     Parameters
     ----------

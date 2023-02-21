@@ -12,12 +12,12 @@ from dhdt.auxilary.handler_era5 import get_era5_atmos_profile
 
 def get_CO2_level(lat, date, m=3, nb=3):
     """
-    Rough estimation of CO₂, based upon measurements of global 'Station data'_
+    Rough estimation of CO₂, based upon measurements of global 'Station data'__
 
-    The annual trend is based upon the 'Global trend'_ in CO₂ while the seasonal
-    trend is based upon relations as shown in Figure 1 in [1]. Where a latitudal
-    component is present in the ampltitude, as well as, an asymmetric triangular
-    wave.
+    The annual trend is based upon the 'Global trend'__ in CO₂ while the
+    seasonal trend is based upon relations as shown in Figure 1 in [1]. Where a
+    latitudal component is present in the ampltitude, as well as, an asymmetric
+    triangular wave.
 
     Parameters
     ----------

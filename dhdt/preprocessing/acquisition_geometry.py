@@ -111,6 +111,7 @@ def get_ortho_offset(Z, dx, dy, obs_az, obs_zn, geoTransform):
 
 def compensate_ortho_offset(I, Z, dx, dy, obs_az, obs_zn, geoTransform):
     """
+
     Parameters
     ----------
     I : numpy.array, size=(m,n), ndim=2, dtype={float,integer}
