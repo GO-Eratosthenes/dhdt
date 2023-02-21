@@ -346,7 +346,7 @@ def psuedo_inv(cumhist, val):
     return res
 
 def general_midway_equalization(I):
-    """ equalization of multiple imagery, based on [1]__
+    """ equalization of multiple imagery, based on [del]
 
     Parameters
     ----------
@@ -360,7 +360,7 @@ def general_midway_equalization(I):
 
     References
     ----------
-    .. [1] Delon, "Midway image equalization", Journal of mathematical imaging
+    .. [del] Delon, "Midway image equalization", Journal of mathematical imaging
        and Vision", vol.21(2) pp.119-134, 2004
 
     Notes
@@ -438,7 +438,7 @@ def high_pass_im(Im, radius=10):
 
 def multi_spectral_grad(I):
     """ get the dominant multi-spectral gradient of the stack, stripped down
-    version of the fusion technique, described in [1]__.
+    version of the fusion technique, described in [soc].
 
     Parameters
     ----------
@@ -452,7 +452,7 @@ def multi_spectral_grad(I):
 
     References
     ----------
-    .. [1] Socolinsky & Wolff, "Multispectral image visualization through
+    .. [soc] Socolinsky & Wolff, "Multispectral image visualization through
        first-order fusion", IEEE transactions on image fusion, vol.11(8)
        pp.923-931, 2002.
     """
