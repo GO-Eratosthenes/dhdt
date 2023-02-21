@@ -6,3 +6,4 @@ modules
 .. include:: modules/preprocessing.rst
 .. include:: modules/processing.rst
 .. include:: modules/postprocessing.rst
+.. include:: modules/auxilary.rst

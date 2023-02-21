@@ -13,7 +13,7 @@ frequency correlators
 
 spatial correlators
 ~~~~~~~~~~~~~~~~~~~
-.. automudule:: dhdt.processing.matching_tools_spatial_correlators
+.. automodule:: dhdt.processing.matching_tools_spatial_correlators
     :members:
 
 phase angle estimators
@@ -33,5 +33,5 @@ frequency metrics
 
 correlation metrics
 ~~~~~~~~~~~~~~~~~~~
-.. automodule:: dhdt.processing.matching_tools_correlation_metrics
+.. automodule:: dhdt.processing.matching_tools_spatial_metrics
     :members:

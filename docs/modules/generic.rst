@@ -20,8 +20,3 @@ handle RapidEye imagery
 ~~~~~~~~~~~~~~~~~~~~~~~
 .. automodule:: dhdt.generic.handler_rapideye
     :members:
-
-handle CopernicusDEM
-~~~~~~~~~~~~~~~~~~~~
-.. automodule:: dhdt.generic.handler_cop
-    :members:

@@ -1,8 +1,10 @@
 geopandas
 pytz
 pysolar
+pygrib
 numpy
 rasterio
+netCDF4
 scikit-image
 scikit-learn
 scipy

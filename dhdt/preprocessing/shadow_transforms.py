@@ -10,7 +10,7 @@ from ..generic.unit_check import are_three_arrays_equal, are_two_arrays_equal
 from .color_transforms import \
     rgb2ycbcr, rgb2hsi, rgb2xyz, xyz2lab, lab2lch, erdas2hsi, rgb2lms, lms2lab,\
     hsi2rgb, rgb2hcv, rgb2yiq
-from .image_transforms import s_curve
+from dhdt.generic.data_tools import s_curve
 
 def apply_shadow_transform(method, Blue, Green, Red, RedEdge, Near, Shw,
                            **kwargs):
