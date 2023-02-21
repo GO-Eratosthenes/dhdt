@@ -445,18 +445,18 @@ def covar2err_ellipse(sigma_1, sigma_2, ρ):
 
     References
     ----------
-    .. [1] Altena et al. "Correlation dispersion as a measure to better estimate
-       uncertainty of remotely sensed glacier displacements", The Crysophere,
-       vol.16(6) pp.2285–2300, 2022.
+    .. [Al22] Altena et al. "Correlation dispersion as a measure to better
+       estimate uncertainty of remotely sensed glacier displacements", The
+       Crysophere, vol.16(6) pp.2285–2300, 2022.
     """
     # intermediate variables
     s1s2_min = sigma_1**2 - sigma_2**2
     s1s2_plu = sigma_1**2 + sigma_2**2
     s1s2r = sigma_1 * sigma_2 * ρ
     lamb = np.sqrt(np.divide(s1s2_min**2,4) + s1s2r)
-    lambda_1 = s1s2_plu/2 + lamb                            # eq.5 in [1]
+    lambda_1 = s1s2_plu/2 + lamb                            # eq.5 in [Al22]
     lambda_2 = s1s2_plu/2 - lamb
-    θ = np.rad2deg(np.arctan2(2*s1s2r, s1s2_min) / 2)   # eq.6 in [1]
+    θ = np.rad2deg(np.arctan2(2*s1s2r, s1s2_min) / 2)   # eq.6 in [Al22]
     return lambda_1, lambda_2, θ
 
 def rotate_variance(θ, qii, qjj, ρ):
@@ -478,7 +478,7 @@ def rotate_variance(θ, qii, qjj, ρ):
     return qii_r, qjj_r
 
 def cast_orientation(I, Az, indexing='ij'):
-    """ emphasises intentisies within a certain direction
+    """ emphasises intensities within a certain direction, following [Fr91].
 
     Parameters
     ----------
@@ -528,7 +528,7 @@ def cast_orientation(I, Az, indexing='ij'):
 
     References
     ----------
-    .. [1] Freeman et al. "The design and use of steerable filters." IEEE
+    .. [Fr91] Freeman et al. "The design and use of steerable filters." IEEE
        transactions on pattern analysis and machine intelligence vol.13(9)
        pp.891-906, 1991.
     """

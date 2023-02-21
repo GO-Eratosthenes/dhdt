@@ -20,7 +20,7 @@ def get_gshhg_url(url_type='ftp'):
 
 def get_coastal_dataset(geom_dir, geom_name=None, minimal_level=1,
                         resolution='f'):
-    """ get geospatial data of the coast, see also [1] & [2].
+    """ get geospatial data of the coast, see also [WS96] & [wwwGSHHG].
 
     Parameters
     ----------
@@ -44,10 +44,10 @@ def get_coastal_dataset(geom_dir, geom_name=None, minimal_level=1,
 
     References
     ----------
-    .. [1] Wessel, & Smith. "A global, self‐consistent, hierarchical,
+    .. [WS96] Wessel, & Smith. "A global, self‐consistent, hierarchical,
        high‐resolution shoreline database." Journal of geophysical research:
        solid Earth vol.101(B4) pp.8741-8743, 1996.
-    .. [2] http://www.soest.hawaii.edu/pwessel/gshhg/
+    .. [wwwGSHHG] http://www.soest.hawaii.edu/pwessel/gshhg/
     """
     assert isinstance(minimal_level, int), 'please provide an integer'
     assert 0 < minimal_level < 5, 'please provide correct detail'

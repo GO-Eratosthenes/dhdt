@@ -189,8 +189,7 @@ def get_oli_relative_band_time():
     return df
 
 def read_band_ls(path, band='B8'):
-    """
-    This function takes as input the Landsat8 band name and the path of the
+    """ This function takes as input the Landsat8 band name and the path of the
     folder that the images are stored, reads the image and returns the data as
     an array
 
@@ -216,8 +215,8 @@ def read_band_ls(path, band='B8'):
     --------
     list_central_wavelength_ls
 
-    Example
-    -------
+    Examples
+    --------
     >>> path = '/LC08_L1TP_018060_20200904_20200918_02_T1/'
     >>> band = '2'
     >>> _,spatialRef,geoTransform,targetprj = read_band_ls(path, band)

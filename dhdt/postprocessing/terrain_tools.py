@@ -5,7 +5,7 @@ from ..generic.mapping_tools import map2pix
 from ..generic.gis_tools import get_mask_boundary
 from ..processing.matching_tools import remove_posts_outside_image
 def get_d8_dir(V_x, V_y):
-    """ get directional data of direct neighbors
+    """ get directional data of direct neighbors, following [GM97].
 
     Parameters
     ----------
@@ -33,7 +33,7 @@ def get_d8_dir(V_x, V_y):
 
     References
     ----------
-    .. [1] Garbrecht & Martz, “The assignment of drainage direction over flat
+    .. [GM97] Garbrecht & Martz, “The assignment of drainage direction over flat
        surfaces in raster digital elevation models”, Journal of hydrology,
        vol.193 pp.204-213, 1997.
     """

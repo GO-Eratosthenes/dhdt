@@ -214,7 +214,7 @@ def shannon_entropy(X,band_width=100):
 
 # color-based shadow functions
 def shadow_index_zhou(Blue, Green, Red):
-    """transform red, green, blue arrays to shadow index
+    """transform red, green, blue arrays to shadow index, based upon [Zh21].
 
     Parameters
     ----------
@@ -236,8 +236,8 @@ def shadow_index_zhou(Blue, Green, Red):
 
     References
     ----------
-    .. [1] Zhou et al. "Shadow detection and compensation from remote sensing
-           images under complex urban conditions", 2021.
+    .. [Zh21] Zhou et al. "Shadow detection and compensation from remote sensing
+       images under complex urban conditions", 2021.
     """
     are_three_arrays_equal(Blue,Green,Red)
 
@@ -246,7 +246,7 @@ def shadow_index_zhou(Blue, Green, Red):
     return SI
 
 def shadow_hsv_fraction(Blue, Green, Red):
-    """transform red, green, blue arrays to shadow index
+    """transform red, green, blue arrays to shadow index. Based upon [Ts06].
 
     Parameters
     ----------
@@ -269,7 +269,7 @@ def shadow_hsv_fraction(Blue, Green, Red):
 
     References
     ----------
-    .. [1] Tsai. "A comparative study on shadow compensation of color aerial
+    .. [Ts06] Tsai. "A comparative study on shadow compensation of color aerial
        images in invariant color models." IEEE Transactions on geoscience and
        remote sensing vol.44 pp.1661–1671, 2006.
     """
@@ -280,7 +280,7 @@ def shadow_hsv_fraction(Blue, Green, Red):
     return SF
 
 def modified_shadow_fraction(Blue, Green, Red, P_S=.95):
-    """transform red, green, blue arrays to shadow index
+    """transform red, green, blue arrays to shadow index. Based upon [Ch09].
 
     Parameters
     ----------
@@ -302,7 +302,7 @@ def modified_shadow_fraction(Blue, Green, Red, P_S=.95):
 
     References
     ----------
-    .. [1] Chung, et al. "Efficient shadow detection of color aerial images
+    .. [Ch09] Chung, et al. "Efficient shadow detection of color aerial images
        based on successive thresholding scheme." IEEE transactions on geoscience
        and remote sensing vol.47, pp.671–682, 2009.
     """
@@ -318,7 +318,7 @@ def modified_shadow_fraction(Blue, Green, Red, P_S=.95):
     return SF
 
 def shadow_hcv_fraction(Blue, Green, Red):
-    """transform red, green, blue arrays to shadow index
+    """transform red, green, blue arrays to shadow index. Based upon [Ts06].
 
     Parameters
     ----------
@@ -340,7 +340,7 @@ def shadow_hcv_fraction(Blue, Green, Red):
 
     References
     ----------
-    .. [1] Tsai. "A comparative study on shadow compensation of color aerial
+    .. [Ts06] Tsai. "A comparative study on shadow compensation of color aerial
        images in invariant color models." IEEE Transactions on geoscience and
        remote sensing vol.44 pp.1661–1671, 2006.
     """
@@ -351,7 +351,7 @@ def shadow_hcv_fraction(Blue, Green, Red):
     return SF
 
 def shadow_ycbcr_fraction(Blue, Green, Red):
-    """transform red, green, blue arrays to shadow index
+    """transform red, green, blue arrays to shadow index. Based upon [Ts06].
 
     Parameters
     ----------
@@ -373,7 +373,7 @@ def shadow_ycbcr_fraction(Blue, Green, Red):
 
     References
     ----------
-    .. [1] Tsai. "A comparative study on shadow compensation of color aerial
+    .. [Ts06] Tsai. "A comparative study on shadow compensation of color aerial
        images in invariant color models." IEEE Transactions on geoscience and
        remote sensing vol.44 pp.1661–1671, 2006.
     """
@@ -384,7 +384,7 @@ def shadow_ycbcr_fraction(Blue, Green, Red):
     return SF
 
 def shadow_yiq_fraction(Blue, Green, Red):
-    """transform red, green, blue arrays to shadow index
+    """transform red, green, blue arrays to shadow index. Based upon [Ts06].
 
     Parameters
     ----------
@@ -406,7 +406,7 @@ def shadow_yiq_fraction(Blue, Green, Red):
 
     References
     ----------
-    .. [1] Tsai. "A comparative study on shadow compensation of color aerial
+    .. [Ts06] Tsai. "A comparative study on shadow compensation of color aerial
        images in invariant color models." IEEE Transactions on geoscience and
        remote sensing vol.44 pp.1661–1671, 2006.
     """
@@ -419,7 +419,8 @@ def shadow_yiq_fraction(Blue, Green, Red):
 #def shadow_quantifier_index
 # Polidorio, A. M., Flores F. C., Imai N. N., Tommaselli, A. M. G. and Franco, C. 2003. Automatic Shadow Segmentation in Aerial Color Images. In: Proceedings of the XVI SIBGRAPI. XVI Brazilian Symposium on Computer Graphics and Image Processing. São Carlos, Brasil, 12-15 October 2003. doi:10.1109/SIBGRA.2003.1241019.
 def improved_shadow_index(Blue, Green, Red, Near):
-    """transform red, green, blue arrays to improved shadow index
+    """transform red, green, blue arrays to improved shadow index. Based upon
+    [Zh21].
 
     Parameters
     ----------
@@ -447,7 +448,7 @@ def improved_shadow_index(Blue, Green, Red, Near):
 
     References
     ----------
-    .. [1] Zhou et al. "Shadow detection and compensation from remote sensing
+    .. [Zh21] Zhou et al. "Shadow detection and compensation from remote sensing
        images under complex urban conditions", 2021.
     """
     are_three_arrays_equal(Blue,Green,Red)
@@ -459,7 +460,7 @@ def improved_shadow_index(Blue, Green, Red, Near):
     return ISI
 
 def shadow_enhancement_index(Blue,Green,Red,Near):
-    """transform red, green, blue arrays to sei? index
+    """ transform red, green, blue arrays to SEI index. See also [Su19].
 
     Parameters
     ----------
@@ -491,7 +492,7 @@ def shadow_enhancement_index(Blue,Green,Red,Near):
 
     References
     ----------
-    .. [1] Sun et al. "Combinational shadow index for building shadow
+    .. [Su19] Sun et al. "Combinational shadow index for building shadow
        extraction in urban areas from Sentinel-2A MSI imagery" International
        journal of applied earth observation and geoinformation, vol.78
        pp.53--65, 2019.
@@ -504,7 +505,7 @@ def shadow_enhancement_index(Blue,Green,Red,Near):
     return SEI
 
 def false_color_shadow_difference_index(Green,Red,Near):
-    """transform red and near infrared arrays to shadow index
+    """transform red and near infrared arrays to shadow index. See also [Te11].
 
     Parameters
     ----------
@@ -530,7 +531,7 @@ def false_color_shadow_difference_index(Green,Red,Near):
 
     References
     ----------
-    .. [1] Teke et al. "Multi-spectral false color shadow detection",
+    .. [Te11] Teke et al. "Multi-spectral false color shadow detection",
        Proceedings of the ISPRS conference on photogrammetric image analysis,
        pp.109-119, 2011.
     """
@@ -542,7 +543,7 @@ def false_color_shadow_difference_index(Green,Red,Near):
     return FCSI
 
 def normalized_difference_water_index(Green, Near):
-    """transform green and near infrared arrays NDW-index
+    """transform green and near infrared arrays NDW-index. See also [Ga96].
 
     Parameters
     ----------
@@ -564,9 +565,9 @@ def normalized_difference_water_index(Green, Near):
 
     References
     ----------
-    .. [1] Gao, "NDWI - a normalized difference water index for remote sensing
-       of vegetation liquid water from space" Remote sensing of environonment,
-       vol. 58 pp. 257–266, 1996
+    .. [Ga96] Gao, "NDWI - a normalized difference water index for remote
+       sensing of vegetation liquid water from space" Remote sensing of
+       environonment, vol.58 pp.257–266, 1996
     """
     are_two_arrays_equal(Green,Near)
 
@@ -576,7 +577,7 @@ def normalized_difference_water_index(Green, Near):
     return NDWI
 
 def normalized_difference_blue_water_index(Blue, Near):
-    """transform green and near infrared arrays NDW-index
+    """transform green and near infrared arrays NDW-index. See also [Qu11].
 
     Parameters
     ----------
@@ -598,7 +599,7 @@ def normalized_difference_blue_water_index(Blue, Near):
 
     References
     ----------
-    .. [1] Qu et al, "Research on automatic extraction of water bodies and
+    .. [Qu11] Qu et al, "Research on automatic extraction of water bodies and
        wetlands on HJU satellite CCD images" Remote sensing information,
        vol.4 pp.28–33, 2011
     """
