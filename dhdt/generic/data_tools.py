@@ -5,8 +5,7 @@ from ..processing.matching_tools import \
     get_integer_peak_location, get_peak_indices
 
 def squared_difference(A,B):
-    """
-    efficient computation of the squared difference
+    r""" efficient computation of the squared difference
 
     Parameters
     ----------

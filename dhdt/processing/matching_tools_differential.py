@@ -98,7 +98,7 @@ def create_differential_data(I1,I2):
 
 def simple_optical_flow(I1, I2, window_size, sampleI, sampleJ,
                         tau=1e-2, sigma=0.):
-    """ displacement estimation through optical flow
+    r""" displacement estimation through optical flow, based on [LK81].
 
     Parameters
     ----------
@@ -156,7 +156,7 @@ def simple_optical_flow(I1, I2, window_size, sampleI, sampleJ,
 
     References
     ----------
-    .. [1] Lucas & Kanade, "An iterative image registration technique with an
+    .. [LK81] Lucas & Kanade, "An iterative image registration technique with an
        application to stereo vision", Proceedings of 7th international joint
        conference on artificial intelligence, 1981.
     """
