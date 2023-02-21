@@ -118,7 +118,7 @@ Though support is also given to the Landsat ([``read_landsat8``](https://dhdt.re
 SPOT legacy () and ASTER ([``read_aster``](https://dhdt.readthedocs.io/en/latest/modules.html#read-terra-aster-data)),
 as well as, commercial satellite systems ([``read_planetscope``](https://dhdt.readthedocs.io/en/latest/modules.html#read-planetscope-data),
 [``read_rapideye``](https://dhdt.readthedocs.io/en/latest/modules.html#read-rapideye-data))
-and demonstration missions like VENuS.
+and demonstration missions like VENuS [``read_venus``](https://dhdt.readthedocs.io/en/latest/modules.html#read-venus-data)).
 
 Typical functions include loading of the imagery, and associated meta-data.
 These are functions about the instrument specifics or the acquisition situation.

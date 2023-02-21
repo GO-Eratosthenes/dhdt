@@ -38,6 +38,26 @@ def list_central_wavelength_vssc():
             * gsd, unit=m : spatial resolution of a pixel
             * common_name : general name of the band, if applicable
 
+    Notes
+    -----
+    The sensor is composed of four detectors, which each have three arrays.
+    These multi-spectral bands (BXX) are arranged as follows:
+
+        .. code-block:: text
+
+          ┌-----B06------┐                      #*# satellite
+          ├-----B04------┤                      | flight
+          └-----B03------┘ detector id: IV      | direction
+          ┌-----B09------┐                      v
+          ├-----B08------┤
+          └-----B07------┘ detector id: III
+          ┌-----B11------┐
+          ├-----B12------┤
+          └-----B10------┘ detector id: II
+          ┌-----B01------┐
+          ├-----B02------┤
+          └-----B05------┘ detector id: I
+
     References
     -------
     .. [1] Dick, et al. "VENμS: mission characteristics, final evaluation of the
@@ -67,6 +87,10 @@ def list_central_wavelength_vssc():
                    "B5": 1, "B6" : 4, "B7" : 3, "B8" : 3,
                    "B9": 3, "B10": 2, "B11": 2, "B12": 2,
                   }
+    acquisition_order = {"B1":10, "B2" :11, "B3" : 3, "B4" : 2,
+                         "B5":12, "B6" : 1, "B7" : 6, "B8" : 5,
+                         "B9": 4, "B10": 9, "B11": 7, "B12": 8,
+                        }
     common_name = {"B1": 'coastal',    "B2" : 'coastal',
                    "B3" : 'blue',      "B4" : 'green',
                    "B5" : 'stereo',    "B6" : 'stereo',
@@ -75,12 +99,20 @@ def list_central_wavelength_vssc():
                    "B11": 'nir08',     "B12": 'nir09',
                   }
     d = {
-         "center_wavelength": pd.Series(center_wavelength),
-         "full_width_half_max": pd.Series(full_width_half_max),
-         "gsd": pd.Series(gsd),
-         "common_name": pd.Series(common_name),
-         "bandid": pd.Series(bandid),
-         "detector_id": pd.Series(detector_id)
+         "center_wavelength": pd.Series(center_wavelength,
+                                        dtype=np.dtype('float')),
+         "full_width_half_max": pd.Series(full_width_half_max,
+                                          dtype=np.dtype('float')),
+         "gsd": pd.Series(gsd,
+                          dtype=np.dtype('float')),
+         "common_name": pd.Series(common_name,
+                                  dtype=np.dtype('str')),
+         "bandid": pd.Series(bandid,
+                             dtype=np.dtype('str')),
+         "detector_id": pd.Series(detector_id,
+                                  dtype=np.dtype('int64')),
+         "acquisition_order": pd.Series(acquisition_order,
+                                        dtype=np.dtype('int64')),
          }
     df = pd.DataFrame(d)
     return df

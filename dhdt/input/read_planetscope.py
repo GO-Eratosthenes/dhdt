@@ -26,14 +26,14 @@ def list_central_wavelength_dc():
     common_name = {"B1" : 'blue', "B2" : 'green', "B3" : 'red', "B4" : 'nir'}
     d = {
          "center_wavelength": pd.Series(center_wavelength,
-                                        dtype=np.dtype("float")),
+                                        dtype=np.dtype('float')),
          "full_width_half_max": pd.Series(full_width_half_max,
-                                          dtype=np.dtype("float")),
-         "gsd": pd.Series(gsd, dtype=np.dtype("float")),
-         "common_name": pd.Series(common_name, dtype="string"),
+                                          dtype=np.dtype('float')),
+         "gsd": pd.Series(gsd, dtype=np.dtype('float')),
+         "common_name": pd.Series(common_name, dtype='str'),
          "acquisition_order": pd.Series(acquisition_order,
-                                        dtype=np.dtype("int64")),
-         "bandid": pd.Series(bandid, dtype=np.dtype("int64"))
+                                        dtype=np.dtype('int64')),
+         "bandid": pd.Series(bandid, dtype=np.dtype('int64'))
          }
     df = pd.DataFrame(d)
     return df
@@ -54,15 +54,15 @@ def list_central_wavelength_dr():
     common_name = {"B1" : 'blue', "B2" : 'green', "B3" : 'red', "B4" : 'nir'}
     d = {
          "center_wavelength": pd.Series(center_wavelength,
-                                        dtype=np.dtype("float")),
+                                        dtype=np.dtype('float')),
          "full_width_half_max": pd.Series(full_width_half_max,
-                                          dtype=np.dtype("float")),
-         "gsd": pd.Series(gsd, dtype=np.dtype("float")),
-         "common_name": pd.Series(common_name, dtype="string"),
-         "field_of_view": pd.Series(field_of_view, dtype=np.dtype("float")),
+                                          dtype=np.dtype('float')),
+         "gsd": pd.Series(gsd, dtype=np.dtype('float')),
+         "common_name": pd.Series(common_name, dtype='str'),
+         "field_of_view": pd.Series(field_of_view, dtype=np.dtype('float')),
          "acquisition_order": pd.Series(acquisition_order,
-                                        dtype=np.dtype("int64")),
-         "bandid": pd.Series(bandid, dtype=np.dtype("int64"))
+                                        dtype=np.dtype('int64')),
+         "bandid": pd.Series(bandid, dtype=np.dtype('int64'))
          }
     df = pd.DataFrame(d)
     return df
@@ -93,15 +93,15 @@ def list_central_wavelength_sd(num_bands=4):
                    "B10" : 'rededge I', "B13" : 'nir', }
     d = {
          "center_wavelength": pd.Series(center_wavelength,
-                                        dtype=np.dtype("float")),
+                                        dtype=np.dtype('float')),
          "full_width_half_max": pd.Series(full_width_half_max,
-                                          dtype=np.dtype("float")),
-         "gsd": pd.Series(gsd, dtype=np.dtype("float")),
-         "common_name": pd.Series(common_name, dtype="string"),
-         "field_of_view": pd.Series(field_of_view, dtype=np.dtype("float")),
+                                          dtype=np.dtype('float')),
+         "gsd": pd.Series(gsd, dtype=np.dtype('float')),
+         "common_name": pd.Series(common_name, dtype='str'),
+         "field_of_view": pd.Series(field_of_view, dtype=np.dtype('float')),
          "acquisition_order": pd.Series(acquisition_order,
-                                        dtype=np.dtype("int64")),
-         "bandid": pd.Series(bandid, dtype=np.dtype("int64"))
+                                        dtype=np.dtype('int64')),
+         "bandid": pd.Series(bandid, dtype=np.dtype('int64'))
          }
     df = pd.DataFrame(d)
     return df

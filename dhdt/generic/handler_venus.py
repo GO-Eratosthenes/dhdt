@@ -131,7 +131,10 @@ def get_vn_mean_view_angles(fname,vn_df):
         az.append(float(view_child[1].text))
         det_id.append(int(view_child.get('detector_id')))
 
-    az_view = pd.Series(data=az, index=det_id, name="azimuth_mean")
-    vn_df_new = pd.concat([vn_df, az_view], axis=1, join="inner")
-
-    return
+    # one-to-many mapping
+    view_df = pd.DataFrame({"azimuth_mean": az, "zentih_mean": zn},
+                           index=det_id)
+    vn_df_new = vn_df.merge(view_df,
+                            left_on=vn_df['detector_id'],
+                            right_index=True).drop(columns='key_0')
+    return vn_df_new
