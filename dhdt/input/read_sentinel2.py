@@ -641,6 +641,7 @@ def read_sun_angles_s2(path, fname='MTD_TL.xml'):
     The metadata structure looks like:
 
         .. code-block:: text
+
             * MTD_TL.xml
             └ n1:Level-1C_Tile_ID
                ├ n1:General_Info
@@ -827,6 +828,7 @@ def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
     The metadata structure looks like:
 
         .. code-block:: text
+
             * MTD_TL.xml
             └ n1:Level-1C_Tile_ID
                ├ n1:General_Info
@@ -1699,6 +1701,7 @@ def get_flight_path_s2(ds_path, fname='MTD_DS.xml', s2_dict=None):
     The metadata structure of MTD_DS looks like:
 
     .. code-block:: text
+
         * MTD_DS.xml
         └ n1:Level-1C_DataStrip_ID
            ├ n1:General_Info
@@ -1988,199 +1991,7 @@ def get_integration_and_sampling_time_s2(ds_path, fname='MTD_DS.xml',
 
     return line_tim, integration_tim
 
-def get_intrinsic_temperatures_s2(ds_path, fname='MTD_DS.xml'):
-    """
-    Notes
-    -----
-    The metadata structure looks like:
-
-    .. code-block:: text
-        * MTD_DS.xml
-        └ n1:Level-1C_DataStrip_ID
-           ├ n1:General_Info
-           ├ n1:Image_Data_Info
-           ├ n1:Satellite_Ancillary_Data_Info
-           │  ├ Time_Correlation_Data_List
-           │  │  └ Time_Correlation_Data
-           │  │     ├ NSM
-           │  │     ├ QUALITY_INDEX
-           │  │     ├ TDOP
-           │  │     ├ IMT
-           │  │     ├ GPS_TIME
-           │  │     └ UTC_TIME
-           │  ├ Ephemeris
-           │  │  ├ GPS_Number_List
-           │  │  │  └ Gps_Number
-           │  │  │     ├ GPS_TIME_START
-           │  │  │     └ GPS_TIME_END
-           │  │  ├ GPS_Points_List
-           │  │  │  └ GPS_Point
-           │  │  │     ├ POSITION_VALUES
-           │  │  │     ├ POSITION_ERRORS
-           │  │  │     ├ VELOCITY_VALUES
-           │  │  │     ├ VELOCITY_ERRORS
-           │  │  │     ├ GPS_TIME
-           │  │  │     ├ NSM
-           │  │  │     ├ QUALITY_INDEX
-           │  │  │     ├ GDOP
-           │  │  │     ├ PDOP
-           │  │  │     ├ TDOP
-           │  │  │     ├ NOF_SV
-           │  │  │     └ TIME_ERROR
-           │  │  └ AOCS_Ephemeris_List
-           │  │     └ AOCS_Ephemeris
-           │  │        ├ VALID_FLAG
-           │  │        ├ OPSOL_QUALITY
-           │  │        ├ POSITION_VALUES
-           │  │        ├ VELOCITY_VALUES
-           │  │        ├ GPS_TIME
-           │  │        └ ORBIT_ANGLE
-           │  ├ Attitudes
-           │  │  ├ Corrected_Attitudes
-           │  │  │  └ Values
-           │  │  │     ├ QUATERNION_VALUES
-           │  │  │     ├ QUATERNION_VALIDITY
-           │  │  │     ├ GPS_TIME
-           │  │  │     ├ INUSE_FLAGS
-           │  │  │     ├ AOCS_MODE
-           │  │  │     ├ AOCS_SUBMODE
-           │  │  │     ├ INNOVATION_STR1
-           │  │  │     ├ INNOVATION_STR2
-           │  │  │     └ ATTITUDE_QUALITY_INDICATOR
-           │  │  └ Raw_Attitudes
-           │  │     ├ STR_List
-           │  │     │  ├ STR strId="STR1"
-           │  │     │  │  ├ Attitude_Data_List
-           │  │     │  │  │  └ Attitude_Data
-           │  │     │  │  │     ├ QUATERNION_VALUES
-           │  │     │  │  │     ├ ANGULAR_RATE
-           │  │     │  │  │     ├ GPS_TIME
-           │  │     │  │  │     ├ JULIAN_DATE
-           │  │     │  │  │     ├ ATTITUDE_QUALITY
-           │  │     │  │  │     ├ RATE_QUALITY
-           │  │     │  │  │     └ VALIDITY_RATE
-           │  │     │  │  └ Status_And_Health_Data_List
-           │  │     │  ├ STR strId="STR2"
-           │  │     │  └ STR strId="STR3"
-           │  │     └ IMU_List
-           │  │        └ IMU imuId={"IMU1","IMU2","IMU3","IMU4"}
-           │  │           └ Value
-           │  │              ├ FILTERED_ANGLE
-           │  │              ├ RAW_ANGLE
-           │  │              ├ GPS_TIME
-           │  │              ├ Temperatures
-           │  │              │  ├ ORGANISER
-           │  │              │  ├ SIA
-           │  │              │  ├ OPTICAL_SOURCE
-           │  │              │  ├ BOARD
-           │  │              │  ├ VOLTAGE_OFFSET
-           │  │              │  ├ VOLTAGE
-           │  │              │  ├ ACQUISITION
-           │  │              │  ├ VALIDITY
-           │  │              │  └ TIME
-           │  │              ├ TIME
-           │  │              ├ ACQUISITION
-           │  │              ├ VALIDITY
-           │  │              ├ HEALTH_STATUS_BITS
-           │  │              └ HEALTH_STATUS_BITS_VALIDITY
-           │  ├ Thermal_Data
-           │  │  ├ FPA_List
-           │  │  │  ├ FPA fpaId={"VNIR","SWIR"}
-           │  │  │  │  └ Value
-           │  │  │  │     ├ T
-           │  │  │  │     └ GPS_TIME
-           │  │  │  └ FEE fpaId={"VNIR","SWIR"}
-           │  │  │     └ Value
-           │  │  │        ├ T
-           │  │  │        └ GPS_TIME
-           │  │  ├ Mirror_List
-           │  │  │  └ Mirror mirrorId={"1","2","3"}
-           │  │  │     └ Value
-           │  │  │        ├ T
-           │  │  │        └ GPS_TIME
-           │  │  ├ ThSensor_List
-           │  │  │  └ ThSensor sensorId={"+X-Z","-X-Z","+Y","-Y"}
-           │  │  │     └ Value
-           │  │  │        ├ T
-           │  │  │        └ GPS_TIME
-           │  │  ├ Splitter_List
-           │  │  │  └ Splitter splitterId={"bot+X","top+X"}
-           │  │  │     └ Value
-           │  │  │        ├ T
-           │  │  │        └ GPS_TIME
-           │  │  ├ CSM_Diffuser_List
-           │  │  │  └ CSM_Diffuser diffuserId={"0","1","2"}
-           │  │  │     └ Value
-           │  │  │        ├ T
-           │  │  │        └ GPS_TIME
-           │  │  ├ IMU_Sensorplate_List
-           │  │  │  └ IMU_Sensorplate
-           │  │  │     ├ T
-           │  │  │     └ GPS_TIME
-           │  │  ├ STR_Sensorplate_List
-           │  │  │  └ STR_Sensorplate sensorplateId={"0","1","2"}
-           │  │  │     └ Value
-           │  │  │        ├ T
-           │  │  │        └ GPS_TIME
-           │  │  ├ STR_Baseplate_List
-           │  │  │  └ STR_Baseplate
-           │  │  │     ├ T
-           │  │  │     └ GPS_TIME
-           │  │  └ STR_Backplate_List
-           │  │     └ STR_Backplate
-           │  │        ├ T
-           │  │        └ GPS_TIME
-           │  └ ANC_DATA_REF
-           │
-           ├ n1:Quality_Indicators_Info
-           └ n1:Auxiliary_Data_Info
-              ├ IERS_Bulletin
-              ├ GIPP_List
-              ├ ECMWF_DATA_REF
-              ├ CAMS_DATA_REF
-              ├ PRODUCTION_DEM_TYPE
-              ├ IERS_BULLETIN_FILENAME
-              └ GRI_List
-    The following acronyms are used:
-
-    - AOCS : attitude and orbit control system
-    - CAMS : Copernicus atmosphere monitoring service
-    - CSM :
-    - ECMWF : European centre for medium-range weather forecasts
-    - DEM : digital elevation model
-    - FEE : front end electronic
-    - FPA : focal plane assembly
-    - GDOP : geometric dilution of precision
-    - GEMS : global monitoring for environment and security
-    - GPS : global positioning system
-    - GRI : global reference image
-    - IERS : international earth rotation and reference systems service
-    - IMT : instrument measurement time
-    - IMU : inertial measurement unit
-    - NSM : navigation solution method
-    - NOF SV : number of space vehicles
-    - PDOP : position dilution of precision
-    - SIA : Sagnac interferometer assembly
-    - STR : star tracker
-    - TDOP : time dilution of precision
-    - VLORF : Viewing local orbital reference frame
-    """
-
-def get_view_angles_s2(Det, boi, s2_dict, Z=None):
-
-    s2_dict = get_flight_path_s2(s2_dict)
-
-    line_tim, integration_tim = get_integration_and_sampling_time_s2(s2_dict)
-
-    # get map coordinates of imagery
-
-    # transform to angles, via intrinsic camera parameters
-
-    # include DEM
-
-    # transform to ECEF
-    XXX = []
-    return XXX
+#def get_intrinsic_temperatures_s2(ds_path, fname='MTD_DS.xml'):
 
 def get_intrinsic_camera_mat_s2(s2_df, det, boi):
     """

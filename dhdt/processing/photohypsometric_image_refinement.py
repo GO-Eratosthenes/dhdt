@@ -236,6 +236,7 @@ def update_list_with_refined_casted(dh, file_dir, file_name='conn.txt'):
     The nomenclature is as follows:
 
     .. code-block:: text
+
           * sun
            \
             \ <-- sun trace
@@ -249,6 +250,7 @@ def update_list_with_refined_casted(dh, file_dir, file_name='conn.txt'):
     The angles related to the sun are as follows:
 
     .. code-block:: text
+
           surface normal              * sun
           ^                     ^    /
           |                     |   /
@@ -260,6 +262,7 @@ def update_list_with_refined_casted(dh, file_dir, file_name='conn.txt'):
     The azimuth angle declared in the following coordinate frame:
 
     .. code-block:: text
+
              ^ North & Y
              |
         - <--|--> +

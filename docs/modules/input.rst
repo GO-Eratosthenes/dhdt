@@ -10,13 +10,13 @@ is easier to read such data.
 .. automodule:: dhdt.input.read_sentinel2
     :members:
 
-read Landsat8 (meta)data
+read Landsat (meta)data
 ~~~~~~~~~~~~~~~~~~~~~~~~
 Landsat 8 & 9 are the latest fleet of satellites that are part of a legacy. Both
 satellites are build by NASA and data provision is done through USGS. The
 following function makes reading such data easier.
 
-.. automodule:: dhdt.input.read_landsat8
+.. automodule:: dhdt.input.read_landsat
     :members:
 
 read Terra ASTER data

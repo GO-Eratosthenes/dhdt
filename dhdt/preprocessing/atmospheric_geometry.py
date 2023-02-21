@@ -128,6 +128,7 @@ def get_height_tropopause(lat):
     A simplified view of this can be like:
 
         .. code-block:: text
+
                               z_s
             Mesosphere       /
           ┌-----------------/-┐  ↑ 80 km    |   *       T_s  |*

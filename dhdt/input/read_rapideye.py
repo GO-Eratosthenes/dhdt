@@ -155,7 +155,7 @@ def list_central_wavelength_re():
                        "B03": np.timedelta64(820, 'ms'),
                        "B04": np.timedelta64(2650, 'ms'),
                        "B05": np.timedelta64(3060, 'ms'),
-                       } # estimates, see [1]
+                       } # estimates, see [1]__
     d = {
          "center_wavelength": pd.Series(center_wavelength),
          "full_width_half_max": pd.Series(full_width_half_max),

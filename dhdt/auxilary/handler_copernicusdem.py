@@ -12,6 +12,7 @@ import pandas
 import numpy as np
 import geopandas
 import rioxarray
+
 from rioxarray.merge import merge_arrays # had some troubles since I got:
     # AttributeError: module 'rioxarray' has no attribute 'merge'
 from rioxarray.merge import merge_datasets
