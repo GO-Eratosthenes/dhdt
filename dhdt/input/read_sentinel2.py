@@ -46,6 +46,15 @@ def list_central_wavelength_msi():
             * solar_illumination, unit=W m-2 µm-1 :
         mostly following the naming convension of the STAC EO extension [3]
 
+    See Also
+    --------
+    dhdt.input.read_landsat.list_central_wavelength_oli :
+        for the instrument data of Landsat 8 or 9
+    dhdt.input.read_aster.list_central_wavelength_as :
+        for the instrument data of ASTER on the Terra satellite
+    dhdt.input.read_venus.list_central_wavelength_vssc :
+        for the instrument data of VSSC on the VENµS satellite
+
     Notes
     -----
     The Multi Spectral instrument (MSI) has a Tri Mirror Anastigmat (TMA)

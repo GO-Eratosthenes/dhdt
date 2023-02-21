@@ -6,21 +6,22 @@ from ..generic.unit_check import are_two_arrays_equal
 from ..preprocessing.image_transforms import high_pass_im
 
 def list_matching_metrics():
-    """ list the abbreviations of the different implemented correlation metrices
-    there are:
+    """ list the abbreviations of the different implemented correlation metrics
+
+    The following metrics are implemented:
         * 'peak_abs' : the absolute score
-        * 'peak_ratio' : the primary peak ratio i.r.t. the second peak
-        * 'peak_rms' : the peak ratio i.r.t. the root mean square error
-        * 'peak_ener' : the peaks' energy
-        * 'peak_noise' : the peak score i.r.t. to the noise level
-        * 'peak_conf' : the peak confidence
-        * 'peak_entr' : the peaks' entropy
+        * :func:`'peak_ratio' <primary_peak_ratio>` : the primary peak ratio i.r.t. the second peak
+        * :func:`'peak_rms' <peak_rms_ratio>` : the peak ratio i.r.t. the root mean square error
+        * :func:`'peak_ener' <peak_corr_energy>` : the peaks' energy
+        * :func:`'peak_noise' <peak_to_noise>` : the peak score i.r.t. to the noise level
+        * :func:`'peak_conf' <peak_confidence>` : the peak confidence
+        * :func:`'peak_entr' <entropy_corr>` : the peaks' entropy
+        * :func:`'peak_num' <num_of_peaks>` : the number of correlation peaks'
+        * :func:`'peak_marg' <peak_winner_margin>` : the dominance of the peak
 
     See Also
     --------
-    get_correlation_metric, entropy_corr, peak_confidence, peak_to_noise,
-    peak_corr_energy, peak_rms_ratio, num_of_peaks, peak_winner_margin,
-    primary_peak_margin, primary_peak_ratio
+    get_correlation_metric
     """
     metrics_list = ['peak_ratio', 'peak_rms', 'peak_ener', 'peak_nois',
                     'peak_conf', 'peak_entr', 'peak_abs', 'peak_marg',
@@ -34,9 +35,9 @@ def get_correlation_metric(C, metric='peak_abs'):
     ----------
     C : numpy.ndarray, size=(m,n)
         grid with correlation scores
-    metric : string
+    metric : {'peak_ratio', 'peak_rms', 'peak_ener', 'peak_nois', 'peak_conf', 'peak_entr', 'peak_abs', 'peak_marg', 'peak_win', 'peak_num'}
         abbreviation for the metric type to be calculated, for the options see
-        "list_matching_metrics" for the options
+        :func:`list_matching_metrics` for the options
 
     Returns
     -------
@@ -45,9 +46,8 @@ def get_correlation_metric(C, metric='peak_abs'):
 
     See Also
     --------
-    list_matching_metrics, entropy_corr, peak_confidence, peak_to_noise,
-    peak_corr_energy, peak_rms_ratio, num_of_peaks, peak_winner_margin,
-    primary_peak_margin, primary_peak_ratio
+    list_matching_metrics
+    dhdt.processing.matching_tools_frequency_metrics.list_phase_metrics
     """
     # admin
     assert type(C) == np.ndarray, ('please provide an array')
@@ -382,8 +382,14 @@ def entropy_corr(C):
 
     See Also
     --------
-    peak_confidence, peak_to_noise, peak_corr_energy, peak_rms_ratio,
-    num_of_peaks, peak_winner_margin, primary_peak_margin, primary_peak_ratio
+    dhdt.processing.matching_tools_spatial_metrics.peak_confidence
+    dhdt.processing.matching_tools_spatial_metrics.peak_to_noise
+    dhdt.processing.matching_tools_spatial_metrics.peak_corr_energy
+    dhdt.processing.matching_tools_spatial_metrics.peak_rms_ratio
+    dhdt.processing.matching_tools_spatial_metrics.num_of_peaks
+    dhdt.processing.matching_tools_spatial_metrics.peak_winner_margin
+    dhdt.processing.matching_tools_spatial_metrics.primary_peak_margin
+    dhdt.processing.matching_tools_spatial_metrics.primary_peak_ratio
 
     References
     ----------
@@ -490,8 +496,8 @@ def gauss_spread(C, intI, intJ, dI, dJ, est='dist'):
     """ estimate an oriented gaussian function through the vicinity of the
     correlation function
 
-    Parametes
-    ---------
+    Parameters
+    ----------
     C : numpy.ndarray, size=(m,n), dtype=float
         array with correlation values
     intI : integer, {x ∈ ℕ | x ≥ 0}

@@ -78,7 +78,7 @@ def online_F_test(y_ol):
     return F
 
 def make_2D_Gaussian(size, fwhm=3):
-    """make a 2D Gaussian kernel.
+    r"""make a 2D Gaussian kernel.
     
     find slope of the phase plane through 
     two point step size for phase correlation minimization

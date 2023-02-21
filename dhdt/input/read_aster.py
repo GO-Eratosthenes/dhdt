@@ -38,6 +38,15 @@ def list_central_wavelength_as():
             * name : general name of the band, if applicable
             * irradiance :
 
+    See Also
+    --------
+    dhdt.input.read_sentinel2.list_central_wavelength_msi :
+        for the instrument data of MSI on Sentinel-2
+    dhdt.input.read_landsat.list_central_wavelength_oli :
+        for the instrument data of Landsat 8 or 9
+    dhdt.input.read_venus.list_central_wavelength_vssc :
+        for the instrument data of VSSC on the VENµS satellite
+
     Example
     -------
     make a selection by name:

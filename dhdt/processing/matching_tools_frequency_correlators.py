@@ -806,7 +806,7 @@ def gradient_corr(I1, I2):
     return Q
 
 def normalized_gradient_corr(I1, I2):
-    """ match two imagery through gradient correlation
+    r""" match two imagery through gradient correlation
 
     Parameters
     ----------

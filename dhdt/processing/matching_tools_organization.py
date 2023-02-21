@@ -30,23 +30,30 @@ from .matching_tools_differential import \
 
 # admin
 def list_frequency_correlators():
-    """ list the abbreviations of the different implemented correlators, being:
-        cosi_corr - cosicorr
-        phas_only - phase only correlation
-        symm_phas - symmetric phase correlation
-        ampl_comp - amplitude compensation phase correlation
-        orie_corr - orientation correlation
-        grad_corr - gradient correlation
-        grad_norm - normalize gradient correlation
-        mask_corr - masked normalized cross correlation
-        bina_phas - binary phase correlation
-        wind_corr - windrose correlation
-        gaus_phas - gaussian transformed phase correlation
-        upsp_corr - upsampled cross correlation
-        cros_corr - cross correlation
-        robu_corr - robust phase correlation
-        proj_phas - projected phase correlation
-        phas_corr - phase correlation
+    """ list the abbreviations of the different implemented correlators
+
+    The following correlators are implemented:
+
+        * :func:`cosi_corr <.matching_tools_frequency_correlators.cosi_corr>` : cosicorr
+        * phas_only : phase only correlation
+        * symm_phas : symmetric phase correlation
+        * ampl_comp : amplitude compensation phase correlation
+        * orie_corr : orientation correlation
+        * grad_corr : gradient correlation
+        * grad_norm : normalize gradient correlation
+        * mask_corr : masked normalized cross correlation
+        * bina_phas : binary phase correlation
+        * wind_corr : windrose correlation
+        * gaus_phas : gaussian transformed phase correlation
+        * upsp_corr : upsampled cross correlation
+        * cros_corr : cross correlation
+        * robu_corr : robust phase correlation
+        * proj_phas : projected phase correlation
+        * phas_corr : phase correlation
+
+    Returns
+    -------
+    correlator_list : list of strings
     """
     correlator_list = ['cosi_corr', 'phas_only', 'symm_phas', 'ampl_comp',
                        'orie_corr', 'grad_corr', 'grad_norm', 'mask_corr',
@@ -64,13 +71,21 @@ def list_frequency_correlators():
     return correlator_list + aka_list
 
 def list_spatial_correlators():
-    """ list the abbreviations of the different implemented correlators, being:
-        norm_corr - normalized cross correlation
-        cumu_corr - cumulative cross correlation
-        sq_diff - sum of squared differences
-        sad_diff - sum of absolute differences
-        max_like - maximum likelihood
-        wght_corr - weighted normalized cross correlation
+    """ list the abbreviations of the different implemented correlators.
+
+    The following methods are implemented:
+
+        * norm_corr : normalized cross correlation
+        * cumu_corr : cumulative cross correlation
+        * sq_diff : sum of squared differences
+        * sad_diff : sum of absolute differences
+        * max_like : maximum likelihood
+        * wght_corr : weighted normalized cross correlation
+
+    Returns
+    -------
+    correlator_list : list of strings
+
     """
     correlator_list = ['norm_corr', 'ncc', 'cumu_corr', 'sq_diff', 'sad_diff',
                        'max_like', 'wght_corr', 'wncc']
@@ -81,12 +96,32 @@ def list_spatial_correlators():
     return correlator_list + aka_list
 
 def list_differential_correlators():
+    """" list the abbreviations of the different implemented differential
+    correlators.
+
+    The following are implemented:
+
+        * lucas_kan
+        * lucas_aff
+        * hough_opt_flw
+
+    Returns
+    -------
+    correlator_list : list of strings
+
+    See Also
+    --------
+    list_phase_estimators, list_peak_estimators
+    """
     correlator_list = ['lucas_kan', 'lucas_aff', 'hough_opt_flw']
     return correlator_list
 
 def list_phase_estimators():
     """ list the abbreviations of the different implemented phase plane
-    estimation procedures, being:
+    estimation procedures
+
+    The following methods are implemented:
+
         * 'tpss' : two point step size
         * 'svd' : single value decomposition
         * 'radon' : radon transform
@@ -96,6 +131,15 @@ def list_phase_estimators():
         * 'pca' : principle component analysis
         * 'lsq' : least squares estimation
         * 'diff' : phase difference
+
+    Returns
+    -------
+    subpix_list : list of strings
+
+
+    See Also
+    --------
+    list_peak_estimators, list_differential_correlators
     """
     subpix_list = ['tpss','svd','radon', 'hough', 'ransac', 'wpca',
                    'pca', 'lsq', 'diff']
@@ -103,21 +147,32 @@ def list_phase_estimators():
 
 def list_peak_estimators():
     """ list the abbreviations of the different implemented for the peak fitting
-    of the similarity function, being:
-        'gauss_1' : 1D Gaussian fitting
-        'parab_1' : 1D parabolic fitting
-        'moment' : 2D moment of the peak
-        'mass' : 2D center of mass fitting
-        'centroid' : 2D estimate the centroid
-        'blais' : 1D estimate through forth order filter
-        'ren' : 1D parabolic fitting
-        'birch' : 1D weighted sum
-        'eqang' : 1D equiangular line fitting
-        'trian' : 1D triangular fitting
-        'esinc' : 1D exponential esinc function
-        'gauss_2' : 2D Gaussian fitting
-        'parab_2' : 2D parabolic fitting
-        'optical_flow' : optical flow refinement
+    of the similarity function.
+
+    The following methods are implemented:
+
+        * 'gauss_1' : 1D Gaussian fitting
+        * 'parab_1' : 1D parabolic fitting
+        * 'moment' : 2D moment of the peak
+        * 'mass' : 2D center of mass fitting
+        * 'centroid' : 2D estimate the centroid
+        * 'blais' : 1D estimate through forth order filter
+        * 'ren' : 1D parabolic fitting
+        * 'birch' : 1D weighted sum
+        * 'eqang' : 1D equiangular line fitting
+        * 'trian' : 1D triangular fitting
+        * 'esinc' : 1D exponential esinc function
+        * 'gauss_2' : 2D Gaussian fitting
+        * 'parab_2' : 2D parabolic fitting
+        * 'optical_flow' : optical flow refinement
+
+    Returns
+    -------
+    subpix_list : list of strings
+
+    See Also
+    --------
+    list_phase_estimators, list_differential_correlators
     """
     subpix_list = ['gauss_1', 'parab_1', 'moment', 'mass', 'centroid',
                   'blais', 'ren', 'birch', 'eqang', 'trian', 'esinc',

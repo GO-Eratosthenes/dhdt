@@ -38,6 +38,15 @@ def list_central_wavelength_vssc():
             * gsd, unit=m : spatial resolution of a pixel
             * common_name : general name of the band, if applicable
 
+    See Also
+    --------
+    dhdt.input.read_sentinel2.list_central_wavelength_msi :
+        for the instrument data of MSI on Sentinel-2
+    dhdt.input.read_landsat.list_central_wavelength_oli :
+        for the instrument data of Landsat 8 or 9
+    dhdt.input.read_aster.list_central_wavelength_as :
+        for the instrument data of ASTER on the Terra satellite
+
     Notes
     -----
     The sensor is composed of four detectors, which each have three arrays.

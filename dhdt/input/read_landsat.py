@@ -62,6 +62,15 @@ def list_central_wavelength_oli():
             * field_of_view, unit=degrees : angle of swath of instrument
             * name : general name of the band, if applicable
 
+    See Also
+    --------
+    dhdt.input.read_sentinel2.list_central_wavelength_msi :
+        for the instrument data of MSI on Sentinel-2
+    dhdt.input.read_aster.list_central_wavelength_as :
+        for the instrument data of ASTER on the Terra satellite
+    dhdt.input.read_venus.list_central_wavelength_vssc :
+        for the instrument data of VSSC on the VENµS satellite
+
     Notes
     -----
     The time lag between panchromatic and red is 0.52 seconds, while the time
@@ -189,9 +198,7 @@ def get_oli_relative_band_time():
     return df
 
 def read_band_ls(path, band='B8'):
-    """ This function takes as input the Landsat8 band name and the path of the
-    folder that the images are stored, reads the image and returns the data as
-    an array
+    """ read landsat image from path
 
     Parameters
     ----------

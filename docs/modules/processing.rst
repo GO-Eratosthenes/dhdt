@@ -1,6 +1,11 @@
 processing
 -------------
 
+organization
+~~~~~~~~~~~~
+.. automodule:: dhdt.processing.matching_tools_organization
+    :members:
+
 frequency filters
 ~~~~~~~~~~~~~~~~~
 .. automodule:: dhdt.processing.matching_tools_frequency_filters

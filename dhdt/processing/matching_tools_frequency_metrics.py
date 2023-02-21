@@ -8,14 +8,12 @@ from .matching_tools_frequency_filters import normalize_power_spectrum, \
 def list_phase_metrics():
     """ list the abbreviations of the different implemented phase metrics,
     there are:
-        * 'phase_fit' : the absolute score
-        * 'phase_sup' : the primary peak ratio i.r.t. the second peak
+        * :func:`'phase_fit' <phase_fitness>` : the absolute score
+        * :func:`'phase_sup' <phase_support>` : the primary peak ratio i.r.t. the second peak
 
     See Also
     --------
-    get_phase_metric, entropy_corr, peak_confidence, peak_to_noise,
-    peak_corr_energy, peak_rms_ratio, num_of_peaks, peak_winner_margin,
-    primary_peak_margin, primary_peak_ratio
+    get_phase_metric
     """
     metrics_list = ['phase_fit', 'phase_sup']
     return metrics_list
@@ -31,7 +29,7 @@ def get_phase_metric(Q, di, dj, metric='phase_fit'):
         estimated displacement
     metric : string
         abbreviation for the metric type to be calculated, for the options see
-        "list_pahse_metrics" for the options
+        :func:`list_pahse_metrics` for the options
 
     Returns
     -------
@@ -40,9 +38,9 @@ def get_phase_metric(Q, di, dj, metric='phase_fit'):
 
     See Also
     --------
-    list_matching_metrics, entropy_corr, peak_confidence, peak_to_noise,
-    peak_corr_energy, peak_rms_ratio, num_of_peaks, peak_winner_margin,
-    primary_peak_margin, primary_peak_ratio
+    list_phase_metrics
+    dhdt.processing.matching_tools_spatial_metrics.list_matching_metrics
+
     """
     # admin
     assert type(Q) == np.ndarray, ('please provide an array')
