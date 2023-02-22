@@ -1,6 +1,6 @@
 import os
 import geopandas as gpd
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Polygon
 from dhdt.generic.handler_www import get_file_from_www
 from fiona.drvsupport import supported_drivers
 import pandas as pd
@@ -74,13 +74,13 @@ def _kml_to_gdf(filename):
 
     # Separate the entries crossing the antimeridian
     mask_cross = gdf["geometry"].apply(_check_cross)
-    gdf_cross = gdf.loc[mask_cross]
-    gdf_normal = gdf.loc[~mask_cross]
+    gdf_cross = gdf.loc[mask_cross].copy()
+    gdf_normal = gdf.loc[~mask_cross].copy()
 
     # Read in normal polygons
     # Their geometry will contain two elements, the first one always footprint polygon
     # The second one is likely to be the centroid, which will be disgarded
-    gdf_normal["geometry"] = gdf_normal["geometry"].apply(lambda x: x.geoms[0])
+    gdf_normal.update(gdf_normal["geometry"].apply(lambda x: x.geoms[0]))
     gdf_normal = gdf_normal.set_crs(gdf.crs)
 
     # Read polygons crossing the crossing the antimeridian
@@ -91,7 +91,7 @@ def _kml_to_gdf(filename):
                               for idx in unpacked.columns]).to_list()
     gdf_cross = gpd.GeoDataFrame(gs_cross_list)
     gdf_cross = gdf_cross.set_crs(gdf.crs)
-    
+
     gdf = pd.concat([gdf_cross, gdf_normal])
 
     return gdf
