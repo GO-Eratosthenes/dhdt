@@ -82,7 +82,7 @@ def get_copDEM_filestructure(tmp_path, cds_sso, cds_pw,
                              type='DGED',resolution=30, year=2021, version=1):
     """ the CopernicusDEM is situated in different folders, this function
     downloads the 'mapping.csv'-file that has the ftp-whereabouts of all the
-    elevation rasters. For some brief information see [wwwCOP].
+    elevation rasters. For some brief information see [wwwCOP]_.
 
     Parameters
     ----------
@@ -95,7 +95,7 @@ def get_copDEM_filestructure(tmp_path, cds_sso, cds_pw,
     cds_url : string
         Copernicus Data Service url
     type : {'DGED', 'DTED'}
-        * DGED : 32 Bit, floating, see also [wwwDGED]
+        * DGED : 32 Bit, floating, see also [wwwDGED]_
         * DTED : 16 Bit, signed
     resolution : {30, 90}
         post or pixel resolution in meters, the original is in 10 meters, but this

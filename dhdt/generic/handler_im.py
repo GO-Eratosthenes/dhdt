@@ -54,7 +54,7 @@ def toeplitz_block(kernel, image_size):
 
 def nan_resistant_conv2(I, kernel, size='same', cval=np.nan):
     """ estimates a convolution on a corrupted array, making use of the energy
-    perserving principle, see [1].
+    perserving principle, see [Al22]_.
 
     Parameters
     ----------
@@ -73,9 +73,9 @@ def nan_resistant_conv2(I, kernel, size='same', cval=np.nan):
 
     References
     ----------
-    .. [1] Altena et al. "Correlation dispersion as a measure to better estimate
-       uncertainty of remotely sensed glacier displacements", The Crysophere,
-       vol.16(6) pp.2285–2300, 2022.
+    .. [Al22] Altena et al. "Correlation dispersion as a measure to better
+              estimate uncertainty of remotely sensed glacier displacements",
+              The Crysophere, vol.16(6) pp.2285–2300, 2022.
     """
     m,n = I.shape
     k,l = kernel.shape
@@ -113,7 +113,7 @@ def nan_resistant_conv2(I, kernel, size='same', cval=np.nan):
 
 def nan_resistant_diff2(I, kernel, size='same', cval=np.nan):
     """ estimates a differential convolution on a corrupted array, making use
-    of the energy perserving principle, see [1].
+    of the energy perserving principle, see [Al22]_.
 
     Parameters
     ----------
@@ -132,9 +132,9 @@ def nan_resistant_diff2(I, kernel, size='same', cval=np.nan):
 
     References
     ----------
-    .. [1] Altena et al. "Correlation dispersion as a measure to better estimate
-       uncertainty of remotely sensed glacier displacements", The Crysophere,
-       vol.16(6) pp.2285–2300, 2022.
+    .. [Al22] Altena et al. "Correlation dispersion as a measure to better
+              estimate uncertainty of remotely sensed glacier displacements",
+              The Crysophere, vol.16(6) pp.2285–2300, 2022.
     """
     m,n = I.shape
     k,l = kernel.shape
@@ -370,7 +370,7 @@ def rescale_image(I, sc, method='cubic'):
     return I_new
 
 def rotated_sobel(az, size=3, indexing='ij'):
-    """ construct gradient filter along a specific angle
+    """ construct gradient filter along a specific angle, see [S090]_
 
     Parameters
     ----------
@@ -425,8 +425,8 @@ def rotated_sobel(az, size=3, indexing='ij'):
 
     References
     ----------
-    .. [1] Sobel, "An isotropic 3×3 gradient operator" Machine vision for
-       three-dimensional scenes, Academic press, pp.376–379, 1990.
+    .. [S090] Sobel, "An isotropic 3×3 gradient operator" Machine vision for
+              three-dimensional scenes, Academic press, pp.376–379, 1990.
     """
     d = size //2
     az = np.radians(az)
@@ -514,13 +514,13 @@ def get_grad_filters(ftype='sobel', tsize=3, order=1, indexing='xy'):
              'prewitt', 'simoncelli'}
         Specifies which the type of gradient filter to get:
 
-          * 'sobel' : see [1]
-          * 'kroon' : see [2]
-          * 'scharr' : see [3]
-          * 'robinson' : see [4],[5]
+          * 'sobel' : see [S090]_
+          * 'kroon' : see [Kr09]_
+          * 'scharr' : see [Sc00]_
+          * 'robinson' : see [Ki70]_,[Ro65]_
           * 'kayyali' :
-          * 'prewitt' : see [6]
-          * 'simoncelli' : see [7]
+          * 'prewitt' : see [Pr70]_
+          * 'simoncelli' : see [FS97]_
     tsize : {3,5}, dtype=integer
         dimenson/length of the template
     order : {1,2}, dtype=integer
@@ -564,22 +564,22 @@ def get_grad_filters(ftype='sobel', tsize=3, order=1, indexing='xy'):
 
     References
     ----------
-    .. [1] Sobel, "An isotropic 3×3 gradient operator" Machine vision for
-       three-dimensional scenes, Academic press, pp.376–379, 1990.
-    .. [2] Kroon, "Numerical optimization of kernel-based image derivatives",
-       2009
-    .. [3] Scharr, "Optimal operators in digital image processing" Dissertation
-       University of Heidelberg, 2000.
-    .. [4] Kirsch, "Computer determination of the constituent structure of
-       biological images" Computers and biomedical research. vol.4(3)
-       pp.315–32, 1970.
-    .. [5] Roberts, "Machine perception of 3-D solids, optical and
-       electro-optical information processing" MIT press, 1965.
-    .. [6] Prewitt, "Object enhancement and extraction" Picture processing and
-       psychopictorics, 1970.
-    .. [7] Farid & Simoncelli "Optimally rotation-equivariant directional
-       derivative kernels" Proceedings of the international conference on
-       computer analysis of images and patterns, pp207–214, 1997
+    .. [S090] Sobel, "An isotropic 3×3 gradient operator" Machine vision for
+              three-dimensional scenes, Academic press, pp.376–379, 1990.
+    .. [Kr09] Kroon, "Numerical optimization of kernel-based image derivatives",
+              2009
+    .. [Sc00] Scharr, "Optimal operators in digital image processing"
+              PhD dissertation University of Heidelberg, 2000.
+    .. [Ki70] Kirsch, "Computer determination of the constituent structure of
+              biological images" Computers and biomedical research. vol.4(3)
+              pp.315–32, 1970.
+    .. [Ro65] Roberts, "Machine perception of 3-D solids, optical and
+              electro-optical information processing" MIT press, 1965.
+    .. [Pr70] Prewitt, "Object enhancement and extraction" Picture processing
+              and psychopictorics, 1970.
+    .. [FS97] Farid & Simoncelli "Optimally rotation-equivariant directional
+              derivative kernels" Proceedings of the international conference on
+              computer analysis of images and patterns, pp207–214, 1997
     """
 
     ftype = ftype.lower() # make string lowercase
@@ -668,7 +668,7 @@ def get_grad_filters(ftype='sobel', tsize=3, order=1, indexing='xy'):
     return out1, out2
 
 def harst_conv(I, ftype='bezier'):
-    """ construct derivatives through double filtering [1]
+    """ construct derivatives through double filtering, see [Ha14]_
 
     Parameters
     ----------
@@ -686,9 +686,9 @@ def harst_conv(I, ftype='bezier'):
 
     References
     ----------
-    .. [1] Harst, "Simple filter design for first and second order derivatives
-       by a double filtering approach" Pattern recognition letters, vol.42
-       pp.65–71, 2014.
+    .. [Ha14] Harst, "Simple filter design for first and second order
+              derivatives by a double filtering approach" Pattern recognition
+              letters, vol.42 pp.65–71, 2014.
     """
     # define kernels
     un = np.array([0.125, 0.250, 0.500, 1.000])

@@ -19,7 +19,7 @@ def get_space_time_id(date, ϕ, λ, full=True):
 
     Parameters
     ----------
-    date : np.datetime64
+    date : numpy.datetime64
         times of interest
     ϕ : float, unit=degrees, range=-90...+90
         central latitude of interest
@@ -170,28 +170,27 @@ def get_wind_from_grib_file(fname='download.grib', pres_level=1000):
     grbs.close()
     return ϕ, λ, U, V, Rh, T
 
-def get_era5_atmos_profile(date, x, y, spatialRef,
-                           z=10**np.linspace(0,5,100)):
+def get_era5_atmos_profile(date, x, y, spatialRef, z=None):
     """
 
     Parameters
     ----------
-    date : np.datetime64
+    date : numpy.datetime64
         times of interest
-    x, y : np.array, unit=meter
+    x, y : numpy.ndarray, unit=meter
         map location of interest
     spatialRef : osgeo.osr.SpatialReference
         projection system describtion
-    z : np.array, unit=meter
+    z : numpy.ndarray, unit=meter
         altitudes of interest
 
     Returns
     -------
-    ϕ, λ : np.array(), unit=degrees
+    ϕ, λ : numpy.ndarray, unit=degrees
         latitude and longitude of the ERA5 nodes
-    z : np.array, unit=meter
+    z : numpy.ndarray, unit=meter
         altitudes of interest
-    Temp : np.array, unit=Kelvin
+    Temp : numpy.ndarray, unit=Kelvin
         temperature profile at altitudes given by "z"
     Pres : unit=Pascal
         pressure profile at altitudes given by "z"
@@ -227,6 +226,7 @@ def get_era5_atmos_profile(date, x, y, spatialRef,
     """
     if isinstance(x, float): x = np.array([x])
     if isinstance(y, float): y = np.array([y])
+    if z is None: z = 10**np.linspace(0,5,100)
     pres_levels = get_era5_pressure_levels()
 
     hour = 11

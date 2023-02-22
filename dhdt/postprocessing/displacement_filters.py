@@ -50,11 +50,12 @@ def local_infilling_filter(I, tsize=5):
 
     References
     ----------
-    .. [1] Joughin "Ice-sheet velocity mapping: a combined interferometric and
-       speckle-tracking approach", Annuals of glaciology vol.34 pp.195-201.
-    .. [2] Joughin et al. "Greenland ice mapping project 2 (GIMP-2) algorithm
-       theoretical basis document", Making earth system data records for use in
-       research environment (MEaSUREs) documentation.
+    .. [JoXX] Joughin "Ice-sheet velocity mapping: a combined interferometric
+              and speckle-tracking approach", Annuals of glaciology vol.34
+              pp.195-201.
+    .. [JoYY] Joughin et al. "Greenland ice mapping project 2 (GIMP-2) algorithm
+              theoretical basis document", Making earth system data records for
+              use in research environment (MEaSUREs) documentation.
     """
 
     I_new = ndimage.generic_filter(I, infill_func, size=(tsize, tsize))
@@ -88,9 +89,11 @@ def nan_resistant(buffer, kernel):
     return central_pix
 
 def nan_resistant_filter(I, filter):
-    """ apply convolution over array with no-data values. If no data gaps are
-    present, the kernel is adjusted and more weights are given to the other
-    neighbors. If to much data is missing, this results in no estimation
+    """ apply convolution over array with no-data values.
+
+    If no data gaps are present, the kernel is adjusted and more weights are
+    given to the other neighbors. If to much data is missing, this results in
+    no estimation. From [Al22]_.
 
     Parameters
     ----------
@@ -106,9 +109,9 @@ def nan_resistant_filter(I, filter):
 
     References
     ----------
-    .. [1] Altena et al. "Correlation dispersion as a measure to better estimate
-       uncertainty of remotely sensed glacier displacements", The Crysophere,
-       vol.16(6) pp.2285–2300, 2022.
+    .. [Al22] Altena et al. "Correlation dispersion as a measure to better
+              estimate uncertainty of remotely sensed glacier displacements",
+              The Crysophere, vol.16(6) pp.2285–2300, 2022.
     """
     #todo if all entities have the same sign
     I_new = ndimage.generic_filter(I, nan_resistant,
@@ -154,11 +157,12 @@ def local_variance(V, tsize=5):
 
     References
     ----------
-    .. [1] Joughin "Ice-sheet velocity mapping: a combined interferometric and
-       speckle-tracking approach", Annuals of glaciology vol.34 pp.195-201.
-    .. [2] Joughin et al. "Greenland ice mapping project 2 (GIMP-2) algorithm
-       theoretical basis document", Making earth system data records for use in
-       research environment (MEaSUREs) documentation.
+    .. [JoXX] Joughin "Ice-sheet velocity mapping: a combined interferometric
+              and speckle-tracking approach", Annuals of glaciology vol.34
+              pp.195-201.
+    .. [JoYY] Joughin et al. "Greenland ice mapping project 2 (GIMP-2) algorithm
+              theoretical basis document", Making earth system data records for
+              use in research environment (MEaSUREs) documentation.
     """
     V_class = local_mad_filter(V, tsize=tsize)
     V[V_class] = np.nan

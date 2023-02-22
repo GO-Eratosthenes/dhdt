@@ -44,7 +44,7 @@ def list_central_wavelength_msi():
             * crossdetector_parallax, unit=degress : in along-track direction
             * name : general name of the band, if applicable
             * solar_illumination, unit=W m-2 µm-1 :
-        mostly following the naming convension of the STAC EO extension [3]
+        mostly following the naming convension of the STAC EO extension [stac]_
 
     See Also
     --------
@@ -60,10 +60,10 @@ def list_central_wavelength_msi():
     The Multi Spectral instrument (MSI) has a Tri Mirror Anastigmat (TMA)
     telescope, which is opened at F/4 and has a focal length of 60 centimeter.
 
-    The crossdetector parallex is given here as well, see [1]. While the
+    The crossdetector parallex is given here as well, see [La15]_. While the
     crossband parallax is 0.018 for VNIR and 0.010 for the SWIR detector,
-    respectively. The dimensions of the Silicon CMOS detector are given in [2].
-    While the SWIR detector is based on a MCT sensor.
+    respectively. The dimensions of the Silicon CMOS detector are given in
+    [MG10]_. While the SWIR detector is based on a MCT sensor.
 
     The following acronyms are used:
 
@@ -97,13 +97,13 @@ def list_central_wavelength_msi():
 
     References
     -------
-    .. [1] Languille et al. "Sentinel-2 geometric image quality commissioning:
-       first results" Proceedings of the SPIE, 2015.
-    .. [2] Martin-Gonthier et al. "CMOS detectors for space applications: From
-       R&D to operational program with large volume foundry", Proceedings of the
-       SPIE conference on sensors, systems, and next generation satellites XIV,
-       2010.
-    .. [3] https://github.com/stac-extensions/eo
+    .. [La15] Languille et al. "Sentinel-2 geometric image quality commissioning:
+              first results" Proceedings of the SPIE, 2015.
+    .. [MG10] Martin-Gonthier et al. "CMOS detectors for space applications:
+              From R&D to operational program with large volume foundry",
+              Proceedings of the SPIE conference on sensors, systems, and next
+              generation satellites XIV, 2010.
+    .. [stac] https://github.com/stac-extensions/eo
     """
     center_wavelength = {"B01": 443, "B02": 492, "B03": 560, "B04": 665,
                   "B05": 704, "B06": 741, "B07": 783, "B08": 833, "B8A": 865,
@@ -2036,11 +2036,11 @@ def get_intrinsic_camera_mat_s2(s2_df, det, boi):
 
     References
     ----------
-    .. [1] Hartley & Gupta, "Linear pushbroom cameras" Proceedings of the
-       European conference on computer vision, 1994.
-    .. [2] Moons et al. "3D reconstruction from multiple images part 1:
-       Principles." Foundations and trends® in computer graphics and vision,
-       vol.4(4) pp.287-404, 2010.
+    .. [HG94] Hartley & Gupta, "Linear pushbroom cameras" Proceedings of the
+              European conference on computer vision, 1994.
+    .. [Mo10] Moons et al. "3D reconstruction from multiple images part 1:
+              Principles." Foundations and trends® in computer graphics and
+              vision, vol.4(4) pp.287-404, 2010.
     """
     #convert focal length to pixel scale
 

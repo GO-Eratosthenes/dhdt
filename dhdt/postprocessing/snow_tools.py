@@ -22,8 +22,9 @@ def drift_profile(Z, geoTransform, θ):
 
     References
     ----------
-    .. [1] Tabler, "Predicting profiles of snowdrifts in topographic catchments"
-       Proceedings of the 43rd annual western snow conference, pp.87-97, 1975.
+    .. [Ta75] Tabler, "Predicting profiles of snowdrifts in topographic
+              catchments" Proceedings of the 43rd annual western snow
+              conference, pp.87-97, 1975.
     """
 
     θ = deg2compass(θ)

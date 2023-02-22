@@ -147,8 +147,8 @@ def read_band_as_l1(path, band='3N'):
 
     References
     ----------
-    https://asterweb.jpl.nasa.gov/content/03_data/04_Documents/ASTERHigherLevelUserGuideVer2May01.pdf
-    https://www.cmascenter.org/ioapi/documentation/all_versions/html/GCTP.html
+    .. [wwwASTR] https://asterweb.jpl.nasa.gov/content/03_data/04_Documents/ASTERHigherLevelUserGuideVer2May01.pdf
+    .. [wwwGCTP] https://www.cmascenter.org/ioapi/documentation/all_versions/html/GCTP.html
 
     """
     assert len(glob.glob(path))!=0, ('file does not seem to be present')

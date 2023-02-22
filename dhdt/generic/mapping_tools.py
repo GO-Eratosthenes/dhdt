@@ -428,6 +428,7 @@ def rot_covar(V, R):
 
 def covar2err_ellipse(sigma_1, sigma_2, ρ):
     """ parameter transform from co-variance matrix to standard error-ellipse
+    For more info see [Al22]_
 
     Parameters
     ----------
@@ -446,8 +447,8 @@ def covar2err_ellipse(sigma_1, sigma_2, ρ):
     References
     ----------
     .. [Al22] Altena et al. "Correlation dispersion as a measure to better
-       estimate uncertainty of remotely sensed glacier displacements", The
-       Crysophere, vol.16(6) pp.2285–2300, 2022.
+              estimate uncertainty of remotely sensed glacier displacements",
+              The Crysophere, vol.16(6) pp.2285–2300, 2022.
     """
     # intermediate variables
     s1s2_min = sigma_1**2 - sigma_2**2
@@ -478,7 +479,7 @@ def rotate_variance(θ, qii, qjj, ρ):
     return qii_r, qjj_r
 
 def cast_orientation(I, Az, indexing='ij'):
-    """ emphasises intensities within a certain direction, following [Fr91].
+    """ emphasises intensities within a certain direction, following [Fr91]_.
 
     Parameters
     ----------
@@ -529,8 +530,8 @@ def cast_orientation(I, Az, indexing='ij'):
     References
     ----------
     .. [Fr91] Freeman et al. "The design and use of steerable filters." IEEE
-       transactions on pattern analysis and machine intelligence vol.13(9)
-       pp.891-906, 1991.
+              transactions on pattern analysis and machine intelligence
+              vol.13(9) pp.891-906, 1991.
     """
     assert type(I)==np.ndarray, ("please provide an array")
 

@@ -37,7 +37,7 @@ def project_along_flow(dX_raw,dY_raw,dX_prio,dY_prio,e_perp):
 
     .. math:: P = ({d_{x}}e^{\perp}_{x} - {d_{y}}e^{\perp}_{y}) / ({\hat{d}_{x}}e^{\perp}_{x} - {\hat{d}_{y}}e^{\perp}_{y})
 
-    See also Equation 10 and Figure 2 in [1].
+    See also Equation 10 and Figure 2 in [AK17]_.
 
     Furthermore, two different coordinate system are used here: 
         
@@ -56,9 +56,9 @@ def project_along_flow(dX_raw,dY_raw,dX_prio,dY_prio,e_perp):
 
     References
     ----------
-    .. [1] Altena & Kääb. "Elevation change and improved velocity retrieval 
-       using orthorectified optical satellite data from different orbits" 
-       Remote Sensing vol.9(3) pp.300 2017.        
+    .. [AK17] Altena & Kääb. "Elevation change and improved velocity retrieval
+              using orthorectified optical satellite data from different orbits"
+              Remote Sensing vol.9(3) pp.300 2017.
     """
     # e_{\para} = bearing satellite...
     assert(dX_raw.size == dY_raw.size) # all should be of the same size

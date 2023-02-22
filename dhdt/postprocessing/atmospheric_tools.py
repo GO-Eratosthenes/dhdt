@@ -43,7 +43,7 @@ def oro_precip(Z, geoTransform, spatialRef, u_wind, v_wind,
                conv_time=1000, fall_time=1000, nm=1E-2, T_0=0,
                lapse_rate=-5.8E-3, lapse_rate_m=-6.5E-3,ref_ρ=7.4E-3):
     """ estimate the orographic precipitation pattern from an elevation model,
-    based upon [SB04] and application implementation by [Sc08].
+    based upon [SB04]_ and application implementation by [Sc08]_.
 
     Parameters
     ----------
@@ -87,10 +87,10 @@ def oro_precip(Z, geoTransform, spatialRef, u_wind, v_wind,
     References
     ----------
     .. [SB04] Smith and Barstad, "A linear theory of orographic precipitation",
-       Journal of atmospheric science, vol.61, pp.1377-1391, 2004.
+              Journal of atmospheric science, vol.61, pp.1377-1391, 2004.
     .. [Sc08] Schuler et al. "Distribution of snow accumulation on the Svartisen
-       ice cap, Norway, assessed by a model of orographic precipitation",
-       Hydrologic processes, vol.22 pp.3998-4008, 2008.
+              ice cap, Norway, assessed by a model of orographic precipitation",
+              Hydrologic processes, vol.22 pp.3998-4008, 2008.
     """
 
     # sensitivity uplift factor, unit=kg m**3

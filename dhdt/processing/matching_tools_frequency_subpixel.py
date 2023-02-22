@@ -740,6 +740,7 @@ def ransac(data, model_class, min_samples, residual_threshold,
     Examples
     --------
     Generate ellipse data without tilt and add noise:
+
     >>> t = np.linspace(0, 2 * np.pi, 50)
     >>> xc, yc = 20, 30
     >>> a, b = 5, 10
@@ -748,21 +749,28 @@ def ransac(data, model_class, min_samples, residual_threshold,
     >>> data = np.column_stack([x, y])
     >>> rng = np.random.default_rng(203560)  # do not copy this value
     >>> data += rng.normal(size=data.shape)
+
     Add some faulty data:
+
     >>> data[0] = (100, 100)
     >>> data[1] = (110, 120)
     >>> data[2] = (120, 130)
     >>> data[3] = (140, 130)
+
     Estimate ellipse model using all available data:
+
     >>> model = EllipseModel()
     >>> model.estimate(data)
     True
     >>> np.round(model.params)  # doctest: +SKIP
     array([ 72.,  75.,  77.,  14.,   1.])
+
     Estimate ellipse model using RANSAC:
+
     >>> ransac_model, inliers = ransac(data, EllipseModel, 20, 3, max_trials=50)
     >>> abs(np.round(ransac_model.params))
     array([20., 30., 10.,  6.,  2.])
+
     >>> inliers  # doctest: +SKIP
     array([False, False, False, False,  True,  True,  True,  True,  True,
             True,  True,  True,  True,  True,  True,  True,  True,  True,
@@ -770,10 +778,13 @@ def ransac(data, model_class, min_samples, residual_threshold,
             True,  True,  True,  True,  True,  True,  True,  True,  True,
             True,  True,  True,  True,  True,  True,  True,  True,  True,
             True,  True,  True,  True,  True], dtype=bool)
+
     >>> sum(inliers) > 40
     True
+
     RANSAC can be used to robustly estimate a geometric transformation. In this section,
     we also show how to use a proportion of the total samples, rather than an absolute number.
+
     >>> from skimage.transform import SimilarityTransform
     >>> rng = np.random.default_rng()
     >>> src = 100 * rng.random((50, 2))
@@ -788,6 +799,7 @@ def ransac(data, model_class, min_samples, residual_threshold,
     >>> model, inliers = ransac((src, dst), SimilarityTransform, min_samples,
     ...                         10,
     ...                         initial_inliers=np.ones(len(src), dtype=bool))
+
     >>> inliers  # doctest: +SKIP
     array([False, False, False,  True,  True,  True,  True,  True,  True,
             True,  True,  True,  True,  True,  True,  True,  True,  True,

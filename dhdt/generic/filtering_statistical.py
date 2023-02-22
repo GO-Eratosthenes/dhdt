@@ -2,8 +2,8 @@ import numpy as np
 
 def online_steady_state(y_ol, X_fi=None, v_fi=None, d_fi=None,
                         lambda_1=.2, lambda_2=.1, lambda_3=.1):
-    """ statistical online test if proces is in steady state, see [1]. Which is
-    a simplified F-test based upon the ratio of variances
+    """ statistical online test if proces is in steady state, see [CR95]_.
+    Which is a simplified F-test based upon the ratio of variances
 
     Parameters
     ----------
@@ -23,8 +23,9 @@ def online_steady_state(y_ol, X_fi=None, v_fi=None, d_fi=None,
 
     References
     ----------
-    .. [1] Cao & Rhinehart, "An efficient method for on-line identification of
-       steady state" Journal of proces control, vol.5(6) pp.363-374, 1995.
+    .. [CR95] Cao & Rhinehart, "An efficient method for on-line identification
+              of steady state" Journal of proces control, vol.5(6) pp.363-374,
+              1995.
 
     Examples
     --------
@@ -341,7 +342,7 @@ def cauchy_filtering(y,thres=2.385,preproc='normal'):
     return IN
     
 def normalized_sampling_histogram(I):
-    """ sample histogram based upon Sturges' rule
+    """ sample histogram based upon Sturges' rule, see also [StXX]_
 
     Parameters
     ----------
@@ -356,7 +357,7 @@ def normalized_sampling_histogram(I):
 
     References
     ----------
-    .. [1] Sturges, "The choice of a class interval". Journal of the american
+    .. [StXX] Sturges, "The choice of a class interval". Journal of the american
        statistical association. vol.21(153) pp.65–66.
     """
     sturge = 1.6 * (np.log2(I.size) + 1)

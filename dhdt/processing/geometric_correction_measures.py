@@ -3,7 +3,7 @@ import numpy as np
 from scipy.stats import spearmanr, wilcoxon, ttest_1samp
 
 def bad_point_propagation(dXY, r=1.):
-    """
+    """ see [Go09]_
 
     Parameters
     ----------
@@ -19,9 +19,9 @@ def bad_point_propagation(dXY, r=1.):
 
     References
     ----------
-    .. [1] Gonçalves et al., "Measures for an objective evaluation of the
-       geometric correction process quality", IEEE geoscience and remote sensing
-       letters, vol.6(2) pp.292-296, 2009.
+    .. [Go09] Gonçalves et al., "Measures for an objective evaluation of the
+              geometric correction process quality", IEEE geoscience and remote
+              sensing letters, vol.6(2) pp.292-296, 2009.
     """
     n = dXY.shape[1]
     C = np.cov(dXY, rowvar=False)
@@ -35,7 +35,7 @@ def bad_point_propagation(dXY, r=1.):
     return BPP
 
 def skew_distribution(dXY):
-    """ skeweness between axis, following [1].
+    """ skeweness between axis, following [Go09]_.
 
     Parameters
     ----------
@@ -49,9 +49,9 @@ def skew_distribution(dXY):
 
     References
     ----------
-    .. [1] Gonçalves et al., "Measures for an objective evaluation of the
-       geometric correction process quality", IEEE geoscience and remote sensing
-       letters, vol.6(2) pp.292-296, 2009.
+    .. [Go09] Gonçalves et al., "Measures for an objective evaluation of the
+              geometric correction process quality", IEEE geoscience and remote
+              sensing letters, vol.6(2) pp.292-296, 2009.
     """
     n = dXY.shape[1]
     if n<20: # Spearman

@@ -8,11 +8,11 @@ from dhdt.generic.handler_www import get_zip_file
 
 def get_wrs_url(version=2):
     """ get the location where the geometric data of Landsats path-row
-    footprints are situated
+    footprints are situated, for info see [wwwUSGS]_
 
     References
     ----------
-    .. [1] https://www.usgs.gov/media/files/landsat-wrs-2-descending-path-row-shapefile
+    .. [wwwUSGS] https://www.usgs.gov/media/files/landsat-wrs-2-descending-path-row-shapefile
     """
     assert isinstance(version, int), 'please provide an integer'
     assert 0 < version < 3, 'please provide a correct version, i.e.: {1,2}'

@@ -104,11 +104,11 @@ def list_central_wavelength_re():
 
     References
     ----------
-    .. [1] Krauß, et al. "Traffic flow estimation from single
-       satellite images." Archives of the ISPRS, vol.XL-1/WL3, 2013.
+    .. [Kr13] Krauß, et al. "Traffic flow estimation from single satellite
+              images" Archives of the ISPRS, vol.XL-1/WL3, 2013.
 
-    Example
-    -------
+    Examples
+    --------
     make a selection by name:
 
     >>> boi = ['red', 'green', 'blue']
