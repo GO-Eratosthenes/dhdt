@@ -8,12 +8,12 @@ from ..preprocessing.atmospheric_geometry import \
 # testing functions, based on literature values
 def test_water_vapour_fraction():
     """ test if the calculations comply with the original work, using values
-    of Table2 in [1]
+    of Table2 in [Gi82]_.
 
     References
     ----------
-    .. [1] Giacomo, "Equation for the determination of the density of moist air"
-           Metrologica, vol.18, pp.33-40, 1982.
+    .. [Gi82] Giacomo, "Equation for the determination of the density of moist
+              air" Metrologica, vol.18, pp.33-40, 1982.
     """
     t = np.arange(0, 27.1, 0.1)
     svp_tilde = np.array([611.2, 615.7, 620.2, 624.7, 629.2, 633.8, 638.4,

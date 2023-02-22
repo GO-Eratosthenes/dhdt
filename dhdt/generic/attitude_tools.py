@@ -135,7 +135,7 @@ def euler_rot_z(φ):
 
 # backward attitude methods
 def rot_2_euler(R):
-    """ convert to euler angels, rotating order is via Z->Y->X
+    """ convert to euler angels, rotating order is via Z->Y->X, see also [Ki13]_
 
     Parameters
     ----------
@@ -156,7 +156,7 @@ def rot_2_euler(R):
 
     References
     ----------
-    .. [1] Kim, "Rigid body dynamics for beginners", 2013.
+    .. [Ki13] Kim, "Rigid body dynamics for beginners", 2013.
     """
     φ = np.rad2deg(np.arctan2(R[1,2], R[2,2]))        # p.60 in [1]
     θ = np.rad2deg(np.arcsin(-R[0,2]))              # eq.5.13 in [1]
@@ -164,7 +164,7 @@ def rot_2_euler(R):
     return φ, θ, ψ
 
 def quat_2_euler(q1, q2, q3, q4):
-    """ convert to euler angels, rotating order is via Z->Y->X
+    """ convert to euler angels, rotating order is via Z->Y->X, see also [Ki13]_
 
     Parameters
     ----------
@@ -185,7 +185,7 @@ def quat_2_euler(q1, q2, q3, q4):
 
     References
     ----------
-    .. [1] Kim, "Rigid body dynamics for beginners", 2013.
+    .. [Ki13] Kim, "Rigid body dynamics for beginners", 2013.
     """
     φ = np.rad2deg(np.arctan2(2*(q2*q3 + q1*q4),
                                 1-2*(q1**2+q2**2)))     # eq. 5.12 in [1]
@@ -195,7 +195,8 @@ def quat_2_euler(q1, q2, q3, q4):
     return φ, θ, ψ
 
 def get_rotation_angle(R):
-    """ get the amount of rotation, along a fixed axis (i.e.: vector)
+    """ get the amount of rotation, along a fixed axis (i.e.: vector), see also
+    [Ku02]_.
 
     Parameters
     ----------
@@ -213,14 +214,14 @@ def get_rotation_angle(R):
 
     References
     ----------
-    .. [1] Kuipers, "Quaternions and rotation sequences", 2002.
+    .. [Ku02] Kuipers, "Quaternions and rotation sequences", 2002.
     """
     φ = np.rad2deg(np.arccos(np.divide(np.trace(R) - 1,
                                          2))) # eq. 3.4 in [1], pp.57
     return φ
 
 def get_rotation_vector(R):
-    """ get the vector where rotation is applied around
+    """ get the vector where rotation is applied around, see also [Ku02]_.
 
     Parameters
     ----------
@@ -238,7 +239,7 @@ def get_rotation_vector(R):
 
     References
     ----------
-    .. [1] Kuipers, "Quaternions and rotation sequences", 2002.
+    .. [Ku02] Kuipers, "Quaternions and rotation sequences", 2002.
     """
     v = np.array([R[1,2] - R[2,1],
                   R[2,0] - R[0,1],
@@ -246,7 +247,8 @@ def get_rotation_vector(R):
     return v
 
 def rodrigues_est(XYZ_1, XYZ_2):
-    """ estimate the rotation between two coupled coordinate lists
+    """ estimate the rotation between two coupled coordinate lists, based on
+    [Ro40]_.
 
     Parameters
     ----------
@@ -266,11 +268,11 @@ def rodrigues_est(XYZ_1, XYZ_2):
 
     References
     ----------
-    .. [1] Rodrigues, "Des lois géométriques qui régissent les déplacements d'un
-       système solide dans l'espace, et de la variation des coordonnées
-       provenant de ces déplacements considérés indépendants des causes qui
-       peuvent les produire", Journal de mathématiques pures et appliquées.
-       vol.5 pp.380–440, 1840.
+    .. [Ro40] Rodrigues, "Des lois géométriques qui régissent les déplacements
+              d'un système solide dans l'espace, et de la variation des
+              coordonnées provenant de ces déplacements considérés indépendants
+              des causes qui peuvent les produire", Journal de mathématiques
+              pures et appliquées. vol.5 pp.380–440, 1840.
     """
     m = XYZ_1.shape[0]
     dXYZ = XYZ_1 - XYZ_2

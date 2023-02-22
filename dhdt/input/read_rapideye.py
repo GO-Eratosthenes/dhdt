@@ -77,7 +77,7 @@ def list_central_wavelength_re():
 
     Notes
     -----
-    The detector arrays of the satellite are configured as follows:
+    The detector arrays of the satellite are configured as follows[Kr13]_:
 
         .. code-block:: text
 

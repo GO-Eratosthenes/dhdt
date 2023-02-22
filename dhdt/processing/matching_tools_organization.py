@@ -450,7 +450,8 @@ def estimate_match_metric(QC, di=None, dj=None, metric='snr'):
     return score
 
 def estimate_precision(C, di, dj, method='gaussian'):
-    """ given a similarity surface, estimate its matching dispersion
+    """ given a similarity surface, estimate its matching dispersion.
+    See for a full describtion [Al21]_
 
     Parameters
     ----------
@@ -491,9 +492,9 @@ def estimate_precision(C, di, dj, method='gaussian'):
 
     References
     ----------
-    .. [1] Altena et al. "Correlation dispersion as a measure to better estimate
-       uncertainty of remotely sensed glacier displacements" The cryosphere,
-       vol.16(6) pp.2285-2300, 2021.
+    .. [Al21] Altena et al. "Correlation dispersion as a measure to better
+              estimate uncertainty of remotely sensed glacier displacements"
+              The cryosphere, vol.16(6) pp.2285-2300, 2021.
     """
     if method in ['hessian']:
         cov_ii,cov_jj,cov_ij = hessian_spread(C,

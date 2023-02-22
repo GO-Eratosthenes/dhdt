@@ -29,7 +29,7 @@ def selective_blur_func(C, t_size):
     return new_intensity
 
 def adaptive_elevation_smoothing(Z, t_size=7, g_max=7):
-    """ smooth elevation data, depending on the local entropy
+    """ smooth elevation data, depending on the local entropy, based on [Pa20]_.
 
     Parameters
     ----------
@@ -43,9 +43,9 @@ def adaptive_elevation_smoothing(Z, t_size=7, g_max=7):
 
     References
     ----------
-    .. [1] Raposo, "Variable DEM generalization using local entropy for terrain
-       representation through scale" International journal of cartography,
-       vol.6(1) pp.99-120, 2020.
+    .. [Pa20] Raposo, "Variable DEM generalization using local entropy for
+              terrain representation through scale" International journal of
+              cartography, vol.6(1) pp.99-120, 2020.
     """
     #radii=5*90 [m]
     # entropy
@@ -70,11 +70,11 @@ def adaptive_elevation_smoothing(Z, t_size=7, g_max=7):
     return Z_new
 
 def curvature_enhanced_shading(Z, az=-45, zn=+45, spac=10, c=0.2):
-    """ combine single illumination shading with slope shading
+    """ combine single illumination shading with slope shading, see [Ke08]_.
 
     Parameters
     ----------
-    Z : np.array, size=(m,n)
+    Z : numpy.ndarray, size=(m,n)
         array with elevation values
     az : float, unit=degrees
         azimuth or argument angle
@@ -85,13 +85,13 @@ def curvature_enhanced_shading(Z, az=-45, zn=+45, spac=10, c=0.2):
 
     Returns
     -------
-    Shd : np.array, size=(m,n), dtype=float
+    Shd : numpy.ndarray, size=(m,n), dtype=float
         shading with additional emphasis on steep terrain
 
     References
     ----------
-    .. [1] Kennelly, "Terrain maps displaying hill-shading with curvature"
-       Geomorphology, vol.102 pp.567-577, 2008.
+    .. [Ke08] Kennelly, "Terrain maps displaying hill-shading with curvature"
+              Geomorphology, vol.102 pp.567-577, 2008.
     """
     Sh_imh = make_shading(Z, az, zn, spac=spac)
 
@@ -105,11 +105,11 @@ def curvature_enhanced_shading(Z, az=-45, zn=+45, spac=10, c=0.2):
 
 # advanced shading functions
 def enhanced_vertical_shading(Z, az=-45, zn=+45, spac=10, c=.5):
-    """ combine single illumination shading with slope shading
+    """ combine single illumination shading with slope shading, see [Ke08]_.
 
     Parameters
     ----------
-    Z : np.array, size=(m,n)
+    Z : numpy.ndarray, size=(m,n)
         array with elevation values
     az : float, unit=degrees
         azimuth or argument angle
@@ -122,13 +122,13 @@ def enhanced_vertical_shading(Z, az=-45, zn=+45, spac=10, c=.5):
 
     Returns
     -------
-    Shd : np.array, size=(m,n), dtype=float
+    Shd : numpy.ndarray, size=(m,n), dtype=float
         shading with additional emphasis on steep terrain
 
     References
     ----------
-    .. [1] Kennelly, "Terrain maps displaying hill-shading with curvature"
-       Geomorphology, vol.102 pp.567-577, 2008.
+    .. [Ke08] Kennelly, "Terrain maps displaying hill-shading with curvature"
+              Geomorphology, vol.102 pp.567-577, 2008.
     """
     Sh_imh = make_shading(Z, az, zn, spac=spac)
     Sh_zen = make_shading(Z,+45, 0., spac=spac)
@@ -136,7 +136,8 @@ def enhanced_vertical_shading(Z, az=-45, zn=+45, spac=10, c=.5):
     return Shd
 
 def luminance_perspective(g, z, g_flat, k=1.3):
-    """enhance shadow transform, through classification knowledge
+    """enhance shadow transform, through classification knowledge, see [Br74]_
+    and [JBXX]_.
 
     Parameters
     ----------
@@ -153,10 +154,10 @@ def luminance_perspective(g, z, g_flat, k=1.3):
 
     References
     ----------
-    .. [1] Brassel. "A model for automatic hill-shading" The American
-       cartographer, vol.1(1) pp.15-27, 1974.
-    .. [2] Jenny & Patterson. "Aerial perspective for shaded relief" Cartography
-       and geographic information science, pp.1-8.
+    .. [Br74] Brassel. "A model for automatic hill-shading" The American
+              cartographer, vol.1(1) pp.15-27, 1974.
+    .. [JPXX] Jenny & Patterson. "Aerial perspective for shaded relief"
+              Cartography and geographic information science, pp.1-8.
     """
     z_star = mat_to_gray(z)
 
@@ -164,7 +165,7 @@ def luminance_perspective(g, z, g_flat, k=1.3):
     return g_prime
 
 def contrast_perspective(v, z, v_flat, z_thres, v_min=0, k=2): #todo
-    """enhance shadow transform, through classification knowledge
+    """enhance shadow transform, through classification knowledge, see [JPXX]_.
 
     Parameters
     ----------
@@ -182,8 +183,8 @@ def contrast_perspective(v, z, v_flat, z_thres, v_min=0, k=2): #todo
 
     References
     -----
-    .. [1] Jenny & Patterson. "Aerial perspective for shaded relief" Cartography
-       and geographic information science, pp.1-8.
+    .. [JPXX] Jenny & Patterson. "Aerial perspective for shaded relief"
+              Cartography and geographic information science, pp.1-8.
     """
     z_star = mat_to_gray(z)
 

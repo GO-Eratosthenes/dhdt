@@ -108,11 +108,12 @@ def phase_secant(data, W=np.array([]), x_0=np.zeros((2))): # wip
 
     References
     ----------
-    .. [1] Broyden, C. "A class of methods for solving nonlinear simultaneous
-       equations" Mathematics and computation. vol.19(92) pp.577--593, 1965.
+    .. [Br65] Broyden, "A class of methods for solving nonlinear simultaneous
+              equations" Mathematics and computation. vol.19(92) pp.577--593,
+              1965.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> from ..generic.test_tools import create_sample_image_pair
 
@@ -184,13 +185,14 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
     """get phase plane of cross-spectrum through two point step size iteration
 
     find slope of the phase plane through
-    two point step size for phase correlation minimization
+    two point step size for phase correlation minimization [BB88]_
+    which is implemented by [Le07]_
 
     Parameters
     ----------
-    Q : numpy.array, size=(_,_), dtype=complex
+    Q : numpy.ndarray, size=(_,_), dtype=complex
         cross spectrum
-    m0 : numpy.array, size=(2,1)
+    m0 : numpy.ndarray, size=(2,1)
         initial displacement estimate
     p : float, default=1e4
         closing error threshold
@@ -202,7 +204,7 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
         mask convergence factor
     Returns
     -------
-    m : numpy.array, size=(2,1)
+    m : numpy.ndarray, size=(2,1)
         sub-pixel displacement
     snr: float
         signal-to-noise ratio
@@ -213,12 +215,12 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
 
     References
     ----------
-    .. [1] Barzilai & Borwein. "Two-point step size gradient methods", IMA
-       journal of numerical analysis. vol.8 pp.141--148, 1988.
-    .. [2] Leprince, et al. "Automatic and precise orthorectification,
-       coregistration, and subpixel correlation of satellite images,
-       application to ground deformation measurements", IEEE Transactions on
-       geoscience and remote sensing vol.45(6) pp.1529-1558, 2007.
+    .. [BB88] Barzilai & Borwein. "Two-point step size gradient methods", IMA
+              journal of numerical analysis. vol.8 pp.141--148, 1988.
+    .. [Le07] Leprince, et.al. "Automatic and precise orthorectification,
+              coregistration, and subpixel correlation of satellite images,
+              application to ground deformation measurements", IEEE Transactions
+              on geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.
     """
     m = np.squeeze(m)
     s = 1.#1.25#.5#1.#.5#2.
@@ -312,7 +314,7 @@ def phase_svd(Q, W, rad=0.1):
     """get phase plane of cross-spectrum through single value decomposition
 
     find slope of the phase plane through
-    single value decomposition
+    single value decomposition, see [Ho03]_
 
     Parameters
     ----------
@@ -334,9 +336,9 @@ def phase_svd(Q, W, rad=0.1):
 
     References
     ----------
-    .. [1] Hoge, W.S. "A subspace identification extension to the phase
-       correlation method", IEEE transactions on medical imaging, vol. 22(2)
-       pp.277-280, 2003.
+    .. [Ho03] Hoge, W.S. "A subspace identification extension to the phase
+              correlation method", IEEE transactions on medical imaging,
+              vol.22(2) pp.277-280, 2003.
 
     Example
     -------
@@ -386,7 +388,7 @@ def phase_difference_1d(Q, W=np.array([]), axis=0):
     """get displacement from phase plane along one axis through differencing
 
     find slope of the phase plane through
-    local difference of the pahse angles
+    local difference of the phase angles, see [Ka89]_
 
     Parameters
     ----------
@@ -406,9 +408,9 @@ def phase_difference_1d(Q, W=np.array([]), axis=0):
 
     References
     ----------
-    .. [1] Kay, S. "A fast and accurate frequency estimator", IEEE
-       transactions on acoustics, speech and signal processing, vol.37(12)
-       pp.1987-1990, 1989.
+    .. [Ka89] Kay, S. "A fast and accurate frequency estimator", IEEE
+              transactions on acoustics, speech and signal processing,
+              vol.37(12) pp.1987-1990, 1989.
     """
     assert type(Q)==np.ndarray, ("please provide an array")
     assert type(W)==np.ndarray, ("please provide an array")

@@ -74,7 +74,7 @@ def list_central_wavelength_oli():
     Notes
     -----
     The time lag between panchromatic and red is 0.52 seconds, while the time
-    difference between panchromatic and the green band is 0.65 sec., see [1].
+    difference between panchromatic and the green band is 0.65 sec.,see [dM16]_.
     The detector samping time is 4.2 msec, while the total staring time is 1.2
     seconds. The detector arrays (or senso chip assemblies: SCA) of landsat are
     configured as follows:
@@ -100,9 +100,9 @@ def list_central_wavelength_oli():
 
     References
     ----------
-    .. [1] de Michele, et al. "Volcanic plume elevation model and its velocity
-       derived from Landsat 8" Remote sensing of environment, vol.176
-       pp.219-224, 2016.
+    .. [dM16] de Michele, et al. "Volcanic plume elevation model and its
+              velocity derived from Landsat 8" Remote sensing of environment,
+              vol.176 pp.219-224, 2016.
 
     Example
     -------

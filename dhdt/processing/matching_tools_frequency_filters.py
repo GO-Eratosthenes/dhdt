@@ -9,7 +9,8 @@ from ..generic.unit_conversion import deg2compass
 
 # frequency preparation
 def perdecomp(img):
-    """calculate the periodic and smooth components of an image
+    """calculate the periodic and smooth components of an image, based upon
+    [Mo11]_.
        
     Parameters
     ----------    
@@ -25,9 +26,8 @@ def perdecomp(img):
 
     References
     ----------    
-    .. [1] Moisan, L. "Periodic plus smooth image decomposition", Journal of 
-       mathematical imaging and vision vol. 39.2 pp. 161-179, 2011.    
-
+    .. [Mo11] Moisan, L. "Periodic plus smooth image decomposition", Journal of
+              mathematical imaging and vision vol. 39.2 pp. 161-179, 2011.
 
     Example
     -------
@@ -413,7 +413,7 @@ def gradient_fourier(I):
 
 # frequency matching filters
 def raised_cosine(I, beta=0.35):
-    """ raised cosine filter
+    """ raised cosine filter, based on [St01]_ and used by [Le07]_.
     
     Parameters
     ----------    
@@ -433,16 +433,16 @@ def raised_cosine(I, beta=0.35):
 
     References
     ----------    
-    .. [1] Stone et al. "A fast direct Fourier-based algorithm for subpixel 
-       registration of images." IEEE Transactions on geoscience and remote 
-       sensing. vol. 39(10) pp. 2235-2243, 2001.
-    .. [2] Leprince, et.al. "Automatic and precise orthorectification, 
-       coregistration, and subpixel correlation of satellite images, 
-       application to ground deformation measurements", IEEE Transactions on 
-       geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.
+    .. [St01] Stone et al. "A fast direct Fourier-based algorithm for subpixel
+              registration of images." IEEE Transactions on geoscience and
+              remote sensing. vol. 39(10) pp. 2235-2243, 2001.
+    .. [Le07] Leprince, et.al. "Automatic and precise orthorectification,
+              coregistration, and subpixel correlation of satellite images,
+              application to ground deformation measurements", IEEE Transactions
+              on geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> from ..generic.test_tools import create_sample_image_pair
     
@@ -596,10 +596,10 @@ def low_pass_rectancle(I, r=0.50):
     
     References
     ----------
-    .. [1] Takita et al. "High-accuracy subpixel image registration based on 
-       phase-only correlation" IEICE transactions on fundamentals of 
-       electronics, communications and computer sciences, vol.86(8) 
-       pp.1925-1934, 2003.
+    .. [Ta03] Takita et al. "High-accuracy subpixel image registration based on
+              phase-only correlation" IEICE transactions on fundamentals of
+              electronics, communications and computer sciences, vol.86(8)
+              pp.1925-1934, 2003.
     """
     assert type(I)==np.ndarray, ("please provide an array")
     Fx,Fy = make_fourier_grid(I, indexing='xy', system='normalized')
@@ -609,7 +609,8 @@ def low_pass_rectancle(I, r=0.50):
     return W 
 
 def low_pass_pyramid(I, r=0.50):
-    """ create low-pass two-dimensional filter with pyramid shape
+    """ create low-pass two-dimensional filter with pyramid shape, see also
+    [Ta03]_.
     
     Parameters
     ----------    
@@ -629,10 +630,10 @@ def low_pass_pyramid(I, r=0.50):
     
     References
     ----------
-    .. [1] Takita et al. "High-accuracy subpixel image registration based on 
-       phase-only correlation" IEICE transactions on fundamentals of 
-       electronics, communications and computer sciences, vol.86(8) 
-       pp.1925-1934, 2003.    
+    .. [Ta03] Takita et al. "High-accuracy subpixel image registration based on
+              phase-only correlation" IEICE transactions on fundamentals of
+              electronics, communications and computer sciences, vol.86(8)
+              pp.1925-1934, 2003.
     """
     assert type(I)==np.ndarray, ("please provide an array")
     R = low_pass_rectancle(I, r)
@@ -642,18 +643,19 @@ def low_pass_pyramid(I, r=0.50):
     return W
 
 def low_pass_bell(I, r=0.50):
-    """ create low-pass two-dimensional filter with a bell shape
+    """ create low-pass two-dimensional filter with a bell shape, see also
+    [Ta03]_.
     
     Parameters
     ----------    
-    I : numpy.array, size=(m,n)
+    I : numpy.ndarray, size=(m,n)
         array with intensities
     r : float, default=0.5
         radius of the mother rectangle, r=.5 is same as its width
     
     Returns
     -------
-    W : numpy.array, size=(m,n), dtype=bool
+    W : numpy.ndarray, size=(m,n), dtype=bool
         weighting mask
     
     See Also
@@ -662,10 +664,10 @@ def low_pass_bell(I, r=0.50):
     
     References
     ----------
-    .. [1] Takita et al. "High-accuracy subpixel image registration based on 
-       phase-only correlation" IEICE transactions on fundamentals of 
-       electronics, communications and computer sciences, vol.86(8) 
-       pp.1925-1934, 2003.
+    .. [Ta03] Takita et al. "High-accuracy subpixel image registration based on
+              phase-only correlation" IEICE transactions on fundamentals of
+              electronics, communications and computer sciences, vol.86(8)
+              pp.1925-1934, 2003.
     """
     assert type(I)==np.ndarray, ("please provide an array")
     R1 = low_pass_rectancle(I, r)
@@ -807,9 +809,9 @@ def cross_shading_filter(Q, az_1, az_2): #todo
 
     References
     ----------
-    .. [1] Wan, "Phase correlation-based illumination-insensitive image matching
-           for terrain-related applications" PhD thesis at Imperical College
-           London, 2015.
+    .. [Wa15] Wan, "Phase correlation-based illumination-insensitive image
+              matching for terrain-related applications" PhD dissertation at
+              Imperical College London, 2015.
     """
     F_1, F_2 = make_fourier_grid(Q, indexing='xy', system='radians')
     θ = np.angle(F_2 + 1j * F_1)
@@ -840,7 +842,7 @@ def cross_shading_filter(Q, az_1, az_2): #todo
 
 # cross-spectral and frequency signal metrics for filtering
 def thresh_masking(S, m=1e-4, s=10):
-    """ mask significant intensities in spectrum
+    """ mask significant intensities in spectrum, following [St01]_ and [Le07]_.
     
     Parameters
     ----------    
@@ -862,13 +864,13 @@ def thresh_masking(S, m=1e-4, s=10):
     
     References
     ---------- 
-    .. [1] Stone et al. "A fast direct Fourier-based algorithm for subpixel 
-        registration of images." IEEE Transactions on geoscience and remote 
-        sensing vol. 39(10) pp. 2235-2243, 2001.
-    .. [2] Leprince, et.al. "Automatic and precise orthorectification, 
-        coregistration, and subpixel correlation of satellite images, 
-        application to ground deformation measurements", IEEE Transactions on 
-        geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.    
+    .. [St01] Stone et al. "A fast direct Fourier-based algorithm for subpixel
+              registration of images." IEEE Transactions on geoscience and
+              remote sensing vol. 39(10) pp. 2235-2243, 2001.
+    .. [Le07] Leprince, et.al. "Automatic and precise orthorectification,
+              coregistration, and subpixel correlation of satellite images,
+              application to ground deformation measurements", IEEE Transactions
+              on geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.
     """    
     assert type(S)==np.ndarray, ("please provide an array")
     S_bar = np.abs(S)
@@ -898,7 +900,7 @@ def coherence_masking(S, m=.7, s=0):
     return M
 
 def adaptive_masking(S, m=.9):
-    """ mark significant intensities in spectrum
+    """ mark significant intensities in spectrum, following [Le07]_.
     
     Parameters
     ----------    
@@ -918,10 +920,10 @@ def adaptive_masking(S, m=.9):
     
     References
     ---------- 
-    .. [1] Leprince, et.al. "Automatic and precise orthorectification, 
-        coregistration, and subpixel correlation of satellite images, 
-        application to ground deformation measurements", IEEE Transactions on 
-        geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.    
+    .. [Le07] Leprince, et.al. "Automatic and precise orthorectification,
+              coregistration, and subpixel correlation of satellite images,
+              application to ground deformation measurements", IEEE Transactions
+              on geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.
     """ 
     assert type(S)==np.ndarray, ("please provide an array")
     np.seterr(divide = 'ignore') 
@@ -936,7 +938,7 @@ def adaptive_masking(S, m=.9):
     return M
 
 def gaussian_mask(S):
-    """ mask significant intensities in spectrum
+    """ mask significant intensities in spectrum, following [Ec08]_.
     
     Parameters
     ----------    
@@ -954,10 +956,10 @@ def gaussian_mask(S):
 
     References
     ---------- 
-    .. [1] Eckstein et al. "Phase correlation processing for DPIV 
-       measurements", Experiments in fluids, vol.45 pp.485-500, 2008.
+    .. [Ec08] Eckstein et al. "Phase correlation processing for DPIV
+              measurements", Experiments in fluids, vol.45 pp.485-500, 2008.
 
-    Example
+    Examples
     --------
     >>> import numpy as np
     >>> from dhdt.generic.test_tools import create_sample_image_pair

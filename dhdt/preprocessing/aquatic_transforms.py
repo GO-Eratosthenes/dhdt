@@ -287,7 +287,7 @@ def modified_chlorophyll_absorption_index(Green, Red, Rededge):
     return MCARI
 
 def triangular_vegetation_index(Green, Red, Rededge):
-    """ Based upon [Da00]_
+    """ Based upon [BL00]_
 
     Parameters
     ----------

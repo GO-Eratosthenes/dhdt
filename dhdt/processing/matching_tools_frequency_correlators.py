@@ -106,13 +106,13 @@ def cosi_corr(I1, I2, beta1=.35, beta2=.50, m=1e-4):
     return Qn, WS, m0
 
 def cosine_corr(I1, I2):
-    """ match two imagery through discrete cosine transformation
+    """ match two imagery through discrete cosine transformation, see [Li04].
 
     Parameters
     ----------
     I1 : numpy.array, size=(m,n), ndim={2,3}, dtype=float
         array with intensities, if multiple bands are given the cross-
-        correlation spectra are stacked, see [2].
+        correlation spectra are stacked, see [AL22].
     I2 : numpy.array, size=(m,n), ndim={2,3}, dtype=float
         array with intensities
 
@@ -128,11 +128,11 @@ def cosine_corr(I1, I2):
 
     References
     ----------
-    .. [1] Li, et al. "DCT-based phase correlation motion estimation",
-       IEEE international conference on image processing, vol. 1, 2004.
-    .. [2] Altena & Leinss, "Improved surface displacement estimation through
-       stacking cross-correlation spectra from multi-channel imagery", Science
-       of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [Li04] Li, et al. "DCT-based phase correlation motion estimation",
+              IEEE international conference on image processing, vol. 1, 2004.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
+              stacking cross-correlation spectra from multi-channel imagery",
+              Science of Remote Sensing, vol.6 pp.100070, 2022.
     """
     assert type(I1)==np.ndarray, ('please provide an array')
     assert type(I2)==np.ndarray, ('please provide an array')
@@ -239,7 +239,8 @@ def masked_cosine_corr(I1, I2, M1, M2): #todo
     return Q
 
 def phase_only_corr(I1, I2):
-    r""" match two imagery through phase only correlation
+    r""" match two imagery through phase only correlation, based upon [HG84]_
+    and [KJ91]_.
 
     Parameters
     ----------
@@ -285,18 +286,19 @@ def phase_only_corr(I1, I2):
            ---┤ F  ├---------------┘
               └----┘
 
-    If multiple bands are given, cross-spectral stacking is applied, see [3].
+    If multiple bands are given, cross-spectral stacking is applied,see [AL22]_.
 
     References
     ----------
-    .. [1] Horner & Gianino, "Phase-only matched filtering", Applied optics,
-       vol. 23(6) pp.812--816, 1984.
-    .. [2] Kumar & Juday, "Design of phase-only, binary phase-only, and complex
-       ternary matched filters with increased signal-to-noise ratios for
-       colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
-    .. [3] Altena & Leinss, "Improved surface displacement estimation through
-       stacking cross-correlation spectra from multi-channel imagery", Science
-       of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [HG84] Horner & Gianino, "Phase-only matched filtering", Applied optics,
+              vol. 23(6) pp.812--816, 1984.
+    .. [KJ91] Kumar & Juday, "Design of phase-only, binary phase-only, and
+              complex ternary matched filters with increased signal-to-noise
+              ratios for colored noise", Optics letters, vol.16(13)
+              pp.1025--1027, 1991.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
+              stacking cross-correlation spectra from multi-channel imagery",
+              Science of Remote Sensing, vol.6 pp.100070, 2022.
 
     Example
     -------

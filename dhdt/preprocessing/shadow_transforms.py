@@ -214,7 +214,7 @@ def shannon_entropy(X,band_width=100):
 
 # color-based shadow functions
 def shadow_index_zhou(Blue, Green, Red):
-    """transform red, green, blue arrays to shadow index, based upon [Zh21].
+    """transform red, green, blue arrays to shadow index, based upon [Zh21]_.
 
     Parameters
     ----------
@@ -237,7 +237,7 @@ def shadow_index_zhou(Blue, Green, Red):
     References
     ----------
     .. [Zh21] Zhou et al. "Shadow detection and compensation from remote sensing
-       images under complex urban conditions", 2021.
+              images under complex urban conditions", 2021.
     """
     are_three_arrays_equal(Blue,Green,Red)
 

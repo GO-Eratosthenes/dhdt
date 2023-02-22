@@ -78,10 +78,10 @@ def phase_fitness(Q, di, dj, norm=2):
 
     References
     ----------
-    .. [1] Leprince, et.al. "Automatic and precise orthorectification,
-       coregistration, and subpixel correlation of satellite images,
-       application to ground deformation measurements", IEEE Transactions on
-       geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.
+    .. [Le07] Leprince, et.al. "Automatic and precise orthorectification,
+              coregistration, and subpixel correlation of satellite images,
+              application to ground deformation measurements", IEEE Transactions
+              on geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.
     """
     assert type(Q) == np.ndarray, ('please provide an array')
     # admin
@@ -95,7 +95,8 @@ def phase_fitness(Q, di, dj, norm=2):
     return fitness
 
 def phase_support(Q, di, dj, thres=1.4826):
-    """ estimate the support of the fit for the phase differences
+    """ estimate the support of the fit for the phase differences, following the
+    implementation by [AL22]_.
 
     Parameters
     ----------
@@ -117,9 +118,9 @@ def phase_support(Q, di, dj, thres=1.4826):
 
     References
     ----------
-    .. [1] Altena & Leinss, "Improved surface displacement estimation through
-       stacking cross-correlation spectra from multi-channel imagery",
-       Science of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
+              stacking cross-correlation spectra from multi-channel imagery",
+              Science of Remote Sensing, vol.6 pp.100070, 2022.
     """
     assert type(Q) == np.ndarray, ('please provide an array')
 
@@ -136,7 +137,7 @@ def phase_support(Q, di, dj, thres=1.4826):
 
 def signal_to_noise(Q, C, norm=2):
     """ calculate the signal to noise from a theoretical and an experimental
-    cross-spectrum
+    cross-spectrum, see [Le07]_.
 
     Parameters
     ----------
@@ -158,10 +159,10 @@ def signal_to_noise(Q, C, norm=2):
 
     References
     ----------
-    .. [1] Leprince, et.al. "Automatic and precise orthorectification,
-       coregistration, and subpixel correlation of satellite images,
-       application to ground deformation measurements", IEEE Transactions on
-       geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.
+    .. [Le07] Leprince, et.al. "Automatic and precise orthorectification,
+              coregistration, and subpixel correlation of satellite images,
+              application to ground deformation measurements", IEEE Transactions
+              on geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.
     """
     assert type(Q) == np.ndarray, ('please provide an array')
     assert type(C) == np.ndarray, ('please provide an array')

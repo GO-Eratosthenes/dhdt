@@ -129,9 +129,9 @@ def get_adjacency_matrix_from_network(GridIdxs, number_of_nodes):
 
     References
     ----------
-    .. [1] Altena & Kääb. "Elevation change and improved velocity retrieval
-       using orthorectified optical satellite data from different orbits"
-       Remote sensing vol.9(3) pp.300 2017.
+    .. [AK17] Altena & Kääb. "Elevation change and improved velocity retrieval
+              using orthorectified optical satellite data from different orbits"
+              Remote sensing vol.9(3) pp.300, 2017.
     """
     A = np.zeros([GridIdxs.shape[1], number_of_nodes])
     A[np.arange(GridIdxs.shape[1]), GridIdxs[0, :]] = +1

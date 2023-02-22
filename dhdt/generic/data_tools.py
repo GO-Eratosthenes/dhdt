@@ -162,7 +162,8 @@ def estimate_sinus(φ, ρ, bias=True):
     return phase_hat, amp_hat, bias
 
 def four_pl_curve(X, a, b, c, d):
-    """ four parameter logistic curve, also known as, 4PL,  Hill model, see [1].
+    """ four parameter logistic curve, also known as, 4PL,  Hill model, see
+    [Hi10]_.
 
     Parameters
     ----------
@@ -198,10 +199,10 @@ def four_pl_curve(X, a, b, c, d):
 
     References
     ----------
-    .. [1] Hill, "A new mathematical treatment of changes of ionic concentration
-       in muscle and nerve under the action of electric currents, with a theory
-       as to their mode of excitation", The Journal of physiology, vol.40(3)
-       pp.190, 1910.
+    .. [Hi10] Hill, "A new mathematical treatment of changes of ionic
+              concentration in muscle and nerve under the action of electric
+              currents, with a theory as to their mode of excitation", The
+              journal of physiology, vol.40(3) pp.190, 1910.
     """
     Y = d + np.divide(a-d, 1.0+np.power(X/c,b))
     return Y
@@ -243,7 +244,7 @@ def gompertz_curve(X, a, b):
 def s_curve(X, a=10, b=.5):
     """ transform intensity in non-linear way, also known as, sigmoid function
 
-    enhances high and low intensities
+    enhances high and low intensities, based upon [FS10]_.
 
     Parameters
     ----------
@@ -265,9 +266,9 @@ def s_curve(X, a=10, b=.5):
 
     References
     ----------
-    .. [1] Fredembach & Süsstrunk. "Automatic and accurate shadow detection from
-       (potentially) a single image using near-infrared information", EPFL Tech
-       Report 165527, 2010.
+    .. [FS10] Fredembach & Süsstrunk. "Automatic and accurate shadow detection
+              from (potentially) a single image using near-infrared
+              information", EPFL Tech Report 165527, 2010.
 
     Examples
     --------
@@ -288,7 +289,8 @@ def logit(Y):
     return np.log10(np.divide(Y, 1-Y))
 
 def logit_weighting(Y, sigma_Y=1., sigma_0=1.):
-    """ calculate transformed weighting values for logit function
+    """ calculate transformed weighting values for logit function, see also
+    [As11]_.
 
     Parameters
     ----------
@@ -307,15 +309,14 @@ def logit_weighting(Y, sigma_Y=1., sigma_0=1.):
 
     See Also
     --------
-        See Also
-    --------
     ln_weighting, reciprocal_weighting, exponential_weighting, squared_weighting
 
     References
     ----------
-    .. [1] Asuero, et al. "Fitting straight lines with replicated observations
-       by linear regression. IV. Transforming data." Critical reviews in
-       analytical chemistry, vol.41(1) pp. 36-69, 2011.
+    .. [As11] Asuero, et al. "Fitting straight lines with replicated
+              observations by linear regression. IV. Transforming data."
+              Critical reviews in analytical chemistry, vol.41(1) pp. 36-69,
+              2011.
     """
 
     W = np.multiply(Y**2,(1-Y)**2) * np.divide(sigma_Y, sigma_0)
@@ -323,7 +324,8 @@ def logit_weighting(Y, sigma_Y=1., sigma_0=1.):
     return W
 
 def ln_weighting(Y, sigma_Y=1., sigma_0=1.):
-    """ calculate transformed weighting values for natural logarithm function
+    """ calculate transformed weighting values for natural logarithm function,
+    see also [As11]_.
 
     Parameters
     ----------
@@ -347,15 +349,17 @@ def ln_weighting(Y, sigma_Y=1., sigma_0=1.):
 
     References
     ----------
-    .. [1] Asuero, et al. "Fitting straight lines with replicated observations
-       by linear regression. IV. Transforming data." Critical reviews in
-       analytical chemistry, vol.41(1) pp. 36-69, 2011.
+    .. [As11] Asuero, et al. "Fitting straight lines with replicated
+              observations by linear regression. IV. Transforming data."
+              Critical reviews in analytical chemistry, vol.41(1) pp. 36-69,
+              2011.
     """
     W = Y**2 * np.divide(sigma_Y, sigma_0)  # from Table 9 in [1]
     return W
 
 def reciprocal_weighting(Y, sigma_Y=1., sigma_0=1.):
-    """ calculate transformed weighting values for reciprocal function
+    """ calculate transformed weighting values for reciprocal function, see also
+    [As11]_.
 
     Parameters
     ----------
@@ -378,15 +382,17 @@ def reciprocal_weighting(Y, sigma_Y=1., sigma_0=1.):
 
     References
     ----------
-    .. [1] Asuero, et al. "Fitting straight lines with replicated observations
-       by linear regression. IV. Transforming data." Critical reviews in
-       analytical chemistry, vol.41(1) pp. 36-69, 2011.
+    .. [As11] Asuero, et al. "Fitting straight lines with replicated
+              observations by linear regression. IV. Transforming data."
+              Critical reviews in analytical chemistry, vol.41(1) pp. 36-69,
+              2011.
     """
-    W = Y**4 * np.divide(sigma_Y, sigma_0) # from Table 9 in [1]
+    W = Y**4 * np.divide(sigma_Y, sigma_0) # from Table 9 in [As11]
     return W
 
 def exponential_weighting(Y, sigma_Y=1., sigma_0=1.):
-    """ calculate transformed weighting values for exponential function
+    """ calculate transformed weighting values for exponential function, see
+    also [As11]_.
 
     Parameters
     ----------
@@ -409,16 +415,18 @@ def exponential_weighting(Y, sigma_Y=1., sigma_0=1.):
 
     References
     ----------
-    .. [1] Asuero, et al. "Fitting straight lines with replicated observations
-       by linear regression. IV. Transforming data." Critical reviews in
-       analytical chemistry, vol.41(1) pp. 36-69, 2011.
+    .. [As11] Asuero, et al. "Fitting straight lines with replicated
+              observations by linear regression. IV. Transforming data."
+              Critical reviews in analytical chemistry, vol.41(1) pp. 36-69,
+              2011.
     """
     W = np.divide(sigma_0, np.multiply(np.exp(2*Y) ,sigma_Y))
-                                                    # from Table 9 in [1]
+                                                    # from Table 9 in [As11]
     return W
 
 def squared_weighting(Y, sigma_Y=1., sigma_0=1.):
-    """ calculate transformed weighting values for squared function
+    """ calculate transformed weighting values for squared function, see also
+    [As11]_.
 
     Parameters
     ----------
@@ -468,12 +476,13 @@ def squared_weighting(Y, sigma_Y=1., sigma_0=1.):
 
     References
     ----------
-    .. [1] Asuero, et al. "Fitting straight lines with replicated observations
-       by linear regression. IV. Transforming data." Critical reviews in
-       analytical chemistry, vol.41(1) pp. 36-69, 2011.
+    .. [As11] Asuero, et al. "Fitting straight lines with replicated
+              observations by linear regression. IV. Transforming data."
+              Critical reviews in analytical chemistry, vol.41(1) pp. 36-69,
+              2011.
     """
     W = np.divide(sigma_0**2, np.multiply(4*np.power(Y,2) ,sigma_Y))
-                                                    # from Table 9 in [1]
+                                                    # from Table 9 in [As11]
     return W
 
 def hough_transf(x, y, w=None,

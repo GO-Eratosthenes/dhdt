@@ -84,14 +84,14 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
         Metric to be used to describe the matching score.
     precision_estimate : boolean, default=False
         estimate the precision of the match, by modelling the correlation
-        function through a Gaussian, see also [1] for more details.
+        function through a Gaussian, see also [Al22]_ for more details.
     processing : {'simple' (default), 'refine', 'stacking'}
         Specifies which procssing strategy to apply to the imagery:
 
           * 'simple' : direct single pair processing
           * 'refine' : move template to first estimate, and refine matching
           * 'stacking' : matching several bands and combine the result, see
-                         also [2] for more details
+                         also [AL22]_ for more details
     boi : numpy.array
         list of bands of interest
 
@@ -113,12 +113,12 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
 
     References
     ----------
-    .. [1] Altena et al. "Correlation dispersion as a measure to better estimate
-       uncertainty of remotely sensed glacier displacements", The Crysophere,
-       vol.16(6) pp.2285–2300, 2022.
-    .. [2] Altena & Leinss, "Improved surface displacement estimation through
-       stacking cross-correlation spectra from multi-channel imagery", Science
-       of remote sensing, vol.6 pp.100070, 2022.
+    .. [Al22] Altena et al. "Correlation dispersion as a measure to better
+              estimate uncertainty of remotely sensed glacier displacements",
+              The Crysophere, vol.16(6) pp.2285–2300, 2022.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
+              stacking cross-correlation spectra from multi-channel imagery",
+              Science of remote sensing, vol.6 pp.100070, 2022.
     """
     # combating import loops
     from .matching_tools_organization import \
@@ -308,7 +308,7 @@ def couple_pair(file_1, file_2, bbox=None, rgi_id=None,
     processing : {"stacking", "shadow", None}
         matching can be done on a single image pair, or by matching several
         bands and combine the result (stacking)
-            * stacking - using multiple bands in the matching, see [1]
+            * stacking - using multiple bands in the matching, see [AL22]_
             * shadow - using the shadow transfrom in the given folder
             else - using the image files provided in 'file1' & 'file2'
     subpix : {'tpss' (default), 'svd', 'radon', 'hough', 'ransac', 'wpca',\
@@ -335,9 +335,9 @@ def couple_pair(file_1, file_2, bbox=None, rgi_id=None,
 
     References
     ----------
-    .. [1] Altena & Leinss, "Improved surface displacement estimation through
-       stacking cross-correlation spectra from multi-channel imagery", Science
-       of remote sensing, vol.6 pp.100070, 2022.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
+              stacking cross-correlation spectra from multi-channel imagery",
+              Science of remote sensing, vol.6 pp.100070, 2022.
     """
     # admin
     assert os.path.exists(file_1), ('file does not seem to exist')

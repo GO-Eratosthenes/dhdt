@@ -98,7 +98,7 @@ def create_differential_data(I1,I2):
 
 def simple_optical_flow(I1, I2, window_size, sampleI, sampleJ,
                         tau=1e-2, sigma=0.):
-    r""" displacement estimation through optical flow, based on [LK81].
+    r""" displacement estimation through optical flow, based on [LK81]_.
 
     Parameters
     ----------
@@ -157,8 +157,8 @@ def simple_optical_flow(I1, I2, window_size, sampleI, sampleJ,
     References
     ----------
     .. [LK81] Lucas & Kanade, "An iterative image registration technique with an
-       application to stereo vision", Proceedings of 7th international joint
-       conference on artificial intelligence, 1981.
+              application to stereo vision", Proceedings of 7th international
+              joint conference on artificial intelligence, 1981.
     """
     are_two_arrays_equal(I1, I2)
 
@@ -242,7 +242,8 @@ def simple_optical_flow(I1, I2, window_size, sampleI, sampleJ,
 
 def affine_optical_flow(I1, I2, model='affine', iteration=10,
                         preprocessing=None, episolar=np.array([])):
-    """ displacement estimation through optical flow with an affine model [1]
+    """ displacement estimation through optical flow with an affine model,
+    based on [LK81]_
 
     Parameters
     ----------
@@ -255,14 +256,14 @@ def affine_optical_flow(I1, I2, model='affine', iteration=10,
             * None : use the raw imagery
             * 'hist_eq' : apply histogram equalization, this is a common step
             to comply with the brightness consistency assumption in remote
-            sensing imagery [2]
+            sensing imagery [Br16]_
     model : string
         several models can be used:
             * 'simple' : translation only
             * 'affine' : affine transformation and translation
             * 'similarity' : scaling, rotation and translation
     episolar : numpy.ndarray, size=(1,2)
-        vector, for additional constrains [3].
+        vector, for additional constrains [M015]_.
     iteration : integer, {x ∈ ℕ | x ≥ 0}
         number of iterations used
 
@@ -293,15 +294,16 @@ def affine_optical_flow(I1, I2, model='affine', iteration=10,
 
     References
     ----------
-    .. [1] Lucas & Kanade, "An iterative image registration technique with an
-       application to stereo vision", Proceedings of 7th international joint
-       conference on artificial intelligence, 1981.
-    .. [2] Brigot et al. "Adaptation and evaluation of an optical flow method
-       applied to coregisgtration of forest remote sensing images", IEEE journal
-       of selected topics in applied remote sensing, vol.9(7) pp.2923-2939, 2016
-    .. [3] Mohamed et al. "Differential optical flow estimation under monocular
-       epipolar line constraint", Proceedings of the international conference on
-       computer vision systems, 2015.
+    .. [LK81] Lucas & Kanade, "An iterative image registration technique with an
+              application to stereo vision", Proceedings of 7th international
+              joint conference on artificial intelligence, 1981.
+    .. [Br16] Brigot et al. "Adaptation and evaluation of an optical flow method
+              applied to coregisgtration of forest remote sensing images", IEEE
+              journal of selected topics in applied remote sensing, vol.9(7)
+              pp.2923-2939, 2016
+    .. [M015] Mohamed et al. "Differential optical flow estimation under
+              monocular epipolar line constraint", Proceedings of the
+              international conference on computer vision systems, 2015.
     """
     assert isinstance(model, str), ('please provide a model; ',
                                     '{''simple'',''affine'',''similarity''}')
@@ -432,7 +434,7 @@ def affine_optical_flow(I1, I2, model='affine', iteration=10,
 def hough_optical_flow(I1, I2, param_resol=100, sample_fraction=1,
                        num_estimates=1, max_amp=1,
                        preprocessing=None):
-    """ estimating optical flow through the Hough transform
+    """ estimating optical flow through the Hough transform, based on [FT79]_.
 
     Parameters
     ----------
@@ -453,7 +455,7 @@ def hough_optical_flow(I1, I2, param_resol=100, sample_fraction=1,
             * None : use the raw imagery
             * 'hist_eq' : apply histogram equalization, this is a common step
             to comply with the brightness consistency assumption in remote
-            sensing imagery [2]
+            sensing imagery [GL12]_
     num_estimates : integer
         amount of displacement estimates
 
@@ -466,11 +468,11 @@ def hough_optical_flow(I1, I2, param_resol=100, sample_fraction=1,
 
     References
     ----------
-    .. [1] Fennema & Thompson, "Velocity determination in scenes containing
-       several moving objects" Computer graphics and image processing, vol.9
-       pp.301-317, 1979.
-    .. [2] Guo & Lü, "Phase-shifting algorithm by use of Hough transform"
-       Optics express vol.20(23) pp.26037-26049, 2012.
+    .. [FT79] Fennema & Thompson, "Velocity determination in scenes containing
+              several moving objects" Computer graphics and image processing,
+              vol.9 pp.301-317, 1979.
+    .. [GL12] Guo & Lü, "Phase-shifting algorithm by use of Hough transform"
+              Optics express vol.20(23) pp.26037-26049, 2012.
     """
     assert type(I1) in (np.ma.core.MaskedArray, np.ndarray), \
         ("please provide an array")
@@ -546,8 +548,8 @@ def hough_sinus(φ,ρ,
 
     References
     ----------
-    .. [1] Guo & Lü, "Phase-shifting algorithm by use of Hough transform"
-       Optics express vol.20(23) pp.26037-26049, 2012.
+    .. [GL79] Guo & Lü, "Phase-shifting algorithm by use of Hough transform"
+              Optics express vol.20(23) pp.26037-26049, 2012.
     """
     are_two_arrays_equal(φ, ρ)
 

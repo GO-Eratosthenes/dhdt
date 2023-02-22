@@ -45,8 +45,8 @@ def get_coastal_dataset(geom_dir, geom_name=None, minimal_level=1,
     References
     ----------
     .. [WS96] Wessel, & Smith. "A global, self‐consistent, hierarchical,
-       high‐resolution shoreline database." Journal of geophysical research:
-       solid Earth vol.101(B4) pp.8741-8743, 1996.
+              high‐resolution shoreline database." Journal of geophysical
+              research: solid Earth vol.101(B4) pp.8741-8743, 1996.
     .. [wwwGSHHG] http://www.soest.hawaii.edu/pwessel/gshhg/
     """
     assert isinstance(minimal_level, int), 'please provide an integer'

@@ -56,7 +56,8 @@ def rgb2hcv(Blue, Green, Red):
 
 
 def hcv2rgb(H, C, V):
-    """ transform a color bubble model to red green blue arrays
+    """ transform a color bubble model to red green blue arrays, following
+    [Sh95]_.
 
     Parameters
     ----------
@@ -74,9 +75,9 @@ def hcv2rgb(H, C, V):
 
     References
     ----------
-    .. [1] Shih, "The reversibility of six geometric color spaces",
-       Photogrammetric engineering & remote sensing, vol.61(10) pp.1223-1232,
-       1995.
+    .. [Sh95] Shih, "The reversibility of six geometric color spaces",
+              Photogrammetric engineering & remote sensing, vol.61(10)
+              pp.1223-1232, 1995.
     """
     are_three_arrays_equal(H,C,V)
 

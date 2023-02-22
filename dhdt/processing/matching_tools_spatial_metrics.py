@@ -97,15 +97,16 @@ def primary_peak_ratio(C):
 
     References
     ----------
-    .. [1] Keane & Adrian, "Optimization of particle image velocimeters. I.
-       Double pulsed systems" Measurement science and technology. vol.1 pp.1202,
-       1990.
-    .. [2] Charonk & Vlachos "Estimation of uncertainty bounds for individual
-       particle image velocimetry measurements from cross-correlation peak
-       ratio" Measurement science and technology. vol.24 pp.065301, 2013.
-    .. [3] Xue et al. "Particle image velocimetry correlation signal-to-noise
-       ratio metrics and measurement uncertainty quantification" Measurement
-       science and technology, vol.25 pp.115301, 2014.
+    .. [KA90] Keane & Adrian, "Optimization of particle image velocimeters. I.
+              Double pulsed systems" Measurement science and technology. vol.1
+              pp.1202, 1990.
+    .. [CV13] Charonk & Vlachos "Estimation of uncertainty bounds for individual
+              particle image velocimetry measurements from cross-correlation
+              peak ratio" Measurement science and technology. vol.24 pp.065301,
+              2013.
+    .. [Xu14] Xue et al. "Particle image velocimetry correlation signal-to-noise
+              ratio metrics and measurement uncertainty quantification"
+              Measurement science and technology, vol.25 pp.115301, 2014.
     """
     from .matching_tools import get_peak_indices
 
@@ -137,9 +138,9 @@ def primary_peak_margin(C):
 
     References
     ----------
-    .. [1] Hu & Mordohai, "A quantitative evaluation of confidence measures for
-       stereo vision" IEEE transactions on pattern analysis and machine
-       intelligence, vol.34(11) pp.2121-2133, 2012.
+    .. [HM12] Hu & Mordohai, "A quantitative evaluation of confidence measures
+              for stereo vision" IEEE transactions on pattern analysis and
+              machine intelligence, vol.34(11) pp.2121-2133, 2012.
     """
     from .matching_tools import get_peak_indices
 
@@ -151,7 +152,7 @@ def primary_peak_margin(C):
 
 def peak_winner_margin(C):
     """ metric for dominance of the correlation estimate in relation to other
-    candidates and their surrounding scores
+    candidates and their surrounding scores. See also [SS98]_.
 
     Parameters
     ----------
@@ -170,8 +171,9 @@ def peak_winner_margin(C):
 
     References
     ----------
-    .. [1] Scharstein & Szeliski, "Stereo matching with nonlinear diffusion"
-       International journal of computer vision, vol.28(2) pp.155-174, 1998.
+    .. [SS98] Scharstein & Szeliski, "Stereo matching with nonlinear diffusion"
+              International journal of computer vision, vol.28(2) pp.155-174,
+              1998.
     """
     assert type(C) == np.ndarray, ('please provide an array')
 
@@ -201,12 +203,12 @@ def num_of_peaks(C, filtering=True):
 
     References
     ----------
-    .. [1] Lefebvre et al., "A colour correlation-based stereo matching using
-       1D windows" IEEE conference on signal-image technologies and internet-
-       based system, pp.702-710, 2007.
-    .. [2] Hu & Mordohai, "A quantitative evaluation of confidence measures for
-       stereo vision" IEEE transactions on pattern analysis and machine
-       intelligence, vol.34(11) pp.2121-2133, 2012.
+    .. [Le07] Lefebvre et al., "A colour correlation-based stereo matching using
+              1D windows" IEEE conference on signal-image technologies and
+              internet-based system, pp.702-710, 2007.
+    .. [HM12] Hu & Mordohai, "A quantitative evaluation of confidence measures
+              for stereo vision" IEEE transactions on pattern analysis and
+              machine intelligence, vol.34(11) pp.2121-2133, 2012.
     """
     assert type(C) == np.ndarray, ('please provide an array')
 
@@ -219,7 +221,7 @@ def num_of_peaks(C, filtering=True):
 
 def peak_rms_ratio(C):
     """ metric for uniqueness of the correlation estimate
-    this is a similar metric as implemented in ROI_PAC [2]
+    this is a similar metric as implemented in ROI_PAC [RoXX]
 
     Parameters
     ----------
@@ -238,11 +240,11 @@ def peak_rms_ratio(C):
 
     References
     ----------
-    .. [1] Xue et al. "Particle image velocimetry correlation signal-to-noise
-       ratio metrics and measurement uncertainty quantification" Measurement
-       science and technology, vol.25 pp.115301, 2014.
-    .. [2] Rosen et al. "Updated repeat orbit interferometry package released"
-       EOS, vol.85(5) pp.47
+    .. [Xu14] Xue et al. "Particle image velocimetry correlation signal-to-noise
+              ratio metrics and measurement uncertainty quantification"
+              Measurement science and technology, vol.25 pp.115301, 2014.
+    .. [Ro04] Rosen et al. "Updated repeat orbit interferometry package
+              released" EOS, vol.85(5) pp.47, 2004.
     """
     assert type(C) == np.ndarray, ('please provide an array')
 
@@ -275,9 +277,9 @@ def peak_corr_energy(C):
 
     References
     ----------
-    .. [1] Xue et al. "Particle image velocimetry correlation signal-to-noise
-       ratio metrics and measurement uncertainty quantification" Measurement
-       science and technology, vol.25 pp.115301, 2014.
+    .. [Xu14] Xue et al. "Particle image velocimetry correlation signal-to-noise
+              ratio metrics and measurement uncertainty quantification"
+              Measurement science and technology, vol.25 pp.115301, 2014.
     """
     assert type(C) == np.ndarray, ('please provide an array')
 
@@ -306,12 +308,14 @@ def peak_to_noise(C):
 
     References
     ----------
-    .. [1] de Lange et al. "Improvement of satellite radar feature tracking for
-       ice velocity derivation by spatial frequency filtering" IEEE transactions
-       on geosciences and remote sensing, vol.45(7) pp.2309--2318.
-    .. [2] Heid & Kääb "Evaluation of existing image matching methods for
-       deriving glacier surface displacements globally from optical satellite
-       imagery." Remote sensing of environment vol.118 pp.339-355, 2012.
+    .. [dL07] de Lange et al. "Improvement of satellite radar feature tracking
+              for ice velocity derivation by spatial frequency filtering" IEEE
+              transactions on geosciences and remote sensing, vol.45(7)
+              pp.2309--2318, 2007.
+    .. [HK12] Heid & Kääb "Evaluation of existing image matching methods for
+              deriving glacier surface displacements globally from optical
+              satellite imagery." Remote sensing of environment vol.118
+              pp.339-355, 2012.
     """
     assert type(C) == np.ndarray, ('please provide an array')
 
@@ -346,12 +350,12 @@ def peak_confidence(C, radius=1):
 
     References
     ----------
-    .. [1] Erten et al. "Glacier velocity monitoring by maximum likelihood
-       texture tracking" IEEE transactions on geosciences and remote sensing,
-       vol.47(2) pp.394--405, 2009.
-    .. [2] Erten "Glacier velocity estimation by means of polarimetric
-       similarity measure" IEEE transactions on geosciences and remote sensing,
-       vol.51 pp.3319--3327, 2013.
+    .. [Er09] Erten et al. "Glacier velocity monitoring by maximum likelihood
+              texture tracking" IEEE transactions on geosciences and remote
+              sensing, vol.47(2) pp.394--405, 2009.
+    .. [Er13] Erten "Glacier velocity estimation by means of polarimetric
+              similarity measure" IEEE transactions on geosciences and remote
+              sensing, vol.51 pp.3319--3327, 2013.
     """
     from .matching_tools import get_template
 
@@ -393,13 +397,14 @@ def entropy_corr(C):
 
     References
     ----------
-    .. [1] Scharstein & Szeliski, "Stereo matching with nonlinear diffusion"
-       International journal of computer vision, vol.28(2) pp.155-174, 1998.
-    .. [2] Xue et al. "Particle image velocimetry correlation signal-to-noise
-       ratio metrics and measurement uncertainty quantification" Measurement
-       science and technology, vol.25 pp.115301, 2014.
-    .. [3] Sturges, "The choice of a class interval". Journal of the american
-       statistical association. vol.21(153) pp.65–66.
+    .. [SS98] Scharstein & Szeliski, "Stereo matching with nonlinear diffusion"
+              International journal of computer vision, vol.28(2) pp.155-174,
+              1998.
+    .. [Xu14] Xue et al. "Particle image velocimetry correlation signal-to-noise
+              ratio metrics and measurement uncertainty quantification"
+              Measurement science and technology, vol.25 pp.115301, 2014.
+    .. [St26] Sturges, "The choice of a class interval". Journal of the american
+              statistical association. vol.21(153) pp.65–66, 1926.
     """
     assert type(C) == np.ndarray, ('please provide an array')
 
@@ -453,12 +458,12 @@ def hessian_spread(C, intI, intJ):
 
     References
     ----------
-    .. [1] Rosen et al. "Updated repeat orbit interferometry package released"
-       EOS, vol.85(5) pp.47, 2004.
-    .. [2] Casu et al. "Deformation time-series generation in areas
-       characterized by large displacement dynamics: The SAR amplitude pixel-
-       offset SBAS Technique" IEEE transactions in geoscience and remote
-       sensing vol.49(7) pp.2752--2763, 2011.
+    .. [Ro04] Rosen et al. "Updated repeat orbit interferometry package
+              released" EOS, vol.85(5) pp.47, 2004.
+    .. [Ca11] Casu et al. "Deformation time-series generation in areas
+              characterized by large displacement dynamics: The SAR amplitude
+              pixel-offset SBAS Technique" IEEE transactions in geoscience and
+              remote sensing vol.49(7) pp.2752--2763, 2011.
     """
     assert type(C) == np.ndarray, ('please provide an array')
 
@@ -494,7 +499,7 @@ def hessian_spread(C, intI, intJ):
 
 def gauss_spread(C, intI, intJ, dI, dJ, est='dist'):
     """ estimate an oriented gaussian function through the vicinity of the
-    correlation function
+    correlation function. See for a full describtion [Al21]_.
 
     Parameters
     ----------
@@ -542,9 +547,9 @@ def gauss_spread(C, intI, intJ, dI, dJ, est='dist'):
 
     References
     ----------
-    .. [1] Altena et al. "Correlation dispersion as a measure to better estimate
-       uncertainty of remotely sensed glacier displacements" The cryosphere,
-       vol.16(6) pp.2285-2300, 2021.
+    .. [Al21] Altena et al. "Correlation dispersion as a measure to better
+              estimate uncertainty of remotely sensed glacier displacements"
+              The cryosphere, vol.16(6) pp.2285-2300, 2021.
     """
     assert type(C) == np.ndarray, ('please provide an array')
 
@@ -630,8 +635,9 @@ def intensity_disparity(I1,I2):
 
     References
     ----------
-    .. [1] Sciacchitano et al. "PIV uncertainty quantification by image
-       matching" Measurement science and technology, vol.24 pp.045302, 2013.
+    .. [Sc13] Sciacchitano et al. "PIV uncertainty quantification by image
+              matching" Measurement science and technology, vol.24 pp.045302,
+              2013.
     """
     assert type(I1) == np.ndarray, ('please provide an array')
     assert type(I2) == np.ndarray, ('please provide an array')

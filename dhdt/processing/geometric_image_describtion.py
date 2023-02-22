@@ -13,7 +13,8 @@ from .matching_tools_frequency_filters import low_pass_circle
 from .coupling_tools import create_template_at_center
 
 def get_radon_angle(I, num_dir=1, fitting='polynomial'):
-    """ get the major directional tendencies within an image.
+    """ get the major directional tendencies within an image. Based upon
+    [wwwRUN]_ which is the basis for [Go18]_ and [IL23]_
 
     Parameters
     ----------
@@ -33,10 +34,13 @@ def get_radon_angle(I, num_dir=1, fitting='polynomial'):
 
     References
     ----------
-    .. [1] Gong et al. "Simulating the roles of crevasse routing of surface
-       water and basal friction on the surge evolution of Basin 3, Austfonna
-       ice-cap" The cryosphere, vol.12(5) pp.1563-1577, 2018.
-    .. [2] https://www.runmycode.org/companion/view/2711
+    .. [wwwRUN] https://www.runmycode.org/companion/view/2711
+    .. [Go18] Gong et al. "Simulating the roles of crevasse routing of surface
+              water and basal friction on the surge evolution of Basin 3,
+              Austfonna ice-cap" The cryosphere, vol.12(5) pp.1563-1577, 2018.
+    .. [IL23] Izeboud & Lhermitte "Damage detection on Antarctic ice shelves
+              using the normalised radon transform" Remote sensing of
+              environment vol.284 pp.113359, 2023.
     """
     θ = np.linspace(-90, +90, 36, endpoint=False)
     circle = low_pass_circle(I)

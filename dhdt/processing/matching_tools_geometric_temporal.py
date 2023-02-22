@@ -1,7 +1,7 @@
 from scipy.signal import convolve2d
 
 def spatial_temporal_evolution(C_12,C_23):
-    """ convolve displacement estimates in the spatial domain
+    """ convolve displacement estimates in the spatial domain, see [AK17]_
     
     Parameters
     ----------
@@ -37,15 +37,15 @@ def spatial_temporal_evolution(C_12,C_23):
 
     References
     ----------
-    .. [1] Altena & Kääb. "Elevation change and improved velocity retrieval 
-       using orthorectified optical satellite data from different orbits" 
-       Remote sensing vol.9(3) pp.300 2017.
+    .. [AK17] Altena & Kääb. "Elevation change and improved velocity retrieval
+              using orthorectified optical satellite data from different orbits"
+              Remote sensing vol.9(3) pp.300, 2017.
     """
     C_13 = convolve2d(C_12,C_23, mode='same')
     return C_13
 
 def frequency_temporal_evolution(Q_12,Q_23):
-    """ convolve displacement estimates in the frequency domain
+    """ convolve displacement estimates in the frequency domain, see [AK17]_.
     
     Parameters
     ----------
@@ -84,9 +84,9 @@ def frequency_temporal_evolution(Q_12,Q_23):
 
     References
     ----------
-    .. [1] Altena & Kääb. "Elevation change and improved velocity retrieval 
-       using orthorectified optical satellite data from different orbits" 
-       Remote sensing vol.9(3) pp.300 2017.
+    .. [AK17] Altena & Kääb. "Elevation change and improved velocity retrieval
+              using orthorectified optical satellite data from different orbits"
+              Remote sensing vol.9(3) pp.300, 2017.
     """
     Q_13 = Q_12*Q_23
     return Q_13 

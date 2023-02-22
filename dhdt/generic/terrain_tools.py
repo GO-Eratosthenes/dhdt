@@ -22,7 +22,7 @@ def ridge_orientation(Z): #todo: check if correct
 
 def terrain_slope(Z, spac=10.):
     """ use simple local estimation, to calculate slope along mapping axis.
-    Following [Ho81]
+    Following [Ho81]_.
 
     Parameters
     ----------
@@ -43,7 +43,7 @@ def terrain_slope(Z, spac=10.):
     References
     ----------
     .. [Ho81] Horn, "Hill shading and the reflectance map", Proceedings of the IEEE
-       vol.69(1) pp.14--47, 1981.
+              vol.69(1) pp.14--47, 1981.
     """
     fx, fy = get_grad_filters(ftype='kroon', tsize=3, order=1, indexing='xy')
     fx /= spac
@@ -55,7 +55,7 @@ def terrain_slope(Z, spac=10.):
 
 def terrain_aspect_slope(Z, spac=10.):
     """ use simple local estimation, to calculate terrain direction and steepest
-    slope. Following [Ho81]
+    slope. Following [Ho81]_.
 
     Parameters
     ----------
@@ -76,7 +76,7 @@ def terrain_aspect_slope(Z, spac=10.):
     References
     ----------
     .. [Ho81] Horn, "Hill shading and the reflectance map", Proceedings of the IEEE
-       vol.69(1) pp.14--47, 1981.
+              vol.69(1) pp.14--47, 1981.
     """
     # calculate gradients
     Z_dx, Z_dy = terrain_slope(Z, spac=spac)
