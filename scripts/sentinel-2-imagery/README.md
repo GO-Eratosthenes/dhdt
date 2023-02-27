@@ -15,22 +15,23 @@ We provide here scripts and instructions to:
 
 ## Convert GeoJSON search results to STAC
 
-Run the script `./create_stac_catalog.py` to setup a catalog with links to the GCS assets, e.g.:
+Run the script [sentinel-2-STAC.py](./sentinel-2-STAC.py) with the `create` positional argument to create a catalog with 
+links to the GCS assets, e.g.:
 
 ```shell
 # Create Sentinel-2 L1C data catalog
-python create_stac_catalog.py ./data/sentinel-2/sentinel2-l1c.json --path ./data/sentinel-2/sentinel2-l1c --description "Sentinel-2 L1C scenes of the Brintnell-Bologna icefield" --template "${year}/${month}/${day}"
+python sentinel-2-STAC.py --catalog-path ./data/sentinel-2/sentinel2-l1c create --from-geojson ./data/sentinel-2/sentinel2-l1c.json --description 'Sentinel-2 L1C scenes of the Brintnell-Bologna icefield' --template '${year}/${month}/${day}'
 # Create Sentinel-2 L2A data catalog
-python create_stac_catalog.py ./data/sentinel-2/sentinel2-l2a.json --path ./data/sentinel-2/sentinel2-l2a --description "Sentinel-2 L2A scenes of the Brintnell-Bologna icefield" --template "${year}/${month}/${day}"
+python sentinel-2-STAC.py --catalog-path ./data/sentinel-2/sentinel2-l2a create --from-geojson ./data/sentinel-2/sentinel2-l2a.json --description 'Sentinel-2 L2A scenes of the Brintnell-Bologna icefield' --template '${year}/${month}/${day}'
 ```
 
 ## Download imagery
 
-Run the script `./download_assets.py` to retrieve (a subset of) the catalogs' assets:
+Run the same script with the `download` positional argument to retrieve (a subset of) the catalogs' assets:
 
 ```shell
 # Download Sentinel-2 L1C data (few bands and metadata files)
-python download_assets.py --assets blue green red nir product_metadata granule_metadata inspire_metadata datastrip_metadata sensor-metadata-B02 sensor-metadata-B03 sensor-metadata-B04 sensor-metadata-B08
+python sentinel-2-STAC.py --catalog-path ./data/sentinel-2/sentinel2-l1c/catalog.json  download --assets blue green red nir product_metadata granule_metadata inspire_metadata datastrip_metadata sensor_metadata_B02 sensor_metadata_B03 sensor_metadata_B04 sensor_metadata_B08
 # Download Sentinel-2 L2A data (only scene classification layer)
-python download_assets.py --assets scl
+python sentinel-2-STAC.py --catalog-path ./data/sentinel-2/sentinel2-l2a/catalog.json  download --assets scl
 ```
