@@ -1,30 +1,25 @@
 import os
-import tempfile
 
 import numpy as np
 from osgeo import osr
-from scipy.ndimage import label, distance_transform_edt
+from scipy.ndimage import label, binary_dilation, binary_erosion
 
-from ..generic.handler_im import bilinear_interpolation
-from ..generic.mapping_io import make_geo_im, read_geo_info, read_geo_image
-from ..generic.mapping_tools import get_max_pixel_spacing, map2pix, pix2map
-from ..generic.terrain_tools import terrain_slope
-from ..generic.data_tools import gompertz_curve
-from ..generic.unit_check import zenit_angle_check
-from ..generic.unit_conversion import deg2arg
-from ..postprocessing.photohypsometric_tools import read_conn_files_to_stack, clean_dh, \
-    get_casted_elevation_difference, get_hypsometric_elevation_change
-from ..postprocessing.solar_tools import make_shadowing
-from ..preprocessing.image_transforms import mat_to_gray
-from ..preprocessing.shadow_filters import fade_shadow_cast
-from ..preprocessing.shadow_geometry import shadow_image_to_list
-from ..processing.matching_tools import remove_posts_outside_image
-from ..processing.coupling_tools import couple_pair
-from ..processing.network_tools import get_network_indices
-from ..postprocessing.terrain_tools import d8_catchment
-from ..presentation.velocity_tools import make_seeds
+from dhdt.generic.data_tools import gompertz_curve
+from dhdt.generic.mapping_io import make_geo_im
+from dhdt.generic.mapping_tools import pix2map, get_max_pixel_spacing, \
+    pix_centers
+from dhdt.generic.terrain_tools import terrain_slope
+from dhdt.generic.unit_check import zenit_angle_check
+from dhdt.generic.unit_conversion import deg2arg
+from dhdt.postprocessing.solar_tools import make_shadowing
+from dhdt.postprocessing.terrain_tools import d8_catchment
+from dhdt.preprocessing.image_transforms import mat_to_gray
+from dhdt.preprocessing.shadow_filters import fade_shadow_cast
+from dhdt.preprocessing.shadow_geometry import shadow_image_to_list
+from dhdt.presentation.velocity_tools import make_seeds
+from dhdt.processing.matching_tools import remove_posts_outside_image
+from dhdt.postprocessing.solar_tools import make_shadowing, make_shading
 
-# artificial creation functions
 def create_artificial_terrain(m, n, step_size=.01, multi_res=(2,4)):
     """ create artificail terrain, based upon Perlin noise, with a flavour of
     multi-resolution within
@@ -88,7 +83,7 @@ def create_artificial_terrain(m, n, step_size=.01, multi_res=(2,4)):
         Z += mat_to_gray(Z)*(1/f)*_perlin(f*x, f*y)
     Z += 1
     Z *= 1E3
-    geoTransform = (0, +10, 0, 0, 0, -10, m, n)
+    geoTransform = (0., +10., 0., 0., 0., -10., m, n)
     return Z, geoTransform
 
 def create_artificial_glacier_mask(Z, geoTransform, seeds=42, labeling=True):
@@ -126,6 +121,7 @@ def create_artifical_sun_angles(n, az_min=160., zn_min=35.,
     zn_min, zn_max = zenit_angle_check(zn_min), zenit_angle_check(zn_max)
     zn = np.random.uniform(low=zn_min, high=zn_max, size=n)
     az = deg2arg(np.random.uniform(low=az_min, high=az_max, size=n))
+    if n==1: return az[0], zn[0]
     return az, zn
 
 def create_shadow_caster_casted(Z, geoTransform, az, zn, out_path,
@@ -211,109 +207,51 @@ def create_artificial_glacier_change(Z,R):
     Z_new = Z_dh + Z
     return Z_new, a,b
 
-# testing functions
-def test_photohypsometric_coupling(N, Z_shape, tolerance=0.1):
-    Z, geoTransform = create_artificial_terrain(Z_shape[0],Z_shape[1])
-    az,zn = create_artifical_sun_angles(N)
+def create_artificial_morphsnake_data(m, n, delta=10):
+    """ create artificial data for testing the shadow finding function
 
-    # create temperary directory
-    with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmpdir:
-        dump_path = os.path.join(os.getcwd(), tmpdir)
-        for i in range(N):
-            f_name = "conn-"+str(i).zfill(3)+".txt"
-            create_shadow_caster_casted(Z, geoTransform,
-                az[i], zn[i], dump_path, out_name=f_name, incl_image=False)
+    Parameters
+    ----------
+    m,n : integer
+        size of the constructed arrays
+    delta : integer
+        maximum amount of dilation and erosion
 
-        conn_list = tuple("conn-"+str(i).zfill(3)+".txt" for i in range(N))
-        dh = read_conn_files_to_stack(None, conn_file=conn_list,
-                                      folder_path=dump_path)
+    Returns
+    -------
+    Shw : numpy.ndarray, size=(m,n), dtype=bool
+        shadowing array
+    I : numpy.ndarray, size=(m,n,2), dtype=float
+        multi-spectral dummy data, based on shadowing and shading
+    M : numpy.ndarray, size=(m,n), dtype=bool
+        initial boolean array, roughly specifying where the shadow is located
+    """
+    Z, geoTransform = create_artificial_terrain(m, n)
+    az, zn = create_artifical_sun_angles(1)
 
-    dh = clean_dh(dh)
-    dxyt = get_casted_elevation_difference(dh)
-    dhdt = get_hypsometric_elevation_change(dxyt, Z, geoTransform)
+    Shw = make_shadowing(Z, az, zn, geoTransform)
+    Shd = make_shading(Z, az, zn, geoTransform)
 
-    assert np.isclose(0, np.quantile(dhdt['dZ_12'], 0.5), atol=tolerance)
+    # create initial boolean array, that should not align with this shadowing
+    X,Y = pix_centers(geoTransform)
+    R = np.round(delta*np.sin(X/m)*np.sin(Y/n)).astype(int)
+    M = np.zeros((m,n), dtype=bool)
+    # crude calculation
+    for d in np.arange(-delta,delta+1):
+        if np.sign(d) == 1:
+            dummy = binary_dilation(Shw, np.ones((d, d)))
+        elif np.sign(d) == -1:
+            dummy = binary_erosion(Shw, np.ones((np.abs(d), np.abs(d))))
+        else: # when zero
+            dummy = Shw
+        IN = R==d
+        M[IN] = dummy[IN]
 
-def test_photohypsometric_refinement_by_same(Z_shape, tolerance=1.0,
-                                              weight=False):
-    Z, geoTransform = create_artificial_terrain(Z_shape[0],Z_shape[1])
-    az,zn = create_artifical_sun_angles(1)
+    # create multispectral dummy
+    alpha = 0.3
 
-    # create temperary directory
-    with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmpdir:
-        dump_path = os.path.join(os.getcwd(), tmpdir)
-        create_shadow_caster_casted(Z, geoTransform,
-            az[0], zn[0], dump_path, out_name="conn.txt", incl_image=True,
-                                     incl_wght=weight)
-        # read and refine through image matching
-        if weight:
-             post_1,post_2_new,caster,dh,score,caster_new,_,_,_ = \
-                 couple_pair(os.path.join(dump_path, "conn.tif"), \
-                             os.path.join(dump_path, "conn.tif"),
-                             wght_1=os.path.join(dump_path, "connwgt.tif"),
-                             wght_2=os.path.join(dump_path, "connwgt.tif"),
-                             temp_radius=5, search_radius=9, rect=None,
-                             match='wght_corr')
-        else:
-            post_1,post_2_new,caster,dh,score,caster_new,_,_,_ = \
-                couple_pair(os.path.join(dump_path, "conn.tif"), \
-                            os.path.join(dump_path, "conn.tif"),
-                            rect=None)
-    pix_dispersion = np.nanmedian(np.hypot(post_1[:,0]-post_2_new[:,0],
-                                           post_1[:,1]-post_2_new[:,1]))
-    assert np.isclose(0, pix_dispersion, atol=tolerance)
+    Shd = mat_to_gray(Shd) # to a range of 0...1
+    I = np.dstack((1-(1-alpha)*Shw + alpha*Shd,
+                  (1-alpha)*Shd + 1-alpha*Shw))
 
-def test_photohypsometric_refinement(N, Z_shape, tolerance=0.1):
-    Z, geoTransform = create_artificial_terrain(Z_shape[0],Z_shape[1])
-    az,zn = create_artifical_sun_angles(N, az_min=179.9, az_max=180.1,
-                                        zn_min=60., zn_max=65.)
-
-    # create temperary directory
-    with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmpdir:
-        dump_path = os.path.join(os.getcwd(), tmpdir)
-        for i in range(N):
-            f_name = "conn-"+str(i).zfill(3)+".txt"
-            create_shadow_caster_casted(Z, geoTransform,
-                az[i], zn[i], dump_path, out_name=f_name, incl_image=True,
-                incl_wght=True)
-        # read and refine through image matching
-        print('+')
-        match_idxs = get_network_indices(N)
-        for idx in range(match_idxs.shape[1]):
-            fname_1 = "conn-"+str(match_idxs[0][idx]).zfill(3)+".tif"
-            fname_2 = "conn-"+str(match_idxs[1][idx]).zfill(3)+".tif"
-            file_1 = os.path.join(dump_path,fname_1)
-            file_2 = os.path.join(dump_path,fname_2)
-            w_1 = file_1.split('.')[0]+"wgt.tif"
-            w_2 = file_2.split('.')[0]+"wgt.tif"
-
-            post_1,post_2_new,caster,dh,score,caster_new,_,_,_ = \
-                couple_pair(file_1, file_2, wght_1=w_1, wght_2=w_2,
-                            temp_radius=5, search_radius=9, rect="metadata",
-                            match='wght_corr')
-            geoTransform = read_geo_info(file_1)[1]
-            i_1,j_1 = map2pix(geoTransform, post_1[:,0], post_1[:,1])
-            i_2,j_2 = map2pix(geoTransform, post_2_new[:,0], post_2_new[:,1])
-            h_1 = bilinear_interpolation(Z, i_1, j_1)
-            h_2 = bilinear_interpolation(Z, i_2, j_2)
-            dh_12 = h_2 - h_1
-
-            I_1, I_2 = read_geo_image(file_1)[0], read_geo_image(file_2)[0]
-
-            cnt = 1320
-            w,h = 11,11
-            i_idx,j_idx = np.floor(i_1[cnt]).astype(int), \
-                          np.floor(j_1[cnt]).astype(int)
-            Isub_1 = I_1[i_idx-w:i_idx+w,j_idx-w:j_idx+w]
-            i_idx, j_idx = np.floor(i_2[cnt]).astype(int), \
-                           np.floor(j_2[cnt]).astype(int)
-            Isub_2 = I_2[i_idx-w:i_idx+w, j_idx-w:j_idx+w]
-
-            fig, (ax1, ax2) = plt.subplots(1, 2)
-            ax1.imshow(Isub_1)
-            ax1.scatter(np.mod(j_1[cnt],1)+w, np.mod(i_1[cnt],1)+h, marker='+')
-            ax2.imshow(Isub_2)
-            ax2.scatter(np.mod(j_2[cnt],1)+w, np.mod(i_2[cnt],1)+h, marker='+')
-
-            print('.')
-    return
+    return Shw, I, M

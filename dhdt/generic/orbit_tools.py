@@ -94,40 +94,42 @@ def angular_momentum(xyz, uvw):
     h = np.cross(xyz, uvw)
     return h
 
+def transform_rpy_xyz2ocs(xyz, uvw, roll, pitch, yaw, xyz_time, ang_time):
+    x,y,z = np.interp(ang_time, xyz_time, xyz[...,0]), \
+            np.interp(ang_time, xyz_time, xyz[...,1]), \
+            np.interp(ang_time, xyz_time, xyz[...,2])
+    u,v,w = np.interp(ang_time, xyz_time, uvw[...,0]), \
+            np.interp(ang_time, xyz_time, uvw[...,1]), \
+            np.interp(ang_time, xyz_time, uvw[...,2])
+    xyz, uvw = np.stack((x,y,z), axis=1), np.stack((u,v,w), axis=1)
+
+    m,n = xyz.shape
+    Z_ocs = np.divide(xyz, np.tile(np.linalg.norm(xyz, axis=-1), (n,1)).T)
+    X_ocs = np.cross(uvw,xyz, axisa=-1, axisb=-1)
+    X_ocs = np.divide(X_ocs, np.tile(np.linalg.norm(X_ocs, axis=-1), (n, 1)).T)
+    Y_ocs = np.cross(Z_ocs, X_ocs, axisa=-1, axisb=-1)
+    Y_ocs = np.divide(Y_ocs, np.tile(np.linalg.norm(Y_ocs, axis=-1), (n, 1)).T)
+
+    R_stack = np.dstack((X_ocs,Y_ocs,Z_ocs))
+    rpy = np.stack((roll, pitch, yaw), axis=1)
+
+    np.einsum('...i,...i->...i',R_stack,rpy)
+
+    print('.')
+
+    return roll, pitch, yaw
+
 def estimate_inclination_via_xyz_uvw(xyz, uvw):
-    are_two_arrays_equal(xyz, uvw)
-    h = angular_momentum(xyz, uvw)
-    if h.ndim==2:
-        h_mag = np.linalg.norm(h, axis=-1)
-        i = np.rad2deg(np.arccos(np.divide(h[...,-1], h_mag)))
-    else:
-        i = np.rad2deg(np.arccos(np.divide(h[-1], np.linalg.norm(h))))
+    xyz, uvw = np.atleast_2d(xyz), np.atleast_2d(uvw)
+    m,n = xyz.shape
+    h = np.cross(xyz, uvw)
+    h_mag = np.linalg.norm(h, axis=-1)
+    h = np.divide(h, np.tile(h_mag, (n,1)).T)
+
+    z = np.array([0,0,1])
+    i = 90 - np.rad2deg(np.arccos(np.dot(h, z)))
+    i += 90
     return i
-
-def estimate_inclination_from_traj(XYZ,T):
-    LLH = ecef2llh(XYZ)
-
-    lat, lon = LLH[:,0], LLH[:,1]
-    dT = (T - T[0])/ np.timedelta64(1, 's')
-
-    # angular rate of the Earth
-    a_E = 360 / (24 * 60 * 60)
-
-    # normalize lat for a fixed Earth
-    lon += a_E*dT*np.cos(np.deg2rad(lat))
-
-    # calculate the orbital plane of the satellite
-
-    # slant-range
-    xyz = sun_angles_to_vector(lat, lon, indexing='xy').squeeze()
-    u,s,v = np.linalg.svd(xyz)
-    cov = np.dot(xyz.T, xyz)
-    eig_val,eig_vec = np.linalg.eig(cov)
-
-    φ = np.rad2deg(np.arccos(np.dot(eig_vec[..., -1], np.array([0, 0, 1]))))
-
-    φ = None
-    return φ
 
 def calculate_correct_mapping(Zn_grd, Az_grd, bnd, det, grdTransform, crs,
                               sat_dict=None):

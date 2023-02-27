@@ -5,7 +5,7 @@ from PIL import Image
 
 from ..generic.handler_im import bilinear_interpolation
 from ..generic.mapping_tools import vel2pix
-from ..testing.test_matching import construct_correlation_peak
+from ..testing.matching_tools import construct_correlation_peak
 from ..generic.gis_tools import polylines2shapefile
 
 def make_seeds(Msk, n=1E2):

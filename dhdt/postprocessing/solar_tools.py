@@ -9,7 +9,7 @@ from scipy import ndimage
 
 from ..generic.unit_conversion import doy2dmy, deg2arg
 from ..generic.data_tools import estimate_sinus
-from ..generic.mapping_tools import get_mean_map_lat_lon
+from ..generic.mapping_tools import get_mean_map_lat_lon, get_max_pixel_spacing
 
 # general location functions
 def az_to_sun_vector(az, indexing='ij'):
@@ -207,6 +207,8 @@ def make_shadowing(Z, az, zn, spac=10, weights=None, radiation=False,
           └----                 └--┴---
     """
     az = deg2arg(az) # give range -180...+180
+    if isinstance(spac, tuple): spac = get_max_pixel_spacing(spac)
+
     Zr = ndimage.rotate(Z, az, axes=(1, 0), cval=-1, order=3)
     # mask based
     Mr = ndimage.rotate(np.zeros(Z.shape, dtype=bool), az, axes=(1, 0), \
@@ -260,8 +262,8 @@ def make_shading(Z, az, zn, spac=10):
         azimuth angle
     zn : float, unit=degrees
         zenith angle
-    spac : float, default=10, unit=meter
-        resolution of the square grid.
+    spac : {float, tuple}, default=10, unit=meter
+        resolution of the square grid. Optionally the geoTransform is given.
 
     Returns
     -------
@@ -292,6 +294,8 @@ def make_shading(Z, az, zn, spac=10):
           |/                    |/ | elevation angle
           └----                 └--┴---
     """
+    if isinstance(spac, tuple):
+        spac = get_max_pixel_spacing(spac)
     sun = sun_angles_to_vector(az, zn, indexing='xy')
 
     # estimate surface normals
@@ -409,6 +413,7 @@ def make_shading_minnaert(Z, az, zn, k=1, spac=10):
           |/                    |/ | elevation angle
           └----                 └--┴---
     """
+    if isinstance(spac, tuple): spac = get_max_pixel_spacing(spac)
     sun = sun_angles_to_vector(az, zn, indexing='xy')
 
     # estimate surface normals

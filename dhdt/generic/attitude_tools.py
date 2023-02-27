@@ -307,3 +307,54 @@ def rodrigues_mat(a,b,c):
                   [+b/2, -a/2, 0]]) # skew symmetric
     R = (np.eye(3) - S)* np.linalg.inv(np.eye(3) + S)
     return R
+
+def ecef2ocs(xyz, uvw):
+    """ Rotate from an Earth fixed frame towards an orbital coordinate frame,
+    see also [Ye20].
+
+    Parameters
+    ----------
+    xyz : numpy.ndarray, size=(3,), unit=m
+        position vector
+    uvw : numpy.ndarray, size=(3,), unit=m/s
+        velocity vector
+
+    Returns
+    -------
+    R : numpy.ndarray, size=(3,3)
+        rotation matrix
+
+    See Also
+    --------
+    rot_2_euler
+
+    References
+    ----------
+    .. [Ye20] Ye et al., "Resolving time-varying attitude jitter of an optical
+              remote sensing satellite based on a time-frequency analysis"
+              Optics express, vol.28(11) pp.15805--15823, 2020.
+    """
+    # create rotation matrix towards orbital coordinate system
+    Z_o = np.divide(xyz, np.linalg.norm(xyz))
+    X_o = np.cross(uvw, xyz)
+    X_o = np.divide(X_o, np.linalg.norm(X_o))
+    Y_o = np.cross(Z_o, X_o)
+    Y_o = np.divide(Y_o, np.linalg.norm(Y_o))
+    R = np.vstack((X_o, Y_o, Z_o)).T              # (1) in [Ye20]
+    return R
+
+def deconvolve_jitter(f, dt):
+
+    N = f.size()
+    k = np.arange(N)
+
+    g_F = np.fft.fft(g)
+                                                # (5) in [Ye20]
+    f = np.fft.ifft(np.divide(g_F,
+                              np.exp(np.divide(2*np.pi*1j*k*dt,N))-1))
+    return f
+
+def asd(f_a,f_c,beta,F):
+    d_roll = np.divide(-f_c,F)
+    d_pitch = np.divide(-f_a*np.cos(beta)**2,F) # (7) in [Ye20]
+    return

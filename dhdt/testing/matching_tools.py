@@ -2,11 +2,9 @@ import numpy as np
 from scipy.interpolate import griddata
 from skimage import data
 
-from ..preprocessing.image_transforms import mat_to_gray
-from ..processing.matching_tools import get_integer_peak_location
-from ..processing.matching_tools_frequency_filters import normalize_power_spectrum
+from dhdt.preprocessing.image_transforms import mat_to_gray
 
-# artificial creation functions
+
 def create_sample_image_pair(d=2**7, max_range=1, integer=False, ndim=1):
     """ create an image pair with random offset
 
@@ -95,6 +93,7 @@ def create_sample_image_pair(d=2**7, max_range=1, integer=False, ndim=1):
         im2 = im2.astype('uint8')
         im1_same = im1[mI//2-d:mI//2+d, nI//2-d:nI//2+d,:]
     return im1_same, im2, random_di, random_dj, im1
+
 
 def create_sheared_image_pair(d=2**7,sh_i=0.00, sh_j=0.00, max_range=1):
     """ create an image pair with random offset and shearing
@@ -191,6 +190,7 @@ def create_sheared_image_pair(d=2**7,sh_i=0.00, sh_j=0.00, max_range=1):
     im1_same = im1[mI//2-d:mI//2+d,nI//2-d:nI//2+d]
     return im1_same, im2, random_di, random_dj, im1
 
+
 def create_scaled_image_pair(d=2**7,sc_x=1.00, sc_y=1.00, max_range=1):
     """ create an image pair with random offset and scaling
 
@@ -265,6 +265,7 @@ def create_scaled_image_pair(d=2**7,sc_x=1.00, sc_y=1.00, max_range=1):
     im1_same = im1[d:-d,d:-d]
     return im1_same, im2, random_di, random_dj, im1
 
+
 def construct_correlation_peak(I, di, dj, fwhm=3., origin='center'):
     """given a displacement, create a gaussian peak
 
@@ -308,50 +309,3 @@ def construct_correlation_peak(I, di, dj, fwhm=3., origin='center'):
                        np.exp(-4*np.log(2) * ((I_grd-delta_i)**2 +
                                               (J_grd-delta_j)**2) / fwhm**2)))
     return C
-
-# testing functions
-def test_phase_plane_localization(Q, di, dj, tolerance=1.):
-    """ test if an estimate is within bounds
-
-    Parameters
-    ----------
-    Q : numpy.array, size=(m,n), dtype=complex
-        cross-power spectrum
-    di,dj : {float, integer}, unit=pixels
-        displacement estimation
-    tolerance : float
-        absolute tolerance that is allowed
-    """
-    C = np.fft.fftshift(np.real(np.fft.ifft2(Q)))
-    di_hat,dj_hat,_,_ = get_integer_peak_location(C)
-
-    assert np.isclose(np.round(di), di_hat, tolerance)
-    assert np.isclose(np.round(dj), dj_hat, tolerance)
-    return
-
-def test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=.1):
-    assert np.isclose(di, di_hat, tolerance)
-    assert np.isclose(dj, dj_hat, tolerance)
-    return
-
-def test_phase_direction(θ, di, dj, tolerance=5):
-    tolerance = np.deg2radrad(tolerance)
-    θ = np.deg2rad(θ)
-    θ_tilde = np.arctan2(di, dj)
-
-    # convert to complex domain, so angular difference can be done
-    a,b = 1j*np.sin(θ), 1j*np.sin(θ_tilde)
-    a += np.cos(θ)
-    b += np.cos(θ_tilde)
-    assert np.isclose(a,b, tolerance)
-    return
-
-def test_normalize_power_spectrum(Q, tolerance=.001):
-    # trigonometric version
-    Qn = 1j*np.sin(np.angle(Q))
-    Qn += np.cos(np.angle(Q))
-    np.putmask(Qn, Q==0, 0)
-
-    Qd = normalize_power_spectrum(Q)
-    assert np.all(np.isclose(Qd,Qn, tolerance))
-    return

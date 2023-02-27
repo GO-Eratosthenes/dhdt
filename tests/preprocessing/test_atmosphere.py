@@ -1,12 +1,12 @@
 import numpy as np
 
-from ..generic.unit_conversion import celsius2kelvin
-from ..preprocessing.atmospheric_geometry import \
+from dhdt.generic.unit_conversion import celsius2kelvin
+from dhdt.preprocessing.atmospheric_geometry import \
     get_sat_vapor_press, get_water_vapor_enhancement, \
     refractive_index_visible, refractive_index_broadband
 
 # testing functions, based on literature values
-def test_water_vapour_fraction():
+def test_get_sat_vapor_press():
     """ test if the calculations comply with the original work, using values
     of Table2 in [Gi82]_.
 
@@ -65,14 +65,14 @@ def test_water_vapour_fraction():
     assert np.all(np.isclose(svp, svp_tilde, atol=1E2))
     return
 
-def test_water_vapor_enhancement():
+def test_get_water_vapor_enhancement():
     """ test if the calculations comply with the original work, using values
-    of Table3 in [1]
+    of Table3 in [Gi82]_.
 
     References
     ----------
-    .. [1] Giacomo, "Equation for the determination of the density of moist air"
-           Metrologica, vol.18, pp.33-40, 1982.
+    .. [Gi82] Giacomo, "Equation for the determination of the density of moist
+              air" Metrologica, vol.18, pp.33-40, 1982.
     """
     f_hat = np.array([[1.0024, 1.0025, 1.0025, 1.0026, 1.0028, 1.0029, 1.0031],
                     [1.0026, 1.0026, 1.0027, 1.0028, 1.0029, 1.0031, 1.0032],
@@ -90,15 +90,15 @@ def test_water_vapor_enhancement():
     assert np.all(np.isclose(f, f_hat.ravel(), atol=1E-3))
     return
 
-def test_refraction_calculation():
+def test_refractive_index_broadband():
     """ follow the examples in the paper [1], to see if they are correct
 
     References
     ----------
-    .. [1] Birch and Jones, "Correction to the updated Edlen equation for the
-       refractive index of air", Metrologica, vol.31(4) pp.315-316, 1994.
-    .. [2] Ciddor, "Refractive index of air: new equations for the visible and
-       near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
+    .. [BJ94] Birch and Jones, "Correction to the updated Edlen equation for the
+              refractive index of air", Metrologica, vol.31(4) pp.315-316, 1994.
+    .. [Ci96] Ciddor, "Refractive index of air: new equations for the visible
+              and near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
     """
 
     # from Table 3 in [1], or Table 1 in [2]

@@ -398,7 +398,9 @@ def general_midway_equalization(I):
                 inv_CDF[i] = psuedo_inv(CDFs[p], CDFs[x][i])
             inv_CDF[idx_max_CDF:] = np.max(inv_CDF)
             # compute midway equalization (using floating-point):
-            res += np.take(inv_CDF, I[..., x])
+            res += np.take(inv_CDF, I[..., x]-1)
+                # minus is there to resolve the indexing difference between
+                # Python and pixel intensities
         res *= 1 / im_depth
         I_new[..., x] = res
 

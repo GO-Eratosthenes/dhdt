@@ -30,8 +30,8 @@ def rgb2hcv(Blue, Green, Red):
     --------
     rgb2yiq, rgb2ycbcr, rgb2hsi, rgb2xyz, rgb2lms
 
-    Notes
-    -----
+    References
+    ----------
     .. [1] Smith, "Putting colors in order", Dr. Dobb’s Journal, pp 40, 1993.
     .. [2] Tsai, "A comparative study on shadow compensation of color aerial
        images in invariant color models", IEEE transactions in geoscience and
@@ -111,8 +111,8 @@ def rgb2yiq(Red, Green, Blue):
     --------
     yiq2rgb, rgb2hcv, rgb2ycbcr, rgb2hsi, rgb2xyz, rgb2lms
 
-    Notes
-    -----
+    References
+    ----------
     .. [1] Gonzalez & Woods "Digital image processing", 1992.
     """
     are_three_arrays_equal(Blue,Green,Red)
@@ -151,8 +151,8 @@ def yiq2rgb(Y,I,Q):
     --------
     rgb2yiq
 
-    Notes
-    -----
+    References
+    ----------
     .. [1] Gonzalez & Woods "Digital image processing", 1992.
     """
     are_three_arrays_equal(Y,I,Q)
@@ -191,8 +191,8 @@ def rgb2ycbcr(Red, Green, Blue):
     --------
     rgb2hcv, rgb2yiq, rgb2hsi, rgb2xyz, rgb2lms
 
-    Notes
-    -----
+    References
+    ----------
     .. [1] Tsai, "A comparative study on shadow compensation of color aerial
        images in invariant color models", IEEE transactions in geoscience and
        remote sensing, vol. 44(6) pp. 1661--1671, 2006.
@@ -238,8 +238,8 @@ def rgb2hsi(Red, Green, Blue):
     --------
     erdas2hsi, rgb2hcv, rgb2yiq, rgb2ycbcr, rgb2xyz, rgb2lms
 
-    Notes
-    -----
+    References
+    ----------
     .. [1] Tsai, "A comparative study on shadow compensation of color aerial
        images in invariant color models", IEEE transactions in geoscience and
        remote sensing, vol. 44(6) pp. 1661--1671, 2006.
@@ -319,8 +319,8 @@ def erdas2hsi(Blue, Green, Red):
     --------
     rgb2hsi
 
-    Notes
-    -----
+    References
+    ----------
     .. [1] ERDAS, "User handbook", 2013.
     """
     are_three_arrays_equal(Blue,Green,Red)
@@ -383,8 +383,8 @@ def rgb2xyz(Red, Green, Blue, method='reinhardt'):
     --------
     rgb2hcv, rgb2ycbcr, rgb2hsi, rgb2yiq, rgb2lms, xyz2lms
 
-    Notes
-    -----
+    References
+    ----------
     .. [1] Reinhard et al. "Color transfer between images" IEEE Computer graphics
        and applications vol.21(5) pp.34-41, 2001.
     .. [2] Ford & Roberts. "Color space conversion", pp. 1--31, 1998.
@@ -425,8 +425,8 @@ def xyz2lms(X, Y, Z):
     --------
     rgb2hcv, rgb2ycbcr, rgb2hsi, rgb2yiq, rgb2lms
 
-    Notes
-    -----
+    References
+    ----------
     .. [1] Reinhard et al. "Color transfer between images" IEEE Computer graphics
        and applications vol.21(5) pp.34-41, 2001.
     """
@@ -456,8 +456,8 @@ def xyz2lab(X, Y, Z, th=0.008856):
     --------
     rgb2xyz, xyz2lms, lms2lch
 
-    Notes
-    -----
+    References
+    ----------
     .. [1] Ford & Roberts. "Color space conversion", pp. 1--31, 1998.
     .. [2] Silva et al. "Near real-time shadow detection and removal in aerial
        motion imagery application" ISPRS journal of photogrammetry and remote
@@ -499,8 +499,8 @@ def lab2lch(L, a, b):
     --------
     rgb2xyz, xyz2lms, xyz2lab
 
-    Notes
-    -----
+    References
+    ----------
     .. [1] Ford & Roberts. "Color space conversion", pp. 1--31, 1998.
     .. [2] Silva et al. "Near real-time shadow detection and removal in aerial
        motion imagery application" ISPRS journal of photogrammetry and remote
@@ -534,8 +534,8 @@ def rgb2lms(Red, Green, Blue):
     --------
     rgb2hcv, rgb2ycbcr, rgb2hsi, rgb2yiq, rgb2xyz, xyz2lms
 
-    Notes
-    -----
+    References
+    ----------
     .. [1] Reinhard et al. "Color transfer between images", 2001.
     """
     are_three_arrays_equal(Blue,Green,Red)
@@ -564,8 +564,8 @@ def lms2lab(L, M, S):
     --------
     rgb2hcv, rgb2ycbcr, rgb2hsi, rgb2yiq, rgb2xyz, xyz2lms
 
-    Notes
-    -----
+    References
+    ----------
     .. [1] Reinhard et al. "Color transfer between images", 2001.
     """
     are_three_arrays_equal(L,M,S)
