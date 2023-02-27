@@ -146,7 +146,7 @@ def create_stac_catalog(args: argparse.Namespace) -> None:
     catalog = pystac.Catalog(id=catalog_id, description=catalog_description)
 
     scenes_df = gpd.read_file(geojson_path)
-    items = (_create_item(scene.filename) for _, scene in scenes_df.loc[:2].iterrows())
+    items = (_create_item(scene.filename) for _, scene in scenes_df.iterrows())
     catalog.add_items(items)
 
     if template is not None:
