@@ -3,20 +3,29 @@
 ## Introduction
 
 In [this notebook](../../docs/tutorials/sentinel-2-imagery.ipynb), we have searched for the Sentinel-2 images that 
-includes a predefined area-of-interest (the Brintnell-Bologna icefield) via the [Copernicus Data Access Hub API]()
-and the [Sentinelsat tool](). Metadata from the scenes that match the search have been saved in GeoJSON format. 
+include a predefined area-of-interest (the Brintnell-Bologna icefield) via the [Copernicus Data Access Hub API](https://scihub.copernicus.eu/)
+and the [Sentinelsat tool](https://github.com/sentinelsat/sentinelsat). Metadata from the scenes that match the search 
+have been saved in GeoJSON format. 
 
 We provide here scripts and instructions to:
 
 * Convert the scenes' metadata from GeoJSON to the SpatioTemporal Asset Catalog (STAC) format, linking the most relevant 
   Sentinel-2 data products to the corresponding files on [Google Cloud Storage (GCS)](https://cloud.google.com/storage/docs/public-datasets/sentinel-2).
 
-* Download the files from GCS and store these alongside the corresponding scene's metadata. 
+* Download the data files from GCS and store these alongside the corresponding scene's metadata. 
+
+## Requirements
+
+The following required libraries can be installed with `pip`:
+
+```shell
+pip install geopandas pystac stactools stactools-sentinel2
+```
 
 ## Convert GeoJSON search results to STAC
 
-Run the script [sentinel-2-STAC.py](./sentinel-2-STAC.py) with the `create` positional argument to create a catalog with 
-links to the GCS assets, e.g.:
+Run the Python script [sentinel-2-STAC.py](./sentinel-2-STAC.py) with the `create` positional argument to create a 
+catalog with links to the GCS assets, e.g.:
 
 ```shell
 # Create Sentinel-2 L1C data catalog
