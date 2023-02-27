@@ -467,7 +467,7 @@ def phase_difference(Q, W=np.array([])):
     Example
     -------
     >>> import numpy as np
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.generic.test_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> Q = phase_corr(im1, im2)
