@@ -40,7 +40,7 @@ Run the same script with the `download` positional argument to retrieve (a subse
 
 ```shell
 # Download Sentinel-2 L1C data (few bands and metadata files)
-python sentinel-2-STAC.py --catalog-path ./data/sentinel-2/sentinel2-l1c/catalog.json  download --assets 'blue green red nir product_metadata granule_metadata inspire_metadata datastrip_metadata sensor_metadata_B02 sensor_metadata_B03 sensor_metadata_B04 sensor_metadata_B08'
+python sentinel-2-STAC.py --catalog-path ./data/sentinel-2/sentinel2-l1c/catalog.json  download --assets blue green red nir product_metadata granule_metadata inspire_metadata datastrip_metadata sensor_metadata_B02 sensor_metadata_B03 sensor_metadata_B04 sensor_metadata_B08
 # Download Sentinel-2 L2A data (only scene classification layer)
 python sentinel-2-STAC.py --catalog-path ./data/sentinel-2/sentinel2-l2a/catalog.json  download --assets scl
 ```
