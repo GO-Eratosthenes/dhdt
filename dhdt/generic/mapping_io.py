@@ -11,8 +11,9 @@ from osgeo import gdal, osr, ogr
 from xml.etree import ElementTree
 from netCDF4 import Dataset, date2num
 
-from .unit_check import correct_geoTransform, is_crs_an_srs
-from .mapping_tools import pix_centers
+from dhdt.generic.unit_check import correct_geoTransform, is_crs_an_srs
+from dhdt.generic.mapping_tools import pix_centers
+from dhdt.testing.mapping_tools import create_local_crs
 
 def read_geo_info(fname):
     """ This function takes as input the geotiff name and the path of the
@@ -180,6 +181,7 @@ def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes',
     >>> I_ones = np.zeros(I.shape, dtype=bool)
     >>> make_geo_im(I_ones, geoTransformM, spatialRefM, ‘ones.tif’)
     """
+    if crs is None: crs = create_local_crs()
     if not isinstance(crs, str): crs = crs.ExportToWkt()
     R = correct_geoTransform(R)
     bands = I.shape[2] if I.ndim == 3 else 1

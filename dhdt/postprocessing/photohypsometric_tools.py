@@ -678,8 +678,8 @@ def get_casted_elevation_difference_rec(dh):
                                           xy_1, xy_2, xy_t)
         dxyt_line = np.rec.fromarrays([xy_1[:,0], xy_1[:,1],
                dh_ioi['timestamp'][network_id[:,0]], xy_2[:,0], xy_2[:,1],
-               dh_ioi['timestamp'][network_id[:,1]], dz_ioi], names=names,
-               formats=formats)
+               dh_ioi['timestamp'][network_id[:,1]],
+               np.atleast_1d(np.squeeze(dz_ioi))], names=names, formats=formats)
         dxyt = stack_arrays((dxyt, dxyt_line),
                             asrecarray=True, usemask=False)
     return dxyt

@@ -11,7 +11,6 @@ from numpy.lib.recfunctions import stack_arrays, merge_arrays
 
 from sklearn.neighbors import NearestNeighbors
 from scipy.spatial.distance import cdist
-from skimage import measure
 
 from dhdt.generic.unit_check import correct_geoTransform
 from dhdt.generic.mapping_tools import pix2map, cast_orientation, ref_trans, \
@@ -30,9 +29,6 @@ from dhdt.processing.matching_tools_organization import \
     estimate_match_metric
 from dhdt.processing.matching_tools_differential import \
     affine_optical_flow, simple_optical_flow
-from dhdt.processing.matching_tools_binairy_boundaries import \
-    beam_angle_statistics, cast_angle_neighbours, neighbouring_cast_distances
-
 
 # simple image matching
 def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
@@ -373,10 +369,6 @@ def couple_pair(file_1, file_2, bbox=None, rgi_id=None,
     if processing in ['shadow']:
         I1 = read_geo_image(os.path.join(dir_im1, shw_fname), boi=boi)[0]
         I2 = read_geo_image(os.path.join(dir_im2, shw_fname), boi=boi)[0]
-    elif processing in ['stacking']: # multi-spectral stacking
-        #todo
-        I1 = get_stack_out_of_dir(dir_im1,boi,bbox)[0]
-        I2 = get_stack_out_of_dir(dir_im2,boi,bbox)[0]
     else: # load the files given
         I1 = read_geo_image(file_1, boi=boi)[0]
         I2 = read_geo_image(file_2, boi=boi)[0]
@@ -1061,9 +1053,9 @@ def get_intersection(xy_1, xy_2, xy_3, xy_4):
 def _get_zenith_from_sun(sun):
     if type(sun) in (float,): return np.deg2rad(sun)
     if sun.size==1: # only zenith angles are given
-        zn = np.deg2rad(sun)
+        zn = np.squeeze(np.deg2rad(sun))
     elif sun.shape[1]==2: # both azimuth an zenith are given
-        zn = np.deg2rad(sun[:,1])
+        zn = np.squeeze(np.deg2rad(sun[:,1]))
     return zn
 
 def get_elevation_difference(sun_1, sun_2, xy_1, xy_2, xy_t):

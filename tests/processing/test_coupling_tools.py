@@ -16,19 +16,21 @@ from dhdt.processing.network_tools import get_network_indices
 from dhdt.testing.terrain_tools import \
     create_artificial_terrain, create_artifical_sun_angles, \
     create_shadow_caster_casted
+from dhdt.testing.mapping_tools import create_local_crs
 
 # testing functions
-def test_photohypsometric_coupling(N, Z_shape, tolerance=0.1):
+def test_photohypsometric_coupling(N=10, Z_shape=(400,600), tolerance=20):
     Z, geoTransform = create_artificial_terrain(Z_shape[0], Z_shape[1])
     az,zn = create_artifical_sun_angles(N)
+    crs = create_local_crs()
 
     # create temperary directory
     with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmpdir:
         dump_path = os.path.join(os.getcwd(), tmpdir)
         for i in range(N):
             f_name = "conn-"+str(i).zfill(3)+".txt"
-            create_shadow_caster_casted(Z, geoTransform,
-                                        az[i], zn[i], dump_path, out_name=f_name, incl_image=False)
+            create_shadow_caster_casted(Z, geoTransform, az[i], zn[i],
+                dump_path, out_name=f_name, incl_image=False, crs=crs)
 
         conn_list = tuple("conn-"+str(i).zfill(3)+".txt" for i in range(N))
         dh = read_conn_files_to_stack(None, conn_file=conn_list,
@@ -40,8 +42,8 @@ def test_photohypsometric_coupling(N, Z_shape, tolerance=0.1):
 
     assert np.isclose(0, np.quantile(dhdt['dZ_12'], 0.5), atol=tolerance)
 
-def test_photohypsometric_refinement_by_same(Z_shape, tolerance=1.0,
-                                              weight=False):
+def test_photohypsometric_refinement_by_same(Z_shape=(400,600), tolerance=1.0,
+                                             weight=False):
     Z, geoTransform = create_artificial_terrain(Z_shape[0], Z_shape[1])
     az,zn = create_artifical_sun_angles(1)
 

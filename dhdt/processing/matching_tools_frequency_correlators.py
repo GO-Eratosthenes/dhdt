@@ -8,7 +8,8 @@ from .matching_tools import \
     reposition_templates_from_center, make_templates_same_size, \
     get_integer_peak_location, get_data_and_mask
 from .matching_tools_frequency_filters import \
-    raised_cosine, thresh_masking, normalize_power_spectrum, gaussian_mask, make_template_float
+    raised_cosine, thresh_masking, normalize_power_spectrum, gaussian_mask, \
+    make_template_float
 from .matching_tools_harmonic_functions import create_complex_fftpack_DCT
 
 def upsample_dft(Q, up_m=0, up_n=0, upsampling=1,
@@ -581,7 +582,7 @@ def symmetric_phase_corr(I1, I2):
 
     I1sub,I2sub = make_templates_same_size(I1,I2)
     I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
-    if (I1.ndim==3) or (I2.ndim==3): # single pair processing
+    if (I1.ndim!=3) and (I2.ndim!=3): # single pair processing
         Q = _symmetric_phase_corr_core(I1sub, I2sub)
         return Q
 

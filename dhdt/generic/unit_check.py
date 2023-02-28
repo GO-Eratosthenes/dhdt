@@ -45,6 +45,10 @@ def is_crs_an_srs(crs):
     -------
     verdict : bool
         is the reference system a mapping system
+
+    See Also
+    --------
+    dhdt.testing.mapping_tools.create_local_crs
     """
     if not isinstance(crs, str): crs = crs.ExportToWkt()
     return crs.find('"metre"')!=-1

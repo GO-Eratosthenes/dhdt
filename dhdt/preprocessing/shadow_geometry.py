@@ -361,7 +361,7 @@ def shadow_image_to_list(M, geoTransform, s2_path,
     timestamp : string
         the date of acquistion
     crs : {osr.SpatialReference, string}
-        the coordinate reference system via GDAL SpatialReference describtion
+        the coordinate reference system via GDAL SpatialReference description
     """
     if (Zn is None) or (Az is None):
         Zn, Az = read_mean_sun_angles_s2(s2_path)
@@ -372,7 +372,7 @@ def shadow_image_to_list(M, geoTransform, s2_path,
     if timestamp is not None:
         assert isinstance(timestamp, str), \
             ('please provide a string for the timestamp')
-    if timestamp is not None:
+    if crs is not None:
         if not isinstance(crs, str):
             crs = crs.ExportToWkt()
 

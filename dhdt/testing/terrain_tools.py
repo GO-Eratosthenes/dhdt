@@ -19,6 +19,7 @@ from dhdt.preprocessing.shadow_geometry import shadow_image_to_list
 from dhdt.presentation.velocity_tools import make_seeds
 from dhdt.processing.matching_tools import remove_posts_outside_image
 from dhdt.postprocessing.solar_tools import make_shadowing, make_shading
+from dhdt.testing.mapping_tools import create_local_crs
 
 def create_artificial_terrain(m, n, step_size=.01, multi_res=(2,4)):
     """ create artificail terrain, based upon Perlin noise, with a flavour of
@@ -37,6 +38,10 @@ def create_artificial_terrain(m, n, step_size=.01, multi_res=(2,4)):
         data array with elevation values
     geoTransform : tuple, size=(8,1)
         affine transformation coefficients, and dimensions of the array.
+
+    See Also
+    --------
+    dhdt.testing.mapping_tools.create_local_crs
     """
     if m is None: m = 1E3
     if n is None: n = 1E3
@@ -146,10 +151,7 @@ def create_shadow_caster_casted(Z, geoTransform, az, zn, out_path,
     spac = get_max_pixel_spacing(geoTransform)
     Shw = make_shadowing(Z, az, zn, spac=spac)
 
-    if np.logical_or(incl_image, incl_wght):
-         crs = osr.SpatialReference()
-         crs.ImportFromEPSG(3411)
-         # Northern Hemisphere Projection Based on Hughes 1980 Ellipsoid
+    if np.logical_or(incl_image, incl_wght): crs = create_local_crs()
 
     if incl_image:
         im_name = out_name.split('.')[0]+".tif"

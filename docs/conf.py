@@ -39,14 +39,15 @@ import dhdt
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-	'nbsphinx', 
-	'sphinx.ext.autodoc', 
+	'nbsphinx',
+	'sphinx.ext.autodoc',
 	'sphinx.ext.napoleon',
 	'sphinx_gallery.load_style'
 ]
 
 nbsphinx_thumbnails = {
     'tutorials/std-matc': '_static/std-matc.png',
+    'tutorials/sentinel-2-imagery': '_static/api-s2.png',
     'tutorials/shadow-enhancement': '_static/shd-enhc.png',
     'tutorials/shadow-finding': '_static/shd-det.png',
     'tutorials/shadow-detection': '_static/shd-tran.png',

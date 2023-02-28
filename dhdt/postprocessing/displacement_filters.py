@@ -50,12 +50,12 @@ def local_infilling_filter(I, tsize=5):
 
     References
     ----------
-    .. [JoXX] Joughin "Ice-sheet velocity mapping: a combined interferometric
+    .. [Jo02] Joughin "Ice-sheet velocity mapping: a combined interferometric
               and speckle-tracking approach", Annuals of glaciology vol.34
-              pp.195-201.
-    .. [JoYY] Joughin et al. "Greenland ice mapping project 2 (GIMP-2) algorithm
+              pp.195-201, 2002.
+    .. [Jo17] Joughin et al. "Greenland ice mapping project 2 (GIMP-2) algorithm
               theoretical basis document", Making earth system data records for
-              use in research environment (MEaSUREs) documentation.
+              use in research environment (MEaSUREs) documentation, 2017.
     """
 
     I_new = ndimage.generic_filter(I, infill_func, size=(tsize, tsize))
@@ -158,12 +158,12 @@ def local_variance(V, tsize=5):
 
     References
     ----------
-    .. [JoXX] Joughin "Ice-sheet velocity mapping: a combined interferometric
+    .. [Jo02] Joughin "Ice-sheet velocity mapping: a combined interferometric
               and speckle-tracking approach", Annuals of glaciology vol.34
-              pp.195-201.
-    .. [JoYY] Joughin et al. "Greenland ice mapping project 2 (GIMP-2) algorithm
+              pp.195-201, 2002.
+    .. [Jo17] Joughin et al. "Greenland ice mapping project 2 (GIMP-2) algorithm
               theoretical basis document", Making earth system data records for
-              use in research environment (MEaSUREs) documentation.
+              use in research environment (MEaSUREs) documentation, 2017.
     """
     V_class = local_mad_filter(V, tsize=tsize)
     V[V_class] = np.nan
