@@ -57,7 +57,7 @@ def download_mgrs_tiling(mgrs_dir=None, output='sentinel2_tiles_world.geojson', 
 
 def _kml_to_gdf(filename):
     """
-    Convert MGRS kml file to a GeoPandas DataFrame
+    Read MGRS kml file as a GeoPandas DataFrame
 
     Parameters
     ----------
@@ -66,8 +66,8 @@ def _kml_to_gdf(filename):
 
     Returns
     -------
-    str
-        gejson file name
+geopandas.geodataframe.GeoDataFrame
+        KML file read as a GeoDataFrame
     """
     # Load kml file
     gdf = gpd.read_file(filename, driver="KML")
