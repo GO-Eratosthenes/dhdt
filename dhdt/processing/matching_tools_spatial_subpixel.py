@@ -17,11 +17,11 @@ def get_top_moment(C, ds=1, top=np.array([])):
 
     Parameters
     ----------
-    C : numpy.array, size=(_,_)
+    C : numpy.ndarray, size=(_,_)
         similarity surface
     ds : integer, default=1
         size of the radius to use neighboring information
-    top : numpy.array, size=(1,2)
+    top : numpy.ndarray, size=(1,2)
         location of the maximum score
 
     Returns
@@ -35,14 +35,14 @@ def get_top_moment(C, ds=1, top=np.array([])):
     j_int : integer
         location of highest score on the horizontal axis
 
-    Notes
-    -----
-    [1] Feng et al. "A subpixel registration algorithm for low PSNR images"
-    IEEE international conference on advanced computational intelligence,
-    pp. 626-630, 2012.
-    [2] Messerli & Grinstad, "Image georectification and feature tracking
-    toolbox: ImGRAFT" Geoscientific instrumentation, methods and data systems,
-    vol. 4(1) pp. 23-34, 2015.
+    References
+    ----------
+    .. [Fe12] Feng et al. "A subpixel registration algorithm for low PSNR
+              images" IEEE international conference on advanced computational
+              intelligence, pp.626-630, 2012.
+    .. [MG15] Messerli & Grinstad, "Image georectification and feature tracking
+              toolbox: ImGRAFT" Geoscientific instrumentation, methods and data
+              systems, vol.4(1) pp.23-34, 2015.
     """
 
     (subJ,subI) = np.meshgrid(np.linspace(-ds,+ds, 2*ds+1),
@@ -137,9 +137,9 @@ def get_top_gaussian(C, top=np.array([])):
 
     Parameters
     ----------
-    C : numpy.array, size=(_,_)
+    C : numpy.ndarray, size=(_,_)
         similarity surface
-    top : numpy.array, size=(1,2)
+    top : numpy.ndarray, size=(1,2)
         location of the maximum score
 
     Returns
@@ -157,12 +157,12 @@ def get_top_gaussian(C, top=np.array([])):
 
     Notes
     -----
-    .. [1] Willert & Gharib, "Digital particle image velocimetry", Experiments
-       in fluids, vol.10 pp.181-193, 1991.
-    .. [2] Argyriou & Vlachos, "A Study of sub-pixel motion estimation using
-       phase correlation" Proceeding of the British machine vision conference,
-       pp.387-396, 2006.
-    .. [3] Raffel et al. "Particle Image Velocimetry" Ch.6 pp.184 2018.
+    .. [WG91] Willert & Gharib, "Digital particle image velocimetry",
+              Experiments in fluids, vol.10 pp.181-193, 1991.
+    .. [AV06] Argyriou & Vlachos, "A Study of sub-pixel motion estimation using
+              phase correlation" Proceeding of the British machine vision
+              conference, pp.387-396, 2006.
+    .. [Ra18] Raffel et al. "Particle Image Velocimetry" Ch.6 pp.184 2018.
     """
     if top.size==0: # find highest score
         di,dj,max_corr,snr = get_integer_peak_location(C)
@@ -189,9 +189,9 @@ def get_top_centroid(C, top=np.array([])):
 
     Parameters
     ----------
-    C : numpy.array, size=(_,_)
+    C : numpy.ndarray, size=(_,_)
         similarity surface
-    top : numpy.array, size=(1,2)
+    top : numpy.ndarray, size=(1,2)
         location of the maximum score
 
     Returns
@@ -209,7 +209,7 @@ def get_top_centroid(C, top=np.array([])):
 
     Notes
     -----
-    .. [1] Raffel et al. "Particle Image Velocimetry" Ch.6 pp.184, 2018.
+    .. [Ra18] Raffel et al. "Particle Image Velocimetry" Ch.6 pp.184, 2018.
     """
     if top.size==0: # find highest score
         di,dj,max_corr,snr = get_integer_peak_location(C)
@@ -256,9 +256,9 @@ def get_top_mass(C, top=np.array([])):
 
     Notes
     -----
-    .. [1] Fisher & Naidu, "A Comparison of algorithms for subpixel peak
-       detection" in Image Technology - Advances in image processing, multimedia
-       and machine vision pp.385-404, 1996.
+    .. [FN96] Fisher & Naidu, "A Comparison of algorithms for subpixel peak
+              detection" in Image Technology - Advances in image processing,
+              multimedia and machine vision pp.385-404, 1996.
     """
 
     if top.size==0: # find highest score
@@ -303,8 +303,8 @@ def get_top_blais(C, top=np.array([])):
 
     Notes
     -----
-    .. [1] Blais & Rioux, "Real-time numerical peak detector" Signal processing
-       vol.11 pp.145-155, 1986.
+    .. [BR86] Blais & Rioux, "Real-time numerical peak detector" Signal
+              processing vol.11 pp.145-155, 1986.
     """
 
     if top.size==0: # find highest score
@@ -363,12 +363,12 @@ def get_top_parabolic(C, top=np.array([]), ds=1):
 
     Notes
     -----
-    .. [1] Argyriou & Vlachos, "A Study of sub-pixel motion estimation using
-       phase correlation" Proceeding of the British machine vision conference,
-       pp. 387-396), 2006.
-    .. [2] Raffel et al. "Particle Image Velocimetry" Ch.6 pp.184 2018.
-    .. [3] Bradley, "Sub-pixel registration for low cost, low dosage, X-ray
-       phase contrast imaging", 2021.
+    .. [AV06] Argyriou & Vlachos, "A Study of sub-pixel motion estimation using
+              phase correlation" Proceeding of the British machine vision
+              conference, pp.387-396), 2006.
+    .. [Ra18] Raffel et al. "Particle Image Velocimetry" Ch.6 pp.184 2018.
+    .. [Br21] Bradley, "Sub-pixel registration for low cost, low dosage, X-ray
+              phase contrast imaging", 2021.
     """
 
     if top.size==0: # find highest score
@@ -389,7 +389,7 @@ def get_top_parabolic(C, top=np.array([]), ds=1):
                         2*( (2*C[di,dj]) -C[di-1,dj] -C[di+1,dj]))
         ddj = np.divide((C[di,dj+1] - C[di,dj-1]) ,
                         2*( (2*C[di,dj]) -C[di,dj-1] -C[di,dj+1]))
-    else: # use five points, from [3]
+    else: # use five points, from [Br21]_
         ddi = np.divide( 7*( (2*C[di+2,dj]) +C[di+1,dj]
                             -C[di-1,dj] -(2*C[di-2,dj])),
                          5*( +(2*C[di-2,dj]) -C[di-1,dj]
@@ -427,9 +427,9 @@ def get_top_equiangular(C, top=np.array([])):
 
     Notes
     -----
-    .. [1] Shimizu & Okutomi. "Sub-pixel estimation error cancellation on
-       area-based matching" International journal of computer vision, vol.63(3),
-       pp.207–224, 2005.
+    .. [SO05] Shimizu & Okutomi. "Sub-pixel estimation error cancellation on
+              area-based matching" International journal of computer vision,
+              vol.63(3), pp.207–224, 2005.
     """
 
     if top.size==0: # find highest score
@@ -483,8 +483,9 @@ def get_top_birchfield(C, top=np.array([])):
 
     Notes
     -----
-    .. [1] Birchfield & Tomasi. "Depth discontinuities by pixel-to-pixel stereo"
-       International journal of computer vision, vol. 35(3)3 pp. 269-293, 1999.
+    .. [BT99] Birchfield & Tomasi. "Depth discontinuities by pixel-to-pixel
+              stereo" International journal of computer vision, vol. 35(3)
+              pp.269-293, 1999.
     """
 
     if top.size==0: # find highest score
@@ -536,9 +537,9 @@ def get_top_ren(C, top=np.array([])):
 
     Notes
     -----
-    .. [1] Ren et al. "High-accuracy sub-pixel motion estimation from noisy
-       images in Fourier domain." IEEE transactions on image processing,
-       vol.19(5) pp.1379-1384, 2010.
+    .. [Re10] Ren et al. "High-accuracy sub-pixel motion estimation from noisy
+              images in Fourier domain." IEEE transactions on image processing,
+              vol.19(5) pp.1379-1384, 2010.
     """
     if top.size==0: # find highest score
         di,dj,_,_ = get_integer_peak_location(C)
@@ -586,8 +587,9 @@ def get_top_triangular(C, top=np.array([])):
 
     Notes
     -----
-    .. [1] Olsen & Coombs, "Real-time vergence control for binocular robots"
-       International journal of computer vision, vol. 7(1), pp. 67-89, 1991.
+    .. [OC91] Olsen & Coombs, "Real-time vergence control for binocular robots"
+              International journal of computer vision, vol.7(1), pp.67-89,
+              1991.
     """
     if top.size==0: # find highest score
         di,dj,_,_ = get_integer_peak_location(C)
@@ -637,9 +639,9 @@ def get_top_esinc(C, ds=1, top=np.array([])):
 
     Notes
     -----
-    .. [1] Argyriou & Vlachos, "A study of sub-pixel motion estimation using
-       phase correlation", proceedings of the British machine vision conference,
-       2006
+    .. [AV06] Argyriou & Vlachos, "A study of sub-pixel motion estimation using
+              phase correlation", proceedings of the British machine vision
+              conference, 2006
     '''
     if top.size==0: # find highest score
         di,dj,_,_ = get_integer_peak_location(C)
@@ -698,10 +700,10 @@ def get_top_2d_gaussian(C, top=np.array([])):
 
     Notes
     -----
-    .. [1] Nobach & Honkanen, "Two-dimensional Gaussian regression for sub-pixel
-       displacement estimation in particle image velocimetry or particle
-       position estimation in particle tracking velocimetry", Experiments in
-       fluids, vol.38 pp.511-515, 2005
+    .. [NH05] Nobach & Honkanen, "Two-dimensional Gaussian regression for
+              sub-pixel displacement estimation in particle image velocimetry or
+              particle position estimation in particle tracking velocimetry",
+              Experiments in fluids, vol.38 pp.511-515, 2005
     '''
     (Jsub,Isub) = np.meshgrid(np.linspace(-1,+1, 3), np.linspace(-1,+1, 3))
     Isub = Isub.ravel()
@@ -760,9 +762,9 @@ def get_top_paraboloid(C, top=np.array([])):
 
     Notes
     -----
-    .. [1] Pallotta et al. "Subpixel SAR image registration through parabolic
-       interpolation of the 2-D cross correlation",  IEEE transactions on
-       geoscience and remote sensing, vol.58(6) pp.4132--4144, 2020.
+    .. [Pa20] Pallotta et al. "Subpixel SAR image registration through parabolic
+              interpolation of the 2-D cross correlation",  IEEE transactions on
+              geoscience and remote sensing, vol.58(6) pp.4132--4144, 2020.
     '''
     if top.size==0: # find highest score
         di,dj,_,_ = get_integer_peak_location(C)

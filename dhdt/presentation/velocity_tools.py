@@ -71,9 +71,9 @@ def streamplot2list(X,Y, U,V, density=[1, 1]):
 
     Parameters
     ----------
-    X,Y : numpy.array, size=(m,n)
+    X,Y : numpy.ndarray, size=(m,n)
         map coordinates
-    U,V : numpy.array, size=(m,n)
+    U,V : numpy.ndarray, size=(m,n)
         displacement in X and Y direction
     density: {float, list}
         density of streamlines

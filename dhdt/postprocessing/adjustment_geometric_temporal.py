@@ -122,12 +122,12 @@ def rotate_disp_field(UV, θ):
 
     Parameters
     ----------
-    UV : numpy.array, size=(m,n), dtype=complex
+    UV : numpy.ndarray, size=(m,n), dtype=complex
         grid with displacements in complex form
-    θ : {numpy.array, float}, angle, unit=degrees
+    θ : {numpy.ndarray, float}, angle, unit=degrees
         rotation angle
 
-    UV_r :  numpy.array, size=(m,n), dtype=complex
+    UV_r :  numpy.ndarray, size=(m,n), dtype=complex
         grid with rotated displacements in complex form
     """
     assert(UV.dtype is np.dtype('complex'))
@@ -140,16 +140,16 @@ def helmholtz_hodge(dX, dY):
 
     Parameters
     ----------
-    dX : numpy.array, size=(m,n)
+    dX : numpy.ndarray, size=(m,n)
         horizontal displacement
-    dY : numpy.array, size=(m,n)
+    dY : numpy.ndarray, size=(m,n)
         vertical displacement
 
     Returns
     -------
-    dX_divfre, dY_divfre : numpy.array, size=(m,n)
+    dX_divfre, dY_divfre : numpy.ndarray, size=(m,n)
         divergence-free vector field
-    dX_irrot, dY_irrot : numpy.array, size=(m,n)
+    dX_irrot, dY_irrot : numpy.ndarray, size=(m,n)
         irrotational vector field
     """
     assert type(dX) == np.ndarray, ("please provide an array")

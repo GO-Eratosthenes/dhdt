@@ -15,9 +15,9 @@ def get_CO2_level(lat, date, m=3, nb=3):
     Rough estimation of CO₂, based upon measurements of global 'Station data'__
 
     The annual trend is based upon the 'Global trend'__ in CO₂ while the
-    seasonal trend is based upon relations as shown in Figure 1 in [1]. Where a
-    latitudal component is present in the ampltitude, as well as, an asymmetric
-    triangular wave.
+    seasonal trend is based upon relations as shown in Figure 1 in [Ba16]_.
+    Where a latitudal component is present in the ampltitude, as well as, an
+    asymmetric triangular wave.
 
     Parameters
     ----------
@@ -70,9 +70,9 @@ def get_CO2_level(lat, date, m=3, nb=3):
 
     References
     ----------
-    .. [1] Barnes et al. "Isentropic transport and the seasonal cycle amplitude
-       of CO₂" Journal of geophysical research: atmosphere, vol.121
-       pp.8106-8124, 2016.
+    .. [Ba16] Barnes et al. "Isentropic transport and the seasonal cycle
+              amplitude of CO₂" Journal of geophysical research: atmosphere,
+              vol.121 pp.8106-8124, 2016.
     """
 
     # global trend:
@@ -104,8 +104,8 @@ def get_CO2_level(lat, date, m=3, nb=3):
     return total_co2
 
 def get_height_tropopause(lat):
-    """ The tropopause can be related to its latitude [1] and a least squares
-    fit is given in [2].
+    """ The tropopause can be related to its latitude [Al73]_ and a least
+    squares fit is given in [No99]_.
 
     Parameters
     ----------
@@ -144,18 +144,18 @@ def get_height_tropopause(lat):
 
     References
     ----------
-    .. [1] Allen, "Astrophysical quantities", pp.121-124, 1973.
-    .. [2] Noerdlinger, "Atmospheric refraction effects in Earth remote sensing"
-       ISPRS journal of photogrammetry and remote sensing, vol.54, pp.360-373,
-       1999.
+    .. [Al73] Allen, "Astrophysical quantities", pp.121-124, 1973.
+    .. [No99] Noerdlinger, "Atmospheric refraction effects in Earth remote
+              sensing" ISPRS journal of photogrammetry and remote sensing,
+              vol.54, pp.360-373, 1999.
     """
     lat = np.deg2rad(lat)
     h_t = 17786.1 - 9338.96*np.abs(lat) + 1271.91*(lat**2)  # eq. A9 in [2]
     return h_t
 
 def get_T_sealevel(lat, method='noerdlinger'):
-    """ The temperature at sea level can be related to its latitude [1] and a
-    least squares fit is given in [2] and [3].
+    """ The temperature at sea level can be related to its latitude [Al73]_ and
+    a least squares fit is given in [No99]_ and [Ya16]_.
 
     Parameters
     ----------
@@ -172,13 +172,14 @@ def get_T_sealevel(lat, method='noerdlinger'):
 
     References
     ----------
-    .. [1] Allen, "Astrophysical quantities", pp.121-124, 1973.
-    .. [2] Noerdlinger, "Atmospheric refraction effects in Earth remote sensing"
-       ISPRS journal of photogrammetry and remote sensing, vol.54, pp.360-373,
-       1999.
-    .. [3] Yan et al, "Correction of atmospheric refraction geolocation error of
-       high resolution optical satellite pushbroom images" Photogrammetric
-       engineering & remote sensing, vol.82(6) pp.427-435, 2016.
+    .. [Al73] Allen, "Astrophysical quantities", pp.121-124, 1973.
+    .. [No99] Noerdlinger, "Atmospheric refraction effects in Earth remote
+              sensing" ISPRS journal of photogrammetry and remote sensing,
+              vol.54, pp.360-373, 1999.
+    .. [Ya16] Yan et al, "Correction of atmospheric refraction geolocation error
+              of high resolution optical satellite pushbroom images"
+              Photogrammetric engineering & remote sensing, vol.82(6)
+              pp.427-435, 2016.
     """
     if method in ['noerdlinger']:
         T_sl = 245.856 + 53.4894*np.cos(np.deg2rad(lat))    # eq. A10 in [2]
@@ -217,9 +218,10 @@ def get_T_in_troposphere(h, T_0):
 
     References
     ----------
-    .. [1] Yan et al, "Correction of atmospheric refraction geolocation error of
-       high resolution optical satellite pushbroom images" Photogrammetric
-       engineering & remote sensing, vol.82(6) pp.427-435, 2016.
+    .. [Ya16] Yan et al, "Correction of atmospheric refraction geolocation error
+              of high resolution optical satellite pushbroom images"
+              Photogrammetric engineering & remote sensing, vol.82(6)
+              pp.427-435, 2016.
     """
 
     t_0 = kelvin2celsius(T_0)
@@ -245,9 +247,10 @@ def get_water_vapor_press(T):
 
     References
     ----------
-    .. [1] Yan et al, "Correction of atmospheric refraction geolocation error of
-       high resolution optical satellite pushbroom images" Photogrammetric
-       engineering & remote sensing, vol.82(6) pp.427-435, 2016.
+    .. [Ya16] Yan et al, "Correction of atmospheric refraction geolocation error
+              of high resolution optical satellite pushbroom images"
+              Photogrammetric engineering & remote sensing, vol.82(6)
+              pp.427-435, 2016.
     """
     t = kelvin2celsius(T)
     P_w = (7.38E-3*t + 0.8072)**8 - \
@@ -275,12 +278,12 @@ def get_sat_vapor_press(T, method='IAPWS'):
 
     References
     ----------
-    .. [1] Giacomo, "Equation for the determination of the density of moist air"
-           Metrologica, vol.18, pp.33-40, 1982.
-    .. [2] Wagner and Pruß, "The IAPWS formulation 1995 for the thermodynamic
-           properties of ordinary water substance for general and scientific
-           use.” Journal of physical and chemical reference data, vol.31(2),
-           pp.387-535, 2002.
+    .. [Gi82] Giacomo, "Equation for the determination of the density of moist
+              air" Metrologica, vol.18, pp.33-40, 1982.
+    .. [WP02] Wagner and Pruß, "The IAPWS formulation 1995 for the thermodynamic
+              properties of ordinary water substance for general and scientific
+              use.” Journal of physical and chemical reference data, vol.31(2),
+              pp.387-535, 2002.
     """
     if method in ('simple', 'old'):
         A, B, C, D = 1.2378847E-5, -1.9121316E-2, 33.93711047, -6.3431645E3
@@ -314,10 +317,10 @@ def get_sat_vapor_press_ice(T):
 
     References
     ----------
-    .. [1] Wagner and Pruß, "The IAPWS formulation 1995 for the thermodynamic
-       properties of ordinary water substance for general and scientific
-       use.” Journal of physical and chemical reference data, vol.31(2),
-       pp.387-535, 2002.
+    .. [WP02] Wagner and Pruß, "The IAPWS formulation 1995 for the thermodynamic
+              properties of ordinary water substance for general and scientific
+              use.” Journal of physical and chemical reference data, vol.31(2),
+              pp.387-535, 2002.
     """
     a_1, a_2 = -13.928169, 34.7078238
     t_frac = np.divide(T, 273.16)
@@ -345,9 +348,9 @@ def get_water_vapor_press_ice(T):
 
     References
     ----------
-    .. [1] Marti & Mauersberger, "A survey and new measurements of ice vapor
-       pressure at temperatures between 170 and 250K" Geophysical research
-       letters, vol.20(5) pp.363-366, 1993.
+    .. [MM93] Marti & Mauersberger, "A survey and new measurements of ice vapor
+              pressure at temperatures between 170 and 250K" Geophysical
+              research letters, vol.20(5) pp.363-366, 1993.
     """
     A, B = -2663.5, 12.537
     P_w = 10**(np.divide(A,T)+B)                            # eq. 1 from [1]
@@ -374,8 +377,8 @@ def get_water_vapor_enhancement(t,p):
 
     References
     ----------
-    .. [1] Giacomo, "Equation for the determination of the density of moist air"
-           Metrologica, vol.18, pp.33-40, 1982.
+    .. [Gi82] Giacomo, "Equation for the determination of the density of moist
+              air" Metrologica, vol.18, pp.33-40, 1982.
     """
     alpha, beta, gamma = 1.00062, 3.14E-8, 5.6E-7
     f = alpha + beta*p + gamma*t**2                 # eq.23 in [1]
@@ -413,9 +416,9 @@ def get_density_fraction(lat, h_0, alpha=0.0065, R=8314.36, M_t=28.825):
 
     References
     ----------
-    .. [1] Noerdlinger, "Atmospheric refraction effects in Earth remote sensing"
-       ISPRS journal of photogrammetry and remote sensing, vol.54, pp.360-373,
-       1999.
+    .. [No99] Noerdlinger, "Atmospheric refraction effects in Earth remote
+              sensing" ISPRS journal of photogrammetry and remote sensing,
+              vol.54, pp.360-373, 1999.
     """
     T_sl = get_T_sealevel(lat)
     T_frac_0 = 1 - np.divide(h_0*alpha, T_sl)           # eq. A4 in [1]
@@ -453,9 +456,9 @@ def get_simple_density_fraction(lat):
 
     References
     ----------
-    .. [1] Noerdlinger, "Atmospheric refraction effects in Earth remote sensing"
-       ISPRS journal of photogrammetry and remote sensing, vol.54, pp.360-373,
-       1999.
+    .. [No99] Noerdlinger, "Atmospheric refraction effects in Earth remote
+              sensing" ISPRS journal of photogrammetry and remote sensing,
+              vol.54, pp.360-373, 1999.
     """
     ρ_frac = 1.14412 - 0.185488*np.cos(np.deg2rad(lat))   # eq. A11 in [1]
     return ρ_frac
@@ -475,10 +478,11 @@ def refractive_index_broadband_vapour(sigma):
 
     References
     ----------
-    .. [1] Owens, "Optical refractive index of air: Dependence on pressure,
-       temperature and composition", Applied optics, vol.6(1) pp.51-59, 1967.
-    .. [2] Ciddor, "Refractive index of air: new equations for the visible and
-       near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
+    .. [Ow67] Owens, "Optical refractive index of air: Dependence on pressure,
+              temperature and composition", Applied optics, vol.6(1) pp.51-59,
+              1967.
+    .. [Ci96] Ciddor, "Refractive index of air: new equations for the visible
+              and near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
     """
     cf = 1.022
     w_0, w_1, w_2, w_3 = 295.235, 2.6422, -0.032380, 0.004028
@@ -516,13 +520,13 @@ def water_vapor_frac(p,T,fH):
 
     References
     ----------
-    .. [1] Ciddor, "Refractive index of air: new equations for the visible and
-           near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
-    .. [2] Marti & Mauersberger, "A survey and new measurements of ice vapor
-           pressure at temperatures between 170 and 250K" Geophysical research
-           letters, vol.20(5) pp.363-366, 1993.
-    .. [3] Giacomo, "Equation for the determination of the density of moist air"
-           Metrologica, vol.18, pp.33-40, 1982.
+    .. [Ci96] Ciddor, "Refractive index of air: new equations for the visible
+              and near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
+    .. [MM93] Marti & Mauersberger, "A survey and new measurements of ice vapor
+              pressure at temperatures between 170 and 250K" Geophysical
+              research letters, vol.20(5) pp.363-366, 1993.
+    .. [Gi82] Giacomo, "Equation for the determination of the density of moist
+              air" Metrologica, vol.18, pp.33-40, 1982.
     """
     if isinstance(T, float):
         T,p = np.asarray([T]), np.asarray([p])
@@ -569,10 +573,10 @@ def compressability_moist_air(p, T, x_w):
 
     References
     ----------
-    .. [1] Ciddor, "Refractive index of air: new equations for the visible and
-       near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
-    .. [2] Davis, "Equation for the determination of the density of moist air
-       (1981/91)" Metrologica, vol.29 pp.67-70.
+    .. [Ci96] Ciddor, "Refractive index of air: new equations for the visible
+              and near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
+    .. [DaXX] Davis, "Equation for the determination of the density of moist air
+              (1981/91)" Metrologica, vol.29 pp.67-70.
     """
     if isinstance(T, float): T = np.array([T])
 
@@ -630,10 +634,10 @@ def get_density_air(T,P,fH, moist=True, CO2=450, M_w=0.018015, R=8.314510,
 
     References
     ----------
-    .. [1] Ciddor, "Refractive index of air: new equations for the visible and
-       near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
-    .. [2] Davis, "Equation for the determination of the density of moist air
-       (1981/91)" Metrologica, vol.29 pp.67-70.
+    .. [Ci96] Ciddor, "Refractive index of air: new equations for the visible
+              and near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
+    .. [DaXX] Davis, "Equation for the determination of the density of moist air
+              (1981/91)" Metrologica, vol.29 pp.67-70.
     """
     # molar mass of dry air containing XXX ppm of CO2
     M_a = ((CO2-400)*12.011E-6 + 28.9635)*1E-3 # eq2 in [2]
@@ -677,8 +681,9 @@ def ciddor_eq5(ρ_a, ρ_w, n_axs, n_ws, ρ_axs, ρ_ws):
 
     References
     ----------
-    .. [1] Owens, "Optical refractive index of air: Dependence on pressure,
-       temperature and composition", Applied optics, vol.6(1) pp.51-59, 1967.
+    .. [Ow67] Owens, "Optical refractive index of air: Dependence on pressure,
+              temperature and composition", Applied optics, vol.6(1) pp.51-59,
+              1967.
     """
     # eq. 4 in [1]
     n_prop = 1 + \
@@ -711,10 +716,11 @@ def ciddor_eq6(ρ_a, ρ_w, n_axs, n_ws, ρ_axs, ρ_ws):
 
     References
     ----------
-    .. [1] Owens, "Optical refractive index of air: Dependence on pressure,
-       temperature and composition", Applied optics, vol.6(1) pp.51-59, 1967.
-    .. [2] Ciddor, "Refractive index of air: new equations for the visible and
-       near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
+    .. [Ow67] Owens, "Optical refractive index of air: Dependence on pressure,
+              temperature and composition", Applied optics, vol.6(1) pp.51-59,
+              1967.
+    .. [Ci96] Ciddor, "Refractive index of air: new equations for the visible
+              and near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
     """
     L_a = np.divide( n_axs**2 -1, n_axs**2 +2)                  # eq.6 in [2]
     L_w = np.divide( n_ws**2 - 1, n_ws**2 + 2)                  # eq.6 in [2]
@@ -754,12 +760,12 @@ def refractive_index_visible(df, T, P, p_w=None, CO2=None):
 
     References
     ----------
-    .. [1] Birch and Jones, "Correction to the updated Edlén equation for the
-       refractive index of air", Metrologica, vol.31(4) pp.315-316, 1994.
-    .. [2] Edlén, "The refractive index of air", Metrologica, vol.2(2) pp.71-80,
-       1966.
-    .. [3] Birch and Jones, "An updated Edlén equation for the refractive
-       index of air", Metrologica, vol.30 pp.155-162, 1993.
+    .. [BJ94] Birch and Jones, "Correction to the updated Edlén equation for the
+              refractive index of air", Metrologica, vol.31(4) pp.315-316, 1994.
+    .. [Ed66] Edlén, "The refractive index of air", Metrologica, vol.2(2)
+              pp.71-80, 1966.
+    .. [BJ94] Birch and Jones, "An updated Edlén equation for the refractive
+              index of air", Metrologica, vol.30 pp.155-162, 1993.
     """
     if isinstance(T, float): T = np.array([T])
     if isinstance(P, float): P = np.array([P])
@@ -828,10 +834,10 @@ def refractive_index_CO2(n_s, CO2):
 
     References
     ----------
-    .. [1] Birch & Downs, "An updated Edlen equation for the refractive index of
-       air" Metrologica, vol.30(155) pp.155-162, 1993.
-    .. [2] Edlén, "The refractive index of air", Metrologica, vol.2(2) pp.71-80,
-       1966.
+    .. [BD93] Birch & Downs, "An updated Edlen equation for the refractive index
+              of air" Metrologica, vol.30(155) pp.155-162, 1993.
+    .. [Ed66] Edlén, "The refractive index of air", Metrologica, vol.2(2)
+              pp.71-80, 1966.
     """
     CO2 /= 1E6 # bring to unit
     n_x = np.outer(1+0.540*(CO2-0.0003), n_s)  # eq.7 in [1]
@@ -893,10 +899,11 @@ def refractive_index_broadband(df, T_0, P_0, fH_0, CO2=450.,
 
     References
     ----------
-    .. [1] Ciddor, "Refractive index of air: new equations for the visible and
-       near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
-    .. [2] Owens, "Optical refractive index of air: Dependence on pressure,
-       temperature and composition", Applied optics, vol.6(1) pp.51-59, 1967.
+    .. [Ci96] Ciddor, "Refractive index of air: new equations for the visible
+              and near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
+    .. [Ow67] Owens, "Optical refractive index of air: Dependence on pressure,
+              temperature and composition", Applied optics, vol.6(1) pp.51-59,
+              1967.
     """
     if type(df) in (pandas.core.frame.DataFrame, ):
         sigma = 1/df['center_wavelength'].to_numpy() # (vacuum) wavenumber
@@ -977,9 +984,9 @@ def refraction_angle_analytical(zn_0, n_0):
 
     References
     ----------
-    .. [1] Noerdlinger, "Atmospheric refraction effects in Earth remote sensing"
-       ISPRS journal of photogrammetry and remote sensing, vol.54, pp.360-373,
-       1999.
+    .. [No99] Noerdlinger, "Atmospheric refraction effects in Earth remote
+              sensing" ISPRS journal of photogrammetry and remote sensing,
+              vol.54, pp.360-373, 1999.
     """
     zn = np.rad2deg(np.arcsin(np.sin(np.deg2rad(zn_0))/n_0))
                                                                 # eq. 11 in [1]
@@ -1198,11 +1205,11 @@ def refraction_spherical_symmetric(zn_0, lat=None, h_0=None):
 
     References
     ----------
-    .. [1] Noerdlinger, "Atmospheric refraction effects in Earth remote sensing"
-       ISPRS journal of photogrammetry and remote sensing, vol.54, pp.360-373,
-       1999.
-    .. [2] Birch and Jones, "Correction to the updated Edlen equation for the
-       refractive index of air", Metrologica, vol.31(4) pp.315-316, 1994.
+    .. [No99] Noerdlinger, "Atmospheric refraction effects in Earth remote
+              sensing" ISPRS journal of photogrammetry and remote sensing,
+              vol.54, pp.360-373, 1999.
+    .. [BJ94] Birch and Jones, "Correction to the updated Edlen equation for the
+              refractive index of air", Metrologica, vol.31(4) pp.315-316, 1994.
     """
     if lat is None:
         n_0 = 1.0002904
@@ -1242,9 +1249,10 @@ def refraction_spherical_symmetric(zn_0, lat=None, h_0=None):
 #
 #    References
 #    ----------
-#    .. [1] Yan et al, "Correction of atmospheric refraction geolocation error of
-#       high resolution optical satellite pushbroom images" Photogrammetric
-#       engineering & remote sensing, vol.82(6) pp.427-435, 2016.
+#    .. [Ya16] Yan et al, "Correction of atmospheric refraction geolocation
+#              error of high resolution optical satellite pushbroom images"
+#              Photogrammetric engineering & remote sensing, vol.82(6)
+#              pp.427-435, 2016.
 #    """
 #
 #    theta_0 =

@@ -9,14 +9,14 @@ def get_d8_dir(V_x, V_y):
 
     Parameters
     ----------
-    V_x : numpy.array, size=(m,n), float
+    V_x : numpy.ndarray, size=(m,n), float
         array of displacements in horizontal direction
-    V_y : numpy.array, size=(m,n), float
+    V_y : numpy.ndarray, size=(m,n), float
         array of displacements in vertical direction
 
     Returns
     -------
-    d8_dir : numpy.array, size=(m,n), range=0...7
+    d8_dir : numpy.ndarray, size=(m,n), range=0...7
         compass directions starting from North going in clockwise direction
 
     Notes
@@ -60,7 +60,7 @@ def get_d8_offsets(shape, order='C'):
 
     Returns
     -------
-    d8_offsets : numpy.array, size=(8)
+    d8_offsets : numpy.ndarray, size=(8)
         relative offsets of neighbors
 
     Notes
@@ -111,9 +111,9 @@ def d8_flow(Class, V_x, V_y, iter=20, analysis=True): #todo: create colored poly
 
     Parameters
     ----------
-    Class : numpy.array, size=(m,n)
+    Class : numpy.ndarray, size=(m,n)
         labelled array
-    V_x, V_y :  numpy.array, size=(m,n)
+    V_x, V_y :  numpy.ndarray, size=(m,n)
         grids with horizontal and vertical directions
     iter : integer, {x ∈ ℕ | x ≥ 0}, default=20
         number of iterations to be executed
@@ -122,7 +122,7 @@ def d8_flow(Class, V_x, V_y, iter=20, analysis=True): #todo: create colored poly
 
     Returns
     -------
-    Class_new : numpy.array, size=(m,n)
+    Class_new : numpy.ndarray, size=(m,n)
         newly evolved labelled array
 
     See Also
@@ -170,15 +170,15 @@ def d8_catchment(V_x, V_y, geoTransform, x, y, disperse=True, flat=True):
 
     Parameters
     ----------
-    V_x, V_y :  numpy.array, size=(m,n)
+    V_x, V_y :  numpy.ndarray, size=(m,n)
         grids with horizontal and vertical directions
     geoTransform
-    x, y : {float, numpy.array}
+    x, y : {float, numpy.ndarray}
         map locations of the seeds
 
     Returns
     -------
-    C :  numpy.array, size=(m,n), dtype=boolean
+    C :  numpy.ndarray, size=(m,n), dtype=boolean
         grid with the specific catchments
 
     See Also

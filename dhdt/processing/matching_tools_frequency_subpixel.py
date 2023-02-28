@@ -115,7 +115,7 @@ def phase_secant(data, W=np.array([]), x_0=np.zeros((2))): # wip
     Examples
     --------
     >>> import numpy as np
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
     >>> Q = phase_corr(im1, im2)
@@ -133,7 +133,8 @@ def phase_secant(data, W=np.array([]), x_0=np.zeros((2))): # wip
     di,dj = 2*x_hat[0], 2*x_hat[1]
     return di,dj
 
-def phase_gradient_descend(data, W=np.array([]), x_0=np.zeros((2))): # wip
+def phase_gradient_descend(data, W=np.array([]), x_0=np.zeros((2)),
+                           learning_rate=1, n_iters=50): # wip
     """get phase plane of cross-spectrum through principle component analysis
 
     find slope of the phase plane through
@@ -159,10 +160,10 @@ def phase_gradient_descend(data, W=np.array([]), x_0=np.zeros((2))): # wip
     --------
     phase_lsq
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
     >>> Q = phase_corr(im1, im2)
@@ -176,8 +177,9 @@ def phase_gradient_descend(data, W=np.array([]), x_0=np.zeros((2))): # wip
     assert type(W)==np.ndarray, ("please provide an array")
 
     data = cross_spectrum_to_coordinate_list(data, W)
-    x_hat,_ = gradient_descent(data[:,:-1], data[:,-1], x_0, \
-                               learning_rate=1, n_iters=50)
+    x_hat,_ = gradient_descent(data[:,:-1], data[:,-1], x_0,
+                               learning_rate=learning_rate,
+                               n_iters=n_iters)
     di,dj = x_hat[1], x_hat[0]
     return di,dj
 
@@ -204,7 +206,7 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
         mask convergence factor
     Returns
     -------
-    m : numpy.ndarray, size=(2,1)
+    di,dj : float, size=(2,1)
         sub-pixel displacement
     snr: float
         signal-to-noise ratio
@@ -280,7 +282,7 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
 #    snr = 1 - (np.sum(φ)/(4*np.sum(W)))
     snr = 0
     m = -1*m
-    return (m, snr)
+    return m[0], m[1], snr
 
 def phase_slope_1d(t, rad=.1):
     """ estimate the slope and intercept for one-dimensional signal
@@ -340,10 +342,10 @@ def phase_svd(Q, W, rad=0.1):
               correlation method", IEEE transactions on medical imaging,
               vol.22(2) pp.277-280, 2003.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
     >>> Q = phase_corr(im1, im2)
@@ -439,8 +441,7 @@ def phase_difference_1d(Q, W=np.array([]), axis=0):
 def phase_difference(Q, W=np.array([])):
     """get displacement from phase plane through neighbouring vector difference
 
-    find slope of the phase plane through
-    local difference of the pahse angles
+    find slope of the phase plane through local difference of the phase angles
 
     Parameters
     ----------
@@ -460,14 +461,14 @@ def phase_difference(Q, W=np.array([])):
 
     References
     ----------
-    .. [1] Kay, S. "A fast and accurate frequency estimator", IEEE
-       transactions on acoustics, speech and signal processing, vol.37(12)
-       pp.1987-1990, 1989.
+    .. [Ka89] Kay, S. "A fast and accurate frequency estimator", IEEE
+              transactions on acoustics, speech and signal processing,
+              vol.37(12) pp.1987-1990, 1989.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
-    >>> from dhdt.generic.test_tools import create_sample_image_pair
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> Q = phase_corr(im1, im2)
@@ -511,10 +512,10 @@ def phase_lsq(data, W=np.array([])):
     --------
     phase_pca, phase_ransac, phase_hough
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
     >>> Q = phase_corr(im1, im2)
@@ -568,10 +569,10 @@ def phase_pca(data, W=np.array([])):
     --------
     phase_lsq
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
     >>> Q = phase_corr(im1, im2)
@@ -620,10 +621,10 @@ def phase_weighted_pca(Q, W): #todo
     --------
     phase_lsq
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
     >>> Q = phase_corr(im1, im2)
@@ -736,9 +737,11 @@ def ransac(data, model_class, min_samples, residual_threshold,
         Best model with largest consensus set.
     inliers : (N, ) array
         Boolean mask of inliers classified as ``True``.
+
     References
     ----------
     .. [1] "RANSAC", Wikipedia, https://en.wikipedia.org/wiki/RANSAC
+
     Examples
     --------
     Generate ellipse data without tilt and add noise:
@@ -1072,7 +1075,7 @@ class SawtoothModel(BaseModel):
             Q_hat = np.remainder(Q_hat+.5,1)-.5
         return Q_hat
 
-def phase_ransac(data, max_displacement=0, precision_threshold=.05):
+def phase_ransac(data, max_displacement=1, precision_threshold=.05):
     """robustly fit plane using RANSAC algorithm
 
     find slope of the phase plane through
@@ -1098,18 +1101,18 @@ def phase_ransac(data, max_displacement=0, precision_threshold=.05):
 
     References
     ----------
-    .. [1] Fischler & Bolles. "Random sample consensus: a paradigm for model
-       fitting with applications to image analysis and automated cartography"
-       Communications of the ACM vol.24(6) pp.381-395, 1981.
-    .. [2] Tong et al. "A novel subpixel phase correlation method using
-       singular value decomposition and unified random sample consensus" IEEE
-       transactions on geoscience and remote sensing vol.53(8) pp.4143-4156,
-       2015.
+    .. [FB81] Fischler & Bolles. "Random sample consensus: a paradigm for model
+              fitting with applications to image analysis and automated
+              cartography" Communications of the ACM vol.24(6) pp.381-395, 1981.
+    .. [To15] Tong et al. "A novel subpixel phase correlation method using
+              singular value decomposition and unified random sample consensus"
+              IEEE transactions on geoscience and remote sensing vol.53(8)
+              pp.4143-4156, 2015.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
     >>> Q = phase_corr(im1, im2)
@@ -1127,8 +1130,7 @@ def phase_ransac(data, max_displacement=0, precision_threshold=.05):
         Fx,Fy = np.fft.fftshift(Fx), np.fft.fftshift(Fy)
         Q = np.fft.fftshift(np.angle(data) / (2*np.pi))
 
-        if max_displacement==0:
-            max_displacement = m//2
+        max_displacement = np.maximum(max_displacement, m//2)
         data = np.vstack((Fy.flatten(),
                           Fx.flatten(),
                           Q.flatten() )).T
@@ -1210,7 +1212,9 @@ def phase_radon(Q, coord_system='ij'):
 
     Returns
     -------
-    θ,ρ : float
+    * di,dj : float, default
+        cartesian displacement
+    * θ,ρ : float
         magnitude and direction of displacement
 
     See Also
@@ -1219,14 +1223,14 @@ def phase_radon(Q, coord_system='ij'):
 
     References
     ----------
-    .. [1] Balci & Foroosh. "Subpixel registration directly from the phase
-       difference" EURASIP journal on advances in signal processing, pp.1-11,
-       2006.
+    .. [BF06] Balci & Foroosh. "Subpixel registration directly from the phase
+              difference" EURASIP journal on advances in signal processing,
+              pp.1-11, 2006.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
     >>> Q = phase_corr(im1, im2)

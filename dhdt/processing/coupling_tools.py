@@ -44,21 +44,21 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
 
     Parameters
     ----------
-    I1 : {numpy.array, numpy.ma}, size=(m,n,b), dtype=float, ndim={2,3}
+    I1 : {numpy.ndarray, numpy.ma}, size=(m,n,b), dtype=float, ndim={2,3}
         first image array, can be complex.
-    I2 : {numpy.array, numpy.ma}, size=(m,n,b), dtype=float, ndim={2,3}
+    I2 : {numpy.ndarray, numpy.ma}, size=(m,n,b), dtype=float, ndim={2,3}
         second image array, can be complex.
-    L1 : numpy.array, size=(m,n), dtype=bool
+    L1 : numpy.ndarray, size=(m,n), dtype=bool
         labelled image of the first image (I1), hence False's are neglected.
-    L2 : numpy.array, size=(m,n), dtype=bool
+    L2 : numpy.ndarray, size=(m,n), dtype=bool
         labelled image of the second image (I2), hence False's are neglected.
     geoTransform1 : tuple
         affine transformation coefficients of array M1
     geoTransform2 : tuple
         affine transformation coefficients of array M2
-    X_grd : numpy.array, size=(k,l), type=float
+    X_grd : numpy.ndarray, size=(k,l), type=float
         horizontal map coordinates of matching centers of array M1
-    Y_grd : numpy.array, size=(k,l), type=float
+    Y_grd : numpy.ndarray, size=(k,l), type=float
         vertical map coordinates of matching centers of array M2
     temp_radius: integer
         amount of pixels from the center
@@ -92,15 +92,15 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
           * 'refine' : move template to first estimate, and refine matching
           * 'stacking' : matching several bands and combine the result, see
                          also [AL22]_ for more details
-    boi : numpy.array
+    boi : numpy.ndarray
         list of bands of interest
 
     Returns
     -------
-    X2_grd, Y2_grd : numpy.array, size=(k,l), type=float
+    X2_grd, Y2_grd : numpy.ndarray, size=(k,l), type=float
         horizontal and vertical map coordinates of the refined matching centers
         of array I2
-    match_metric : numpy.array, size=(k,l), type=float
+    match_metric : numpy.ndarray, size=(k,l), type=float
         matching score of individual matches
 
     See Also
@@ -324,13 +324,13 @@ def couple_pair(file_1, file_2, bbox=None, rgi_id=None,
 
     Returns
     -------
-    post_1 : numpy.array, size=(k,2)
+    post_1 : numpy.ndarray, size=(k,2)
         locations of shadow ridge at instance 1
-    post_2_corr : numpy.array, size=(k,2)
+    post_2_corr : numpy.ndarray, size=(k,2)
         locations of shadow ridge at instance 2
-    casters : numpy.array, size=(k,2)
+    casters : numpy.ndarray, size=(k,2)
         common point where the shadow originates
-    dh : numpy.array, size=(k,1)
+    dh : numpy.ndarray, size=(k,1)
         elevation differences between "post_1" and "post_2_corr"
 
     References
@@ -431,7 +431,7 @@ def create_template_at_center(I, i,j, radius, filling='random'):
 
     Parameters
     ----------
-    I : numpy.array, size=(m,n) or (m,n,b)
+    I : numpy.ndarray, size=(m,n) or (m,n,b)
         data array
     i,j : integer
         horizontal, vertical coordinate of the template center
@@ -447,7 +447,7 @@ def create_template_at_center(I, i,j, radius, filling='random'):
 
     Returns
     -------
-    I_sub : numpy.array, size={(m,n),(m,n,b)}
+    I_sub : numpy.ndarray, size={(m,n),(m,n,b)}
         template of data array
 
     See Also
@@ -524,7 +524,7 @@ def create_template_off_center(I, i,j, width, filling='random'):
 
     Parameters
     ----------
-    I : numpy.array, size={(m,n), (m,n,b)}
+    I : numpy.ndarray, size={(m,n), (m,n,b)}
         data array
     i : integer
         vertical coordinate of the template center
@@ -542,7 +542,7 @@ def create_template_off_center(I, i,j, width, filling='random'):
 
     Returns
     -------
-    I_sub : numpy.array, size={(m,n),(m,n,b)}
+    I_sub : numpy.ndarray, size={(m,n),(m,n,b)}
         template of data array
 
     See Also
@@ -630,8 +630,8 @@ def pair_images(conn_1, conn_2, thres=20):
     idxConn : numpy.array, size=(l,2)
         array of indices of pairs
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> import matplotlib.pyplot as plt
 

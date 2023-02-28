@@ -10,6 +10,7 @@ from dhdt.processing.matching_tools_frequency_subpixel import \
 from dhdt.testing.matching_tools import test_subpixel_localization, \
     create_sample_image_pair
 
+# limited domain
 def test_phase_pca(d=2**5, max_range=1., tolerance=.1):
     im1,im2,di,dj,_ = create_sample_image_pair(d=d, max_range=max_range,
                                                integer=False)
@@ -30,16 +31,46 @@ def test_phase_tpss(d=2**5, max_range=1., tolerance=.1):
     # perfect data
     Q, W = construct_phase_plane(im1,di,dj), np.ones_like(im1, dtype=bool)
     m0 = np.random.rand(2)-.5
-    di_hat,dj_hat,_,_ = phase_tpss(Q, W, m0)
+    di_hat,dj_hat,_ = phase_tpss(Q, W, m0)
     test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)
 
     # real data
     Q = phase_corr(im1, im2)
-    di_hat,dj_hat,_,_ = phase_tpss(Q)
+    di_hat,dj_hat,_ = phase_tpss(Q)
     test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)
     return
 
-def test_phase_difference(d=2**5, max_range=1., tolerance=.1):
+def test_phase_lsq(d=2**5, max_range=1., tolerance=.1):
+    im1,im2,di,dj,_ = create_sample_image_pair(d=d, max_range=max_range,
+                                               integer=False)
+    # perfect data
+    Q, W = construct_phase_plane(im1,di,dj), np.ones_like(im1, dtype=bool)
+    di_hat,dj_hat,_,_ = phase_lsq(Q, W)
+    test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)
+
+    # real data
+    Q = phase_corr(im1, im2)
+    di_hat,dj_hat,_,_ = phase_lsq(Q)
+    test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)
+    return
+
+def test_gradient_descend(d=2**5, max_range=1., tolerance=.1):
+    im1,im2,di,dj,_ = create_sample_image_pair(d=d, max_range=max_range,
+                                               integer=False)
+    # perfect data
+    Q, W = construct_phase_plane(im1,di,dj), np.ones_like(im1, dtype=bool)
+    di_hat,dj_hat = phase_gradient_descend(Q, W)
+    test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)
+
+    # real data
+    Q = phase_corr(im1, im2)
+    di_hat,dj_hat = phase_gradient_descend(Q)
+    test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)
+    return
+
+
+# extended domain, i.e.: more than one pixel displacement
+def test_phase_difference(d=2**5, max_range=10., tolerance=.1):
     im1,im2,di,dj,_ = create_sample_image_pair(d=d, max_range=max_range,
                                                integer=False)
     # perfect data
@@ -53,3 +84,44 @@ def test_phase_difference(d=2**5, max_range=1., tolerance=.1):
     test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)
     return
 
+def test_phase_ransac(d=2**5, max_range=10., tolerance=.1):
+    im1,im2,di,dj,_ = create_sample_image_pair(d=d, max_range=max_range,
+                                               integer=False)
+    # perfect data
+    Q, W = construct_phase_plane(im1,di,dj), np.ones_like(im1, dtype=bool)
+    di_hat,dj_hat,_,_ = phase_ransac(Q, W)
+    test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)
+
+    # real data
+    Q = phase_corr(im1, im2)
+    di_hat,dj_hat,_,_ = phase_ransac(Q)
+    test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)
+    return
+
+def test_phase_randon(d=2**5, max_range=10., tolerance=.1):
+    im1,im2,di,dj,_ = create_sample_image_pair(d=d, max_range=max_range,
+                                               integer=False)
+    # perfect data
+    Q = construct_phase_plane(im1,di,dj)
+    di_hat,dj_hat = phase_radon(Q)
+    test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)
+
+    # real data
+    Q = phase_corr(im1, im2)
+    di_hat,dj_hat = phase_radon(Q)
+    test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)
+    return
+
+def test_phase_hough(d=2**5, max_range=10., tolerance=.1):
+    im1,im2,di,dj,_ = create_sample_image_pair(d=d, max_range=max_range,
+                                               integer=False)
+    # perfect data
+    Q, W = construct_phase_plane(im1,di,dj), np.ones_like(im1, dtype=bool)
+    di_hat,dj_hat,_,_ = phase_hough(Q, W)
+    test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)
+
+    # real data
+    Q = phase_corr(im1, im2)
+    di_hat,dj_hat,_,_ = phase_hough(Q)
+    test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)
+    return

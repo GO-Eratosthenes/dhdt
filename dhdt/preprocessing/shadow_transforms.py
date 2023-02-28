@@ -115,14 +115,14 @@ def pca(X):
 
     Parameters
     ----------
-    X : numpy.array, size=(m,b)
+    X : numpy.ndarray, size=(m,b)
         array of the band image
 
     Returns
     -------
-    eigen_vecs : numpy.array, size=(b,b)
+    eigen_vecs : numpy.ndarray, size=(b,b)
         array with eigenvectors
-    eigen_vals : numpy.array, size=(b,1)
+    eigen_vals : numpy.ndarray, size=(b,1)
         vector with eigenvalues
 
     """
@@ -192,7 +192,7 @@ def shannon_entropy(X,band_width=100):
 
     Parameters
     ----------
-    X : numpy.array, size=(m,1)
+    X : numpy.ndarray, size=(m,1)
         data array
     band_width : integer, optional
         sample bandwith
@@ -218,16 +218,16 @@ def shadow_index_zhou(Blue, Green, Red):
 
     Parameters
     ----------
-    Blue : numpy.array, size=(m,n)
+    Blue : numpy.ndarray, size=(m,n)
         blue band of satellite image
-    Green : numpy.array, size=(m,n)
+    Green : numpy.ndarray, size=(m,n)
         green band of satellite image
-    Red : numpy.array, size=(m,n)
+    Red : numpy.ndarray, size=(m,n)
         red band of satellite image
 
     Returns
     -------
-    SI : numpy.array, size=(m,n)
+    SI : numpy.ndarray, size=(m,n)
         array with shadow transform
 
     See Also
@@ -250,16 +250,16 @@ def shadow_hsv_fraction(Blue, Green, Red):
 
     Parameters
     ----------
-    Blue : numpy.array, size=(m,n)
+    Blue : numpy.ndarray, size=(m,n)
         blue band of satellite image
-    Green : numpy.array, size=(m,n)
+    Green : numpy.ndarray, size=(m,n)
         green band of satellite image
-    Red : numpy.array, size=(m,n)
+    Red : numpy.ndarray, size=(m,n)
         red band of satellite image
 
     Returns
     -------
-    SI : numpy.array, size=(m,n)
+    SI : numpy.ndarray, size=(m,n)
         array with shadow transform
 
     See Also
@@ -284,16 +284,16 @@ def modified_shadow_fraction(Blue, Green, Red, P_S=.95):
 
     Parameters
     ----------
-    Blue : numpy.array, size=(m,n)
+    Blue : numpy.ndarray, size=(m,n)
         blue band of satellite image
-    Green : numpy.array, size=(m,n)
+    Green : numpy.ndarray, size=(m,n)
         green band of satellite image
-    Red : numpy.array, size=(m,n)
+    Red : numpy.ndarray, size=(m,n)
         red band of satellite image
 
     Returns
     -------
-    SI : numpy.array, size=(m,n)
+    SI : numpy.ndarray, size=(m,n)
         array with shadow transform
 
     See Also
@@ -322,16 +322,16 @@ def shadow_hcv_fraction(Blue, Green, Red):
 
     Parameters
     ----------
-    Blue : numpy.array, size=(m,n)
+    Blue : numpy.ndarray, size=(m,n)
         blue band of satellite image
-    Green : numpy.array, size=(m,n)
+    Green : numpy.ndarray, size=(m,n)
         green band of satellite image
-    Red : numpy.array, size=(m,n)
+    Red : numpy.ndarray, size=(m,n)
         red band of satellite image
 
     Returns
     -------
-    SI : numpy.array, size=(m,n)
+    SI : numpy.ndarray, size=(m,n)
         array with shadow transform
 
     See Also
@@ -355,16 +355,16 @@ def shadow_ycbcr_fraction(Blue, Green, Red):
 
     Parameters
     ----------
-    Blue : numpy.array, size=(m,n)
+    Blue : numpy.ndarray, size=(m,n)
         blue band of satellite image
-    Green : numpy.array, size=(m,n)
+    Green : numpy.ndarray, size=(m,n)
         green band of satellite image
-    Red : numpy.array, size=(m,n)
+    Red : numpy.ndarray, size=(m,n)
         red band of satellite image
 
     Returns
     -------
-    SI : numpy.array, size=(m,n)
+    SI : numpy.ndarray, size=(m,n)
         array with shadow transform
 
     See Also
@@ -388,16 +388,16 @@ def shadow_yiq_fraction(Blue, Green, Red):
 
     Parameters
     ----------
-    Blue : numpy.array, size=(m,n)
+    Blue : numpy.ndarray, size=(m,n)
         blue band of satellite image
-    Green : numpy.array, size=(m,n)
+    Green : numpy.ndarray, size=(m,n)
         green band of satellite image
-    Red : numpy.array, size=(m,n)
+    Red : numpy.ndarray, size=(m,n)
         red band of satellite image
 
     Returns
     -------
-    SI : numpy.array, size=(m,n)
+    SI : numpy.ndarray, size=(m,n)
         array with shadow transform
 
     See Also
@@ -424,18 +424,18 @@ def improved_shadow_index(Blue, Green, Red, Near):
 
     Parameters
     ----------
-    Blue : numpy.array, size=(m,n)
+    Blue : numpy.ndarray, size=(m,n)
         blue band of satellite image
-    Green : numpy.array, size=(m,n)
+    Green : numpy.ndarray, size=(m,n)
         green band of satellite image
-    Red : numpy.array, size=(m,n)
+    Red : numpy.ndarray, size=(m,n)
         red band of satellite image
-    Near : numpy.array, size=(m,n)
+    Near : numpy.ndarray, size=(m,n)
         near infrared band of satellite image
 
     Returns
     -------
-    ISI : numpy.array, size=(m,n)
+    ISI : numpy.ndarray, size=(m,n)
         array with shadow transform
 
     See Also
@@ -464,18 +464,18 @@ def shadow_enhancement_index(Blue,Green,Red,Near):
 
     Parameters
     ----------
-    Blue : numpy.array, size=(m,n)
+    Blue : numpy.ndarray, size=(m,n)
         blue band of satellite image
-    Green : numpy.array, size=(m,n)
+    Green : numpy.ndarray, size=(m,n)
         green band of satellite image
-    Red : numpy.array, size=(m,n)
+    Red : numpy.ndarray, size=(m,n)
         red band of satellite image
-    Near : numpy.array, size=(m,n)
+    Near : numpy.ndarray, size=(m,n)
         near infrared band of satellite image
 
     Returns
     -------
-    SEI : numpy.array, size=(m,n)
+    SEI : numpy.ndarray, size=(m,n)
         array with sei transform
 
     See Also
@@ -509,16 +509,16 @@ def false_color_shadow_difference_index(Green,Red,Near):
 
     Parameters
     ----------
-    Green : numpy.array, size=(m,n)
+    Green : numpy.ndarray, size=(m,n)
         green band of satellite image
-    Red : numpy.array, size=(m,n)
+    Red : numpy.ndarray, size=(m,n)
         red band of satellite image
-    Near : numpy.array, size=(m,n)
+    Near : numpy.ndarray, size=(m,n)
         near infrared band of satellite image
 
     Returns
     -------
-    FCSI : numpy.array, size=(m,n)
+    FCSI : numpy.ndarray, size=(m,n)
         array with shadow enhancement
 
     See also
@@ -547,14 +547,14 @@ def normalized_difference_water_index(Green, Near):
 
     Parameters
     ----------
-    Green : numpy.array, size=(m,n)
+    Green : numpy.ndarray, size=(m,n)
         green band of satellite image
-    Near : numpy.array, size=(m,n)
+    Near : numpy.ndarray, size=(m,n)
         near infrared band of satellite image
 
     Returns
     -------
-    NDWI : numpy.array, size=(m,n)
+    NDWI : numpy.ndarray, size=(m,n)
         array with NDWI transform
 
     Notes
@@ -581,14 +581,14 @@ def normalized_difference_blue_water_index(Blue, Near):
 
     Parameters
     ----------
-    Blue : numpy.array, size=(m,n)
+    Blue : numpy.ndarray, size=(m,n)
         blue band of satellite image
-    Near : numpy.array, size=(m,n)
+    Near : numpy.ndarray, size=(m,n)
         near infrared band of satellite image
 
     Returns
     -------
-    NDWI : numpy.array, size=(m,n)
+    NDWI : numpy.ndarray, size=(m,n)
         array with NDWI transform
 
     Notes
@@ -616,18 +616,18 @@ def combinational_shadow_index(Blue,Green,Red,Near):
 
     Parameters
     ----------
-    Blue : numpy.array, size=(m,n)
+    Blue : numpy.ndarray, size=(m,n)
         blue band of satellite image
-    Green : numpy.array, size=(m,n)
+    Green : numpy.ndarray, size=(m,n)
         green band of satellite image
-    Red : numpy.array, size=(m,n)
+    Red : numpy.ndarray, size=(m,n)
         red band of satellite image
-    Near : numpy.array, size=(m,n)
+    Near : numpy.ndarray, size=(m,n)
         near infrared band of satellite image
 
     Returns
     -------
-    CSI : numpy.array, size=(m,n)
+    CSI : numpy.ndarray, size=(m,n)
         array with shadow transform
 
     See Also
@@ -661,16 +661,16 @@ def normalized_sat_value_difference_index(Blue, Green, Red):
 
     Parameters
     ----------
-    Blue : numpy.array, size=(m,n)
+    Blue : numpy.ndarray, size=(m,n)
         blue band of satellite image
-    Green : numpy.array, size=(m,n)
+    Green : numpy.ndarray, size=(m,n)
         green band of satellite image
-    Red : numpy.array, size=(m,n)
+    Red : numpy.ndarray, size=(m,n)
         red band of satellite image
 
     Returns
     -------
-    NSVDI : numpy.array, size=(m,n)
+    NSVDI : numpy.ndarray, size=(m,n)
         array with shadow transform
 
     See also
@@ -700,16 +700,16 @@ def shadow_identification(Blue, Green, Red):
 
     Parameters
     ----------
-    Blue : numpy.array, size=(m,n)
+    Blue : numpy.ndarray, size=(m,n)
         blue band of satellite image
-    Green : numpy.array, size=(m,n)
+    Green : numpy.ndarray, size=(m,n)
         green band of satellite image
-    Red : numpy.array, size=(m,n)
+    Red : numpy.ndarray, size=(m,n)
         red band of satellite image
 
     Returns
     -------
-    SI : numpy.array, size=(m,n)
+    SI : numpy.ndarray, size=(m,n)
         array with shadow transform
 
     See also
@@ -737,16 +737,16 @@ def shadow_index_liu(Blue, Green, Red):
 
     Parameters
     ----------
-    Blue : numpy.array, size=(m,n)
+    Blue : numpy.ndarray, size=(m,n)
         blue band of satellite image
-    Green : numpy.array, size=(m,n)
+    Green : numpy.ndarray, size=(m,n)
         green band of satellite image
-    Red : numpy.array, size=(m,n)
+    Red : numpy.ndarray, size=(m,n)
         red band of satellite image
 
     Returns
     -------
-    SI : numpy.array, size=(m,n)
+    SI : numpy.ndarray, size=(m,n)
         array with shadow enhancement
 
     References
@@ -777,16 +777,16 @@ def specthem_ratio(Blue, Green, Red):
 
     Parameters
     ----------
-    Blue : numpy.array, size=(m,n)
+    Blue : numpy.ndarray, size=(m,n)
         blue band of satellite image
-    Green : numpy.array, size=(m,n)
+    Green : numpy.ndarray, size=(m,n)
         green band of satellite image
-    Red : numpy.array, size=(m,n)
+    Red : numpy.ndarray, size=(m,n)
         red band of satellite image
 
     Returns
     -------
-    Sr : numpy.array, size=(m,n)
+    Sr : numpy.ndarray, size=(m,n)
         array with shadow enhancement
 
     Notes

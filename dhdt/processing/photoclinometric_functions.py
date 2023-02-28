@@ -22,9 +22,9 @@ def estimate_albedo(I, unit='angles', normalize=True):
 
     References
     ----------
-    .. [1] Zheng and Chellapa, "Estimation of illuminant direction, albedo, and
-       shape from shading," IEEE transactions on pattern analysis and machine
-       intelligence, vol.13(7), pp.680-702, 1991.
+    .. [ZC91] Zheng and Chellapa, "Estimation of illuminant direction, albedo,
+              and shape from shading," IEEE transactions on pattern analysis and
+              machine intelligence, vol.13(7), pp.680-702, 1991.
     """
     if normalize:
         I = mat_to_gray(I)
@@ -81,8 +81,8 @@ def linear_fourier_surface_estimation(I, tilt, slant):
 
     References
     ----------
-    .. [1] Pentland, "Linear shape from shading." International journal of
-       computer Vision vol.4(2) pp.153-162, 1990.
+    .. [Pe90] Pentland, "Linear shape from shading." International journal of
+              computer Vision vol.4(2) pp.153-162, 1990.
     """
     tilt, slant = np.deg2rad(tilt), np.deg2rad(slant)
     w_x,w_y = make_fourier_grid(I, indexing='ij', system='radians', shift=False,
@@ -180,8 +180,8 @@ def linear_reflectance_surface_estimation(I, tilt, slant, iter=2.5E2):
 
     References
     ----------
-    .. [1] Tsai & Shah, "Shape from shading using linear approximation" Image
-       and vision computing, vol.12(8), pp.487--498, 1994.
+    .. [TS94] Tsai & Shah, "Shape from shading using linear approximation" Image
+              and vision computing, vol.12(8), pp.487--498, 1994.
     """
     p, q = np.zeros_like(I), np.zeros_like(I)  # first order derivatives
     fx, fy = get_grad_filters(ftype='kroon', tsize=3, order=1, indexing='xy')

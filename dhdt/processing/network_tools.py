@@ -14,7 +14,7 @@ def get_network_indices(n):
 
     Returns
     -------
-    grid_idxs : numpy.array, size=(2,k)
+    grid_idxs : numpy.ndarray, size=(2,k)
         list of couples
 
     See Also
@@ -38,9 +38,9 @@ def get_network_indices_constrained(idx,d,d_max,n_max, double_direction=True):
 
     Parameters
     ----------
-    idx : numpy.array, size=(m,_)
+    idx : numpy.ndarray, size=(m,_)
         list with indices
-    d : numpy.array, size=(m,l)
+    d : numpy.ndarray, size=(m,l)
         property to use for estimating closeness
     d_max : float,
         threshold for the maximum difference to still include
@@ -51,7 +51,7 @@ def get_network_indices_constrained(idx,d,d_max,n_max, double_direction=True):
 
     Returns
     -------
-    grid_idxs : numpy.array, size=(2,k)
+    grid_idxs : numpy.ndarray, size=(2,k)
         list of couples
 
     See Also
@@ -89,7 +89,7 @@ def get_network_by_sunangle_s2(datPath, sceneList, n):
 
     Returns
     -------
-    grid_idxs : numpy.array, size=(2,k), dtype=integer
+    grid_idxs : numpy.ndarray, size=(2,k), dtype=integer
         list indices giving couples
 
     See Also
@@ -117,14 +117,14 @@ def get_adjacency_matrix_from_network(GridIdxs, number_of_nodes):
 
     Parameters
     ----------
-    grd_ids : numpy.array, size=(2,k), dtype=integer
+    grd_ids : numpy.ndarray, size=(2,k), dtype=integer
         array with list of couples
     number_of_nodes integer: integer
         amount of nodes in the network
 
     Returns
     -------
-    A : numpy.array, size=(m,l)
+    A : numpy.ndarray, size=(m,l)
         design matrix
 
     References

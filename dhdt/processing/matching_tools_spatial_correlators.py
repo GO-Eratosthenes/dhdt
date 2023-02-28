@@ -14,9 +14,9 @@ def normalized_cross_corr(I1, I2):
 
     Parameters
     ----------
-    I1 : numpy.array, ndim=2, size=(m,n)
+    I1 : numpy.ndarray, ndim=2, size=(m,n)
         grid with intensities (template)
-    I2 : numpy.array, ndim=2, size=(k,l), {k>=m, l>=n}
+    I2 : numpy.ndarray, ndim=2, size=(k,l), {k>=m, l>=n}
         grid with intensities (search space)
 
     Returns
@@ -28,7 +28,7 @@ def normalized_cross_corr(I1, I2):
     --------
     >>> import numpy as np
     >>> from dhdt.processing.matching_tools import get_integer_peak_location
-    >>> from dhdt.generic.test_tools import create_sample_image_pair
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> _,im2,ti,tj,im1 = create_sample_image_pair(d=2**4, max_range=1)
     >>> C = normalized_cross_corr(im1,im2)
@@ -184,9 +184,9 @@ def maximum_likelihood(I1,I2):
 
     References
     ----------
-    .. [1] Erten et al. "Glacier velocity monitoring by maximum likelihood
-       texture tracking" IEEE transactions on geosciences and remote sensing,
-       vol.47(2) pp.394--405, 2009.
+    .. [Er09] Erten et al. "Glacier velocity monitoring by maximum likelihood
+              texture tracking" IEEE transactions on geosciences and remote
+              sensing, vol.47(2) pp.394--405, 2009.
     """
     I1, I2 = mat_to_gray(I1), mat_to_gray(I2)
 
@@ -218,9 +218,10 @@ def weighted_normalized_cross_correlation(I1,I2,W1=None,W2=None):
 
     References
     ----------
-    .. [1] Altena & Kääb "Quantifying river ice movement through a combination
-       of European satellite monitoring services" International journal of
-       applied Earth observation and geoinformation, vol.98 pp.102315, 2021.
+    .. [AK21] Altena & Kääb "Quantifying river ice movement through a
+              combination of European satellite monitoring services"
+              International journal of applied Earth observation and
+              geoinformation, vol.98 pp.102315, 2021.
     """
     (m1,n1) = I1.shape
     # create weighting matrix
@@ -302,8 +303,8 @@ def weighted_normalized_cross_correlation(I1,I2,W1=None,W2=None):
 
 def cosine_similarity(I1, I2):
     """ estimate the similarity of orientation imagery, via their dot product.
-    Going along via different names, such as Gradient Inner Product (GIP)[1] or
-    Cosine Similarity [2].
+    Going along via different names, such as Gradient Inner Product (GIP)[Gl08]_
+    or Cosine Similarity [De21]_.
 
     Parameters
     ----------
@@ -324,7 +325,7 @@ def cosine_similarity(I1, I2):
     --------
     >>> import numpy as np
     >>> from scipy import ndimage
-    >>> from dhdt.generic.test_tools import create_sample_image_pair
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
     >>> from dhdt.generic.handler_im import get_grad_filters
     >>> from dhdt.processing.matching_tools import get_integer_peak_location
     >>> from dhdt.processing.matching_tools_frequency_filters import \
@@ -352,12 +353,12 @@ def cosine_similarity(I1, I2):
 
     References
     ----------
-    .. [1] Glocker et al. "Optical flow estimation with uncertainties through
-       dynamic MRFs" IEEE conference on computer vision and pattern recognition,
-       2008.
-    .. [2] Dematteis et al., "Comparison of digital image correlation methods
-       and the impact of noise in geoscience applications" Remote sensing,
-       vol.13(2), pp.327, 2021.
+    .. [Gl08] Glocker et al. "Optical flow estimation with uncertainties through
+              dynamic MRFs" IEEE conference on computer vision and pattern
+              recognition, 2008.
+    .. [De21] Dematteis et al., "Comparison of digital image correlation methods
+              and the impact of noise in geoscience applications" Remote
+              sensing, vol.13(2), pp.327, 2021.
     """
 
     assert np.iscomplexobj(I1), ('please provide a complex array')

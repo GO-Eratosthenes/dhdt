@@ -61,7 +61,7 @@ def skew_distribution(dXY):
     return Skew
 
 def scat_distribution(XY, XY_dim):
-    """ look at the distribution of the control points, following [1].
+    """ look at the distribution of the control points, following [Go09]_.
 
     Parameters
     ----------
@@ -74,6 +74,12 @@ def scat_distribution(XY, XY_dim):
     -------
     Scat : float, range=0...1
         scattering distibution
+
+    References
+    ----------
+    .. [Go09] Gonçalves et al., "Measures for an objective evaluation of the
+              geometric correction process quality", IEEE geoscience and remote
+              sensing letters, vol.6(2) pp.292-296, 2009.
     """
     r = .5*np.mean(XY_dim)
 

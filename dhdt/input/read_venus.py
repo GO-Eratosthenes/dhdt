@@ -69,9 +69,9 @@ def list_central_wavelength_vssc():
 
     References
     -------
-    .. [1] Dick, et al. "VENμS: mission characteristics, final evaluation of the
-           first phase and data production" Remote sensing vol.14(14) pp.3281,
-           2022.
+    .. [Di22] Dick, et al. "VENμS: mission characteristics, final evaluation of
+              the first phase and data production" Remote sensing vol.14(14)
+              pp.3281, 2022.
     """
     center_wavelength = {"B1": 420, "B2" : 443, "B3" : 490, "B4" : 555,
                          "B5": 620, "B6" : 620, "B7" : 667, "B8" : 702,

@@ -33,7 +33,7 @@ def create_artificial_terrain(m, n, step_size=.01, multi_res=(2,4)):
 
     Returns
     -------
-    Z : numpy.array, size=(m,n), ndim=2
+    Z : numpy.ndarray, size=(m,n), ndim=2
         data array with elevation values
     geoTransform : tuple, size=(8,1)
         affine transformation coefficients, and dimensions of the array.
@@ -92,7 +92,7 @@ def create_artificial_glacier_mask(Z, geoTransform, seeds=42, labeling=True):
 
     Parameters
     ----------
-    Z : numpy.array, size=(m,n)
+    Z : numpy.ndarray, size=(m,n)
         array with elevation
     geoTransform : tuple, size={(6,1), (8,1)}
         georeference transform of an image.
@@ -103,7 +103,7 @@ def create_artificial_glacier_mask(Z, geoTransform, seeds=42, labeling=True):
 
     Returns
     -------
-    R : numpy.array, size=(m,n), dtype={boolean,int)
+    R : numpy.ndarray, size=(m,n), dtype={boolean,int)
         labeled array or mask
     """
     if Z is None: Z, geoTransform = create_artificial_terrain(None,None)
@@ -132,7 +132,7 @@ def create_shadow_caster_casted(Z, geoTransform, az, zn, out_path,
 
     Parameters
     ----------
-    Z : numpy.array, size=(m,n)
+    Z : numpy.ndarray, size=(m,n)
         array with elevation
     geoTransform : tuple, size={(6,1), (8,1)}
         georeference transform of an image.
@@ -176,14 +176,14 @@ def create_artificial_glacier_change(Z,R):
 
     Parameters
     ----------
-    Z : numpy.array, size=(m,n), dtype=float
+    Z : numpy.ndarray, size=(m,n), dtype=float
         grid with elevations
-    R : numpy.array, size=(m,n), dtype={boolean, integer}
+    R : numpy.ndarray, size=(m,n), dtype={boolean, integer}
         grid indicating the glacier regions
 
     Returns
     -------
-    Z_new : numpy.array, size=(m,n), dtype=float
+    Z_new : numpy.ndarray, size=(m,n), dtype=float
         adjusted elevation grid
     a,b : floats
         regression parameters, used for the hypsometric elevation adjustment

@@ -31,9 +31,9 @@ def transform_4_logit(X,Y,method='exact', **kwargs):
 
     References
     ----------
-    .. [1] Asuero, et al. "Fitting straight lines with replicated observations
-       by linear regression. IV. Transforming data." Critical reviews in
-       analytical chemistry, vol.41(1) pp. 36-69, 2011.
+    .. [As1] Asuero, et al. "Fitting straight lines with replicated observations
+             by linear regression. IV. Transforming data." Critical reviews in
+             analytical chemistry, vol.41(1) pp. 36-69, 2011.
     """
 
     if method in ('exact',):

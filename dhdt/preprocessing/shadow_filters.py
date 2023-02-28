@@ -260,11 +260,11 @@ def diffusion_strength_1(I,K):
 
     References
     ----------
-    .. [1] Perona & Malik "Scale space and edge detection using anisotropic
-       diffusion" Proceedings of the IEEE workshop on computer vision, pp.16-22,
-       1987
-    .. [2] Gerig et al. "Nonlinear anisotropic filtering of MRI data" IEEE
-       transactions on medical imaging, vol.11(2), pp.221-232, 1992
+    .. [PM87] Perona & Malik "Scale space and edge detection using anisotropic
+              diffusion" Proceedings of the IEEE workshop on computer vision,
+              pp.16-22, 1987
+    .. [Ge92] Gerig et al. "Nonlinear anisotropic filtering of MRI data" IEEE
+              transactions on medical imaging, vol.11(2), pp.221-232, 1992
     """
     # admin
     if np.iscomplexobj(I): # support complex input
@@ -299,11 +299,11 @@ def diffusion_strength_2(I,K):
 
     References
     ----------
-    .. [1] Perona & Malik "Scale space and edge detection using anisotropic
-       diffusion" Proceedings of the IEEE workshop on computer vision, pp.16-22,
-       1987
-    .. [2] Gerig et al. "Nonlinear anisotropic filtering of MRI data" IEEE
-       transactions on medical imaging, vol.11(2), pp.221-232, 1992
+    .. [PM87] Perona & Malik "Scale space and edge detection using anisotropic
+              diffusion" Proceedings of the IEEE workshop on computer vision,
+              pp.16-22, 1987
+    .. [Ge92] Gerig et al. "Nonlinear anisotropic filtering of MRI data" IEEE
+              transactions on medical imaging, vol.11(2), pp.221-232, 1992
     """
     if np.iscomplexobj(I):
         I_abs = np.abs(I)
@@ -341,11 +341,11 @@ def anistropic_diffusion_scalar(I, iter=10, K=.15, s=.25, n=4):
 
     References
     ----------
-    .. [1] Perona & Malik "Scale space and edge detection using anisotropic
-       diffusion" Proceedings of the IEEE workshop on computer vision, pp.16-22,
-       1987
-    .. [2] Gerig et al. "Nonlinear anisotropic filtering of MRI data" IEEE
-       transactions on medical imaging, vol.11(2), pp.221-232, 1992
+    .. [PM87] Perona & Malik "Scale space and edge detection using anisotropic
+              diffusion" Proceedings of the IEEE workshop on computer vision,
+              pp.16-22, 1987
+    .. [Ge92] Gerig et al. "Nonlinear anisotropic filtering of MRI data" IEEE
+              transactions on medical imaging, vol.11(2), pp.221-232, 1992
     """
     # admin
     I_new = np.copy(I)
@@ -431,8 +431,8 @@ def L0_smoothing(I, lamb=2E-2, kappa=2., beta_max=1E5):
 
     References
     ----------
-    .. [1] Xu et al. "Image smoothing via L0 gradient minimization" ACM
-           transactions on graphics, 2011.
+    .. [Xu11] Xu et al. "Image smoothing via L0 gradient minimization" ACM
+              transactions on graphics, 2011.
     """
     m,n = I.shape[:2]
     b=1 if I.ndim==2 else I.shape[2]

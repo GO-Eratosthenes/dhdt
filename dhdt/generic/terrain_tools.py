@@ -26,14 +26,14 @@ def terrain_slope(Z, spac=10.):
 
     Parameters
     ----------
-    Z : numpy.array, size=(m,n), float, unit=meters
+    Z : numpy.ndarray, size=(m,n), float, unit=meters
         grid with elevation values
     spac : float, unit=meters
         spacing of the elevation grid
 
     Returns
     -------
-    Z_dx, Z_dy : np.array, size=(m,n), float
+    Z_dx, Z_dy : numpy.ndarray, size=(m,n), float
         slope angles along the two mapping axis
 
     See Also
@@ -59,14 +59,14 @@ def terrain_aspect_slope(Z, spac=10.):
 
     Parameters
     ----------
-    Z : numpy.array, size=(m,n), float, unit=meters
+    Z : numpy.ndarray, size=(m,n), float, unit=meters
         array with elevation values
     spac : float, unit=meters
         spacing of the elevation grid
 
     Returns
     -------
-    Slp,Asp : np.array, size=(m,n), float
+    Slp,Asp : numpy.ndarray, size=(m,n), float
         mean slope and aspect angle in the template
 
     See Also

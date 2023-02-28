@@ -23,7 +23,7 @@ def get_phase_metric(Q, di, dj, metric='phase_fit'):
 
     Parameters
     ----------
-    Q : numpy.array, size=(m,n), type=complex
+    Q : numpy.ndarray, size=(m,n), type=complex
         phase angles of the cross-correlation spectra
     di,dj : {float,integer}
         estimated displacement
@@ -60,7 +60,7 @@ def phase_fitness(Q, di, dj, norm=2):
 
     Parameters
     ----------
-    Q : numpy.array, size={(m,n), (k,3)}
+    Q : numpy.ndarray, size={(m,n), (k,3)}
         cross-spectrum
     di,dj : {float,integer}
         estimated displacement
@@ -100,7 +100,7 @@ def phase_support(Q, di, dj, thres=1.4826):
 
     Parameters
     ----------
-    Q : numpy.array, size={(m,n), (k,3)}
+    Q : numpy.ndarray, size={(m,n), (k,3)}
         cross-spectrum
     di,dj : {float,integer}
         estimated displacement
@@ -141,9 +141,9 @@ def signal_to_noise(Q, C, norm=2):
 
     Parameters
     ----------
-    Q : numpy.array, size=(m,n), dtype=complex
+    Q : numpy.ndarray, size=(m,n), dtype=complex
         cross-spectrum
-    C : numpy.array, size=(m,n), dtype=complex
+    C : numpy.ndarray, size=(m,n), dtype=complex
         phase plane
     norm : integer
         norm for the difference

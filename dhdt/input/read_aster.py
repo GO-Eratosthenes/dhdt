@@ -47,8 +47,8 @@ def list_central_wavelength_as():
     dhdt.input.read_venus.list_central_wavelength_vssc :
         for the instrument data of VSSC on the VENµS satellite
 
-    Example
-    -------
+    Examples
+    --------
     make a selection by name:
 
     >>> boi = ['red', 'green', 'blue']

@@ -41,9 +41,9 @@ def compute_laplacian(img, mask=None, eps=10**(-7), win_rad=1):
     -----
     Original code from: https://github.com/MarcoForte/closed-form-matting
     
-    .. [1] Levin et al. "A closed-form solution to natural image matting"
-       IEEE Transactions on pattern analysis and machine intelligence. 
-       vol.30(2) pp.228-242, 2008.
+    .. [Le08] Levin et al. "A closed-form solution to natural image matting"
+              IEEE Transactions on pattern analysis and machine intelligence.
+              vol.30(2) pp.228-242, 2008.
     """
     win_size = (win_rad * 2 + 1) ** 2
     h, w, d = img.shape
@@ -109,9 +109,9 @@ def closed_form_matting_with_prior(img, prior, prior_confidence, consts_map=None
     -----
     Original code from: https://github.com/MarcoForte/closed-form-matting
     
-    .. [1] Levin et al. "A closed-form solution to natural image matting"
-       IEEE Transactions on pattern analysis and machine intelligence. 
-       vol.30(2) pp.228-242, 2008.
+    .. [Le08] Levin et al. "A closed-form solution to natural image matting"
+              IEEE Transactions on pattern analysis and machine intelligence.
+              vol.30(2) pp.228-242, 2008.
     """
 
     assert img.shape[:-1] == prior.shape, \

@@ -27,8 +27,8 @@ def list_central_wavelength_hrg():
             * resolution : spatial resolution of a pixel
             * common_name : general name of the band, if applicable
 
-    Example
-    -------
+    Examples
+    --------
     make a selection by name:
 
     >>> boi = ['blue', 'green', 'red', 'nir']

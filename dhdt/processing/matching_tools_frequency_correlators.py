@@ -300,11 +300,11 @@ def phase_only_corr(I1, I2):
               stacking cross-correlation spectra from multi-channel imagery",
               Science of Remote Sensing, vol.6 pp.100070, 2022.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
-    >>> from ..generic.test_tools import create_sample_image_pair
-    >>> from .matching_tools import get_integer_peak_location
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
+    >>> from dhdt.processing.matching_tools import get_integer_peak_location
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> Q = phase_only_corr(im1, im2)
@@ -381,10 +381,10 @@ def projected_phase_corr(I1, I2, M1=np.array(()), M2=np.array(())):
 
     References
     ----------
-    .. [1] Zhang et al. "An efficient subpixel image registration based on the
-       phase-only correlations of image projections", IEEE proceedings of the
-       10th international symposium on communications and information
-       technologies, 2010.
+    .. [Zh10] Zhang et al. "An efficient subpixel image registration based on
+              the phase-only correlations of image projections", IEEE
+              proceedings of the 10th international symposium on communications
+              and information technologies, 2010.
     """
     assert type(I1) in (np.ma.core.MaskedArray, np.array), \
         ("please provide an array")
@@ -450,10 +450,10 @@ def sign_only_corr(I1, I2): # to do
 
     References
     ----------
-    .. [1] Ito & Kiya, "DCT sign-only correlation with application to image
-           matching and the relationship with phase-only correlation",
-           IEEE international conference on acoustics, speech and signal
-           processing, vol. 1, 2007.
+    .. [IK07] Ito & Kiya, "DCT sign-only correlation with application to image
+              matching and the relationship with phase-only correlation",
+              IEEE international conference on acoustics, speech and signal
+              processing, vol. 1, 2007.
     """
     assert type(I1)==np.ndarray, ('please provide an array')
     assert type(I2)==np.ndarray, ('please provide an array')
@@ -531,24 +531,25 @@ def symmetric_phase_corr(I1, I2):
            ---┤ F  ├---┴-------------------┘
               └----┘
 
-    If multiple bands are given, cross-spectral stacking is applied, see [3].
+    If multiple bands are given, cross-spectral stacking is applied, see
+    [AL22]_.
 
     References
     ----------
-    .. [1] Nikias & Petropoulou. "Higher order spectral analysis: a nonlinear
-       signal processing framework", Prentice hall. pp.313-322, 1993.
-    .. [2] Wernet. "Symmetric phase only filtering: a new paradigm for DPIV
-       data processing", Measurement science and technology, vol.16 pp.601-618,
-       2005.
-    .. [3] Altena & Leinss, "Improved surface displacement estimation through
-       stacking cross-correlation spectra from multi-channel imagery", Science
-       of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [NP93] Nikias & Petropoulou. "Higher order spectral analysis: a nonlinear
+              signal processing framework", Prentice hall. pp.313-322, 1993.
+    .. [We05] Wernet. "Symmetric phase only filtering: a new paradigm for DPIV
+              data processing", Measurement science and technology, vol.16
+              pp.601-618, 2005.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
+              stacking cross-correlation spectra from multi-channel imagery",
+              Science of Remote Sensing, vol.6 pp.100070, 2022.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
-    >>> from ..generic.test_tools import create_sample_image_pair
-    >>> from .matching_tools import get_integer_peak_location
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
+    >>> from dhdt.processing.matching_tools import get_integer_peak_location
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> Q = symmetric_phase_corr(im1, im2)
@@ -587,7 +588,7 @@ def amplitude_comp_corr(I1, I2, F_0=0.04):
     ----------
     I1 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities, if multiple bands are given the cross-
-        correlation spectra are stacked, see [2].
+        correlation spectra are stacked, see [AL22]_.
     I2 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities
     F_0 : float, default=4e-2
@@ -600,17 +601,17 @@ def amplitude_comp_corr(I1, I2, F_0=0.04):
 
     References
     ----------
-    .. [1] Mu et al. "Amplitude-compensated matched filtering", Applied optics,
-       vol. 27(16) pp. 3461-3463, 1988.
-    .. [2] Altena & Leinss, "Improved surface displacement estimation through
-       stacking cross-correlation spectra from multi-channel imagery", Science
-       of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [Mu88] Mu et al. "Amplitude-compensated matched filtering", Applied
+              optics, vol. 27(16) pp. 3461-3463, 1988.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
+              stacking cross-correlation spectra from multi-channel imagery",
+              Science of Remote Sensing, vol.6 pp.100070, 2022.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
-    >>> from .matching_tools import get_integer_peak_location
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.processing.matching_tools import get_integer_peak_location
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> Q = amplitude_comp_corr(im1, im2)
@@ -665,16 +666,17 @@ def robust_corr(I1, I2):
 
     References
     ----------
-    .. [1] Fitch et al. "Fast robust correlation", IEEE transactions on image
-       processing vol. 14(8) pp. 1063-1073, 2005.
-    .. [2] Essannouni et al. "Adjustable SAD matching algorithm using frequency
-       domain" Journal of real-time image processing, vol.1 pp.257-265
+    .. [Fi05] Fitch et al. "Fast robust correlation", IEEE transactions on image
+              processing vol. 14(8) pp. 1063-1073, 2005.
+    .. [Es07] Essannouni et al. "Adjustable SAD matching algorithm using
+              frequency domain" Journal of real-time image processing, vol.1
+              pp.257-265, 2007.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
-    >>> from .matching_tools import get_integer_peak_location
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.processing.matching_tools import get_integer_peak_location
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> Q = robust_corr(im1, im2)
@@ -708,7 +710,7 @@ def gradient_corr(I1, I2):
     ----------
     I1 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities, if multiple bands are given the cross-
-        correlation spectra are stacked, see [3].
+        correlation spectra are stacked, see [AL22]_.
     I2 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities
 
@@ -757,21 +759,21 @@ def gradient_corr(I1, I2):
 
     References
     ----------
-    .. [1] Argyriou & Vlachos. "Estimation of sub-pixel motion using gradient
-           cross-correlation", Electronics letters, vol.39(13) pp.980--982,
-           2003.
-    .. [2] Tzimiropoulos et al. "Subpixel registration with gradient
-           correlation" IEEE transactions on image processing, vol.20(6)
-           pp.1761--1767, 2010.
-    .. [3] Altena & Leinss, "Improved surface displacement estimation through
-           stacking cross-correlation spectra from multi-channel imagery", Science
-           of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [AV03] Argyriou & Vlachos. "Estimation of sub-pixel motion using gradient
+              cross-correlation", Electronics letters, vol.39(13) pp.980--982,
+              2003.
+    .. [Tz10] Tzimiropoulos et al. "Subpixel registration with gradient
+              correlation" IEEE transactions on image processing, vol.20(6)
+              pp.1761--1767, 2010.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
+              stacking cross-correlation spectra from multi-channel imagery",
+              Science of Remote Sensing, vol.6 pp.100070, 2022.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> from dhdt.processing.matching_tools import get_integer_peak_location
-    >>> from dhdt.generic.test_tools import create_sample_image_pair
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> Q = gradient_corr(im1, im2)
@@ -814,7 +816,7 @@ def normalized_gradient_corr(I1, I2):
     ----------
     I1 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities, if multiple bands are given the cross-
-        correlation spectra are stacked, see [2].
+        correlation spectra are stacked, see [AL22]_.
     I2 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities
 
@@ -864,18 +866,18 @@ def normalized_gradient_corr(I1, I2):
 
     References
     ----------
-    .. [1] Tzimiropoulos et al. "Subpixel registration with gradient
-           correlation" IEEE transactions on image processing, vol.20(6)
-           pp.1761--1767, 2010.
-    .. [2] Altena & Leinss, "Improved surface displacement estimation through
-           stacking cross-correlation spectra from multi-channel imagery",
-           Science of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [Tz10] Tzimiropoulos et al. "Subpixel registration with gradient
+              correlation" IEEE transactions on image processing, vol.20(6)
+              pp.1761--1767, 2010.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
+              stacking cross-correlation spectra from multi-channel imagery",
+              Science of Remote Sensing, vol.6 pp.100070, 2022.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
-    >>> from .matching_tools import get_integer_peak_location
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.processing.matching_tools import get_integer_peak_location
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> Q = normalized_gradient_corr(im1, im2)
@@ -919,13 +921,14 @@ def normalized_gradient_corr(I1, I2):
     return Q
 
 def orientation_corr(I1, I2):
-    """ match two imagery through orientation correlation
+    """ match two imagery through orientation correlation, developed by [Fi02]_
+    while demonstrated its benefits over glaciated terrain by [HK12]_.
 
     Parameters
     ----------
     I1 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities, if multiple bands are given the cross-
-        correlation spectra are stacked, see [3].
+        correlation spectra are stacked, see [AL22]_.
     I2 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities
 
@@ -978,21 +981,21 @@ def orientation_corr(I1, I2):
 
     References
     ----------
-    .. [1] Fitch et al. "Orientation correlation", Proceeding of the Britisch
-           machine vison conference, pp. 1--10, 2002.
-    .. [2] Heid & Kääb. "Evaluation of existing image matching methods for
-           deriving glacier surface displacements globally from optical
-           satellite imagery", Remote sensing of environment, vol.118
-           pp.339-355, 2012.
-    .. [3] Altena & Leinss, "Improved surface displacement estimation through
-           stacking cross-correlation spectra from multi-channel imagery",
-           Science of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [Fi02] Fitch et al. "Orientation correlation", Proceeding of the Britisch
+              machine vison conference, pp. 1--10, 2002.
+    .. [HK12] Heid & Kääb. "Evaluation of existing image matching methods for
+              deriving glacier surface displacements globally from optical
+              satellite imagery", Remote sensing of environment, vol.118
+              pp.339-355, 2012.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
+              stacking cross-correlation spectra from multi-channel imagery",
+              Science of Remote Sensing, vol.6 pp.100070, 2022.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
-    >>> from .matching_tools import get_integer_peak_location
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.processing.matching_tools import get_integer_peak_location
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> Q = orientation_corr(im1, im2)
@@ -1031,13 +1034,13 @@ def orientation_corr(I1, I2):
     return Q
 
 def windrose_corr(I1, I2):
-    """ match two imagery through windrose phase correlation
+    """ match two imagery through windrose phase correlation, see [KJ91]_.
 
     Parameters
     ----------
     I1 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities, if multiple bands are given the cross-
-        correlation spectra are stacked, see [3].
+        correlation spectra are stacked, see [AL22]_.
     I2 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities
 
@@ -1066,18 +1069,19 @@ def windrose_corr(I1, I2):
 
     References
     ----------
-    .. [1] Kumar & Juday, "Design of phase-only, binary phase-only, and complex
-           ternary matched filters with increased signal-to-noise ratios for
-           colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
-    .. [2] Altena & Leinss, "Improved surface displacement estimation through
-           stacking cross-correlation spectra from multi-channel imagery",
-           Science of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [KJ91] Kumar & Juday, "Design of phase-only, binary phase-only, and complex
+              ternary matched filters with increased signal-to-noise ratios for
+              colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
+              stacking cross-correlation spectra from multi-channel imagery",
+              Science of Remote Sensing, vol.6 pp.100070, 2022.
 
-    Example
-    -------
+
+    Examples
+    --------
     >>> import numpy as np
-    >>> from .matching_tools import get_integer_peak_location
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.processing.matching_tools import get_integer_peak_location
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> Q = windrose_corr(im1, im2)
@@ -1116,7 +1120,7 @@ def phase_corr(I1, I2):
     ----------
     I1 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities, if multiple bands are given the cross-
-        correlation spectra are stacked, see [2].
+        correlation spectra are stacked, see [AL22]_.
     I2 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities
 
@@ -1158,18 +1162,18 @@ def phase_corr(I1, I2):
 
     References
     ----------
-    .. [1] Kuglin & Hines. "The phase correlation image alignment method",
-           proceedings of the IEEE international conference on cybernetics and
-           society, pp. 163-165, 1975.
-    .. [2] Altena & Leinss, "Improved surface displacement estimation through
-           stacking cross-correlation spectra from multi-channel imagery",
-           Science of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [KH75] Kuglin & Hines. "The phase correlation image alignment method",
+              proceedings of the IEEE international conference on cybernetics
+              and society, pp. 163-165, 1975.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
+              stacking cross-correlation spectra from multi-channel imagery",
+              Science of Remote Sensing, vol.6 pp.100070, 2022.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
-    >>> from .matching_tools import get_integer_peak_location
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.processing.matching_tools import get_integer_peak_location
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> Q = phase_corr(im1, im2)
@@ -1202,13 +1206,14 @@ def phase_corr(I1, I2):
     return Q
 
 def gaussian_transformed_phase_corr(I1, I2):
-    """ match two imagery through Gaussian transformed phase correlation
+    """ match two imagery through Gaussian transformed phase correlation, see
+    [Ec08]_.
 
     Parameters
     ----------
     I1 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities, if multiple bands are given the cross-
-        correlation spectra are stacked, see [2].
+        correlation spectra are stacked, see [AL22]_.
     I2 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities
 
@@ -1249,17 +1254,17 @@ def gaussian_transformed_phase_corr(I1, I2):
 
     References
     ----------
-    .. [1] Eckstein et al. "Phase correlation processing for DPIV
+    .. [Ec08] Eckstein et al. "Phase correlation processing for DPIV
            measurements", Experiments in fluids, vol.45 pp.485-500, 2008.
-    .. [2] Altena & Leinss, "Improved surface displacement estimation through
-           stacking cross-correlation spectra from multi-channel imagery",
-           Science of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
+              stacking cross-correlation spectra from multi-channel imagery",
+              Science of Remote Sensing, vol.6 pp.100070, 2022.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> from dhdt.processing.matching_tools import get_integer_peak_location
-    >>> from dhdt.generic.test_tools import create_sample_image_pair
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> Q = gaussian_transformed_phase_corr(im1, im2)
@@ -1315,14 +1320,14 @@ def upsampled_cross_corr(S1, S2, upsampling=2):
 
     References
     ----------
-    .. [1] Guizar-Sicairo, et al. "Efficient subpixel image registration
-       algorithms", Applied optics, vol. 33 pp.156--158, 2008.
+    .. [GS08] Guizar-Sicairo, et al. "Efficient subpixel image registration
+              algorithms", Applied optics, vol. 33 pp.156--158, 2008.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> from dhdt.processing.matching_tools import get_integer_peak_location
-    >>> from dhdt.generic.test_tools import create_sample_image_pair
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> di,dj = upsampled_cross_corr(im1, im2)
@@ -1372,7 +1377,7 @@ def cross_corr(I1, I2):
     ----------
     I1 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities, if multiple bands are given the cross-
-        correlation spectra are stacked, see [2].
+        correlation spectra are stacked, see [AL22]_.
     I2 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities
 
@@ -1411,19 +1416,19 @@ def cross_corr(I1, I2):
 
     References
     ----------
-    .. [1] Heid & Kääb. "Evaluation of existing image matching methods for
+    .. [HK12] Heid & Kääb. "Evaluation of existing image matching methods for
            deriving glacier surface displacements globally from optical
            satellite imagery", Remote sensing of environment, vol.118
            pp.339-355, 2012.
-    .. [2] Altena & Leinss, "Improved surface displacement estimation through
-           stacking cross-correlation spectra from multi-channel imagery",
-           Science of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
+              stacking cross-correlation spectra from multi-channel imagery",
+              Science of Remote Sensing, vol.6 pp.100070, 2022.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> from dhdt.processing.matching_tools import get_integer_peak_location
-    >>> from dhdt.generic.test_tools import create_sample_image_pair
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> Q = cross_corr(im1, im2)
@@ -1455,13 +1460,13 @@ def cross_corr(I1, I2):
     return Q
 
 def binary_orientation_corr(I1, I2):
-    """ match two imagery through binary phase only correlation
+    """ match two imagery through binary phase only correlation, see [KJ91]_.
 
     Parameters
     ----------
     I1 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities, if multiple bands are given the cross-
-        correlation spectra are stacked, see [2].
+        correlation spectra are stacked, see [AL22]_.
     I2 : numpy.array, size=(m,n), ndim={2,3}
         array with intensities
 
@@ -1489,18 +1494,19 @@ def binary_orientation_corr(I1, I2):
 
     References
     ----------
-    .. [1] Kumar & Juday, "Design of phase-only, binary phase-only, and complex
-           ternary matched filters with increased signal-to-noise ratios for
-           colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
-    .. [2] Altena & Leinss, "Improved surface displacement estimation through
-           stacking cross-correlation spectra from multi-channel imagery",
-           Science of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [KJ91] Kumar & Juday, "Design of phase-only, binary phase-only, and
+              complex ternary matched filters with increased signal-to-noise
+              ratios for colored noise", Optics letters, vol.16(13)
+              pp.1025-1027, 1991.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
+              stacking cross-correlation spectra from multi-channel imagery",
+              Science of Remote Sensing, vol.6 pp.100070, 2022.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> from dhdt.processing.matching_tools import get_integer_peak_location
-    >>> from dhdt.generic.test_tools import create_sample_image_pair
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> Q = binary_orientation_corr(im1, im2)
@@ -1533,7 +1539,8 @@ def binary_orientation_corr(I1, I2):
     return Q
 
 def masked_corr(I1, I2, M1=np.array(()), M2=np.array(())):
-    """ match two imagery through masked normalized cross-correlation in FFT
+    """ match two imagery through masked normalized cross-correlation in FFT,
+    see [Pa11]_.
 
     Parameters
     ----------
@@ -1558,14 +1565,15 @@ def masked_corr(I1, I2, M1=np.array(()), M2=np.array(())):
 
     References
     ----------
-    .. [1] Padfield. "Masked object registration in the Fourier domain",
-       IEEE transactions on image processing, vol. 21(5) pp. 2706-2718, 2011.
+    .. [Pa11] Padfield. "Masked object registration in the Fourier domain",
+              IEEE transactions on image processing, vol. 21(5) pp. 2706-2718,
+              2011.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> from dhdt.processing.matching_tools import get_integer_peak_location
-    >>> from dhdt.generic.test_tools import create_sample_image_pair
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> msk1,msk2 = np.ones_like(im1), np.ones_like(im2)

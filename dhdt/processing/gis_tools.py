@@ -12,9 +12,7 @@ def make_casting_couple_shapefile(fpath):
     S_1(x) S_1(y) S_2(x) S_2(y) C(x) C(y)
     
     '''
-    # fpath = '/Users/Alten005/GO-dhdt/start-code/examples/' + \
-    # 'dh-S2-15-10-2019-S2-25-10-2019-norm_corr.txt'
-    
+
     fdir, fname = os.path.split(fpath)
     oname = fname[:-3]+'shp'
     
@@ -66,9 +64,7 @@ def make_conn_txt_a_shapefile(fpath):
     C(x) C(y) S(x) S(y) azi(x) elev(y)
     
     '''
-    # fpath = '/Users/Alten005/GO-dhdt/start-code/examples/' + \
-    # 'S2-25-10-2019/conn.txt'
-    
+
     fdir, fname = os.path.split(fpath)
     oname = fname[:-3]+'shp' # output name
     

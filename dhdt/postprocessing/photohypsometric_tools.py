@@ -341,12 +341,12 @@ def clean_dh(dh):
 
     Parameters
     ----------
-    dh : {numpy.array, numpy.recordarray, pandas.DataFrame}
+    dh : {numpy.ndarray, numpy.recordarray, pandas.DataFrame}
         array with photohypsometric information
 
     Returns
     -------
-    dh : {numpy.array, numpy.recordarray, pandas.DataFrame}
+    dh : {numpy.ndarray, numpy.recordarray, pandas.DataFrame}
         reduced array
 
     See Also
@@ -379,9 +379,9 @@ def update_caster_elevation(dh, Z, geoTransform):
 
     Parameters
     ----------
-    dh : {numpy.array, numpy.recordarray, pandas.DataFrame}
+    dh : {numpy.ndarray, numpy.recordarray, pandas.DataFrame}
         array with photohypsometric information
-    Z : numpy.array, size=(m,n), unit=meters
+    Z : numpy.ndarray, size=(m,n), unit=meters
         grid with elevation values
     geoTransform : tuple, size={(1,6), (1,8)}
         affine transformation coefficients
@@ -441,9 +441,9 @@ def update_casted_elevation(dxyt, Z, geoTransform):
 
     Parameters
     ----------
-    dh : {numpy.array, numpy.recordarray, pandas.DataFrame}
+    dh : {numpy.ndarray, numpy.recordarray, pandas.DataFrame}
         array with photohypsometric information
-    Z : numpy.array, size=(m,n), unit=meters
+    Z : numpy.ndarray, size=(m,n), unit=meters
         grid with elevation values
     geoTransform : tuple, size={(1,6), (1,8)}
         affine transformation coefficients
@@ -505,9 +505,9 @@ def update_glacier_id(dh, R, geoTransform):
 
     Parameters
     ----------
-    dh : {numpy.array, numpy.recordarray, pandas.DataFrame}
+    dh : {numpy.ndarray, numpy.recordarray, pandas.DataFrame}
         array with photohypsometric information
-    R : numpy.array, size=(m,n), dtype=int
+    R : numpy.ndarray, size=(m,n), dtype=int
         grid with glacier labels
     geoTransform : tuple, size={(1,6), (1,8)}
         affine transformation coefficients

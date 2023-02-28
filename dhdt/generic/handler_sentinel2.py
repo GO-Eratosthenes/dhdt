@@ -173,7 +173,7 @@ def get_bbox_from_tile_code(tile_code, geom_dir=None, geom_name=None):
 
     Returns
     -------
-    bbox : numpy.array, size=(1,4), dtype=float
+    bbox : numpy.ndarray, size=(1,4), dtype=float
         bounding box, in the following order: min max X, min max Y
     """
     tile_code = _check_mgrs_code(tile_code)
@@ -362,8 +362,8 @@ def get_s2_image_locations(fname,s2_df):
     datastrip_id : string
         folder name of the metadata
 
-    Example
-    -------
+    Examples
+    --------
     >>> import os
     >>> fpath = '/Users/Data/'
     >>> sname = 'S2A_MSIL1C_20200923T163311_N0209_R140_T15MXV_20200923T200821.SAFE'
@@ -419,8 +419,8 @@ def meta_S2string(S2str):
     S2tile : string
         tile code "TXXXXX"
 
-    Example
-    -------
+    Examples
+    --------
     >>> S2str = 'S2A_MSIL1C_20200923T163311_N0209_R140_T15MXV_20200923T200821.SAFE'
     >>> S2time, S2orbit, S2tile = meta_S2string(S2str)
     >>> S2time

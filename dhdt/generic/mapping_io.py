@@ -89,8 +89,8 @@ def read_geo_image(fname, boi=np.array([]), no_dat=None):
     read_geo_info : basic function to get meta data of geographic imagery
     read_nc_im : basic function to read geographic raster out of nc-file
 
-    Example
-    -------
+    Examples
+    --------
     >>> import os
     >>> from dhdt.generic.mapping_io import read_geo_image
     >>> fpath = os.path.join(os.getcwd(), "data.jp2" )
@@ -169,8 +169,8 @@ def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes',
     date_created : string
         string given the acquistion date in YYYY-MM-DD
 
-    Example
-    -------
+    Examples
+    --------
     
     >>> import os
     >>> fpath = os.path.join(os.getcwd(), "data.jp2")

@@ -14,14 +14,14 @@ def perdecomp(img):
        
     Parameters
     ----------    
-    img : numpy.array, size=(m,n)
+    img : numpy.ndarray, size=(m,n)
         array with intensities
     
     Returns
     -------
-    per : numpy.array, size=(m,n)
+    per : numpy.ndarray, size=(m,n)
         periodic component
-    cor : numpy.array, size=(m,n)
+    cor : numpy.ndarray, size=(m,n)
         smooth component   
 
     References
@@ -29,10 +29,10 @@ def perdecomp(img):
     .. [Mo11] Moisan, L. "Periodic plus smooth image decomposition", Journal of
               mathematical imaging and vision vol. 39.2 pp. 161-179, 2011.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
     
     >>> im1,_,_,_,_ = create_sample_image_pair(d=2**7, max_range=1)
     >>> per,cor = perdecomp(im1)
@@ -86,18 +86,18 @@ def normalize_power_spectrum(Q):
        
     Parameters
     ----------    
-    Q : numpy.array, size=(m,n), dtype=complex
+    Q : numpy.ndarray, size=(m,n), dtype=complex
         cross-spectrum
     
     Returns
     -------
-    Qn : numpy.array, size=(m,n), dtype=complex
+    Qn : numpy.ndarray, size=(m,n), dtype=complex
         normalized cross-spectrum, that is elements with unit length 
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
-    >>> from dhdt.generic.test_tools import create_sample_image_pair
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
     
     >>> im1,im2,_,_,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> spec1,spec2 = np.fft.fft2(im1), np.fft.fft2(im2)
@@ -114,14 +114,14 @@ def local_coherence(Q, ds=1):
 
     Parameters
     ----------
-    Q : numpy.array, size=(m,n), dtype=complex
+    Q : numpy.ndarray, size=(m,n), dtype=complex
         array with cross-spectrum, with centered coordinate frame
     ds : integer, default=1
         kernel radius to describe the neighborhood
 
     Returns
     -------
-    M : numpy.array, size=(m,n), dtype=float
+    M : numpy.ndarray, size=(m,n), dtype=float
         vector coherence from no to ideal, i.e.: 0...1
 
     See Also
@@ -132,7 +132,7 @@ def local_coherence(Q, ds=1):
     --------
     >>> import numpy as np
     >>> import matplotlib.pyplot as plt
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> # create cross-spectrum with random displacement
     >>> im1,im2,_,_,_ = create_sample_image_pair(d=2**4, max_range=1)
@@ -174,7 +174,7 @@ def make_fourier_grid(Q, indexing='ij', system='radians', shift=True,
 
     Parameters
     ----------
-    Q : numpy.array, size=(m,n), dtype=complex
+    Q : numpy.ndarray, size=(m,n), dtype=complex
         Fourier based (cross-)spectrum.
     indexing : {‘xy’, ‘ij’}  
          * "xy" : using map coordinates
@@ -190,9 +190,9 @@ def make_fourier_grid(Q, indexing='ij', system='radians', shift=True,
     
     Returns
     -------
-    F_1 : np,array, size=(m,n), dtype=integer
+    F_1 : numpy.ndarray, size=(m,n), dtype=integer
         first coordinate index of the Fourier spectrum in a map system.
-    F_2 : np,array, size=(m,n), dtype=integer
+    F_2 : numpy.ndarray, size=(m,n), dtype=integer
         second coordinate index  of the Fourier spectrum in a map system.
     
     Notes
@@ -387,12 +387,12 @@ def gradient_fourier(I):
 
     Parameters
     ----------
-    I : numpy.array, size=(m,n), dtype=float
+    I : numpy.ndarray, size=(m,n), dtype=float
         intensity array
 
     Returns
     -------
-    dIdx_1, dIdx_2 : numpy.array, size=(m,n), dtype=float
+    dIdx_1, dIdx_2 : numpy.ndarray, size=(m,n), dtype=float
         first order derivative along both axis
     """
     m, n = I.shape[0:2]
@@ -444,7 +444,7 @@ def raised_cosine(I, beta=0.35):
     Examples
     --------
     >>> import numpy as np
-    >>> from ..generic.test_tools import create_sample_image_pair
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
     
     >>> im1,im2,_,_,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> spec1,spec2 = np.fft.fft2(im1), np.fft.fft2(im2)
@@ -962,7 +962,7 @@ def gaussian_mask(S):
     Examples
     --------
     >>> import numpy as np
-    >>> from dhdt.generic.test_tools import create_sample_image_pair
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
     
     >>> im1,im2,_,_,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> spec1,spec2 = np.fft.fft2(im1), np.fft.fft2(im2)      

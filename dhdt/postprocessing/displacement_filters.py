@@ -153,7 +153,8 @@ def local_variance(V, tsize=5):
     Parameters
     ----------
     sig_V : numpy.array, size=(m,n), dtype=float
-        statistical local variance, based on the procedure described in [1],[2]
+        statistical local variance, based on the procedure described in [JoXX]_,
+        [JoYY]
 
     References
     ----------

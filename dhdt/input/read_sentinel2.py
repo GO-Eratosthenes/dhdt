@@ -237,8 +237,8 @@ def read_band_s2(path, band=None):
     read_stack_s2 : reading several Sentinel-2 bands at once into a stack
     dhdt.generic.read_geo_image : basic function to import geographic imagery data
 
-    Example
-    -------
+    Examples
+    --------
     >>> path = '/GRANULE/L1C_T15MXV_A027450_20200923T163313/IMG_DATA/'
     >>> band = '02'
     >>> _,spatialRef,geoTransform,targetprj = read_band_s2(path, band)
@@ -1115,8 +1115,8 @@ def read_detector_mask(path_meta, boi, geoTransform):
     - MSI : multi spectral instrument
     - L1C : product specification,i.e.: level 1, processing step C
 
-    Example
-    -------
+    Examples
+    --------
     >>> path_meta = '/GRANULE/L1C_T15MXV_A027450_20200923T163313/QI_DATA'
     >>> boi = ['red', 'green', 'blue', 'near infrared']
     >>> s2_df = list_central_wavelength_msi()

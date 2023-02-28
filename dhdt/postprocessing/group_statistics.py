@@ -29,9 +29,9 @@ def get_midpoint_altitude(RGI, Z, roi=None):
 
     References
     ----------
-    .. [1] Raper & Braithwaite, "Glacier volume response time and its links to
-       climate and topography based on a conceptual model of glacier hypsometry"
-       The cryosphere, vol.3 pp.183-194, 2009.
+    .. [RB09] Raper & Braithwaite, "Glacier volume response time and its links
+              to climate and topography based on a conceptual model of glacier
+              hypsometry" The cryosphere, vol.3 pp.183-194, 2009.
     """
 
     f = lambda x: np.quantile(x, 0.5)
@@ -65,14 +65,14 @@ def get_normalized_hypsometry(RGI, Z, dZ, bins=20):
 
     References
     ----------
-    .. [1] McNabb et al. "Sensitivity of glacier volume estimation to DEM
-       void interpolation", The cryosphere, vol.13 pp.895-910, 2019.
-    .. [2] Mannerfelt et al. "Halving of Swiss glacier volume since 1931
-       observed from terrestrial image photogrammetry", The crysophere
-       discussions
-    .. [3] Huss et al. "Future high-mountain hydrology: a new parameterization
-       of glacier retreat", Hydrology and earth system sciences, vol.14
-       pp.815-829, 2010
+    .. [Mc19] McNabb et al. "Sensitivity of glacier volume estimation to DEM
+              void interpolation", The cryosphere, vol.13 pp.895-910, 2019.
+    .. [MaXX] Mannerfelt et al. "Halving of Swiss glacier volume since 1931
+              observed from terrestrial image photogrammetry", The crysophere
+              discussions
+    .. [Hu10] Huss et al. "Future high-mountain hydrology: a new
+              parameterization of glacier retreat", Hydrology and earth system
+              sciences, vol.14 pp.815-829, 2010
     """
     func = lambda x: np.quantile(x, 0.5)
 
@@ -193,8 +193,8 @@ def hypsometeric_void_interpolation(z,dz,Z,deg=3):
 
     References
     ----------
-    .. [1] McNabb et al. "Sensitivity of glacier volume estimation to DEM
-       void interpolation", The cryosphere, vol.13 pp.895-910, 2019.
+    .. [Mc19] McNabb et al. "Sensitivity of glacier volume estimation to DEM
+              void interpolation", The cryosphere, vol.13 pp.895-910, 2019.
     """
     f = np.polyfit1d(np.polyfit(z,dz, deg=deg))
     dZ = f(Z)

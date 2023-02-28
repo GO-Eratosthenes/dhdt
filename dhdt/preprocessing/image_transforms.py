@@ -24,8 +24,8 @@ def mat_to_gray(I, notI=None, vmin=None, vmax=None):
     --------
     gamma_adjustment, log_adjustment, s_curve, inverse_tangent_transformation
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> from skimage import data
     >>> img = data.astronaut()

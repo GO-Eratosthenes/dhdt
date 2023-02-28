@@ -32,10 +32,10 @@ def rgb2hcv(Blue, Green, Red):
 
     References
     ----------
-    .. [1] Smith, "Putting colors in order", Dr. Dobb’s Journal, pp 40, 1993.
-    .. [2] Tsai, "A comparative study on shadow compensation of color aerial
-       images in invariant color models", IEEE transactions in geoscience and
-       remote sensing, vol. 44(6) pp. 1661--1671, 2006.
+    .. [Sm93] Smith, "Putting colors in order", Dr. Dobb’s Journal, pp 40, 1993.
+    .. [Ts06] Tsai, "A comparative study on shadow compensation of color aerial
+              images in invariant color models", IEEE transactions in geoscience
+              and remote sensing, vol. 44(6) pp. 1661--1671, 2006.
     """
     are_three_arrays_equal(Blue,Green,Red)
 
@@ -113,7 +113,7 @@ def rgb2yiq(Red, Green, Blue):
 
     References
     ----------
-    .. [1] Gonzalez & Woods "Digital image processing", 1992.
+    .. [GW92] Gonzalez & Woods "Digital image processing", 1992.
     """
     are_three_arrays_equal(Blue,Green,Red)
 
@@ -153,7 +153,7 @@ def yiq2rgb(Y,I,Q):
 
     References
     ----------
-    .. [1] Gonzalez & Woods "Digital image processing", 1992.
+    .. [GW92] Gonzalez & Woods "Digital image processing", 1992.
     """
     are_three_arrays_equal(Y,I,Q)
 
@@ -193,9 +193,9 @@ def rgb2ycbcr(Red, Green, Blue):
 
     References
     ----------
-    .. [1] Tsai, "A comparative study on shadow compensation of color aerial
-       images in invariant color models", IEEE transactions in geoscience and
-       remote sensing, vol. 44(6) pp. 1661--1671, 2006.
+    .. [Ts06] Tsai, "A comparative study on shadow compensation of color aerial
+              images in invariant color models", IEEE transactions in geoscience
+              and remote sensing, vol. 44(6) pp. 1661--1671, 2006.
     """
     are_three_arrays_equal(Blue,Green,Red)
 
@@ -240,10 +240,10 @@ def rgb2hsi(Red, Green, Blue):
 
     References
     ----------
-    .. [1] Tsai, "A comparative study on shadow compensation of color aerial
-       images in invariant color models", IEEE transactions in geoscience and
-       remote sensing, vol. 44(6) pp. 1661--1671, 2006.
-    .. [2] Pratt, "Digital image processing" Wiley, 1991.
+    .. [Ts06] Tsai, "A comparative study on shadow compensation of color aerial
+              images in invariant color models", IEEE transactions in geoscience
+              and remote sensing, vol. 44(6) pp. 1661--1671, 2006.
+    .. [Pr91] Pratt, "Digital image processing" Wiley, 1991.
     """
     are_three_arrays_equal(Blue,Green,Red)
 
@@ -321,7 +321,7 @@ def erdas2hsi(Blue, Green, Red):
 
     References
     ----------
-    .. [1] ERDAS, "User handbook", 2013.
+    .. [ER13] ERDAS, "User handbook", 2013.
     """
     are_three_arrays_equal(Blue,Green,Red)
 
@@ -385,9 +385,9 @@ def rgb2xyz(Red, Green, Blue, method='reinhardt'):
 
     References
     ----------
-    .. [1] Reinhard et al. "Color transfer between images" IEEE Computer graphics
-       and applications vol.21(5) pp.34-41, 2001.
-    .. [2] Ford & Roberts. "Color space conversion", pp. 1--31, 1998.
+    .. [Re01] Reinhard et al. "Color transfer between images" IEEE Computer
+              graphics and applications vol.21(5) pp.34-41, 2001.
+    .. [FR98] Ford & Roberts. "Color space conversion", pp. 1--31, 1998.
     """
     are_three_arrays_equal(Blue,Green,Red)
 
@@ -427,8 +427,8 @@ def xyz2lms(X, Y, Z):
 
     References
     ----------
-    .. [1] Reinhard et al. "Color transfer between images" IEEE Computer graphics
-       and applications vol.21(5) pp.34-41, 2001.
+    .. [Re01] Reinhard et al. "Color transfer between images" IEEE Computer
+              graphics and applications vol.21(5) pp.34-41, 2001.
     """
     are_three_arrays_equal(X,Y,Z)
 
@@ -458,10 +458,10 @@ def xyz2lab(X, Y, Z, th=0.008856):
 
     References
     ----------
-    .. [1] Ford & Roberts. "Color space conversion", pp. 1--31, 1998.
-    .. [2] Silva et al. "Near real-time shadow detection and removal in aerial
-       motion imagery application" ISPRS journal of photogrammetry and remote
-       sensing, vol.140 pp.104--121, 2018.
+    .. [FR98] Ford & Roberts. "Color space conversion", pp. 1--31, 1998.
+    .. [Si18] Silva et al. "Near real-time shadow detection and removal in
+              aerial motion imagery application" ISPRS journal of photogrammetry
+              and remote sensing, vol.140 pp.104--121, 2018.
     """
     are_three_arrays_equal(X,Y,Z)
 
@@ -501,10 +501,10 @@ def lab2lch(L, a, b):
 
     References
     ----------
-    .. [1] Ford & Roberts. "Color space conversion", pp. 1--31, 1998.
-    .. [2] Silva et al. "Near real-time shadow detection and removal in aerial
-       motion imagery application" ISPRS journal of photogrammetry and remote
-       sensing, vol.140 pp.104--121, 2018.
+    .. [FR98] Ford & Roberts. "Color space conversion", pp. 1--31, 1998.
+    .. [Si18] Silva et al. "Near real-time shadow detection and removal in
+              aerial motion imagery application" ISPRS journal of photogrammetry
+              and remote sensing, vol.140 pp.104--121, 2018.
     """
     are_two_arrays_equal(a,b)
 
@@ -536,7 +536,8 @@ def rgb2lms(Red, Green, Blue):
 
     References
     ----------
-    .. [1] Reinhard et al. "Color transfer between images", 2001.
+    .. [Re01] Reinhard et al. "Color transfer between images" IEEE Computer
+              graphics and applications vol.21(5) pp.34-41, 2001.
     """
     are_three_arrays_equal(Blue,Green,Red)
 
@@ -566,7 +567,8 @@ def lms2lab(L, M, S):
 
     References
     ----------
-    .. [1] Reinhard et al. "Color transfer between images", 2001.
+    .. [Re01] Reinhard et al. "Color transfer between images" IEEE Computer
+              graphics and applications vol.21(5) pp.34-41, 2001.
     """
     are_three_arrays_equal(L,M,S)
 

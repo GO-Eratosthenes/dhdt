@@ -21,9 +21,9 @@ def directional_spectrum(I, num_estimates=1): #todo: bring into correct framewor
 
     Notes
     -----
-    .. [1] Kudryavtsev et al. "Sun glitter imagery of surface waves. Part 1:
-       Directional spectrum retrieval and validation" Journal of geophysical
-       research: oceans. vol.122 pp.1369-1383
+    .. [KuXX] Kudryavtsev et al. "Sun glitter imagery of surface waves. Part 1:
+              Directional spectrum retrieval and validation" Journal of
+              geophysical research: oceans. vol.122 pp.1369-1383
     """
     # spectral pre-processing
     per,_ = perdecomp(I)

@@ -416,8 +416,7 @@ def estimate_subpixel(QC, subpix, m0=np.zeros((1, 2)), **kwargs):
     elif subpix in phase_based: #cross-spectrum
         if subpix in ['tpss']:
             W = thresh_masking(QC)
-            (m,snr) = phase_tpss(QC, W, m0)
-            ddi, ddj = m[0], m[1]
+            ddi,ddj,snr = phase_tpss(QC, W, m0)
         elif subpix in ['svd']:
             W = coherence_masking(QC)
             ddi,ddj = phase_svd(QC, W, rad=0.4)

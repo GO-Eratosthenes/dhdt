@@ -27,8 +27,8 @@ def list_central_wavelength_s4():
             * resolution : spatial resolution of a pixel
             * common_name : general name of the band, if applicable
 
-    Example
-    -------
+    Examples
+    --------
     make a selection by name:
 
     >>> boi = ['red', 'green', 'blue', 'near infrared']

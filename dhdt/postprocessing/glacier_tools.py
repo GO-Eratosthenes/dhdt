@@ -5,11 +5,11 @@ def volume2icemass(V, Z=None, RGI=None, ELA=None, distinction='Kaeaeb'):
 
     Parameters
     ----------
-    V : numpy.array, dtype={float,integer}, size=(m,n), unit=m
+    V : numpy.ndarray, dtype={float,integer}, size=(m,n), unit=m
         array with elevation change values
-    Z : numpy.array, dtype={float,integer}, size=(m,n), unit=m
+    Z : numpy.ndarray, dtype={float,integer}, size=(m,n), unit=m
         array with elevation
-    RGI : numpy.array, dtype={boolean,integer}, size=(m,n)
+    RGI : numpy.ndarray, dtype={boolean,integer}, size=(m,n)
         array with labelled glaciers
     distinction:
         either following [Kä12]_ or [Hu13]_
@@ -18,7 +18,7 @@ def volume2icemass(V, Z=None, RGI=None, ELA=None, distinction='Kaeaeb'):
 
     Returns
     -------
-    Mass : numpy.array, size=(m,n), unit=kg
+    Mass : numpy.ndarray, size=(m,n), unit=kg
 
     Notes
     -----

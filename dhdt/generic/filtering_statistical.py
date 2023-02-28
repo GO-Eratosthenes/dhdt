@@ -7,7 +7,7 @@ def online_steady_state(y_ol, X_fi=None, v_fi=None, d_fi=None,
 
     Parameters
     ----------
-    y_ol : numpy.array, size=(m,)
+    y_ol : numpy.ndarray, size=(m,)
         variable of interest
     lambda_1, lambda_2, lambda_3 : float
         tuning paramters
@@ -18,7 +18,7 @@ def online_steady_state(y_ol, X_fi=None, v_fi=None, d_fi=None,
     -------
     in_steady_state : boolean
         specifies if proces is in steady state
-    R_i : numpy.array, size=(m,)
+    R_i : numpy.ndarray, size=(m,)
         steady state metric
 
     References

@@ -254,9 +254,9 @@ def scaling_through_power_summation(S1, S2):
         
     References
     ----------    
-    .. [1] Pla & Bober. "Estimating translation/deformation motion through
-           phase correlation", International conference on image analysis and
-           processing. in Lecture notes in computer science, vol.1310, 1997.
+    .. [PB97] Pla & Bober. "Estimating translation/deformation motion through
+              phase correlation", International conference on image analysis and
+              processing. in Lecture notes in computer science, vol.1310, 1997.
     """  
     assert type(S1)==np.ndarray, ("please provide an array")
     assert type(S2)==np.ndarray, ("please provide an array")

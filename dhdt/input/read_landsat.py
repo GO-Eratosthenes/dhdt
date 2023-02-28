@@ -104,8 +104,8 @@ def list_central_wavelength_oli():
               velocity derived from Landsat 8" Remote sensing of environment,
               vol.176 pp.219-224, 2016.
 
-    Example
-    -------
+    Examples
+    --------
     make a selection by name:
 
     >>> boi = ['red', 'green', 'blue', 'near infrared']

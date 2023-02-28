@@ -5,20 +5,20 @@ def ordered_merge(t_0, t_1, x_0, x_1):
 
     Parameters
     ----------
-    t_0 : numpy.array, size=(m,), dtype={float, numpy.datetime64}
+    t_0 : numpy.ndarray, size=(m,), dtype={float, numpy.datetime64}
         array with time instances
-    t_1 : numpy.array, size=(k,), dtype={float, numpy.datetime64}
+    t_1 : numpy.ndarray, size=(k,), dtype={float, numpy.datetime64}
         array with time instances
-    x_0 : numpy.array, size=(m,n)
+    x_0 : numpy.ndarray, size=(m,n)
         array with data instances at timestamp given by "t_0"
-    x_1 : numpy.array, size=(k,n)
+    x_1 : numpy.ndarray, size=(k,n)
         array with data instances at timestamp given by "t_1"
 
     Returns
     -------
-    t : numpy.array, size=(p,), dtype={float, numpy.datetime64}
+    t : numpy.ndarray, size=(p,), dtype={float, numpy.datetime64}
         array with ordered time instances
-    x : numpy.array, size=(p,l)
+    x : numpy.ndarray, size=(p,l)
         array with ordered data instances
     """
     assert t_0.shape[0] == x_0.shape[0], \
@@ -89,7 +89,7 @@ def euler_rot_x(ψ):
 
     Returns
     -------
-    R_x : numpy.array
+    R_x : numpy.ndarray
         rotation matrix along the X-axis (1st dimension)
     """
 
@@ -107,7 +107,7 @@ def euler_rot_y(θ):
 
     Returns
     -------
-    R_y : numpy.array
+    R_y : numpy.ndarray
         rotation matrix along the X-axis (2nd dimension)
     """
     R_y = np.diag(3)
@@ -126,7 +126,7 @@ def euler_rot_z(φ):
 
     Returns
     -------
-    R_x : numpy.array
+    R_x : numpy.ndarray
         rotation matrix along the X-axis (3rd dimension)
     """
     R_z = np.diag(3)
@@ -139,7 +139,7 @@ def rot_2_euler(R):
 
     Parameters
     ----------
-    R : numpy.array, size=(3,3)
+    R : numpy.ndarray, size=(3,3)
         rotation matrix, direction cosine matrix
 
     Returns
@@ -168,12 +168,12 @@ def quat_2_euler(q1, q2, q3, q4):
 
     Parameters
     ----------
-    q1,q2,q3,q4 : {float, numpy.array}
+    q1,q2,q3,q4 : {float, numpy.ndarray}
         quaternions
 
     Returns
     -------
-    φ, θ, ψ : {float, numpy.array}, unit=degrees
+    φ, θ, ψ : {float, numpy.ndarray}, unit=degrees
         rotation angles
 
     Notes
@@ -200,7 +200,7 @@ def get_rotation_angle(R):
 
     Parameters
     ----------
-    R : numpy.array, size=(3,3)
+    R : numpy.ndarray, size=(3,3)
         rotation matrix
 
     Returns
@@ -225,12 +225,12 @@ def get_rotation_vector(R):
 
     Parameters
     ----------
-    R : numpy.array, size=(3,3)
+    R : numpy.ndarray, size=(3,3)
         rotation matrix
 
     Returns
     -------
-    v : numpy.array, size=(3,)
+    v : numpy.ndarray, size=(3,)
         vector along which is rotated in 3D space
 
     See Also
@@ -252,9 +252,9 @@ def rodrigues_est(XYZ_1, XYZ_2):
 
     Parameters
     ----------
-    XYZ_1 : numpy.array, size=(k,3)
+    XYZ_1 : numpy.ndarray, size=(k,3)
         array with points in coordinate frame 1
-    XYZ_2 : numpy.array, size=(k,3)
+    XYZ_2 : numpy.ndarray, size=(k,3)
         array with points in coordinate frame 1
 
     Returns

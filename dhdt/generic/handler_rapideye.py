@@ -15,8 +15,8 @@ def meta_REstring(REstr):  # generic
     REsat : string
         which RapedEye satellite
 
-    Example
-    -------
+    Examples
+    --------
     >>> REstr = '568117_2012-09-10_RE2_3A_Analytic.tif'
     >>> REtime, REtile, REsat = meta_REstring(REstr)
     >>> REtime

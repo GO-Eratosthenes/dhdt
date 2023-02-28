@@ -60,7 +60,7 @@ def get_integer_peak_location(C, metric=None):
     >>> import numpy as np
     >>> from dhdt.processing.matching_tools_organization import \
             get_integer_peak_location
-    >>> from dhdt.generic.test_tools import create_sample_image_pair
+    >>> from dhdt.testing.matching_tools import create_sample_image_pair
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**4, max_range=1)
     >>> Q = phase_corr(im1, im2)
@@ -417,16 +417,16 @@ def remove_posts_pairs_outside_image(I1, i1, j1, I2, i2, j2):
     ----------
     I1 : numpy.ndarray, size=(m,n)
         raster array of interest, where point pairs are located
-    i1,j1 : numpy.array, size=(k,)
+    i1,j1 : numpy.ndarray, size=(k,)
         post locations of first pair, given in image coordinates
-    I2 : numpy.array, size=(m,n)
+    I2 : numpy.ndarray, size=(m,n)
         raster array of interest, where point pairs are located
-    i2,j2 : numpy.array, size=(k,)
+    i2,j2 : numpy.ndarray, size=(k,)
         post locations of second pair, given in image coordinates
 
     Returns
     -------
-    i1,j1,i2,j2 : numpy.array, size=(l,)
+    i1,j1,i2,j2 : numpy.ndarray, size=(l,)
         filtered locations within the data array "I1" or "I2"
 
     See Also
@@ -486,16 +486,16 @@ def get_coordinates_of_template_centers(Grid, temp_size):
 
     Parameters
     ----------
-    Grid : {numpy.array, numpy.masked.array, tuple}, size=(m,n)
+    Grid : {numpy.ndarray, numpy.masked.array, tuple}, size=(m,n)
         array with data values, or a geoTransform
     temp_size : positive integer
         size of the kernel in pixels
 
     Returns
     -------
-    I_idx : numpy.array, size=(k,l)
+    I_idx : numpy.ndarray, size=(k,l)
         array with row coordinates
-    J_idx : numpy.array, size=(k,l)
+    J_idx : numpy.ndarray, size=(k,l)
         array with collumn coordinates
 
     See Also
@@ -542,14 +542,14 @@ def get_value_at_template_centers(Grid, temp_size):
 
     Parameters
     ----------
-    Grid : {numpy.array, numpy.masked.array}, size=(m,n), ndim={2,3}
+    Grid : {numpy.ndarray, numpy.masked.array}, size=(m,n), ndim={2,3}
         array with data values
     temp_size : integer
         size of the kernel in pixels
 
     Returns
     -------
-    grid_centers_values : np.array, size=(k,l), ndim={2,3}
+    grid_centers_values : np.ndarray, size=(k,l), ndim={2,3}
         value of the pixel in the kernels' center
 
     See Also
