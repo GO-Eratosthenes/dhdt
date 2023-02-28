@@ -15,7 +15,7 @@ MGRS_TILING_URL = (
 MGRS_TILING_DIR_DEFAULT = os.path.join('.', 'data', 'MGRS')
 
 
-def download_mgrs_tiling(mgrs_dir=None, output='sentinel2_tiles_world.geojson'):
+def download_mgrs_tiling(mgrs_dir=None, output='sentinel2_tiles_world.geojson', overwrite=False):
     """
     Retrieve mgrs tiling polygons. 
 
@@ -42,12 +42,13 @@ def download_mgrs_tiling(mgrs_dir=None, output='sentinel2_tiles_world.geojson'):
     mgrs_dir = MGRS_TILING_DIR_DEFAULT if mgrs_dir is None else mgrs_dir
 
     # download MGRS tiling file
-    f_kml = get_file_from_www(MGRS_TILING_URL, mgrs_dir)
+    f_kml = get_file_from_www(MGRS_TILING_URL, mgrs_dir, overwrite)
 
-    
+    # Convert KML to geojson
     f_geojson = os.path.join(mgrs_dir, output)
-    gdf = _kml_to_gdf(os.path.join(mgrs_dir, f_kml))
-    gdf.to_file(f_geojson)
+    if not os.path.isfile(f_geojson) or overwrite:
+        gdf = _kml_to_gdf(os.path.join(mgrs_dir, f_kml))
+        gdf.to_file(f_geojson)
     return f_geojson
 
 
