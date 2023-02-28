@@ -3,7 +3,6 @@ import geopandas as gpd
 from shapely.geometry import Polygon
 from dhdt.generic.handler_www import get_file_from_www
 from fiona.drvsupport import supported_drivers
-import pandas as pd
 supported_drivers['KML'] = 'rw'
 
 MGRS_TILING_URL = (
@@ -25,7 +24,8 @@ def download_mgrs_tiling(mgrs_dir=None, output='sentinel2_tiles_world.geojson', 
         location where the MGRS tiling files will be saved. If None, files will be written to './data/MGRS'. By default None
     output: str, optional
         Output file name, by default 'sentinel2_tiles_world.geojson'
-
+    overwrite: bool
+        if True and file exists, download it again, otherwise do nothing
     Returns
     -------
     mgrs_path : str
