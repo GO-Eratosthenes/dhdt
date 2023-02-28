@@ -15,7 +15,7 @@ MGRS_TILING_URL = (
 MGRS_TILING_DIR_DEFAULT = os.path.join('.', 'data', 'MGRS')
 
 
-def download_mgrs_tiling(mgrs_dir=None, output='sentinel2_tiles_world.geojson', keep_kml=False):
+def download_mgrs_tiling(mgrs_dir=None, output='sentinel2_tiles_world.geojson'):
     """
     Retrieve mgrs tiling polygons. 
 
@@ -25,8 +25,6 @@ def download_mgrs_tiling(mgrs_dir=None, output='sentinel2_tiles_world.geojson', 
         location where the MGRS tiling files will be saved. If None, files will be written to './data/MGRS'. By default None
     output: str, optional
         Output file name, by default 'sentinel2_tiles_world.geojson'
-    keep_kml : bool, optional
-        If keep the kml format. If False, will convert the kml data to geojson. By default False
 
     Returns
     -------
@@ -46,13 +44,11 @@ def download_mgrs_tiling(mgrs_dir=None, output='sentinel2_tiles_world.geojson', 
     # download MGRS tiling file
     f_kml = get_file_from_www(MGRS_TILING_URL, mgrs_dir)
 
-    if not keep_kml:
-        f_geojson = os.path.join(mgrs_dir, output)
-        gdf = _kml_to_gdf(os.path.join(mgrs_dir, f_kml))
-        gdf.to_file(f_geojson)
-        return f_geojson
-    else:
-        return f_kml
+    
+    f_geojson = os.path.join(mgrs_dir, output)
+    gdf = _kml_to_gdf(os.path.join(mgrs_dir, f_kml))
+    gdf.to_file(f_geojson)
+    return f_geojson
 
 
 def _kml_to_gdf(filename):
@@ -66,7 +62,7 @@ def _kml_to_gdf(filename):
 
     Returns
     -------
-geopandas.geodataframe.GeoDataFrame
+    geopandas.geodataframe.GeoDataFrame
         KML file read as a GeoDataFrame
     """
     # Load kml file
