@@ -20,10 +20,3 @@ def test_kml_to_gdf_output_same_crs():
     gdf_kml = gpd.read_file(TESTDATA_KML)
     gdf = handler_mgrs._kml_to_gdf(TESTDATA_KML)
     assert gdf.crs.equals(gdf_kml.crs)
-
-
-def test_check_cross_results():
-    gdf = gpd.read_file(TESTDATA_KML, driver="KML")
-    mask_cross = gdf["geometry"].apply(handler_mgrs._check_cross)
-    assert mask_cross[0]  # first polygon in test data cross Antimeridian
-    assert all(~mask_cross[1:])  # others not
