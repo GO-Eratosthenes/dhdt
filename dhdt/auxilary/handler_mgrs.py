@@ -69,6 +69,9 @@ def _kml_to_gdf(filename):
     # Load kml file
     gdf = gpd.read_file(filename, driver="KML")
 
+    # Drop Description, whick is KML specific for visualization
+    gdf = gdf.drop(columns = ['Description']) 
+
     # Unpack geometries
     gdf_exploded = gdf.explode(index_parts=False)
 
