@@ -16,12 +16,12 @@ def test_phase_pca(d=2**5, max_range=1., tolerance=.1):
                                                integer=False)
     # perfect data
     Q, W = construct_phase_plane(im1,di,dj), np.ones_like(im1, dtype=bool)
-    di_hat,dj_hat,_,_ = phase_pca(Q, W)
+    di_hat,dj_hat = phase_pca(Q, W)
     test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)
 
     # real data
     Q = phase_corr(im1, im2)
-    di_hat,dj_hat,_,_ = phase_pca(Q)
+    di_hat,dj_hat = phase_pca(Q)
     test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)
     return
 
@@ -45,12 +45,12 @@ def test_phase_lsq(d=2**5, max_range=1., tolerance=.1):
                                                integer=False)
     # perfect data
     Q, W = construct_phase_plane(im1,di,dj), np.ones_like(im1, dtype=bool)
-    di_hat,dj_hat,_,_ = phase_lsq(Q, W)
+    di_hat,dj_hat = phase_lsq(Q, W)
     test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)
 
     # real data
     Q = phase_corr(im1, im2)
-    di_hat,dj_hat,_,_ = phase_lsq(Q)
+    di_hat,dj_hat = phase_lsq(Q)
     test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)
     return
 

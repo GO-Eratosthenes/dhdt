@@ -26,7 +26,7 @@ def directional_spectrum(I, num_estimates=1): #todo: bring into correct framewor
               geophysical research: oceans. vol.122 pp.1369-1383
     """
     # spectral pre-processing
-    per,_ = perdecomp(I)
+    per = perdecomp(I)[0]
 
     # spectral transform
     spec = np.fft.fft2(per)

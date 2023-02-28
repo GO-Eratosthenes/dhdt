@@ -4,7 +4,8 @@ import numpy as np
 
 from skimage.morphology import extrema
 
-from ..generic.mapping_tools import map2pix
+from dhdt.generic.mapping_tools import map2pix
+
 
 def get_integer_peak_location(C, metric=None):
     """ get the location in an array of the highest score

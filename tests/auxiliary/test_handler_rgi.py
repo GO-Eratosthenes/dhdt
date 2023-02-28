@@ -8,7 +8,8 @@ import rioxarray as rioxr
 
 from osgeo import osr
 
-from dhdt.auxilary.handler_rgi import create_rgi_raster, create_rgi_tile_s2
+from dhdt.auxilary.handler_randolph import \
+    create_rgi_raster, create_rgi_tile_s2
 
 
 TESTDATA_DIR = 'testdata/RGI'

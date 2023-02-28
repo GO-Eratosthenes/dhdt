@@ -8,6 +8,9 @@ from scipy import ndimage, interpolate, fft, signal
 from ..generic.unit_conversion import deg2compass
 
 # frequency preparation
+from ..preprocessing.image_transforms import mat_to_gray
+
+
 def perdecomp(img):
     """calculate the periodic and smooth components of an image, based upon
     [Mo11]_.
@@ -80,6 +83,26 @@ def perdecomp(img):
         cor = np.real( np.fft.ifft2( np.fft.fft2(per) *.5/ (2-Fx-Fy)))
     per = img-cor
     return per, cor
+
+def make_template_float(I):
+    """ templates for frequency matching should be float and ideally have
+    limited border issues.
+
+    Parameters
+    ----------
+    I : numpy.ndarray, size={(m,n), (m,n,b)}
+        grid with intensity values
+
+    Returns
+    -------
+    I : numpy.ndarray, size={(m,n), (m,n,b)}, dtype=float, range=0...1
+        grid with intensity values
+    """
+    if I.dtype.type in (np.uint8, np.uint16):
+        I = mat_to_gray(I)  # transform to float in range 0...1
+        I = perdecomp(I)[0] # spectral pre-processing
+        I = np.atleast_2d(np.squeeze(I))
+    return I
 
 def normalize_power_spectrum(Q):
     """transform spectrum to complex vectors with unit length 

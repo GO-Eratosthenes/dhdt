@@ -8,7 +8,7 @@ from .matching_tools import \
     reposition_templates_from_center, make_templates_same_size, \
     get_integer_peak_location, get_data_and_mask
 from .matching_tools_frequency_filters import \
-    raised_cosine, thresh_masking, normalize_power_spectrum, gaussian_mask
+    raised_cosine, thresh_masking, normalize_power_spectrum, gaussian_mask, make_template_float
 from .matching_tools_harmonic_functions import create_complex_fftpack_DCT
 
 def upsample_dft(Q, up_m=0, up_n=0, upsampling=1,
@@ -150,16 +150,19 @@ def cosine_corr(I1, I2):
 #    Cc, Cs = get_cosine_matrix(I1), get_sine_matrix(I1)
 
     I1sub, I2sub = make_templates_same_size(I1, I2)
-    if I1.ndim==3: # multi-spectral frequency stacking
-        bands = I1.shape[2]
-        for i in range(bands): # loop through all bands
-            Q_b = _cosine_corr_core(I1sub[...,i], I2sub[...,i])
-            if i ==0:
-                Q = Q_b.copy()/bands
-            else:
-                Q += Q_b/bands
-    else:
+    I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
+    if (I1.ndim!=3) and (I2.ndim!=3): # single pair processing
         Q = _cosine_corr_core(I1sub, I2sub)
+        return Q
+
+    # multi-spectral frequency stacking
+    bands = I1.shape[2]
+    for i in range(bands): # loop through all bands
+        Q_b = _cosine_corr_core(I1sub[...,i], I2sub[...,i])
+        if i ==0:
+            Q = Q_b.copy()/bands
+        else:
+            Q += Q_b/bands
     return Q
 
 def masked_cosine_corr(I1, I2, M1, M2): #todo
@@ -221,6 +224,8 @@ def masked_cosine_corr(I1, I2, M1, M2): #todo
         for i in range(bt): # loop through all bands
             I1sub = I1[:,:,i]
             I2sub = I2[md:-md, nd:-nd,i]
+            I1sub, I2sub = make_template_float(I1sub), \
+                           make_template_float(I2sub)
 
             C1 = create_complex_DCT(I1sub, Cc, Cs)
             C2 = create_complex_DCT(I2sub, Cc, Cs)
@@ -232,6 +237,7 @@ def masked_cosine_corr(I1, I2, M1, M2): #todo
 
     else:
         I1sub,I2sub = make_templates_same_size(I1,I2)
+        I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
 
         C1 = create_complex_DCT(I1sub, Cc, Cs)
         C2 = create_complex_DCT(I2sub, Cc, Cs)
@@ -325,16 +331,19 @@ def phase_only_corr(I1, I2):
         return Q
 
     I1sub, I2sub = make_templates_same_size(I1, I2)
-    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
-        bands = I1.shape[2]
-        for i in range(bands): # loop through all bands
-            Q_b = _phase_only_corr_core(I1sub[:,:,i], I2sub[:,:,i])
-            if i ==0:
-                Q = Q_b.copy()/bands
-            else:
-                Q += Q_b/bands
-    else:
+    I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
+    if (I1.ndim!=3) and (I2.ndim!=3): # single pair processing
         Q = _phase_only_corr_core(I1sub, I2sub)
+        return Q
+
+    # multi-spectral frequency stacking
+    bands = I1.shape[2]
+    for i in range(bands): # loop through all bands
+        Q_b = _phase_only_corr_core(I1sub[:,:,i], I2sub[:,:,i])
+        if i ==0:
+            Q = Q_b.copy()/bands
+        else:
+            Q += Q_b/bands
     return Q
 
 def projected_phase_corr(I1, I2, M1=np.array(()), M2=np.array(())):
@@ -397,6 +406,7 @@ def projected_phase_corr(I1, I2, M1=np.array(()), M2=np.array(())):
     I1,M1, I2,M2 = get_data_and_mask(I1, M1), get_data_and_mask(I2, M2)
 
     I1sub,I2sub = make_templates_same_size(I1,I2)
+    I1sub,I2sub = make_template_float(I1sub), make_template_float(I2sub)
     M1sub,M2sub = make_templates_same_size(M1,M2)
 
     def project_spectrum(I, M, axis=0):
@@ -459,6 +469,7 @@ def sign_only_corr(I1, I2): # to do
     assert type(I2)==np.ndarray, ('please provide an array')
 
     I1sub, I2sub = make_templates_same_size(I1, I2)
+    I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
     if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
         bands = I1.shape[2]
         for i in range(bands): # loop through all bands
@@ -569,16 +580,19 @@ def symmetric_phase_corr(I1, I2):
         return Q
 
     I1sub,I2sub = make_templates_same_size(I1,I2)
-    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
-        bands = I1.shape[2]
-        for i in range(bands): # loop through all bands
-            Q_b = _symmetric_phase_corr_core(I1sub[...,i], I2sub[...,i])
-            if i ==0:
-                Q = Q_b.copy()/bands
-            else:
-                Q += Q_b/bands
-    else: # single pair processing
+    I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
+    if (I1.ndim==3) or (I2.ndim==3): # single pair processing
         Q = _symmetric_phase_corr_core(I1sub, I2sub)
+        return Q
+
+    # multi-spectral frequency stacking
+    bands = I1.shape[2]
+    for i in range(bands): # loop through all bands
+        Q_b = _symmetric_phase_corr_core(I1sub[...,i], I2sub[...,i])
+        if i ==0:
+            Q = Q_b.copy()/bands
+        else:
+            Q += Q_b/bands
     return Q
 
 def amplitude_comp_corr(I1, I2, F_0=0.04):
@@ -635,18 +649,20 @@ def amplitude_comp_corr(I1, I2, F_0=0.04):
         Q = (S1) * np.conj((W * S2))
         return Q
 
-    I1sub,I2sub = make_templates_same_size(I1,I2)
-    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
-        bands = I1.shape[2]
-
-        for i in range(bands): # loop through all bands
-            Q_b = _amplitude_comp_corr_core(I1sub[...,i], I2sub[...,i],F_0)
-            if i ==0:
-                Q = Q_b.copy()/bands
-            else:
-                Q += Q_b/bands
-    else: # single pair processing
+    I1sub, I2sub = make_templates_same_size(I1,I2)
+    I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
+    if (I1.ndim!=3) and (I2.ndim!=3): # single pair processing
         Q = _amplitude_comp_corr_core(I1sub, I2sub, F_0)
+        return Q
+
+    # multi-spectral frequency stacking
+    bands = I1.shape[2]
+    for i in range(bands): # loop through all bands
+        Q_b = _amplitude_comp_corr_core(I1sub[...,i], I2sub[...,i],F_0)
+        if i ==0:
+            Q = Q_b.copy()/bands
+        else:
+            Q += Q_b/bands
     return Q
 
 def robust_corr(I1, I2):
@@ -690,6 +706,7 @@ def robust_corr(I1, I2):
     assert type(I2)==np.ndarray, ('please provide an array')
 
     I1sub,I2sub = make_templates_same_size(I1,I2)
+    I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
 
     p_steps = 10**np.arange(0,1,.5)
     for idx, p in enumerate(p_steps):
@@ -797,16 +814,19 @@ def gradient_corr(I1, I2):
     H_y = np.transpose(H_x)
 
     I1sub, I2sub = make_templates_same_size(I1, I2)
-    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
-        bands = I1.shape[2]
-        for i in range(bands): # loop through all bands
-            Q_b = _gradient_corr_core(I1sub[...,i], I2sub[...,i], H_x, H_y)
-            if i == 0:
-                Q = Q_b.copy()/bands
-            else:
-                Q += Q_b/bands
-    else: # single pair processing
+    I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
+    if (I1.ndim!=3) and (I2.ndim!=3): # single pair processing
         Q = _gradient_corr_core(I1sub, I2sub, H_x, H_y)
+        return Q
+
+    # multi-spectral frequency stacking
+    bands = I1.shape[2]
+    for i in range(bands): # loop through all bands
+        Q_b = _gradient_corr_core(I1sub[...,i], I2sub[...,i], H_x, H_y)
+        if i == 0:
+            Q = Q_b.copy()/bands
+        else:
+            Q += Q_b/bands
     return Q
 
 def normalized_gradient_corr(I1, I2):
@@ -907,17 +927,20 @@ def normalized_gradient_corr(I1, I2):
     H_y = np.transpose(H_x)
 
     I1sub, I2sub = make_templates_same_size(I1, I2)
-    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
-        bands = I1.shape[2]
-        for i in range(bands): # loop through all bands
-            Q_b = _normalized_gradient_corr_core(I1sub[...,i], I2sub[...,i],
-                                                 H_x, H_y)
-            if i == 0:
-                Q = Q_b.copy()/bands
-            else:
-                Q += Q_b/bands
-    else: # single pair processing
+    I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
+    if (I1.ndim!=3) and (I2.ndim!=3): # single pair processing
         Q = _normalized_gradient_corr_core(I1sub, I2sub, H_x, H_y)
+        return Q
+
+    # multi-spectral frequency stacking
+    bands = I1.shape[2]
+    for i in range(bands): # loop through all bands
+        Q_b = _normalized_gradient_corr_core(I1sub[...,i], I2sub[...,i],
+                                             H_x, H_y)
+        if i == 0:
+            Q = Q_b.copy()/bands
+        else:
+            Q += Q_b/bands
     return Q
 
 def orientation_corr(I1, I2):
@@ -1021,16 +1044,19 @@ def orientation_corr(I1, I2):
     H_y = np.transpose(H_x)
 
     I1sub, I2sub = make_templates_same_size(I1, I2)
-    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
-        bands = I1.shape[2]
-        for i in range(bands): # loop through all bands
-            Q_b = _orientation_corr_core(I1sub[...,i], I2sub[...,i], H_x, H_y)
-            if i == 0:
-                Q = Q_b.copy()/bands
-            else:
-                Q += Q_b/bands
-    else: # single pair processing
-        Q_b = _orientation_corr_core(I1sub, I2sub, H_x, H_y)
+    I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
+    if (I1.ndim!=3) and (I2.ndim!=3): # single pair processing
+        Q = _orientation_corr_core(I1sub, I2sub, H_x, H_y)
+        return Q
+
+    # multi-spectral frequency stacking
+    bands = I1.shape[2]
+    for i in range(bands): # loop through all bands
+        Q_b = _orientation_corr_core(I1sub[...,i], I2sub[...,i], H_x, H_y)
+        if i == 0:
+            Q = Q_b.copy()/bands
+        else:
+            Q += Q_b/bands
     return Q
 
 def windrose_corr(I1, I2):
@@ -1100,17 +1126,19 @@ def windrose_corr(I1, I2):
         return Q
 
     I1sub, I2sub = make_templates_same_size(I1, I2)
-    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
-        bands = I1.shape[2]
-        for i in range(bands): # loop through all bands
-            Q_b = _windrose_corr_core(I1sub[...,i], I2sub[...,i])
-            if i == 0:
-                Q = Q_b.copy()/bands
-            else:
-                Q += Q_b/bands
-
-    else:
+    I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
+    if (I1.ndim!=3) and (I2.ndim!=3): # single pair processing
         Q = _windrose_corr_core(I1sub, I2sub)
+        return Q
+
+    # multi-spectral frequency stacking
+    bands = I1.shape[2]
+    for i in range(bands): # loop through all bands
+        Q_b = _windrose_corr_core(I1sub[...,i], I2sub[...,i])
+        if i == 0:
+            Q = Q_b.copy()/bands
+        else:
+            Q += Q_b/bands
     return Q
 
 def phase_corr(I1, I2):
@@ -1193,16 +1221,18 @@ def phase_corr(I1, I2):
         return Q
 
     I1sub, I2sub = make_templates_same_size(I1, I2)
-    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
-        bands = I1.shape[2]
-        for i in range(bands): # loop through all bands
-            Q_b = _phase_corr_core(I1sub[...,i], I2sub[...,i])
-            if i == 0:
-                Q = Q_b.copy()/bands
-            else:
-                Q += Q_b/bands
-    else:
+    I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
+    if (I1.ndim!=3) and (I2.ndim!=3): # single pair processing
         Q = _phase_corr_core(I1sub, I2sub)
+
+    # multi-spectral frequency stacking
+    bands = I1.shape[2]
+    for i in range(bands): # loop through all bands
+        Q_b = _phase_corr_core(I1sub[...,i], I2sub[...,i])
+        if i == 0:
+            Q = Q_b.copy()/bands
+        else:
+            Q += Q_b/bands
     return Q
 
 def gaussian_transformed_phase_corr(I1, I2):
@@ -1285,17 +1315,20 @@ def gaussian_transformed_phase_corr(I1, I2):
         return Q
 
     I1sub, I2sub = make_templates_same_size(I1, I2)
-    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
-        bands = I1.shape[2]
-        for i in range(bands): # loop through all bands
-            Q_b = _gaussian_transformed_phase_corr_core(I1sub[...,i],
-                                                        I2sub[...,i])
-            if i == 0:
-                Q = Q_b.copy()/bands
-            else:
-                Q += Q_b/bands
-    else:
+    I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
+    if (I1.ndim!=3) and (I2.ndim!=3): # single pair processing
         Q = _gaussian_transformed_phase_corr_core(I1sub, I2sub)
+        return Q
+
+    # multi-spectral frequency stacking
+    bands = I1.shape[2]
+    for i in range(bands): # loop through all bands
+        Q_b = _gaussian_transformed_phase_corr_core(I1sub[...,i],
+                                                    I2sub[...,i])
+        if i == 0:
+            Q = Q_b.copy()/bands
+        else:
+            Q += Q_b/bands
     return Q
 
 def upsampled_cross_corr(S1, S2, upsampling=2):
@@ -1447,16 +1480,19 @@ def cross_corr(I1, I2):
         return Q
 
     I1sub, I2sub = make_templates_same_size(I1, I2)
-    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
-        bands = I1.shape[2]
-        for i in range(bands): # loop through all bands
-            Q_b = _cross_corr_core(I1sub[...,i], I2sub[...,i])
-            if i == 0:
-                Q = Q_b.copy()/bands
-            else:
-                Q += Q_b/bands
-    else:
+    I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
+    if (I1.ndim!=3) and (I2.ndim!=3): # single pair processing
         Q = _cross_corr_core(I1sub, I2sub)
+        return Q
+
+    # multi-spectral frequency stacking
+    bands = I1.shape[2]
+    for i in range(bands): # loop through all bands
+        Q_b = _cross_corr_core(I1sub[...,i], I2sub[...,i])
+        if i == 0:
+            Q = Q_b.copy()/bands
+        else:
+            Q += Q_b/bands
     return Q
 
 def binary_orientation_corr(I1, I2):
@@ -1525,17 +1561,20 @@ def binary_orientation_corr(I1, I2):
         Q = S1 * np.conj(W * S2)
         return Q
 
-    I1sub,I2sub = make_templates_same_size(I1,I2)
-    if (I1.ndim==3) or (I2.ndim==3): # multi-spectral frequency stacking
-        bands = I1.shape[2]
-        for i in range(bands): # loop through all bands
-            Q_b = _binary_orientation_corr_core(I1sub[...,i], I2sub[...,i])
-            if i == 0:
-                Q = Q_b.copy()/bands
-            else:
-                Q += Q_b/bands
-    else:
+    I1sub, I2sub = make_templates_same_size(I1,I2)
+    I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
+    if (I1.ndim!=3) and (I2.ndim!=3): # single pair processing
         Q = _binary_orientation_corr_core(I1sub, I2sub)
+        return Q
+
+    # multi-spectral frequency stacking
+    bands = I1.shape[2]
+    for i in range(bands): # loop through all bands
+        Q_b = _binary_orientation_corr_core(I1sub[...,i], I2sub[...,i])
+        if i == 0:
+            Q = Q_b.copy()/bands
+        else:
+            Q += Q_b/bands
     return Q
 
 def masked_corr(I1, I2, M1=np.array(()), M2=np.array(())):
@@ -1594,8 +1633,9 @@ def masked_corr(I1, I2, M1=np.array(()), M2=np.array(())):
     # init
     I1,M1, I2,M2 = get_data_and_mask(I1, M1), get_data_and_mask(I2, M2)
 
-    I1sub,I2sub = make_templates_same_size(I1,I2)
-    M1sub,M2sub = make_templates_same_size(M1,M2)
+    I1sub, I2sub = make_templates_same_size(I1,I2)
+    I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
+    M1sub, M2sub = make_templates_same_size(M1,M2)
 
     # preparation
     I1f, I2f = np.fft.fft2(I1sub), np.fft.fft2(I2sub)

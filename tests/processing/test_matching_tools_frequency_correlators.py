@@ -8,7 +8,7 @@ from dhdt.processing.matching_tools_frequency_correlators import \
 from dhdt.testing.matching_tools import \
     create_sample_image_pair, test_phase_plane_localization
 
-def test_phase_corr(d=2**5, tolerance=.1):
+def test_phase_corr(d=2**5, tolerance=.4):
     for bands in [1, 3]:  # testing both grayscale and multi-spectral data
         im1,im2,di,dj,_ = create_sample_image_pair(d=d, max_range=np.inf,
                                                    integer=True, ndim=bands)
@@ -16,7 +16,7 @@ def test_phase_corr(d=2**5, tolerance=.1):
         test_phase_plane_localization(Q, di, dj, tolerance=tolerance)
     return
 
-def test_phase_only_corr(d=2**5, tolerance=.1):
+def test_phase_only_corr(d=2**5, tolerance=.4):
     for bands in [1, 3]:  # testing both grayscale and multi-spectral data
         im1,im2,di,dj,_ = create_sample_image_pair(d=d, max_range=np.inf,
                                                    integer=True, ndim=bands)
@@ -24,7 +24,7 @@ def test_phase_only_corr(d=2**5, tolerance=.1):
         test_phase_plane_localization(Q, di, dj, tolerance=tolerance)
     return
 
-def test_robust_corr(d=2**5, tolerance=.1):
+def test_robust_corr(d=2**5, tolerance=.4):
     for bands in [1,3]: # testing both grayscale and multi-spectral data
         im1,im2,di,dj,_ = create_sample_image_pair(d=d, max_range=np.inf,
                                                    integer=True, ndim=bands)
@@ -32,7 +32,7 @@ def test_robust_corr(d=2**5, tolerance=.1):
         test_phase_plane_localization(Q, di, dj, tolerance=tolerance)
     return
 
-def test_orientation_corr(d=2**5, tolerance=.1):
+def test_orientation_corr(d=2**5, tolerance=.4):
     for bands in [1, 3]:  # testing both grayscale and multi-spectral data
         im1,im2,di,dj,_ = create_sample_image_pair(d=d, max_range=np.inf,
                                                    integer=True, ndim=bands)

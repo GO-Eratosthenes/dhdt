@@ -576,7 +576,7 @@ def phase_pca(data, W=np.array([])):
 
     >>> im1,im2,ti,tj,_ = create_sample_image_pair(d=2**5, max_range=1)
     >>> Q = phase_corr(im1, im2)
-    >>> di,dj,_,_ = phase_pca(Q)
+    >>> di,dj = phase_pca(Q)
 
     >>> assert(np.isclose(ti, di, atol=.2))
     >>> assert(np.isclose(tj, dj, atol=.2))
