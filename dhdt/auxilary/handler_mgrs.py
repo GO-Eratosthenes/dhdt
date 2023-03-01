@@ -236,7 +236,7 @@ def _normalize_mgrs_code(tile_code):
     """
 
     if not isinstance(tile_code, str):
-        raise ValueError("please provide a string")
+        raise TypeError("please provide a string")
 
     tile_code = tile_code.upper()
 
