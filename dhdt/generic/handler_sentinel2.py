@@ -1,5 +1,4 @@
 import os
-import re
 import time
 
 from osgeo import ogr, osr
@@ -9,11 +8,13 @@ import pandas as pd
 
 import geopandas
 
+from dhdt.generic.handler_mgrs import check_mgrs_code
 from dhdt.generic.handler_xml import get_root_of_table
-
+from dhdt.generic.handler_dat import get_list_files
 
 def get_s2_dict(s2_df):
-    """
+    """ given a dataframe with a filename within, create a dictionary with scene
+    and satellite specific metadata.
 
     Parameters
     ----------
@@ -95,34 +96,85 @@ def get_s2_dict(s2_df):
     - QI : quality information
     - s2 : Sentinel-2
 
+    See Also
+    --------
+    dhdt.generic.get_s2_image_locations
+
     """
     assert isinstance(s2_df, pd.DataFrame), ('please provide a dataframe')
-    assert 'filepath' in s2_df, ('please first run "get_S2_image_locations"'+
+    assert 'filepath' in s2_df, ('please first run "get_s2_image_locations"'+
                                 ' to find the proper file locations')
 
-    s2_folder = list(filter(lambda x: '.SAFE' in x,
-                            s2_df.filepath[0].split(os.sep)))[0]
-    if s2_folder[:3] in 'S2A':
-        s2_dict = list_platform_metadata_s2a()
-    else:
-        s2_dict = list_platform_metadata_s2b()
-
+    # search for folder with .SAFE
     im_path = s2_df.filepath[0]
+    s2_folder = _get_safe_foldername(im_path)
+    if len(s2_folder)!=0:
+        s2_folder = s2_folder[0]
+        if s2_folder[:3] in 'S2A':
+            s2_dict = list_platform_metadata_s2a()
+        else:
+            s2_dict = list_platform_metadata_s2b()
+        s2_dict = _get_safe_structure_s2(im_path, s2_dict=s2_dict)
+    elif len(get_list_files(im_path, '.json'))!=0:
+        s2_dict = _get_stac_structure_s2(im_path)
+    return s2_dict
+
+def _get_safe_foldername(im_path):
+    s2_folder = list(filter(lambda x: '.SAFE' in x, im_path.split(os.sep)))
+    return s2_folder
+
+def _get_safe_structure_s2(im_path, s2_dict=None):
     root_path = os.sep.join(im_path.split(os.sep)[:-4])
+    s2_folder = _get_safe_foldername(im_path)[0]
 
     ds_folder = list(filter(lambda x: 'DS' in x[:2],
                             os.listdir(os.path.join(root_path,
                                                     'DATASTRIP'))))[0]
     tl_path = os.sep.join(im_path.split(os.sep)[:-2])
+    ds_path = os.path.join(root_path, 'DATASTRIP', ds_folder)
+    assert os.path.exists(os.path.join(ds_path, 'MTD_DS.xml')), \
+        'please make sure MTD_DS.xml is present in the directory'
+    assert os.path.exists(os.path.join(tl_path, 'MTD_TL.xml')), \
+        'please make sure MTD_TL.xml is present in the directory'
+
     s2_dict.update({'full_path': root_path,
-                    'MTD_DS_path': os.path.join(root_path,
-                                                'DATASTRIP', ds_folder),
+                    'MTD_DS_path': ds_path,
                     'MTD_TL_path': tl_path,
                     'IMG_DATA_path': os.path.join(tl_path, 'IMG_DATA'),
                     'QI_DATA_path': os.path.join(tl_path, 'QI_DATA'),
-                    'date': meta_S2string(s2_folder)[0],
-                    'tile_code': meta_S2string(s2_folder)[2][1:],
-                    'relative_orbit': int(meta_S2string(s2_folder)[1][1:])})
+                    'date': meta_s2string(s2_folder)[0],
+                    'tile_code': meta_s2string(s2_folder)[2][1:],
+                    'relative_orbit': int(meta_s2string(s2_folder)[1][1:])})
+    return s2_dict
+
+def _get_stac_structure_s2(im_path, s2_dict=None):
+    # make sure metadata files are present
+    assert os.path.exists(os.path.join(im_path, 'MTD_DS.xml')), \
+        'please make sure MTD_DS.xml is present in the directory'
+    assert os.path.exists(os.path.join(im_path, 'MTD_TL.xml')), \
+        'please make sure MTD_TL.xml is present in the directory'
+
+    if s2_dict is None:
+        json_file = get_list_files(im_path, '.json')[0]
+        # Planet has a generic json-file
+        if json_file.find('metadata')!=0:
+            if json_file[:3] in 'S2A':
+                s2_dict = list_platform_metadata_s2a()
+            else:
+                s2_dict = list_platform_metadata_s2b()
+            s2_time, s2_orbit, s2_tile = meta_s2string(json_file)
+        else: # look into the MTD_TL?x
+            im_list = get_list_files(im_path, '.jp2') + \
+                      get_list_files(im_path, '.tif')
+            s2_time, s2_orbit, s2_tile = meta_s2string(im_list[0])
+    s2_dict.update({'full_path': im_path,
+                    'MTD_DS_path': im_path,
+                    'MTD_TL_path': im_path,
+                    'IMG_DATA_path': im_path,
+                    'date': s2_time,
+                    'tile_code': s2_tile[1:]})
+    if s2_orbit is not None:
+        s2_dict.update({'relative_orbit': int(s2_orbit[1:])})
     return s2_dict
 
 def list_platform_metadata_s2a():
@@ -138,13 +190,6 @@ def list_platform_metadata_s2a():
         'revolutions_per_day': 14.30824258387262,
         'J': np.array([[558, 30, -30],[30, 819, 30],[-30, 30, 1055]])}
     return s2a_dict
-
-def _check_mgrs_code(tile_code):
-    assert isinstance(tile_code, str), 'please provide a string'
-    tile_code = tile_code.upper()
-    assert bool(re.match("[0-9][0-9][A-Z][A-Z][A-Z]", tile_code)), \
-        ('please provide a correct MGRS tile code')
-    return tile_code
 
 def list_platform_metadata_s2b():
     s2b_dict = {
@@ -176,7 +221,7 @@ def get_bbox_from_tile_code(tile_code, geom_dir=None, geom_name=None):
     bbox : numpy.ndarray, size=(1,4), dtype=float
         bounding box, in the following order: min max X, min max Y
     """
-    tile_code = _check_mgrs_code(tile_code)
+    tile_code = check_mgrs_code(tile_code)
     if geom_dir is None:
         rot_dir = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3])
         geom_dir = os.path.join(rot_dir, 'data')
@@ -223,7 +268,7 @@ def get_geom_for_tile_code(tile_code, geom_dir=None, geom_name=None):
     - s2 : Sentinel-2
     - WKT : well known text
     """
-    tile_code = _check_mgrs_code(tile_code)
+    tile_code = check_mgrs_code(tile_code)
     if geom_dir is None:
         rot_dir = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3])
         geom_dir = os.path.join(rot_dir, 'data')
@@ -307,7 +352,7 @@ def get_generic_s2_raster(tile_code, spac=10):
     """
     assert spac in (10,20,60,), 'please provide correct pixel resolution'
 
-    tile_code = _check_mgrs_code(tile_code)
+    tile_code = check_mgrs_code(tile_code)
     geom = get_geom_for_tile_code(tile_code)
     geom = ogr.CreateGeometryFromWkt(geom)
 
@@ -402,65 +447,65 @@ def get_s2_granule_id(fname, s2_df):
         granule_id = im_loc.text.split(os.sep)[1]
     return granule_id
 
-def meta_S2string(S2str):
+def meta_s2string(s2_str):
     """ get meta information of the Sentinel-2 file name
 
     Parameters
     ----------
-    S2str : string
+    s2_str : string
         filename of the L1C data
 
     Returns
     -------
-    S2time : string
+    s2_time : string
         date "+YYYY-MM-DD"
-    S2orbit : string
+    s2_orbit : string
         relative orbit "RXXX"
-    S2tile : string
+    s2_tile : string
         tile code "TXXXXX"
 
     Examples
     --------
-    >>> S2str = 'S2A_MSIL1C_20200923T163311_N0209_R140_T15MXV_20200923T200821.SAFE'
-    >>> S2time, S2orbit, S2tile = meta_S2string(S2str)
-    >>> S2time
+    >>> s2_str = 'S2A_MSIL1C_20200923T163311_N0209_R140_T15MXV_20200923T200821.SAFE'
+    >>> s2_time, s2_orbit, s2_tile = meta_s2string(s2_str)
+    >>> s2_time
     '+2020-09-23'
-    >>> S2orbit
+    >>> s2_orbit
     'R140'
-    >>> S2tile
+    >>> s2_tile
     'T15MXV'
     """
-    assert type(S2str)==str, ("please provide a string")
+    assert isinstance(s2_str, str), ("please provide a string")
 
-    if S2str[0:2]=='S2': # some have info about orbit and sensor
-        S2split = S2str.split('_')
-        S2time = S2split[2][0:8]
-        S2orbit = S2split[4]
-        S2tile = S2split[5]
-    elif S2str[0:1]=='T': # others have no info about orbit, sensor, etc.
-        S2split = S2str.split('_')
-        S2time = S2split[1][0:8]
-        S2tile = S2split[0]
-        S2orbit = None
+    if s2_str[0:2]=='S2': # some have info about orbit and sensor
+        s2_split = s2_str.split('_')
+        s2_time = s2_split[2][0:8]
+        s2_orbit = s2_split[4]
+        s2_tile = s2_split[5]
+    elif s2_str[0:1]=='T': # others have no info about orbit, sensor, etc.
+        s2_split = s2_str.split('_')
+        s2_time = s2_split[1][0:8]
+        s2_tile = s2_split[0]
+        s2_orbit = None
     else:
         assert True, "please provide a Sentinel-2 file string"
     # convert to +YYYY-MM-DD string
     # then it can be in the meta-data of following products
-    S2time = '+' + S2time[0:4] + '-' + S2time[4:6] + '-' + S2time[6:8]
-    return S2time, S2orbit, S2tile
+    s2_time = '+' + s2_time[0:4] + '-' + s2_time[4:6] + '-' + s2_time[6:8]
+    return s2_time, s2_orbit, s2_tile
 
-def get_S2_folders(im_path):
+def get_s2_folders(im_path):
     assert os.path.exists(im_path), 'please specify a folder'
-    S2_list = [x for x in os.listdir(im_path)
+    s2_list = [x for x in os.listdir(im_path)
                if (os.path.isdir(os.path.join(im_path,x))) & (x[0:2]=='S2')]
-    return S2_list
+    return s2_list
 
-def get_tiles_from_S2_list(S2_list):
-    tile_list = [x.split('_')[5] for x in S2_list]
+def get_tiles_from_s2_list(s2_list):
+    tile_list = [x.split('_')[5] for x in s2_list]
     tile_list = list(set(tile_list))
     return tile_list
 
-def get_utm_from_S2_tiles(tile_list):
+def get_utm_from_s2_tiles(tile_list):
     utm_list = [int(x[1:3]) for x in tile_list]
     utm_list = list(set(utm_list))
     return utm_list
@@ -495,7 +540,7 @@ def get_utmzone_from_tile_code(tile_code):
     - UTM : universal transverse mercator
     - WGS : world geodetic system
     """
-    tile_code = _check_mgrs_code(tile_code)
+    tile_code = check_mgrs_code(tile_code)
     return int(tile_code[:2])
 
 def get_epsg_from_mgrs_tile(tile_code):
@@ -513,7 +558,8 @@ def get_epsg_from_mgrs_tile(tile_code):
 
     See Also
     --------
-    .get_utmzone_from_mgrs_tile, .get_crs_from_mgrs_tile
+    dhdt.generic.get_utmzone_from_mgrs_tile
+    dhdt.generic.get_crs_from_mgrs_tile
 
     Notes
     -----
@@ -529,7 +575,7 @@ def get_epsg_from_mgrs_tile(tile_code):
     - UTM : universal transverse mercator
     - WGS : world geodetic system
     """
-    tile_code = _check_mgrs_code(tile_code)
+    tile_code = check_mgrs_code(tile_code)
     utm_num = get_utmzone_from_tile_code(tile_code)
     epsg_code = 32600 + utm_num
 
@@ -560,7 +606,7 @@ def get_crs_from_mgrs_tile(tile_code):
         * "AA" utm zone number, starting from the East, with steps of 8 degrees
         * "B" latitude zone, starting from the South, with steps of 6 degrees
     """
-    tile_code = _check_mgrs_code(tile_code)
+    tile_code = check_mgrs_code(tile_code)
     epsg_code = get_epsg_from_mgrs_tile(tile_code)
 
     crs = osr.SpatialReference()

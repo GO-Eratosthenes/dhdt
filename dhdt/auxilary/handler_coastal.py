@@ -1,12 +1,13 @@
 # functions to work with the coastal dataset
 import os
-import re
+import numpy as np
 
 import geopandas
 
 from dhdt.generic.handler_sentinel2 import \
     get_geom_for_tile_code, get_utmzone_from_tile_code, \
-    get_epsg_from_mgrs_tile, _check_mgrs_code
+    get_epsg_from_mgrs_tile
+from dhdt.generic.handler_mgrs import check_mgrs_code
 from dhdt.generic.handler_landsat import \
     get_bbox_from_path_row
 from dhdt.generic.handler_www import get_zip_file
@@ -15,7 +16,8 @@ def get_gshhg_url(url_type='ftp'):
     if url_type in ('ftp'):
         gshhg_url = 'ftp://ftp.soest.hawaii.edu/gshhg/gshhg-shp-2.3.7.zip'
     else:
-        gshhg_url = 'http://www.soest.hawaii.edu/pwessel/gshhg/gshhg-shp-2.3.7.zip'
+        gshhg_url = 'http://www.soest.hawaii.edu/pwessel/gshhg/'+\
+                    'gshhg-shp-2.3.7.zip'
     return gshhg_url
 
 def get_coastal_dataset(geom_dir, geom_name=None, minimal_level=1,
@@ -86,7 +88,6 @@ def get_coastal_dataset(geom_dir, geom_name=None, minimal_level=1,
 
 def get_coastal_polygon_of_tile(tile_code, tile_system='MGRS', out_dir=None,
                                 geom_dir=None, geom_name=None):
-    tile_code = _check_mgrs_code(tile_code)
     if geom_dir is None:
         rot_dir = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3])
         geom_dir = os.path.join(rot_dir, 'data')
@@ -95,6 +96,7 @@ def get_coastal_polygon_of_tile(tile_code, tile_system='MGRS', out_dir=None,
     if not os.path.isdir(out_dir): os.makedirs(out_dir)
 
     if tile_system=='MGRS':
+        tile_code = check_mgrs_code(tile_code)
         toi = get_geom_for_tile_code(tile_code) # tile of interest
         utm_epsg = get_epsg_from_mgrs_tile(tile_code)
     else: # WRS2
@@ -104,20 +106,44 @@ def get_coastal_polygon_of_tile(tile_code, tile_system='MGRS', out_dir=None,
 
     # get UTM extent, since not the whole world needs to be included
     utm_zone = get_utmzone_from_tile_code(tile_code)
+    bound = clip_coastal_polygon(toi, utm_zone, geom_dir, geom_name)
+
+    # create the output layer
+    fname_json_utm = geom_name.split('.')[0]+'_utm'+str(utm_zone).zfill(2) + \
+                    '.geojson'
+    bound.to_file(os.path.join(out_dir, fname_json_utm), driver='GeoJSON')
+    print('written ' + fname_json_utm)
+    return
+
+def clip_coastal_polygon(geom, utm_zone, geom_dir, geom_name):
+    """ clip global coastal dataset to extent of a given geometry
+
+    Parameters
+    ----------
+    geom : string
+        well known text of the geometry, i.e.: 'POLYGON ((x y, x y, x y))'
+    utm_zone : signed integer
+        code used to denote the number of the projection column of UTM
+    geom_dir : string
+        location where the geometric coastal data is situated
+    geom_name : string
+        file name of the geometric coastal data
+
+    Returns
+    -------
+    bound :
+    """
+    utm_epsg = 32600
+    utm_epsg += int(np.abs(utm_zone))
+    if np.sign(utm_zone)==-1:
+        utm_epsg += 100
 
     geom_path = os.path.join(geom_dir, geom_name)
     assert os.path.exists(geom_path), 'make sure data is present'
 
     gshhs = geopandas.read_file(geom_path)
-    tile = geopandas.GeoDataFrame(index=[0], crs='epsg:4326',
-                                  geometry=geopandas.GeoSeries.from_wkt([toi]))
-    bound = gshhs.clip(tile)
+    geom = geopandas.GeoDataFrame(index=[0], crs='epsg:4326',
+                                  geometry=geopandas.GeoSeries.from_wkt([geom]))
+    bound = gshhs.clip(geom)
     bound = bound.to_crs(epsg=utm_epsg)
-
-    # create the output layer
-    fname_json_utm = geom_name.split('.')[0]+'_utm'+str(utm_zone).zfill(2) + \
-                    '.geojson'
-
-    bound.to_file(os.path.join(out_dir, fname_json_utm), driver='GeoJSON')
-    print('written ' + fname_json_utm)
-    return
+    return bound

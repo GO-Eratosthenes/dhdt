@@ -94,6 +94,29 @@ def normalized_difference_vegetation_index(Red, Near):
     NDVI = np.divide( Near - Red, Near + Red)
     return NDVI
 
+def infrared_percentage_vegetation_index(Red, Near):
+    """ adjustment over the NDVI, see [Cr90]_.
+
+    Parameters
+    ----------
+    Red : numpy.ndarray, size=(m,n)
+        red band of satellite image
+    Near : numpy.ndarray, size=(m,n)
+        near infrared band of satellite image
+
+    Returns
+    -------
+    NPVI : numpy.ndarray, size=(m,n), range=0...1
+        array with infrared percentage vegetation index
+
+    References
+    ----------
+    .. [Cr90] Crippen "Calculating the vegetation index faster" Remote sensing
+              of environment, vol.34 pp.71-73, 1990.
+    """
+    NPVI = np.divide( Near, Near + Red)
+    return NPVI
+
 def renormalized_difference_vegetation_index(Red, Near):
     """ Based upon [RB95]_
 

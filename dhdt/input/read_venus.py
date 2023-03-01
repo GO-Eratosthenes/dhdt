@@ -172,12 +172,16 @@ def read_stack_vn(vn_df):
     for val, idx in enumerate(vn_df.sort_values('bandid').index):
         full_path = vn_df['imagepath'][idx]
         if val == 0:
-            im_stack, spatialRef, geoTransform, targetprj = read_band_vn(full_path)
+            im_stack, spatialRef, geoTransform, targetprj = read_band_vn(
+                full_path)
         else:  # stack others bands
             if im_stack.ndim == 2:
                 im_stack = np.atleast_3d(im_stack)
             band = np.atleast_3d(read_band_vn(full_path)[0])
-            im_stack = np.concatenate((im_stack, band), axis=2)
+            if type(im_stack) is np.ma.core.MaskedArray:
+                im_stack = np.ma.concatenate((im_stack, band), axis=2)
+            else:
+                im_stack = np.concatenate((im_stack, band), axis=2)
 
     # in the meta data files there is no mention of its size, hence include
     # it to the geoTransform
