@@ -234,11 +234,15 @@ def _normalize_mgrs_code(tile_code):
     str
         validated and normalized tile code
     """
-    # ToDo: raiser error instead of assert
-    assert isinstance(tile_code, str), 'please provide a string'
+
+    if not isinstance(tile_code, str):
+        raise ValueError("please provide a string")
+
     tile_code = tile_code.upper()
-    assert bool(re.match("[0-9][0-9][A-Z][A-Z][A-Z]", tile_code)), \
-        ('please provide a correct MGRS tile code')
+
+    if not bool(re.match("[0-9][0-9][A-Z][A-Z][A-Z]", tile_code)):
+        raise ValueError("please provide a correct MGRS tile code")
+
     return tile_code
 
 
