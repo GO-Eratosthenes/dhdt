@@ -3,6 +3,7 @@ import geopandas as gpd
 import re
 import numpy as np
 import mgrs
+from shapely import wkt
 from shapely.geometry import Polygon
 from dhdt.generic.handler_www import get_file_from_www
 from fiona.drvsupport import supported_drivers
@@ -178,8 +179,9 @@ def get_tile_codes_from_geom(geom, geom_path=None):
 
     Parameters
     ----------
-    geom : {shapely.geometry, string}
-        geometry object or well known text, i.e.: 'POLYGON ((x y, x y, x y))'
+    geom : {shapely.geometry, string, dict, geopandas.GeoDataFrame, geopandas.GeoSeries}
+        geometry object with the given dict-like geojson geometry, GeoSeries, GeoDataFrame or shapely geometry.
+        or well known text, i.e.: 'POLYGON ((x y, x y, x y))'
     geom_path : string
         Path to the geometric metadata
 
@@ -192,25 +194,30 @@ def get_tile_codes_from_geom(geom, geom_path=None):
     --------
     .get_geom_for_tile_code, .get_bbox_from_tile_code
     """
-    
+
     if geom_path is None:
         geom_path = os.path.join(
             MGRS_TILING_DIR_DEFAULT, 'sentinel2_tiles_world.geojson')
 
-    ## ToDo check shapely or str
+    # If a wkt str, convert to shapely geometry
+    if isinstance(geom, str):
+        try:
+            geom = wkt.loads(geom)
+        except Exception as e:
+            raise e
 
-    ## ToDo: check type of geom: points, line, or polygon
+    # Uniform CRS
+    if isinstance(geom, gpd.GeoSeries) or isinstance(geom, gpd.GeoDataFrame):
+        example = gpd.read_file(geom_path, rows=1)
+        geom = geom.set_crs(example.crs)
 
     # Load tiles intersects the search box
     mgrs_tiles = gpd.read_file(geom_path, mask=geom)
 
-    # get the codes
+    # Get the codes in tuple
     codes = tuple(mgrs_tiles["Name"])
 
     return codes
-
-
-
 
 
 def _normalize_mgrs_code(tile_code):
@@ -227,6 +234,7 @@ def _normalize_mgrs_code(tile_code):
     str
         validated and normalized tile code
     """
+    # ToDo: raiser error instead of assert
     assert isinstance(tile_code, str), 'please provide a string'
     tile_code = tile_code.upper()
     assert bool(re.match("[0-9][0-9][A-Z][A-Z][A-Z]", tile_code)), \
