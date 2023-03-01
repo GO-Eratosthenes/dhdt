@@ -1,7 +1,4 @@
 ---
-header-includes: |
-    \usepackage{dirtree}
-    \usepackage{hyperref}
 title: 'dhdt: A photohypsometric Python library to estimate glacier elevation
         change via optical remote sensing imagery'
 tags:
@@ -88,18 +85,19 @@ illustrated in \autoref{fig:pipeline}.
 # Design and data sources
 The data structure of the `dhdt` library follows a data processing pipeline,
 where general functions call more detailed and refactured components. The
-top level structure is as follows:  
+top level structure is as follows:
 
-\dirtree{%
-.1 dhdt.
-.2 \hyperref[sec-input]{input}.
-.2 \hyperref[sec-preprocessing]{preprocessing}.
-.2 \hyperref[sec-processing]{processing}.
-.2 \hyperref[sec-postprocessing]{postprocessing}.
-.2 \hyperref[sec-presentation]{presentation}.
-.2 \hyperref[sec-generic]{generic}.
-.2 \hyperref[sec-auxilary]{auxilary}.
-}
+```
+dhdt
+├── input
+├── preprocessing
+├── processing
+├── postprocessing
+├── presentation
+├── generic
+├── auxilary
+└── testing
+```
 
 When a specific function is based upon a given methodology, the literature that
 is at its root is given in the doc-string. Hence the references in this work are
@@ -107,7 +105,7 @@ by far not comprehensive.
 
 
 ## [input](https://dhdt.readthedocs.io/en/latest/modules.html#input)
-\label{sec-input}
+
 A suit of high resolution[^2] optical satellite systems are currently in space,
 of which many have adopted an open access policy. Hence, a large selection of
 these satellite data is supported by the `dhdt` library. Though an emphasis is
@@ -123,25 +121,23 @@ and demonstration missions like VENuS [``read_venus``](https://dhdt.readthedocs.
 Typical functions include loading of the imagery, and associated meta-data.
 These are functions about the instrument specifics or the acquisition situation.
 
-\dirtree{%
-.1 input.
-.2 read\_sentinel2.py.
-.2 read\_landsat8.py.
-.2 read\_spot4.py.
-.2 read\_spot5.py.
-.2 read\_aster.py.
-.2 read\_hyperion.py.
-.2 read\_venus.py.
-.2 read\_rapideye.py.
-.2 read\_planetscope.py.
-.2 read\_era5.py.
-}
+```
+input/
+├── read_aster.py
+├── read_hyperion.py
+├── read_landsat.py
+├── read_planetscope.py
+├── read_rapideye.py
+├── read_sentinel2.py
+├── read_spot4.py
+├── read_spot5.py
+└── read_venus.py
+```
 
 [^2]: here high resolution denotes imagery with a pixel spacing in the order
       of 5 to 30 meters
 
 ## [preprocessing](https://dhdt.readthedocs.io/en/latest/modules.html#preprocessing)
-\label{sec-preprocessing}
 
 Prior to the coupling of imagery and the extraction of elevation change data,
 the satellite data needs to be made ready. Typically, shadows are not the main
@@ -149,17 +145,20 @@ interest for such imagery, hence the functions in this sub-directory are
 taylored towards enhancing the shadow imagery and getting the proper geometric
 information needed. The structure of the folder is as follows,
 
-\dirtree{%
-.1 preprocessing.
-.2 handler\_multispec.py.
-.2 color\_transforms.py.
-.2 image\_transforms.py.
-.2 shadow\_transforms.py.
-.2 shadow\_filters.py.
-.2 shadow\_geometry.py.
-.2 acquisition\_geometry.py.
-.2 atmospheric\_geometry.py.
-}
+```
+preprocessing/
+├── acquisition_geometry.py
+├── aquatic_transforms.py
+├── atmospheric_geometry.py
+├── color_transforms.py
+├── handler_multispec.py
+├── image_transforms.py
+├── shadow_filters.py
+├── shadow_geometry.py
+├── shadow_matting.py
+├── shadow_transforms.py
+└── snow_transforms.py
+```
 
 Most optical remote sensing instruments record multiple spectral intervals at
 (nearly-)simultaneously. Such spectral information can de used to separate out
@@ -198,7 +197,7 @@ are situated). Therfore, ``atmospheric_geometry`` has functions to correct for
 such angles given specific wavelengths and atmospheric compositions.
 
 ## [processing](https://dhdt.readthedocs.io/en/latest/modules.html#processing)
-\label{sec-processing}
+
 An important building block of `dhdt` is image correspondence, this is an
 ill-posed problem. Hence, a suit of methodologies are implemented in this
 library.
@@ -207,26 +206,34 @@ Image correspondence
 
 Generic .
 
-\dirtree{%
-.1 processing.
-.2 coregistration.py.
-.2 coupling\_tools.py.
-.2 network\_tools.py.
-.2 matching\_tools\_organization.py.
-.2 gis\_tools.py.
-.2 matching\_tools.py.
-.2 matching\_tools\_frequency\_filters.py.
-.2 matching\_tools\_frequency\_correlators.py.
-.2 matching\_tools\_frequency\_subpixel.py.
-.2 matching\_tools\_frequency\_metrics.py.
-.2 matching\_tools\_spatial\_correlators.py.
-.2 matching\_tools\_spatial\_subpixel.py.
-.2 matching\_tools\_spatial\_metrics.py.
-.2 matching\_tools\_differential.py.
-.2 geometric\_precision\_describtion.py.
-.2 matching\_tools\_geometric\_temporal.py.
-.2 photohypsometric\_image\_refinement.py.
-}
+```
+processing/
+├── coregistration.py
+├── coupling_tools.py
+├── geometric_correction_measures.py
+├── geometric_image_describtion.py
+├── geometric_precision_describtion.py
+├── gis_tools.py
+├── matching_tools.py
+├── matching_tools_binairy_boundaries.py
+├── matching_tools_differential.py
+├── matching_tools_frequency_affine.py
+├── matching_tools_frequency_correlators.py
+├── matching_tools_frequency_differential.py
+├── matching_tools_frequency_filters.py
+├── matching_tools_frequency_metrics.py
+├── matching_tools_frequency_spectra.py
+├── matching_tools_frequency_subpixel.py
+├── matching_tools_geometric_temporal.py
+├── matching_tools_harmonic_functions.py
+├── matching_tools_organization.py
+├── matching_tools_spatial_correlators.py
+├── matching_tools_spatial_metrics.py
+├── matching_tools_spatial_subpixel.py
+├── network_tools.py
+├── photoclinometric_functions.py
+└── photohypsometric_image_refinement.py
+```
 
 In the `dhdt` library the different approaches to implement image
 correspondence [^3] is subdivided into three domains. The first major
@@ -258,7 +265,7 @@ Image correspondence via the spatial domain is very similar, see also
 \autoref{fig:spat-match}. Though here a smaller image subset is used and is
 slided over the other image subset. Again specific image operators can be used
 to put emphasis on certain image structures, but these functions are already
-present in the \hyperref[sec-preprocessing]{preprocessing} folder. While
+present in the [preprocessing](#preprocessing) folder. While
 different correspondence metrics can be found in [``matching_tools_spatial_correlators``](https://dhdt.readthedocs.io/en/latest/modules.html#spatial-correlators).
 This results in a two dimensional correlation function, where its peak can be
 localised by different methods ([``matching_tools_spatial_subpixel``](https://dhdt.readthedocs.io/en/latest/modules.html#module-dhdt.processing.matching_tools_spatial_subpixel)),
@@ -281,24 +288,25 @@ data such that stacking of cross-power correlation spectra [@altena2022improved]
 is possible.
 
 ## [postprocessing](https://dhdt.readthedocs.io/en/latest/modules.html#postprocessing)
-\label{sec-postprocessing}
+
 The functions within this folder are mostly concerned with product creation for
 specific application domains. It is composed of the following file structure:
 
-\dirtree{%
-.1 postprocessing.
-.2 mapping\_io.py.
-.2 displacement\_filters.py.
-.2 group\_statistics.py.
-.2 adjustment\_geometric\_temporal.py.
-.2 photohypsometric\_tools.py.
-.2 atmospheric\_tools.py.
-.2 snow\_tools.py.
-.2 glacier\_tools.py.
-.2 terrain\_tools.py.
-.2 solar\_tools.py.
-.2 solar\_surface.py.
-}
+```
+postprocessing
+├── adjustment_geometric_temporal.py
+├── atmospheric_tools.py
+├── displacement_filters.py
+├── displacement_tools.py
+├── glacier_tools.py
+├── group_statistics.py
+├── mapping_io.py
+├── photohypsometric_tools.py
+├── snow_tools.py
+├── solar_surface.py
+├── solar_tools.py
+└── terrain_tools.py
+```
 
 The products generated from image matching are typically noisy. The error
 distribution has elements of normally distributed noise, but a large part of the
@@ -315,19 +323,19 @@ Further specific application domain functions, that relate to glaciology,
 hydrology, meteorology can be found in the other packages.
 
 ## [presentation](https://dhdt.readthedocs.io/en/latest/modules.html#presentation)
-\label{sec-presentation}
+
 Functions within the presentation directory of the library are associated to
 specific data representation, typically with a spatial component. The file
 structure of this directory is as follows:
 
-\dirtree{%
-.1 presentation.
-.2 image\_io.py.
-.2 terrain\_tools.py.
-.2 displacement\_tools.py.
-.2 glacier\_tools.py.
-.2 velocity\_tools.py.
-}
+```
+presentation
+├── __init__.py
+├── displacement_tools.py
+├── image_io.py
+├── terrain_tools.py
+└── velocity_tools.py
+```
 
 Generic functions are present in [``image_io``](https://dhdt.readthedocs.io/en/latest/modules.html).
 to create (geo-referenced) imagery of the (intermediate) results presented in
@@ -342,7 +350,6 @@ While fucntions within ['velocity_tools'](https://dhdt.readthedocs.io/en/latest/
 are focussed on animations, of moving particles and flow paths.
 
 ## [generic](https://dhdt.readthedocs.io/en/latest/modules.html#generic)
-\label{sec-generic}
 
 Many spatial functions are used in several .
 Especially terrain tools based on the elevation model used.
@@ -351,7 +358,7 @@ Especially terrain tools based on the elevation model used.
 
 
 ## [auxilary](https://dhdt.readthedocs.io/en/latest/modules.html#auxilary)
-\label{sec-auxilary}
+
 CopernicusDEM, Randolph Glacier Inventory, ERA-5
 
 Localization of the glaciers is needed.
@@ -361,11 +368,14 @@ The XXX
 For the estimation of the refraction, the state of the atmosphere needs to be
 known. Hence, atmospheric variables such as temperature and humidity are XX
 
-\dirtree{%
-.1 auxilary.
-.2 handler\_coastal.py.
-.2 handler\_rgi.py.
-}
+```
+auxilary/
+├── handler_coastal.py
+├── handler_copernicusdem.py
+├── handler_era5.py
+├── handler_mgrs.py
+└── handler_randolph.py
+```
 
 # Functionality
 
