@@ -17,11 +17,11 @@ from scipy.interpolate import griddata
 from scipy.ndimage import label
 from scipy.signal import convolve2d
 
-from ..generic.handler_sentinel2 import get_s2_dict
-from ..generic.handler_xml import get_array_from_xml, get_root_of_table
-from ..generic.mapping_tools import \
+from dhdt.generic.handler_sentinel2 import get_s2_dict
+from dhdt.generic.handler_xml import get_array_from_xml, get_root_of_table
+from dhdt.generic.mapping_tools import \
     map2pix, ecef2map, ecef2llh, get_bbox, pol2xyz
-from ..generic.mapping_io import read_geo_image, read_geo_info
+from dhdt.generic.mapping_io import read_geo_image, read_geo_info
 
 def list_central_wavelength_msi():
     """ create dataframe with metadata about Sentinel-2
@@ -327,7 +327,7 @@ def read_stack_s2(s2_df):
 def get_image_size_s2_from_root(root, resolution=10):
     geom_info = None
     for child in root:
-        if child.tag[-14:] == 'Geometric_Info':
+        if child.tag.endswith('Geometric_Info'):
             geom_info = child
     assert(geom_info is not None), ('metadata not in xml file')
 
@@ -351,7 +351,7 @@ def get_image_size_s2_from_root(root, resolution=10):
 def get_ul_coord_s2_from_root(root, resolution=10):
     geom_info = None
     for child in root:
-        if child.tag[-14:] == 'Geometric_Info':
+        if child.tag.endswith('Geometric_Info'):
             geom_info = child
     assert(geom_info is not None), ('metadata not in xml file')
 
@@ -375,7 +375,7 @@ def get_ul_coord_s2_from_root(root, resolution=10):
 def get_geotransform_s2_from_root(root, resolution=10):
     geom_info = None
     for child in root:
-        if child.tag[-14:] == 'Geometric_Info':
+        if child.tag.endswith('Geometric_Info'):
             geom_info = child
     assert(geom_info is not None), ('metadata not in xml file')
 
@@ -410,7 +410,7 @@ def get_geotransform_s2_from_root(root, resolution=10):
 def get_crs_s2_from_root(root):
     geom_info = None
     for child in root:
-        if child.tag[-14:] == 'Geometric_Info':
+        if child.tag.endswith('Geometric_Info'):
             geom_info = child
     assert(geom_info is not None), ('metadata not in xml file')
 
@@ -527,7 +527,7 @@ def get_sun_angles_s2_from_root(root, angle='Zenith'):
         ('please provide correct angle name')
     geom_info = None
     for child in root:
-        if child.tag[-14:] == 'Geometric_Info':
+        if child.tag.endswith('Geometric_Info'):
             geom_info = child
     assert(geom_info is not None), ('metadata not in xml file')
 
@@ -714,7 +714,7 @@ def read_sun_angles_s2(path, fname='MTD_TL.xml'):
 def get_view_angles_s2_from_root(root):
     geom_info = None
     for child in root:
-        if child.tag[-14:] == 'Geometric_Info':
+        if child.tag.endswith('Geometric_Info'):
             geom_info = child
     assert (geom_info is not None), ('metadata not in xml file')
 

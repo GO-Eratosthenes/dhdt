@@ -106,11 +106,10 @@ def get_s2_dict(s2_df):
                                 ' to find the proper file locations')
 
     # search for folder with .SAFE
-    im_path = s2_df.filepath[0]
-    s2_folder = _get_safe_foldername(im_path)
-    if len(s2_folder)!=0:
-        s2_folder = s2_folder[0]
-        if s2_folder[:3] in 'S2A':
+    im_path = os.path.dirname(s2_df.filepath[0])
+    safe_folder = _get_safe_foldername(im_path)
+    if safe_folder is not None:
+        if safe_folder.startswith('S2A'):
             s2_dict = list_platform_metadata_s2a()
         else:
             s2_dict = list_platform_metadata_s2b()
@@ -120,31 +119,44 @@ def get_s2_dict(s2_df):
     return s2_dict
 
 def _get_safe_foldername(im_path):
-    s2_folder = list(filter(lambda x: '.SAFE' in x, im_path.split(os.sep)))
-    return s2_folder
+    safe_folder = None
+    for x in im_path.split(os.sep):
+        if x.endswith('SAFE'):
+            safe_folder = x
+            break
+    return safe_folder
+
+def _get_safe_path(im_path):
+    safe_path = ''
+    for x in im_path.split(os.sep):
+        safe_path += x
+        safe_path += os.sep
+        if x.endswith('SAFE'):
+            break
+    return safe_path
 
 def _get_safe_structure_s2(im_path, s2_dict=None):
-    root_path = os.sep.join(im_path.split(os.sep)[:-4])
-    s2_folder = _get_safe_foldername(im_path)[0]
-
-    ds_folder = list(filter(lambda x: 'DS' in x[:2],
-                            os.listdir(os.path.join(root_path,
+    safe_path = _get_safe_path(im_path)
+    ds_folder = list(filter(lambda x: x.startswith('DS'),
+                            os.listdir(os.path.join(safe_path,
                                                     'DATASTRIP'))))[0]
-    tl_path = os.sep.join(im_path.split(os.sep)[:-2])
-    ds_path = os.path.join(root_path, 'DATASTRIP', ds_folder)
+    tl_path = os.sep.join(im_path.split(os.sep)[:-1])
+    ds_path = os.path.join(safe_path, 'DATASTRIP', ds_folder)
     assert os.path.exists(os.path.join(ds_path, 'MTD_DS.xml')), \
         'please make sure MTD_DS.xml is present in the directory'
     assert os.path.exists(os.path.join(tl_path, 'MTD_TL.xml')), \
         'please make sure MTD_TL.xml is present in the directory'
 
-    s2_dict.update({'full_path': root_path,
+    safe_folder = _get_safe_foldername(im_path)
+    s2_time, s2_orbit, s2_tile = meta_s2string(safe_folder)
+    s2_dict.update({'full_path': safe_path,
                     'MTD_DS_path': ds_path,
                     'MTD_TL_path': tl_path,
                     'IMG_DATA_path': os.path.join(tl_path, 'IMG_DATA'),
                     'QI_DATA_path': os.path.join(tl_path, 'QI_DATA'),
-                    'date': meta_s2string(s2_folder)[0],
-                    'tile_code': meta_s2string(s2_folder)[2][1:],
-                    'relative_orbit': int(meta_s2string(s2_folder)[1][1:])})
+                    'date': s2_time,
+                    'tile_code': s2_tile[1:],
+                    'relative_orbit': int(s2_orbit[1:])})
     return s2_dict
 
 def _get_stac_structure_s2(im_path, s2_dict=None):
@@ -421,8 +433,10 @@ def get_s2_image_locations(fname,s2_df):
     >>> datastrip_id
     'S2A_OPER_MSI_L1C_DS_VGS1_20200923T200821_S20200923T163313_N02.09'
     """
+    if os.path.isdir(fname): fname = os.path.join(fname, 'MTD_MSIL1C.xml')
     assert os.path.exists(fname), ('metafile does not seem to be present')
     root = get_root_of_table(fname)
+    root_dir = os.path.split(fname)[0]
 
     for att in root.iter('Granule'):
         datastrip_full = att.get('datastripIdentifier')
@@ -431,9 +445,21 @@ def get_s2_image_locations(fname,s2_df):
 
     im_paths, band_id = [], []
     for im_loc in root.iter('IMAGE_FILE'):
-        full_path = os.path.join(os.path.split(fname)[0],im_loc.text)
+        full_path = os.path.join(root_dir, im_loc.text)
+        boi = im_loc.text[-3:] # band of interest
+        if not os.path.exists(os.path.dirname(full_path)):
+            full_path = None
+            for _,_,files in os.walk(root_dir):
+                for file in files:
+                    if file.find(boi)==-1: continue
+                    if file.endswith(tuple(['.jp2', '.tif'])):
+                        full_path = os.path.join(root_dir,
+                                                 file.split('.')[0])
+            if full_path is None: # file does not seem to be present
+                continue
+
         im_paths.append(full_path)
-        band_id.append(im_loc.text[-3:])
+        band_id.append(boi)
 
     band_path = pd.Series(data=im_paths, index=band_id, name="filepath")
     s2_df_new = pd.concat([s2_df, band_path], axis=1, join="inner")
