@@ -330,7 +330,6 @@ structure of this directory is as follows:
 
 ```
 presentation
-├── __init__.py
 ├── displacement_tools.py
 ├── image_io.py
 ├── terrain_tools.py
