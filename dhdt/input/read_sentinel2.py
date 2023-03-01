@@ -17,8 +17,7 @@ from scipy.interpolate import griddata
 from scipy.ndimage import label
 from scipy.signal import convolve2d
 
-from ..generic.handler_sentinel2 import \
-    get_s2_dict
+from ..generic.handler_sentinel2 import get_s2_dict
 from ..generic.handler_xml import get_array_from_xml, get_root_of_table
 from ..generic.mapping_tools import \
     map2pix, ecef2map, ecef2llh, get_bbox, pol2xyz
@@ -196,7 +195,7 @@ def list_central_wavelength_msi():
     df = pd.DataFrame(d)
     return df
 
-def s2_dn2toa(I):
+def dn2toa_s2(I):
     """convert the digital numbers of Sentinel-2 to top of atmosphere (TOA)
 
     Notes

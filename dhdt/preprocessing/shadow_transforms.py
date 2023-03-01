@@ -576,6 +576,78 @@ def normalized_difference_water_index(Green, Near):
                       out=np.zeros_like(denom), where=denom!=0)
     return NDWI
 
+def modified_normalized_difference_water_index(Green, Short):
+    """transform green and shortwave infrared arrays to modified NDW-index.
+    See also [Xu06]_.
+
+    Parameters
+    ----------
+    Green : numpy.ndarray, size=(m,n)
+        green band of satellite image
+    Shortwave : numpy.ndarray, size=(m,n)
+        shortwave infrared band of satellite image, for Sentinel-2 this is B11,
+        originally the Landsat TM band 5 was used in [Xu06]_.
+
+    Returns
+    -------
+    NDWI : numpy.ndarray, size=(m,n)
+        array with NDWI transform
+
+    Notes
+    -----
+    Based on the bands of Sentinel-2:
+
+    .. math:: NDWI = [B_{3}-B_{11}]/[B_{3}+B_{11}]
+
+    References
+    ----------
+    .. [Xu06] Xu, "Modification of normalized difference water index (NDWI) to
+              enhance open water features in remotely sensed imagery"
+              International journal of remote sensing, vol.27(14) pp.3025–3033,
+              2006.
+    """
+    are_two_arrays_equal(Green,Short)
+
+    denom = (Green + Short)
+    MNDWI = np.divide( (Green - Short), denom,
+                      out=np.zeros_like(denom), where=denom!=0)
+    return MNDWI
+
+def normalized_difference_moisture_index(Near, Short):
+    """transform near and shortwave infrared arrays to NDM-index.
+    See also [Wi02]_.
+
+    Parameters
+    ----------
+    Near : numpy.ndarray, size=(m,n)
+        green band of satellite image
+    Shortwave : numpy.ndarray, size=(m,n)
+        shortwave infrared band of satellite image
+
+    Returns
+    -------
+    NDMI : numpy.ndarray, size=(m,n)
+        array with NDMI transform
+
+    Notes
+    -----
+    Based on the bands of Sentinel-2:
+
+    .. math:: NDMI = [B_{8}-B_{11}]/[B_{8}+B_{11}]
+
+    References
+    ----------
+    .. [Wi02] Wilson, "Detection of forest harvest type using multiple dates of
+              Landsat TM imagery" Remote sensing of environment, vol.80
+              pp.385–396, 2002.
+    """
+    are_two_arrays_equal(Near,Short)
+
+    denom = (Near + Short)
+    NDMI = np.divide( (Near - Short), denom,
+                     out=np.zeros_like(denom), where=denom!=0)
+    return NDMI
+
 def normalized_difference_blue_water_index(Blue, Near):
     """transform green and near infrared arrays NDW-index. See also [Qu11].
 
