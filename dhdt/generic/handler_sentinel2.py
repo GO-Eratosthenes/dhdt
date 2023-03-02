@@ -8,7 +8,7 @@ import pandas as pd
 
 import geopandas
 
-from dhdt.auxilary.handler_mgrs import _check_mgrs_code
+from dhdt.auxilary.handler_mgrs import normalize_mgrs_code
 from dhdt.generic.handler_xml import get_root_of_table
 from dhdt.generic.handler_dat import get_list_files
 

@@ -26,7 +26,7 @@ from dhdt.generic.handler_www import get_file_from_ftps
 from dhdt.generic.mapping_io import read_geo_info
 from dhdt.generic.mapping_tools import get_bbox, get_shape_extent
 from dhdt.generic.handler_sentinel2 import get_crs_from_mgrs_tile
-from dhdt.generic.handler_mgrs import check_mgrs_code
+from dhdt.auxilary.handler_mgrs import normalize_mgrs_code
 
 
 def get_itersecting_DEM_tile_names(index, geometry):
@@ -249,7 +249,7 @@ def make_copDEM_mgrs_tile(mgrs_tile, im_path, im_name, tile_path, cop_path,
     """
     if (len(sso) == 0) or (len(pw) == 0):
         raise Exception('No username or password were given')
-    mgrs_tile = check_mgrs_code(mgrs_tile)
+    mgrs_tile = normalize_mgrs_code(mgrs_tile)
     assert os.path.exists(im_path), 'please provide correct folder'
     assert os.path.exists(os.path.join(im_path, im_name)), \
         ('file does not seem to exist')

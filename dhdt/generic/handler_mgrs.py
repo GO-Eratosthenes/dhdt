@@ -4,15 +4,9 @@ import numpy as np
 
 from osgeo import osr
 
+from dhdt.auxilary.handler_mgrs import normalize_mgrs_code
 from dhdt.generic.gis_tools import get_utm_zone
 from dhdt.generic.mapping_tools import ll2map
-
-def check_mgrs_code(tile_code):
-    assert isinstance(tile_code, str), 'please provide a string'
-    tile_code = tile_code.upper()
-    assert bool(re.match("[0-9][0-9][A-Z][A-Z][A-Z]", tile_code)), \
-        ('please provide a correct MGRS tile code')
-    return tile_code
 
 def get_mgrs_tile(ϕ,λ):
     """ return a military grid reference system zone designation string.

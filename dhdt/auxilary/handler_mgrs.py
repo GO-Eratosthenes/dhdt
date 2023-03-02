@@ -122,7 +122,7 @@ def get_bbox_from_tile_code(tile_code, geom_path=None, search_size=0.1):
         geom_path = os.path.join(
             MGRS_TILING_DIR_DEFAULT, 'sentinel2_tiles_world.geojson')
 
-    tile_code = _normalize_mgrs_code(tile_code)
+    tile_code = normalize_mgrs_code(tile_code)
 
     # Derive a search box from the tile code
     search_box = _mgrs_to_searchbox(tile_code, search_size)
@@ -157,7 +157,7 @@ def get_geom_for_tile_code(tile_code, geom_path=None, search_size=0.1):
         geom_path = os.path.join(
             MGRS_TILING_DIR_DEFAULT, 'sentinel2_tiles_world.geojson')
 
-    tile_code = _normalize_mgrs_code(tile_code)
+    tile_code = normalize_mgrs_code(tile_code)
 
     # Derive a search box from the tile code
     search_box = _mgrs_to_searchbox(tile_code, search_size)
@@ -220,7 +220,7 @@ def get_tile_codes_from_geom(geom, geom_path=None):
     return codes
 
 
-def _normalize_mgrs_code(tile_code):
+def normalize_mgrs_code(tile_code):
     """
     Validate a MGRS tile code and make it uppercase
 
