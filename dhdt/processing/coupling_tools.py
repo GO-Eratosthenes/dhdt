@@ -1,7 +1,8 @@
 import os
-import glob
-import math
 import warnings
+
+from dhdt.processing.gis_tools import get_intersection
+
 warnings.filterwarnings('once')
 from tqdm import tqdm
 
@@ -13,12 +14,12 @@ from sklearn.neighbors import NearestNeighbors
 from scipy.spatial.distance import cdist
 
 from dhdt.generic.unit_check import correct_geoTransform
-from dhdt.generic.mapping_tools import pix2map, cast_orientation, ref_trans, \
-    aff_trans_template_coord, rot_trans_template_coord
+from dhdt.generic.mapping_tools import pix2map, ref_trans, \
+    aff_trans_template_coord
 from dhdt.generic.mapping_io import read_geo_image, read_geo_info
 from dhdt.generic.handler_im import bilinear_interpolation, select_boi_from_stack
 from dhdt.input.read_sentinel2 import \
-    read_sun_angles_s2, get_local_bbox_in_s2_tile
+    get_local_bbox_in_s2_tile
 from dhdt.processing.matching_tools import \
     pad_images_and_filter_coord_list, pad_radius, get_integer_peak_location, \
     get_data_and_mask
@@ -990,65 +991,6 @@ def angles2unit(azimuth):
         xy = np.dstack((x, y))
     return xy
 
-def get_intersection(xy_1, xy_2, xy_3, xy_4):
-    """ given two points per line, estimate the intersection
-
-    Parameters
-    ----------
-    xy_1,xy_2 : numpy.array, size=(m,2)
-        array with 2D coordinate of start and end from the first line.
-    xy_3, xy_4 : numpy.array, size=(m,2)
-        array with 2D coordinate of start and end from the second line.
-
-    Returns
-    -------
-    xy : numpy.array, size=(m,2)
-        array with 2D coordinate of intesection
-
-    Notes
-    -----
-    The geometry can be seen like this:
-
-    .. code-block:: text
-
-                 + xy_1
-                 |
-                 |    + xy_4
-                 |   /
-                 |  /
-                 | /
-                 |/
-                 x xy
-                /|
-               / |
-              /  +xy_2
-             /
-            + xy_3
-    """
-    assert (isinstance(xy_1, (float, np.ndarray)) and
-            isinstance(xy_2, (float, np.ndarray)))
-    assert (isinstance(xy_3, (float, np.ndarray)) and
-            isinstance(xy_4, (float, np.ndarray)))
-    if type(xy_1) in (np.ndarray,):
-        assert len(set({xy_1.shape[0], xy_2.shape[0],
-                        xy_3.shape[0], xy_4.shape[0], })) == 1, \
-            ('please provide arrays of the same size')
-
-    x_1,x_2,x_3,x_4 = xy_1[:,0], xy_2[:,0], xy_3[:,0], xy_4[:,0]
-    y_1,y_2,y_3,y_4 = xy_1[:,1], xy_2[:,1], xy_3[:,1], xy_4[:,1]
-
-    numer_1, numer_2 = x_1*y_2 - y_1*x_2, x_3*y_4 - y_3*x_4
-    dx_12, dy_12 = x_1 - x_2, y_1 - y_2
-    dx_34, dy_34 = x_3 - x_4, y_3 - y_4
-    denom = (dx_12*dy_34 - dy_12*dx_34)
-
-    x = np.divide( numer_1 * dx_34 - dx_12 * numer_2, denom,
-                   where=denom!=0, out=np.zeros_like(denom))
-    y = np.divide( numer_1 * dy_34 - dy_12 * numer_2, denom,
-                   where=denom!=0, out=np.zeros_like(denom))
-
-    xy = np.stack((x,y)).T
-    return xy
 
 def _get_zenith_from_sun(sun):
     if type(sun) in (float,): return np.deg2rad(sun)
@@ -1118,9 +1060,9 @@ def get_caster(sun_1, sun_2, xy_1, xy_2):
         ('please provide arrays of the same size')
     sun_1, sun_2 = np.deg2rad(sun_1), np.deg2rad(sun_2)
 
-    caster_new = get_intersection(xy_1, xy_1+np.stack((np.sin(sun_1),
-                                                       np.cos(sun_1)), axis=1),
-                                  xy_2, xy_2+np.stack((np.sin(sun_2),
+    caster_new = get_intersection(xy_1, xy_1 + np.stack((np.sin(sun_1),
+                                                         np.cos(sun_1)), axis=1),
+                                  xy_2, xy_2 + np.stack((np.sin(sun_2),
                                                        np.cos(sun_2)), axis=1))
     return caster_new
 

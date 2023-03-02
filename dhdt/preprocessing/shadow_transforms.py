@@ -1,15 +1,11 @@
 import numpy as np
-import random
 
-from scipy import ndimage # for image filters
-from sklearn.decomposition import fastica
-from skimage.color import rgb2hsv, hsv2rgb
-
+from .multispec_transforms import principle_component_analysis, pca_rgb_preparation
 from ..generic.unit_check import are_three_arrays_equal, are_two_arrays_equal
 
 from .color_transforms import \
-    rgb2ycbcr, rgb2hsi, rgb2xyz, xyz2lab, lab2lch, erdas2hsi, rgb2lms, lms2lab,\
-    hsi2rgb, rgb2hcv, rgb2yiq
+    rgb2ycbcr, rgb2hsi, rgb2xyz, xyz2lab, lab2lch, erdas2hsi, rgb2lms, lms2lab, \
+    rgb2hcv, rgb2yiq
 from dhdt.generic.data_tools import s_curve
 
 def apply_shadow_transform(method, Blue, Green, Red, RedEdge, Near, Shw,
@@ -110,81 +106,6 @@ def apply_shadow_transform(method, Blue, Green, Red, RedEdge, Near, Shw,
     return M
 
 # generic transforms
-def pca(X):
-    """ principle component analysis (PCA)
-
-    Parameters
-    ----------
-    X : numpy.ndarray, size=(m,b)
-        array of the band image
-
-    Returns
-    -------
-    eigen_vecs : numpy.ndarray, size=(b,b)
-        array with eigenvectors
-    eigen_vals : numpy.ndarray, size=(b,1)
-        vector with eigenvalues
-
-    """
-    assert type(X)==np.ndarray, ('please provide an array')
-
-    # Data matrix X, assumes 0-centered
-    n, m = X.shape
-    # Compute covariance matrix
-    C = np.dot(X.T, X) / (n - 1)
-    # Eigen decomposition
-    eigen_vals, eigen_vecs = np.linalg.eig(C)
-    return eigen_vecs, eigen_vals
-
-def pca_rgb_preparation(Blue, Green, Red, min_samp=1e4):
-    are_three_arrays_equal(Blue,Green,Red)
-
-    OK = Blue != 0  # boolean array with data
-
-    r,g,b = np.mean(Red[OK]), np.mean(Green[OK]), np.mean(Blue[OK])
-    # shift axis origin
-    Red,Green,Blue = Red-r, Green-g, Blue-b
-    del r, g, b
-
-    # sampleset
-    Nsamp = int(
-        min(min_samp, np.sum(OK)))  # try to have a sampleset of 10'000 points
-    sampSet, other = np.where(OK)  # OK.nonzero()
-    sampling = random.choices(sampSet, k=Nsamp)
-    del sampSet, Nsamp
-
-    Red = Red.ravel(order='F')
-    Green = Green.ravel(order='F')
-    Blue = Blue.ravel(order='F')
-
-    X = np.transpose(np.array(
-        [Red[sampling], Green[sampling], Blue[sampling]]))
-    return X
-
-def ica(Blue, Green, Red, Near, min_samp=1e4):
-    OK = Blue != 0
-    # sampleset
-    Nsamp = int(
-        min(min_samp, np.sum(OK)))  # try to have a sampleset of 10'000 points
-    sampSet, other = np.where(OK)  # OK.nonzero()
-    sampling = random.choices(sampSet, k=Nsamp)
-    del sampSet, Nsamp
-    X = np.array([Blue.flatten()[sampling],
-                  Green.flatten()[sampling],
-                  Red.flatten()[sampling],
-                  Near.flatten()[sampling]]).T
-    K,W,S,X_mean = fastica(X, return_X_mean=True)
-
-    # reconstruct components
-    first = W[0,0]*(Blue-X_mean[0]) +W[0,1]*(Green-X_mean[1]) \
-            +W[0,2]*(Red-X_mean[2]) +W[0,3]*(Near-X_mean[3])
-    secnd = W[1,0]*(Blue-X_mean[0]) +W[1,1]*(Green-X_mean[1]) \
-            +W[1,2]*(Red-X_mean[2]) +W[1,3]*(Near-X_mean[3])
-    third = W[2,0]*(Blue-X_mean[0]) +W[2,1]*(Green-X_mean[1]) \
-            +W[2,2]*(Red-X_mean[2]) +W[2,3]*(Near-X_mean[3])
-    forth = W[3,0]*(Blue-X_mean[0]) +W[3,1]*(Green-X_mean[1]) \
-            +W[3,2]*(Red-X_mean[2])+W[3,3]*(Near-X_mean[3])
-    return first, secnd, third, forth
 
 # generic metrics
 def shannon_entropy(X,band_width=100):
@@ -836,7 +757,7 @@ def shadow_index_liu(Blue, Green, Red):
     _,S,I = rgb2hsi(Red, Green, Blue)
 
     X = pca_rgb_preparation(Red, Green, Blue, min_samp=1e4)
-    e, lamb = pca(X)
+    e, lamb = principle_component_analysis(X)
     del X
     PC1 = e[0,0]*Red + e[0,1]*Green + e[0,2]*Blue
 
@@ -907,7 +828,7 @@ def shadow_detector_index(Blue, Green, Red):
     are_three_arrays_equal(Blue,Green,Red)
 
     X = pca_rgb_preparation(Red, Green, Blue, min_samp=1e4)
-    e, lamb = pca(X)
+    e, lamb = principle_component_analysis(X)
     del X
     PC1 = e[0,0]*Red + e[0,1]*Green + e[0,2]*Blue
 

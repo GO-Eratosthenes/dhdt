@@ -945,7 +945,7 @@ def normalized_gradient_corr(I1, I2):
     return Q
 
 def orientation_corr(I1, I2):
-    """ match two imagery through orientation correlation, developed by [Fi02]_
+    r""" match two imagery through orientation correlation, developed by [Fi02]_
     while demonstrated its benefits over glaciated terrain by [HK12]_.
 
     Parameters

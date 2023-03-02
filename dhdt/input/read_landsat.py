@@ -7,7 +7,8 @@ import pandas as pd
 from PIL import Image, ImageDraw
 
 from ..generic.mapping_io import read_geo_image
-from ..processing.coupling_tools import get_intersection
+from ..processing.gis_tools import get_intersection
+
 
 def list_platform_metadata_l7():
     l7_dict = {

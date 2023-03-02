@@ -8,7 +8,7 @@ from skimage.transform import radon
 from skimage.measure.fit import _dynamic_max_trials
 
 from ..generic.data_tools import gradient_descent, secant
-from ..preprocessing.shadow_transforms import pca
+from ..preprocessing.multispec_transforms import principle_component_analysis
 from .matching_tools_frequency_filters import \
     raised_cosine, thresh_masking, normalize_power_spectrum, local_coherence, \
     make_fourier_grid, construct_phase_plane, cross_spectrum_to_coordinate_list
@@ -587,7 +587,7 @@ def phase_pca(data, W=np.array([])):
 
     data = cross_spectrum_to_coordinate_list(data, W)
 
-    eigen_vecs, eigen_vals = pca(data)
+    eigen_vecs, eigen_vals = principle_component_analysis(data)
     e3 = eigen_vecs[:,np.argmin(eigen_vals)] # normal vector
     di = (-2*e3[0]/e3[-1])
     dj = (-2*e3[1]/e3[-1])

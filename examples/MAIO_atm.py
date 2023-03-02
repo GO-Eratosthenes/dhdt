@@ -68,13 +68,13 @@ I_h11 = general_midway_equalization(np.dstack((I1_sub[...,-2], I2_sub[...,-2])))
 I_h12 = general_midway_equalization(np.dstack((I1_sub[...,-1], I2_sub[...,-1])))
 I_h = (I_h12[...,1]-I_h12[...,0]) - (I_h11[...,1]-I_h11[...,0])
 
-from dhdt.preprocessing.shadow_transforms import pca, ica
+from dhdt.preprocessing.multispec_transforms import principle_component_analysis, independent_component_analysis
 
 #i1,i2,i3,i4 = ica(I1_sub[...,-2], I1_sub[...,-1],
 #                  I2_sub[...,-2], I2_sub[...,-1], min_samp=1e4)
 
-i1,i2,i3,i4 = ica(I_h12[...,1], I_h12[...,0],
-                  I_h11[...,1], I_h11[...,0], min_samp=1e4)
+i1,i2,i3,i4 = independent_component_analysis(I_h12[..., 1], I_h12[..., 0],
+                                             I_h11[...,1], I_h11[...,0], min_samp=1e4)
 
 
 
