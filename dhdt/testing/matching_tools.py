@@ -55,10 +55,10 @@ def create_sample_image_pair(d=2**7, max_range=1, integer=False, ndim=1):
           based      v
 
     """
-    im1 = data.astronaut()
     if ndim==1:
-        im1 = mat_to_gray(im1[...,0], im1[...,0]==0)
+        im1 = mat_to_gray(data.grass())
     else:
+        im1 = data.astronaut()
         ndim = np.maximum(im1.shape[-1], ndim)
     mI,nI = im1.shape[0:2]
 

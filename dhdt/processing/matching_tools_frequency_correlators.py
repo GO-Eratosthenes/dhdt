@@ -396,15 +396,16 @@ def projected_phase_corr(I1, I2, M1=np.array(()), M2=np.array(())):
               proceedings of the 10th international symposium on communications
               and information technologies, 2010.
     """
-    assert type(I1) in (np.ma.core.MaskedArray, np.array), \
+    assert type(I1) in (np.ma.core.MaskedArray, np.ndarray), \
         ("please provide an array")
-    assert type(I2) in (np.ma.core.MaskedArray, np.array), \
+    assert type(I2) in (np.ma.core.MaskedArray, np.ndarray), \
         ("please provide an array")
     assert (type(M1)==np.ndarray) or (M1 is None), ('please provide an array')
     assert (type(M2)==np.ndarray) or (M2 is None), ('please provide an array')
 
     # make compatible with masekd array
-    I1,M1, I2,M2 = get_data_and_mask(I1, M1), get_data_and_mask(I2, M2)
+    I1, M1 = get_data_and_mask(I1, M1)
+    I2, M2 = get_data_and_mask(I2, M2)
 
     I1sub,I2sub = make_templates_same_size(I1,I2)
     I1sub,I2sub = make_template_float(I1sub), make_template_float(I2sub)
@@ -1217,8 +1218,8 @@ def phase_corr(I1, I2):
 
     def _phase_corr_core(I1,I2):
         S1, S2 = np.fft.fft2(I1), np.fft.fft2(I2)
+        S1, S2 = normalize_power_spectrum(S1), normalize_power_spectrum(S2)
         Q = S1 * np.conj(S2)
-        Q = normalize_power_spectrum(Q)
         return Q
 
     I1sub, I2sub = make_templates_same_size(I1, I2)
@@ -1624,15 +1625,16 @@ def masked_corr(I1, I2, M1=np.array(()), M2=np.array(())):
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
     """
-    assert type(I1) in (np.ma.core.MaskedArray, np.array), \
+    assert type(I1) in (np.ma.core.MaskedArray, np.ndarray), \
         ("please provide an array")
-    assert type(I2) in (np.ma.core.MaskedArray, np.array), \
+    assert type(I2) in (np.ma.core.MaskedArray, np.ndarray), \
         ("please provide an array")
     assert (type(M1)==np.ndarray) or (M1 is None), ('please provide an array')
     assert (type(M2)==np.ndarray) or (M2 is None), ('please provide an array')
 
     # init
-    I1,M1, I2,M2 = get_data_and_mask(I1, M1), get_data_and_mask(I2, M2)
+    I1, M1 = get_data_and_mask(I1, M1)
+    I2, M2 = get_data_and_mask(I2, M2)
 
     I1sub, I2sub = make_templates_same_size(I1,I2)
     I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
@@ -1649,7 +1651,6 @@ def masked_corr(I1, I2, M1=np.array(()), M2=np.array(())):
 
     ff1M2 = np.fft.ifft2( np.fft.fft2(I1sub**2)*np.conj(M2f) )
     fM1f2 = np.fft.ifft2( M1f*np.fft.fft2( np.flipud(I2sub**2) ) )
-
 
     NCC_num = fF1F2 - \
         (np.divide(np.multiply( fF1M2, fM1F2 ), fM1M2,

@@ -5,20 +5,87 @@ import numpy as np
 
 from dhdt.generic.handler_im import bilinear_interpolation
 from dhdt.generic.mapping_io import read_geo_info, read_geo_image
-from dhdt.generic.mapping_tools import map2pix
+from dhdt.generic.mapping_tools import map2pix, pix2map
 from dhdt.postprocessing.photohypsometric_tools import \
     read_conn_files_to_stack, clean_dh, \
     get_casted_elevation_difference, get_hypsometric_elevation_change
-from dhdt.processing.coupling_tools import couple_pair
+from dhdt.processing.coupling_tools import couple_pair, match_pair
 from dhdt.processing.network_tools import get_network_indices
+from dhdt.processing.matching_tools import get_coordinates_of_template_centers
+from dhdt.processing.matching_tools_organization import \
+    list_spatial_correlators, list_peak_estimators, list_phase_estimators, \
+    list_frequency_correlators
 
 # artificial creation functions
+from dhdt.testing.matching_tools import \
+    create_sample_image_pair, test_subpixel_localization
 from dhdt.testing.terrain_tools import \
     create_artificial_terrain, create_artifical_sun_angles, \
     create_shadow_caster_casted
-from dhdt.testing.mapping_tools import create_local_crs
+from dhdt.testing.mapping_tools import \
+    create_local_crs, create_artificial_geoTransform
 
 # testing functions
+def test_match_pair(im_size=2**7,temp_size=2**4, tolerance=10):
+    # create artificial data
+    I = np.ones((im_size, im_size))
+    geoTransform = create_artificial_geoTransform(I, spac=1.)
+    I_samp, J_samp = get_coordinates_of_template_centers(I, temp_size//2)
+    X_samp, Y_samp = pix2map(geoTransform, I_samp, J_samp)
+    del I
+    for bands in [1, 3]:  # testing both grayscale and multi-spectral data
+        im1,im2,di,dj,_ = create_sample_image_pair(d=im_size,
+             max_range=3, integer=False, ndim=bands)
+
+        # test frequency correlators
+        _test_frequency_correlators(im1, im2, geoTransform, X_samp, Y_samp,
+                                  temp_size, di, dj, tolerance=tolerance)
+        #todo: test phase plane estimators
+
+        if bands==1:
+            # test spatial correlators
+            _test_spatial_correlators(im1, im2, geoTransform, X_samp, Y_samp,
+                                      temp_size, di, dj, tolerance=tolerance)
+            #todo: test peak estimators
+
+    return
+
+def _test_spatial_correlators(im1,im2,geoTransform,X_samp,Y_samp,temp_size,
+                              di, dj, tolerance=0.5):
+    corr_list = list_spatial_correlators(unique=True)
+    msk1, msk2 = np.invert(np.isnan(im1)), np.invert(np.isnan(im2))
+    for correlator in corr_list:
+        print('testing : ' + correlator)
+        X_disp,Y_disp,_ = match_pair(im1, im2, msk1, msk2,
+                                     geoTransform, geoTransform, X_samp, Y_samp,
+                                     temp_radius=temp_size,
+                                     search_radius=2*temp_size,
+                                     correlator=correlator)
+        dX, dY = X_samp-X_disp, Y_samp-Y_disp
+        dX_hat, dY_hat = np.nanmedian(dX.ravel()), np.nanmedian(dY.ravel())
+        di_hat,dj_hat = map2pix(geoTransform, dX_hat, dY_hat)
+        test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)
+        print('passed')
+    return
+
+def _test_frequency_correlators(im1,im2,geoTransform,X_samp,Y_samp,temp_size,
+                                di, dj, tolerance=0.5):
+    corr_list = list_frequency_correlators()
+    msk1, msk2 = np.invert(np.isnan(im1)), np.invert(np.isnan(im2))
+    for correlator in corr_list:
+        print('testing : ' + correlator)
+        X_disp,Y_disp,_ = match_pair(im1, im2, msk1, msk2,
+                                     geoTransform, geoTransform, X_samp, Y_samp,
+                                     temp_radius=temp_size,
+                                     search_radius=temp_size,
+                                     correlator=correlator)
+        dX, dY = X_disp-X_samp, Y_disp-Y_samp
+        dX_hat, dY_hat = np.nanmedian(dX.ravel()), np.nanmedian(dY.ravel())
+        di_hat,dj_hat = map2pix(geoTransform, dX_hat, dY_hat)
+        test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)
+        print('passed')
+    return
+
 def test_photohypsometric_coupling(N=10, Z_shape=(400,600), tolerance=20):
     Z, geoTransform = create_artificial_terrain(Z_shape[0], Z_shape[1])
     az,zn = create_artifical_sun_angles(N)

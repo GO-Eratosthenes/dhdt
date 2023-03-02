@@ -29,23 +29,21 @@ from .matching_tools_differential import \
     affine_optical_flow, hough_optical_flow
 
 # admin
-def list_frequency_correlators():
+def list_frequency_correlators(unique=False):
     """ list the abbreviations of the different implemented correlators
 
     The following correlators are implemented:
 
-        * :func:`cosi_corr <.matching_tools_frequency_correlators.cosi_corr>` : cosicorr
+        * cosi_corr : cosicorr
         * phas_only : phase only correlation
         * symm_phas : symmetric phase correlation
         * ampl_comp : amplitude compensation phase correlation
         * orie_corr : orientation correlation
         * grad_corr : gradient correlation
         * grad_norm : normalize gradient correlation
-        * mask_corr : masked normalized cross correlation
         * bina_phas : binary phase correlation
         * wind_corr : windrose correlation
         * gaus_phas : gaussian transformed phase correlation
-        * upsp_corr : upsampled cross correlation
         * cros_corr : cross correlation
         * robu_corr : robust phase correlation
         * proj_phas : projected phase correlation
@@ -56,27 +54,29 @@ def list_frequency_correlators():
     correlator_list : list of strings
     """
     correlator_list = ['cosi_corr', 'phas_only', 'symm_phas', 'ampl_comp',
-                       'orie_corr', 'grad_corr', 'grad_norm', 'mask_corr',
-                       'bina_phas', 'wind_corr', 'gaus_phas', 'upsp_corr',
-                       'cros_corr', 'robu_corr', 'proj_phas', 'phas_corr']
-    aka_list = ['CC',                   # cross-correlation
-                'OC',                   # orientation correlation
-                'PC',                   # phase-only correlation
-                'GC',                   # gradient correlation
-                'RC',                   # robust correlation
-                'SPOF', 'SCOT',         # symmetric phase correlation
-                'ACMF',                 # amplitude compensation phase correlation
-                ]
-    aka_list = [x.lower() for x in aka_list]
+                       'orie_corr', 'grad_corr', 'grad_norm', 'bina_phas',
+                       'wind_corr', 'gaus_phas', 'cros_corr', 'robu_corr',
+                       'proj_phas', 'phas_corr']
+    if unique:
+        aka_list = []
+    else:
+        aka_list = ['CC',           # cross-correlation
+                    'OC',           # orientation correlation
+                    'PC',           # phase-only correlation
+                    'GC',           # gradient correlation
+                    'RC',           # robust correlation
+                    'SPOF', 'SCOT', # symmetric phase correlation
+                    'ACMF',         # amplitude compensation phase correlation
+                    ]
+        aka_list = [x.lower() for x in aka_list]
     return correlator_list + aka_list
 
-def list_spatial_correlators():
+def list_spatial_correlators(unique=False):
     """ list the abbreviations of the different implemented correlators.
 
     The following methods are implemented:
 
         * norm_corr : normalized cross correlation
-        * cumu_corr : cumulative cross correlation
         * sq_diff : sum of squared differences
         * sad_diff : sum of absolute differences
         * max_like : maximum likelihood
@@ -87,12 +87,15 @@ def list_spatial_correlators():
     correlator_list : list of strings
 
     """
-    correlator_list = ['norm_corr', 'ncc', 'cumu_corr', 'sq_diff', 'sad_diff',
-                       'max_like', 'wght_corr', 'wncc']
-    aka_list = ['ncc',       # normalized cross correlation
-                'wncc'       # weighted normalized cross correlation
-               ]
-    aka_list = [x.lower() for x in aka_list]
+    correlator_list = ['norm_corr', 'sq_diff', 'sad_diff',
+                       'max_like', 'wght_corr']
+    if unique:
+        aka_list = []
+    else:
+        aka_list = ['ncc',       # 'normalized cross correlation',
+                    'wncc'       # weighted normalized cross correlation
+                   ]
+        aka_list = [x.lower() for x in aka_list]
     return correlator_list + aka_list
 
 def list_differential_correlators():
@@ -238,8 +241,7 @@ def estimate_translation_of_two_subsets(I1, I2, M1, M2, correlator='lucas_kan',
     return di, dj, score
 
 def match_translation_of_two_subsets(I1_sub,I2_sub,correlator,subpix,
-                                     M1_sub=np.array([]),
-                                     M2_sub=np.array([]) ):
+                                     M1_sub=np.array([]), M2_sub=np.array([]) ):
     """
 
     Parameters
@@ -331,12 +333,10 @@ def match_translation_of_two_subsets(I1_sub,I2_sub,correlator,subpix,
         # spatial correlator
         if correlator in ['norm_corr', 'ncc']:
             C = normalized_cross_corr(I1_sub, I2_sub)
-        elif correlator in ['cumu_corr']:
-            C = cumulative_cross_corr(I1_sub, I2_sub)
         elif correlator in ['sq_diff']:
-            C = -1 * sum_sq_diff(I1_sub, I2_sub)
+            C = 1 - sum_sq_diff(I1_sub, I2_sub)
         elif correlator in ['sad_diff']:
-            C = sum_sad_diff(I1_sub, I2_sub)
+            C = 1 - sum_sad_diff(I1_sub, I2_sub)
         elif correlator in ['max_like']:
             C = maximum_likelihood(I1_sub, I2_sub)
         elif correlator in ['wght_corr', 'wncc']:

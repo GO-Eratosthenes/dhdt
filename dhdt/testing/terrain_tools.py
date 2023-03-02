@@ -19,7 +19,8 @@ from dhdt.preprocessing.shadow_geometry import shadow_image_to_list
 from dhdt.presentation.velocity_tools import make_seeds
 from dhdt.processing.matching_tools import remove_posts_outside_image
 from dhdt.postprocessing.solar_tools import make_shadowing, make_shading
-from dhdt.testing.mapping_tools import create_local_crs
+from dhdt.testing.mapping_tools import \
+    create_local_crs, create_artificial_geoTransform
 
 def create_artificial_terrain(m, n, step_size=.01, multi_res=(2,4)):
     """ create artificail terrain, based upon Perlin noise, with a flavour of
@@ -88,7 +89,7 @@ def create_artificial_terrain(m, n, step_size=.01, multi_res=(2,4)):
         Z += mat_to_gray(Z)*(1/f)*_perlin(f*x, f*y)
     Z += 1
     Z *= 1E3
-    geoTransform = (0., +10., 0., 0., 0., -10., m, n)
+    geoTransform = create_artificial_geoTransform(Z, spac=10.)
     return Z, geoTransform
 
 def create_artificial_glacier_mask(Z, geoTransform, seeds=42, labeling=True):

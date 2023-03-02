@@ -43,9 +43,11 @@ def normalized_cross_corr(I1, I2):
 
     ccs: cross correlation surface
     """
+    assert I1.ndim == I2.ndim, 'please provide data with the same dimension'
     assert I1.shape[0:2]<=I2.shape[0:2], \
         ('search space (I2) should be at least as big as the template (I1)')
     ccs = match_template(I2, I1)
+    if I1.ndim==3: ccs = np.squeeze(ccs, axis=2)
     return ccs
 
 def cumulative_cross_corr(I1, I2):
@@ -107,6 +109,7 @@ def sum_sq_diff(I1, I2):
 
     ssd: sum of squared differences
     """
+    assert I1.ndim == I2.ndim, 'please provide data with the same dimension'
     assert I1.shape[0:2]<=I2.shape[0:2], \
         ('search space (I2) should be at least as big as the template (I1)')
 
@@ -143,14 +146,18 @@ def sum_sad_diff(I1, I2):
 
     sad: sum of absolute difference
     """
-    
+    assert I1.ndim == I2.ndim, 'please provide data with the same dimension'
+    assert I1.shape[0:2]<=I2.shape[0:2], \
+        ('search space (I2) should be at least as big as the template (I1)')
+
     t_size = I1.shape
     y = np.lib.stride_tricks.as_strided(I2,
                     shape=(I2.shape[0] - t_size[0] + 1,
                            I2.shape[1] - t_size[1] + 1,) +
                           t_size,
                     strides=I2.strides * 2)
-    sad = np.einsum('ijkl,kl->ij', y, I1)
+
+    sad = np.sum(np.abs(y - I1[...,None,None]), axis=(0,1))
     return sad
 
 # maximum likelihood
