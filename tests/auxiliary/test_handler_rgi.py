@@ -52,5 +52,5 @@ def test_create_rgi_raster_set_up_correct_raster_file():
 
 def test_create_rgi_tile_s2_requires_full_mgrs_tile_codes():
     """ Two leading characters needs to be used for the UTM zone """
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         create_rgi_tile_s2(aoi='5VMG')  # should be '05VMG'

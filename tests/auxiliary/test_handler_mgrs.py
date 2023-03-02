@@ -45,7 +45,7 @@ def test_kml_to_gdf_output_all_polygon():
 
 
 def test_kml_to_gdf_output_same_crs():
-    gdf_kml = gpd.read_file(TESTDATA_KML)
+    gdf_kml = gpd.read_file(TESTDATA_KML, driver="KML")
     gdf = handler_mgrs._kml_to_gdf(TESTDATA_KML)
     assert gdf.crs.equals(gdf_kml.crs)
 
