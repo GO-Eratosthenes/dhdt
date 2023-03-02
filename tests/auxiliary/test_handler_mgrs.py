@@ -53,17 +53,17 @@ def test_kml_to_gdf_output_same_crs():
 # MGRS query tests
 def test_normalize_mgrs_code_not_str():
     with pytest.raises(TypeError):
-        handler_mgrs._normalize_mgrs_code(123)
+        handler_mgrs.normalize_mgrs_code(123)
 
 
 def test_normalize_mgrs_code_wrong_code():
     with pytest.raises(ValueError):
-        handler_mgrs._normalize_mgrs_code('WRONG')
+        handler_mgrs.normalize_mgrs_code('WRONG')
 
 
 def test_mgrs_to_searchbox_searchbox_range():
-    box = handler_mgrs._mgrs_to_searchbox(TILE_CODE, 0.1)
-    assert box == pytest.approx((122.9, -45.253, 123.1, -45.053), 0.001)
+    box = handler_mgrs._mgrs_to_searchbox(TILE_CODE)
+    assert box == pytest.approx((120.0, -90.0, 126.0, 90.0), 0.001)
 
 
 def test_get_bbox_from_tile_code_bbox_equal():

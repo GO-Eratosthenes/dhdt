@@ -2,7 +2,6 @@ import os
 import geopandas as gpd
 import re
 import numpy as np
-import mgrs
 from shapely import wkt
 from shapely.geometry import Polygon
 from dhdt.generic.handler_www import get_file_from_www
@@ -101,41 +100,7 @@ def _kml_to_gdf(filename):
     return gdf_out
 
 
-def get_bbox_from_tile_code(tile_code, geom_path=None, search_size=0.1):
-    """  get the bounds of a certain MGRS tile
-
-    Parameters
-    ----------
-    tile_code : string, e.g.: '05VMG'
-        MGRS tile coding
-    geom_path : string
-        Path to the geometric metadata
-    search_size : float
-        Size of the search box, by default 0.1
-
-    Returns
-    -------
-    bbox : numpy.ndarray, size=(1,4), dtype=float
-        bounding box, in the following order: min max X, min max Y
-    """
-    if geom_path is None:
-        geom_path = os.path.join(
-            MGRS_TILING_DIR_DEFAULT, 'sentinel2_tiles_world.geojson')
-
-    tile_code = normalize_mgrs_code(tile_code)
-
-    # Derive a search box from the tile code
-    search_box = _mgrs_to_searchbox(tile_code, search_size)
-
-    # Load tiles intersects the search box
-    mgrs_tiles = gpd.read_file(geom_path, bbox=search_box)
-
-    toi = mgrs_tiles[mgrs_tiles['Name'] == tile_code].total_bounds
-    bbox = np.array([toi[0], toi[2], toi[1], toi[3]])
-    return bbox
-
-
-def get_geom_for_tile_code(tile_code, geom_path=None, search_size=0.1):
+def get_geom_for_tile_code(tile_code, geom_path=None):
     """ get the geometry of a certain MGRS tile
 
     Parameters
@@ -144,8 +109,6 @@ def get_geom_for_tile_code(tile_code, geom_path=None, search_size=0.1):
         MGRS tile coding
     geom_path : string
         Path to the geometric metadata
-    search_size : float
-        Size of the search box, by default 0.1
 
     Returns
     -------
@@ -160,7 +123,7 @@ def get_geom_for_tile_code(tile_code, geom_path=None, search_size=0.1):
     tile_code = normalize_mgrs_code(tile_code)
 
     # Derive a search box from the tile code
-    search_box = _mgrs_to_searchbox(tile_code, search_size)
+    search_box = _mgrs_to_searchbox(tile_code)
 
     # Load tiles intersects the search box
     mgrs_tiles = gpd.read_file(geom_path, bbox=search_box)
@@ -171,6 +134,34 @@ def get_geom_for_tile_code(tile_code, geom_path=None, search_size=0.1):
         print('MGRS tile code does not seem to exist')
 
     return geom
+
+
+def get_bbox_from_tile_code(tile_code, geom_path=None):
+    """  get the bounds of a certain MGRS tile
+
+    Parameters
+    ----------
+    tile_code : string, e.g.: '05VMG'
+        MGRS tile coding
+    geom_path : string
+        Path to the geometric metadata
+
+    Returns
+    -------
+    bbox : numpy.ndarray, size=(1,4), dtype=float
+        bounding box, in the following order: min max X, min max Y
+    """
+    if geom_path is None:
+        geom_path = os.path.join(
+            MGRS_TILING_DIR_DEFAULT, 'sentinel2_tiles_world.geojson')
+
+    tile_code = normalize_mgrs_code(tile_code)
+
+    geom = get_geom_for_tile_code(tile_code, geom_path=geom_path)
+
+    toi = geom.total_bounds
+    bbox = np.array([toi[0], toi[2], toi[1], toi[3]])
+    return bbox
 
 
 def get_tile_codes_from_geom(geom, geom_path=None):
@@ -246,23 +237,21 @@ def normalize_mgrs_code(tile_code):
     return tile_code
 
 
-def _mgrs_to_searchbox(tile_code, size):
+def _mgrs_to_searchbox(tile_code):
     """
-    Get a squre search box from the tile code.
+    Get a search box from the tile code. The search box is a 6-deg longitude stripe
 
     Parameters
     ----------
     tile_code : str
         MGRS code of the tile
-    size : float, optional
-        size of the search box in degree
 
     Returns
     -------
     tuple
         boudingbox of the search area in (minx, miny, maxx, maxy)
     """
-
-    m = mgrs.MGRS()
-    clat, clon = m.toLatLon(tile_code)
-    return (clon-size, clat-size, clon+size, clat+size)
+    nr_lon = int(tile_code[0:2])  # first two letters indicates longitude range
+    min_lon = -180.+(nr_lon-1)*6.
+    max_lon = -180.+nr_lon*6.
+    return (min_lon, -90.0, max_lon, 90.0)
