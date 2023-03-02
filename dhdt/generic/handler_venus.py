@@ -50,8 +50,9 @@ def _get_file_meta(theia, vn_df, dat_dir, mtype='Image'):
 
     band_path = pd.Series(data=im_paths, index=band_id,
                           name=mtype.lower()+"path")
-    vn_df_new = pd.concat([vn_df, band_path], axis=1, join="inner")
-    return vn_df_new
+    vn_df_new = pd.concat([vn_df, band_path], axis=1, join="outer")
+    IN = vn_df_new.index.isin(vn_df.index)
+    return vn_df_new[IN]
 
 def get_vn_image_locations(fname, vn_df):
     """
@@ -121,19 +122,19 @@ def get_vn_mean_view_angles(fname,vn_df):
 
     geom_info = None
     for child in root:
-        if child.tag == 'Geometric_Informations':
+        if child.tag.endswith('Geometric_Informations'):
             geom_info = child
     assert(geom_info is not None), ('metadata not in xml file')
 
     mean_list = None
     for child in geom_info:
-        if child.tag == 'Mean_Value_List':
+        if child.tag.endswith('Mean_Value_List'):
             mean_list = child
     assert (mean_list is not None), ('metadata not in xml file')
 
     view_list = None
     for child in mean_list:
-        if child.tag == 'Mean_Viewing_Incidence_Angle_List':
+        if child.tag.endswith('Mean_Viewing_Incidence_Angle_List'):
             view_list = child
     assert (view_list is not None), ('metadata not in xml file')
 

@@ -88,10 +88,10 @@ def list_central_wavelength_vssc():
     gsd = {"B1" : 5., "B2" : 5., "B3" : 5., "B4" : 5., "B5": 5., "B6" : 5.,
            "B7" : 5., "B8" : 5., "B9": 5., "B10": 5., "B11": 5., "B12": 5.,
            }
-    bandid = {"B1": 'B1', "B2" : 'B2', "B3" : 'B3', "B4" : 'B4',
-              "B5": 'B5', "B6" : 'B6', "B7" : 'B7', "B8" : 'B8',
-              "B9": 'B9', "B10":'B10', "B11":'B11', "B12":'B12',
-              }
+    band_id = {"B1": 'B1', "B2" : 'B2', "B3" : 'B3', "B4" : 'B4',
+               "B5": 'B5', "B6" : 'B6', "B7" : 'B7', "B8" : 'B8',
+               "B9": 'B9', "B10":'B10', "B11":'B11', "B12":'B12',
+               }
     detector_id = {"B1": 1, "B2" : 1, "B3" : 4, "B4" : 4,
                    "B5": 1, "B6" : 4, "B7" : 3, "B8" : 3,
                    "B9": 3, "B10": 2, "B11": 2, "B12": 2,
@@ -116,7 +116,7 @@ def list_central_wavelength_vssc():
                           dtype=np.dtype('float')),
          "common_name": pd.Series(common_name,
                                   dtype=np.dtype('str')),
-         "bandid": pd.Series(bandid,
+         "band_id": pd.Series(band_id,
                              dtype=np.dtype('str')),
          "detector_id": pd.Series(detector_id,
                                   dtype=np.dtype('int64')),
@@ -168,8 +168,10 @@ def read_stack_vn(vn_df):
     assert 'imagepath' in vn_df, ('please first run "get_vn_image_locations"' +
                                  ' to find the proper file locations')
 
+    if len(vn_df)==0: return
+
     # start with the highest resolution
-    for val, idx in enumerate(vn_df.sort_values('bandid').index):
+    for val, idx in enumerate(vn_df.sort_values('band_id').index):
         full_path = vn_df['imagepath'][idx]
         if val == 0:
             im_stack, spatialRef, geoTransform, targetprj = read_band_vn(
