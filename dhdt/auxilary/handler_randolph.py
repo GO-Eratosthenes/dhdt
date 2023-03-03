@@ -206,7 +206,7 @@ def download_rgi(aoi=None, version=7, rgi_dir=None, overwrite=False):
     return shapefiles
 
 
-def create_rgi_raster(rgi_shapes, geoTransform, crs, raster_path=None):
+def create_rgi_raster(rgi_shapes, transform, shape, crs, raster_path=None):
     """
     Creates a raster file in the location given by "raster_path", the content
     of which are the RGI glaciers in the input vector files
@@ -215,9 +215,11 @@ def create_rgi_raster(rgi_shapes, geoTransform, crs, raster_path=None):
     ----------
     rgi_shapes : iterable
         RGI glacier shapes to rasterize
-    geoTransform : tuple, size=(8,)
+    transform : affine.Affine
         georeference transform of an image.
-    crs : osgeo.osr.SpatialReference() object
+    shape : tuple
+        shape of the image: (ny, nx)
+    crs : pyproj.crs.crs.CRS
         coordinate reference system (CRS)
     raster_path : string
         location where the raster file should be positioned
@@ -230,14 +232,10 @@ def create_rgi_raster(rgi_shapes, geoTransform, crs, raster_path=None):
     CRS : Coordinate reference system
     """
 
-    *transform_gdal, ny, nx = geoTransform
-    transform = affine.Affine.from_gdal(*transform_gdal)
-    crs_wkt = crs.ExportToWkt()
-
-    rgi_shapes_repr = rgi_shapes.to_crs(crs_wkt)
+    rgi_shapes_repr = rgi_shapes.to_crs(crs)
     data = rasterio.features.rasterize(
         zip(rgi_shapes_repr.geometry, rgi_shapes_repr.index),
-        out_shape=(ny, nx),
+        out_shape=shape,
         fill=0,
         transform=transform,
         dtype=int,
@@ -245,12 +243,11 @@ def create_rgi_raster(rgi_shapes, geoTransform, crs, raster_path=None):
 
     raster = xr.DataArray(data=data, dims=('y', 'x'))
     raster.rio.write_nodata(0, inplace=True)
-    raster.rio.write_crs(crs_wkt, inplace=True)
+    raster.rio.write_crs(crs, inplace=True)
     raster.rio.write_transform(transform, inplace=True)
 
     os.makedirs(os.path.dirname(raster_path), exist_ok=True)
     raster.rio.to_raster(raster_path, tiled=True, compress='LZW')
-    return
 
 
 def create_rgi_tile_s2(
@@ -308,9 +305,11 @@ def create_rgi_tile_s2(
 
     rgi_raster_paths = []
     for mgrs_code in mgrs_codes:
-        geoTransform, crs = get_generic_s2_raster(mgrs_code)
+        transform, shape, crs = get_generic_s2_raster(
+            mgrs_code, mgrs_tiling_file=mgrs_tiling_file
+        )
         rgi_raster_path = os.path.join(rgi_out_dir, f'{mgrs_code}.tif')
         rgi_shapes = _get_rgi_shapes(rgi_paths, version)
-        create_rgi_raster(rgi_shapes, geoTransform, crs, rgi_raster_path)
+        create_rgi_raster(rgi_shapes, transform, shape, crs, rgi_raster_path)
         rgi_raster_paths.append(rgi_raster_path)
     return rgi_raster_paths

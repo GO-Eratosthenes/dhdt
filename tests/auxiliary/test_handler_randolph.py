@@ -1,12 +1,12 @@
 import os
 import tempfile
 
+import affine
 import geopandas as gpd
 import numpy as np
+import pyproj
 import pytest
 import rioxarray as rioxr
-
-from osgeo import osr
 
 from dhdt.auxilary.handler_randolph import \
     create_rgi_raster, create_rgi_tile_s2
@@ -22,20 +22,21 @@ def _set_up_data_for_rgi_raster():
     shapes = gpd.read_file(RGI_SHAPES)
     shapes.set_index('id', inplace=True)
 
-    crs = osr.SpatialReference()
-    crs.ImportFromEPSG(EPSG_CODE)
+    crs = pyproj.CRS.from_epsg(EPSG_CODE)
 
-    transform = (461000, 20., 0.,  6624200., 0., -20., *RASTER_SHAPE)
-    return shapes, crs, transform
+    gdal_transform = (461000, 20., 0.,  6624200., 0., -20.)
+    transform = affine.Affine.from_gdal(*gdal_transform)
+    return shapes, crs, transform, RASTER_SHAPE
 
 
 def test_create_rgi_raster_set_up_correct_raster_file():
-    shapes, crs, transform = _set_up_data_for_rgi_raster()
+    shapes, crs, transform, shape = _set_up_data_for_rgi_raster()
     with tempfile.TemporaryDirectory() as tmpdir:
         raster_path = os.path.join(tmpdir, "tmp.tif")
         create_rgi_raster(
             rgi_shapes=shapes,
-            geoTransform=transform,
+            transform=transform,
+            shape=shape,
             crs=crs,
             raster_path=raster_path,
         )
