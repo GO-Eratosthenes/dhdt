@@ -7,7 +7,6 @@ import pandas as pd
 import rasterio.features
 import rioxarray
 import shapely.geometry
-import shapely.wkt
 import xarray as xr
 
 from .handler_mgrs import get_tile_codes_from_geom, get_geom_for_tile_code
@@ -101,7 +100,9 @@ def _get_rgi_shapes(rgi_paths, version):
     return glaciers.geometry
 
 
-def which_rgi_regions(aoi=None, version=7, rgi_file=None):
+def which_rgi_regions(
+        aoi=None, version=7, rgi_file=None, mgrs_tiling_file=None
+):
     """
     Discover which Randolph Glacier Inventory (RGI) regions are used
     for a given region.
@@ -114,6 +115,8 @@ def which_rgi_regions(aoi=None, version=7, rgi_file=None):
         version of the glacier inventory
     rgi_file : string
         file path of the shapefile that describes the RGI regions
+    mgrs_tiling_file : string
+        path to the MGRS tiling file
 
     Returns
     -------
@@ -140,8 +143,7 @@ def which_rgi_regions(aoi=None, version=7, rgi_file=None):
 
     if aoi is not None:
         if isinstance(aoi, str):
-            geom_wkt = get_geom_for_tile_code(aoi)
-            geom = shapely.wkt.loads(geom_wkt)
+            geom = get_geom_for_tile_code(aoi, geom_path=mgrs_tiling_file)
         else:
             geom = shapely.geometry.Point(aoi[1], aoi[0])  # lon, lat
         mask = rgi_reg.intersects(geom)
@@ -251,7 +253,9 @@ def create_rgi_raster(rgi_shapes, geoTransform, crs, raster_path=None):
     return
 
 
-def create_rgi_tile_s2(aoi, version=7, rgi_dir=None, rgi_out_dir=None):
+def create_rgi_tile_s2(
+        aoi, version=7, rgi_dir=None, rgi_out_dir=None, mgrs_tiling_file=None
+):
     """
     Creates a raster file with the extent of a generic Sentinel-2 tile, that is
     situated at a specific location
@@ -265,7 +269,10 @@ def create_rgi_tile_s2(aoi, version=7, rgi_dir=None, rgi_out_dir=None):
     rgi_dir : string
         directory where the glacier geometry files are located
     rgi_out_dir : string
-        location where the glacier geometry files should be positioned
+        directory where the glacier geometry files should be saved
+        (default is where input geometry files are located)
+    mgrs_tiling_file : string
+        path to the MGRS tiling file
 
     Returns
     -------
@@ -296,7 +303,7 @@ def create_rgi_tile_s2(aoi, version=7, rgi_dir=None, rgi_out_dir=None):
     if isinstance(aoi, str):
         mgrs_codes = [aoi]
     else:
-        mgrs_codes = get_tile_codes_from_geom(aoi)
+        mgrs_codes = get_tile_codes_from_geom(aoi, geom_path=mgrs_tiling_file)
 
     rgi_raster_paths = []
     for mgrs_code in mgrs_codes:
