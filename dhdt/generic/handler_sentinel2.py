@@ -268,7 +268,7 @@ def get_generic_s2_raster(tile_code, spac=10, mgrs_tiling_file=None):
     )
     geom_utm = shapely.ops.transform(transformer.transform, geom)
     xx, yy = geom_utm.exterior.coords.xy
-    x, y = np.round(xx/spac)*spac, np.round(yy/spac)*spac
+    x, y = np.round(np.array(xx)/spac)*spac, np.round(np.array(yy)/spac)*spac
 
     spac = float(spac)
     transform = affine.Affine(spac, 0., np.min(x), 0., -spac, np.max(y))
