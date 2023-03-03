@@ -34,7 +34,8 @@ def download_mgrs_tiling(
         mgrs_dir=None, output='sentinel2_tiles_world.geojson', overwrite=False
 ):
     """
-    Retrieve mgrs tiling polygons. 
+    Retrieve MGRS tiling polygons, and extract geometries to a vector file (by
+    default GeoJSON)
 
     Parameters
     ----------
@@ -53,7 +54,7 @@ def download_mgrs_tiling(
 
     Notes
     -----
-    KML file with the MGRS tiling scheme used by Sentinel-2 is provided by
+    The KML file with the MGRS tiling scheme used by Sentinel-2 is provided by
     Copernicus [1]
 
     [1] https://sentinels.copernicus.eu/web/sentinel/missions/sentinel-2/data-products
@@ -64,12 +65,12 @@ def download_mgrs_tiling(
     # download MGRS tiling file
     f_kml = get_file_from_www(MGRS_TILING_URL, mgrs_dir, overwrite)
 
-    # Convert KML to geojson
-    f_geojson = os.path.join(mgrs_dir, output)
-    if not os.path.isfile(f_geojson) or overwrite:
+    # Extract geometries from KML
+    mgrs_out_file = os.path.join(mgrs_dir, output)
+    if not os.path.isfile(mgrs_out_file) or overwrite:
         gdf = _kml_to_gdf(os.path.join(mgrs_dir, f_kml))
-        gdf.to_file(f_geojson)
-    return f_geojson
+        gdf.to_file(mgrs_out_file)
+    return mgrs_out_file
 
 
 def _kml_to_gdf(filename):
