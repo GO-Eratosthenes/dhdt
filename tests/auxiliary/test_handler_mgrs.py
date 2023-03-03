@@ -78,9 +78,8 @@ def test_get_geom_for_tile_code_geometry():
     geom = handler_mgrs.get_geom_for_tile_code(
         TILE_CODE, geom_path=TESTDATA_GEOJSON)
     gdf = gpd.read_file(TESTDATA_GEOJSON)
-    geom_read = gdf.loc[gdf["Name"] == TILE_CODE]["geometry"].reset_index(
-        drop=True)  # drop index for comparision
-    assert geom.geom_equals(geom_read)[0]
+    geom_read = gdf.loc[gdf["Name"] == TILE_CODE]["geometry"]
+    assert geom.equals(geom_read.squeeze())
 
 
 @pytest.mark.parametrize("geom", geom_types(POINT_WITHIN))

@@ -1,3 +1,15 @@
+"""
+The MGRS tile structure is a follows "AABCC"
+    * "AA" utm zone number, starting from the East, with steps of 8 degrees
+    * "B" latitude zone, starting from the South, with steps of 6 degrees
+    * "CC" 100 km square identifier
+
+The following acronyms are used:
+
+- CRS : coordinate reference system
+- MGRS : US military grid reference system
+- WKT : well known text
+"""
 import os
 import geopandas as gpd
 import re
@@ -8,20 +20,6 @@ from dhdt.generic.handler_www import get_file_from_www
 from fiona.drvsupport import supported_drivers
 supported_drivers['KML'] = 'rw'
 
-"""
-    Notes
-    -----
-    The tile structure is a follows "AABCC"
-        * "AA" utm zone number, starting from the East, with steps of 8 degrees
-        * "B" latitude zone, starting from the South, with steps of 6 degrees
-
-    The following acronyms are used:
-
-    - CRS : coordinate reference system
-    - MGRS : US military grid reference system
-    - s2 : Sentinel-2
-    - WKT : well known text
-"""
 
 MGRS_TILING_URL = (
     "https://sentinels.copernicus.eu/documents/247904/1955685/"
@@ -32,21 +30,25 @@ MGRS_TILING_URL = (
 MGRS_TILING_DIR_DEFAULT = os.path.join('.', 'data', 'MGRS')
 
 
-def download_mgrs_tiling(mgrs_dir=None, output='sentinel2_tiles_world.geojson', overwrite=False):
+def download_mgrs_tiling(
+        mgrs_dir=None, output='sentinel2_tiles_world.geojson', overwrite=False
+):
     """
     Retrieve mgrs tiling polygons. 
 
     Parameters
     ----------
     mgrs_dir : str, optional
-        location where the MGRS tiling files will be saved. If None, files will be written to './data/MGRS'. By default None
+        location where the MGRS tiling files will be saved. If None, files will
+        be written to './data/MGRS'.
     output: str, optional
         Output file name, by default 'sentinel2_tiles_world.geojson'
     overwrite: bool
         if True and file exists, download it again, otherwise do nothing
+
     Returns
     -------
-    mgrs_path : str
+    str
         path to the extracted MGRS tiling file
 
     Notes
@@ -101,24 +103,26 @@ def _kml_to_gdf(filename):
 
 
 def get_geom_for_tile_code(tile_code, geom_path=None):
-    """ get the geometry of a certain MGRS tile
+    """
+    Get the geometry of a certain MGRS tile
 
     Parameters
     ----------
-    tile_code : string, e.g.: '05VMG'
-        MGRS tile coding
+    tile_code : string
+        MGRS tile coding, e.g.: '05VMG'
     geom_path : string
         Path to the geometric metadata
 
     Returns
     -------
-    wkt : string
-        well known text of the geometry, i.e.: 'POLYGON ((x y, x y, x y))'
+    shapely.geometry.polygon.Polygon
+        Geometry of the MGRS tile, in lat/lon
     """
 
     if geom_path is None:
         geom_path = os.path.join(
-            MGRS_TILING_DIR_DEFAULT, 'sentinel2_tiles_world.geojson')
+            MGRS_TILING_DIR_DEFAULT, 'sentinel2_tiles_world.geojson'
+        )
 
     tile_code = normalize_mgrs_code(tile_code)
 
@@ -130,14 +134,17 @@ def get_geom_for_tile_code(tile_code, geom_path=None):
 
     geom = mgrs_tiles[mgrs_tiles['Name'] == tile_code]["geometry"]
 
-    if geom is None:
-        print('MGRS tile code does not seem to exist')
+    if len(geom) == 0:
+        raise ValueError('MGRS tile code does not seem to exist')
+    elif len(geom) > 1:
+        raise ValueError('Multiple tiles matching the tile code')
 
-    return geom
+    return geom.squeeze()
 
 
 def get_bbox_from_tile_code(tile_code, geom_path=None):
-    """  get the bounds of a certain MGRS tile
+    """
+    Get the bounds of a certain MGRS tile
 
     Parameters
     ----------
@@ -148,18 +155,13 @@ def get_bbox_from_tile_code(tile_code, geom_path=None):
 
     Returns
     -------
-    bbox : numpy.ndarray, size=(1,4), dtype=float
+    numpy.ndarray, size=(1,4), dtype=float
         bounding box, in the following order: min max X, min max Y
     """
-    if geom_path is None:
-        geom_path = os.path.join(
-            MGRS_TILING_DIR_DEFAULT, 'sentinel2_tiles_world.geojson')
-
-    tile_code = normalize_mgrs_code(tile_code)
 
     geom = get_geom_for_tile_code(tile_code, geom_path=geom_path)
 
-    toi = geom.total_bounds
+    toi = geom.bounds
     bbox = np.array([toi[0], toi[2], toi[1], toi[3]])
     return bbox
 
@@ -170,15 +172,16 @@ def get_tile_codes_from_geom(geom, geom_path=None):
 
     Parameters
     ----------
-    geom : {shapely.geometry, string, dict, geopandas.GeoDataFrame, geopandas.GeoSeries}
-        geometry object with the given dict-like geojson geometry, GeoSeries, GeoDataFrame or shapely geometry.
-        or well known text, i.e.: 'POLYGON ((x y, x y, x y))'
+    geom : {shapely.geometry, string, dict, GeoDataFrame, GeoSeries}
+        geometry object with the given dict-like geojson geometry, GeoSeries,
+        GeoDataFrame, shapely geometry or well known text, i.e.:
+        'POLYGON ((x y, x y, x y))'
     geom_path : string
         Path to the geometric metadata
 
     Returns
     -------
-    tile_codes : tuple
+    tuple
         MGRS tile codes
 
     See Also
@@ -188,14 +191,12 @@ def get_tile_codes_from_geom(geom, geom_path=None):
 
     if geom_path is None:
         geom_path = os.path.join(
-            MGRS_TILING_DIR_DEFAULT, 'sentinel2_tiles_world.geojson')
+            MGRS_TILING_DIR_DEFAULT, 'sentinel2_tiles_world.geojson'
+        )
 
     # If a wkt str, convert to shapely geometry
     if isinstance(geom, str):
-        try:
-            geom = wkt.loads(geom)
-        except Exception as e:
-            raise e
+        geom = wkt.loads(geom)
 
     # Uniform CRS
     if isinstance(geom, gpd.GeoSeries) or isinstance(geom, gpd.GeoDataFrame):
@@ -239,7 +240,8 @@ def normalize_mgrs_code(tile_code):
 
 def _mgrs_to_searchbox(tile_code):
     """
-    Get a search box from the tile code. The search box is a 6-deg longitude stripe
+    Get a search box from the tile code. The search box is a 6-deg longitude
+    stripe
 
     Parameters
     ----------
@@ -249,9 +251,9 @@ def _mgrs_to_searchbox(tile_code):
     Returns
     -------
     tuple
-        boudingbox of the search area in (minx, miny, maxx, maxy)
+        bounding box of the search area in (minx, miny, maxx, maxy)
     """
     nr_lon = int(tile_code[0:2])  # first two letters indicates longitude range
     min_lon = -180.+(nr_lon-1)*6.
     max_lon = -180.+nr_lon*6.
-    return (min_lon, -90.0, max_lon, 90.0)
+    return min_lon, -90.0, max_lon, 90.0
