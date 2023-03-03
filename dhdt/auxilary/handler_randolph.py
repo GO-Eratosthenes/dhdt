@@ -10,9 +10,9 @@ import shapely.geometry
 import shapely.wkt
 import xarray as xr
 
+from .handler_mgrs import get_tile_codes_from_geom, get_geom_for_tile_code
 from ..generic.handler_www import get_file_from_www, get_file_and_extract
-from ..generic.handler_sentinel2 import get_tile_codes_from_geom, \
-    get_generic_s2_raster, get_geom_for_tile_code
+from ..generic.handler_sentinel2 import get_generic_s2_raster
 
 
 # RGI version 6
