@@ -1,14 +1,12 @@
 import os
-import time
 
 from osgeo import ogr, osr
 
 import numpy as np
 import pandas as pd
 
-import geopandas
-
-from dhdt.auxilary.handler_mgrs import normalize_mgrs_code
+from dhdt.auxilary.handler_mgrs import normalize_mgrs_code, \
+    get_geom_for_tile_code
 from dhdt.generic.handler_xml import get_root_of_table
 from dhdt.generic.handler_dat import get_list_files
 
@@ -248,7 +246,7 @@ def get_generic_s2_raster(tile_code, spac=10):
     """
     assert spac in (10,20,60,), 'please provide correct pixel resolution'
 
-    tile_code = check_mgrs_code(tile_code)
+    tile_code = normalize_mgrs_code(tile_code)
     geom = get_geom_for_tile_code(tile_code)
     geom = ogr.CreateGeometryFromWkt(geom)
 
@@ -450,7 +448,7 @@ def get_utmzone_from_tile_code(tile_code):
     - UTM : universal transverse mercator
     - WGS : world geodetic system
     """
-    tile_code = check_mgrs_code(tile_code)
+    tile_code = normalize_mgrs_code(tile_code)
     return int(tile_code[:2])
 
 def get_epsg_from_mgrs_tile(tile_code):
@@ -485,7 +483,7 @@ def get_epsg_from_mgrs_tile(tile_code):
     - UTM : universal transverse mercator
     - WGS : world geodetic system
     """
-    tile_code = check_mgrs_code(tile_code)
+    tile_code = normalize_mgrs_code(tile_code)
     utm_num = get_utmzone_from_tile_code(tile_code)
     epsg_code = 32600 + utm_num
 
@@ -516,7 +514,7 @@ def get_crs_from_mgrs_tile(tile_code):
         * "AA" utm zone number, starting from the East, with steps of 8 degrees
         * "B" latitude zone, starting from the South, with steps of 6 degrees
     """
-    tile_code = check_mgrs_code(tile_code)
+    tile_code = normalize_mgrs_code(tile_code)
     epsg_code = get_epsg_from_mgrs_tile(tile_code)
 
     crs = osr.SpatialReference()
