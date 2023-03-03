@@ -250,6 +250,7 @@ def create_rgi_raster(rgi_shapes, geoTransform, crs, raster_path=None):
     raster.rio.to_raster(raster_path, tiled=True, compress='LZW')
     return
 
+
 def create_rgi_tile_s2(aoi, version=7, rgi_dir=None, rgi_out_dir=None):
     """
     Creates a raster file with the extent of a generic Sentinel-2 tile, that is
