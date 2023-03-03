@@ -303,7 +303,8 @@ def create_rgi_tile_s2(
     if isinstance(aoi, str):
         mgrs_codes = [aoi]
     else:
-        mgrs_codes = get_tile_codes_from_geom(aoi, geom_path=mgrs_tiling_file)
+        geom = shapely.geometry.Point(aoi[1], aoi[0])  # lon, lat
+        mgrs_codes = get_tile_codes_from_geom(geom, geom_path=mgrs_tiling_file)
 
     rgi_raster_paths = []
     for mgrs_code in mgrs_codes:
