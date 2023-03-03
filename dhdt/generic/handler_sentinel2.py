@@ -1,9 +1,12 @@
 import os
 
-from osgeo import ogr, osr
+from osgeo import osr
 
+import affine
 import numpy as np
 import pandas as pd
+import pyproj
+import shapely.ops
 
 from dhdt.auxilary.handler_mgrs import normalize_mgrs_code, \
     get_geom_for_tile_code
@@ -215,8 +218,9 @@ def list_platform_metadata_s2b():
         'J': np.array([[558, 30, -30],[30, 819, 30],[-30, 30, 1055]])}
     return s2b_dict
 
-def get_generic_s2_raster(tile_code, spac=10):
-    """ create spatial metadata of a Sentinel-2, so no downloading is needed.
+def get_generic_s2_raster(tile_code, spac=10, mgrs_tiling_file=None):
+    """
+    Create spatial metadata of a Sentinel-2, so no downloading is needed.
 
     Parameters
     ----------
@@ -224,12 +228,16 @@ def get_generic_s2_raster(tile_code, spac=10):
         mgrs tile coding, which is also given in the filename ("TXXXXX")
     spac : integer, {10,20,60}, unit=m
         pixel spacing of the raster
+    mgrs_tiling_file : string
+        path to the MGRS tiling file
 
     Returns
     -------
-    geoTransform : tuple, size=(8,)
-        georeference transform of an image.
-    crs : osgeo.osr.SpatialReference() object
+    affine.Affine
+        georeference transform of an image
+    tuple
+        shape of the image: (ny, nx)
+    pyproj.crs.crs.CRS
         coordinate reference system (CRS)
 
     Notes
@@ -244,42 +252,28 @@ def get_generic_s2_raster(tile_code, spac=10):
     - MGRS : US military grid reference system
     - s2 : Sentinel-2
     """
-    assert spac in (10,20,60,), 'please provide correct pixel resolution'
+    assert spac in (10, 20, 60,), 'please provide correct pixel resolution'
 
     tile_code = normalize_mgrs_code(tile_code)
-    geom = get_geom_for_tile_code(tile_code)
-    geom = ogr.CreateGeometryFromWkt(geom)
+    geom = get_geom_for_tile_code(tile_code, geom_path=mgrs_tiling_file)
 
-    points = geom.Boundary().GetPointCount()
-    bnd = geom.Boundary()
-    λ, ϕ = np.zeros(points), np.zeros(points)
-    for p in np.arange(points):
-        λ[p],ϕ[p],_ = bnd.GetPoint(int(p))
-    del geom, bnd
-    # specify coordinate system
-    spatRef = osr.SpatialReference()
-    spatRef.ImportFromEPSG(4326) # WGS84
+    # specify coordinate systems
+    crs = pyproj.CRS.from_epsg(4326)  # lat lon
+    epsg = get_epsg_from_mgrs_tile(tile_code)
+    crs_utm = pyproj.CRS.from_epsg(epsg)
 
-    utm_zone = get_utmzone_from_tile_code(tile_code)
-    northernHemisphere = True if np.sign(np.mean(ϕ)) == 1 else False
-    proj = osr.SpatialReference()
-    proj.SetWellKnownGeogCS('WGS84')
-    proj.SetUTM(utm_zone, northernHemisphere)
-
-    coordTrans = osr.CoordinateTransformation(spatRef, proj)
-    x,y = np.zeros(points), np.zeros(points)
-    for p in np.arange(points):
-        x[p],y[p],_ = coordTrans.TransformPoint(ϕ[p], λ[p])
-    # bounding box in projected coordinate system
-    x,y = np.round(x/spac)*spac, np.round(y/spac)*spac
+    # reproject and round off
+    transformer = pyproj.Transformer.from_crs(
+        crs_from=crs, crs_to=crs_utm, always_xy=True
+    )
+    geom_utm = shapely.ops.transform(transformer.transform, geom)
+    xx, yy = geom_utm.exterior.coords.xy
+    x, y = np.round(xx/spac)*spac, np.round(yy/spac)*spac
 
     spac = float(spac)
-    geoTransform = (np.min(x), +spac, 0.,
-                    np.max(y), 0., -spac,
-                    int(np.round(np.ptp(y)/spac)),
-                    int(np.round(np.ptp(x)/spac)))
-    crs = get_crs_from_mgrs_tile(tile_code)
-    return geoTransform, crs
+    transform = affine.Affine(spac, 0., np.min(x), 0., -spac, np.max(y))
+    shape = (int(np.round(np.ptp(y)/spac)), int(np.round(np.ptp(x)/spac)))
+    return transform, shape, crs_utm
 
 def get_s2_image_locations(fname,s2_df):
     """
