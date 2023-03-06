@@ -15,11 +15,12 @@ import pyproj
 
 # import local functions
 from dhdt.generic.handler_www import get_file_from_www
-from dhdt.generic.handler_sentinel2 import get_crs_from_mgrs_tile
-from dhdt.auxilary.handler_mgrs import normalize_mgrs_code, get_geom_for_tile_code, get_bbox_from_tile_code
+from dhdt.auxilary.handler_mgrs import normalize_mgrs_code, get_bbox_from_tile_code
 
 def make_copDEM_mgrs_tile(mgrs_tile, out_path=None, geom_path=None, resolution='30'):
     """
+    Identify and download all corresponding tiles from the copernicus digital elevation
+    model that intersect with a given mgrs tile code.
 
     Parameters
     ----------
@@ -41,34 +42,48 @@ def make_copDEM_mgrs_tile(mgrs_tile, out_path=None, geom_path=None, resolution='
     -----
     The following acronyms are used:
 
-    - CDS : Copernicus data service
-    - CopDEM : Copernicus DEM
     - CRS : coordinate reference system
     - DEM : digital elevation model
-    - DGED : defence gridded elevation data
-    - DTED : digital terrain elevation data
-    - GLO : global
+    - CopDEM : Copernicus DEM
     - MGRS : US Military Grid Reference System
-    - SSO : single sign on
     """
     mgrs_tile = normalize_mgrs_code(mgrs_tile)
     bbox = get_bbox_from_tile_code(mgrs_tile, geom_path)
+
+    #Inputs for mosaic function (crs, shape, transform)
     crs = pyproj.CRS.from_epsg(32605)
     shape = (10980, 10980)
     transform = Affine.from_gdal(
         399960.0, 10.0, 0.0, 6700020.0, 0.0, -10.0
     )
     
+    #Round mgrs tile bbox to identify all intersecting DEM files
     dem_tiles = [round(i) for i in bbox]
     url_list = get_cds_urls(dem_tiles, resolution)
 
     cop_dem = download_and_mosaic(url_list, out_path, shape, crs, transform)
     cop_dem_out = os.path.join(out_path, 'COP-DEM-' + mgrs_tile + '.tif')
     cop_dem.rio.to_raster(cop_dem_out, dtype=cop_dem.dtype)
+
     return cop_dem_out
 
 def get_cds_urls(dem_tiles, resolution):
+    """
+    Given the boundaries of the mgrs tile, identify required DEM tiles and save
+    and return corresponding URLs
 
+    Parameters
+    ----------
+    dem_tiles : list
+        List of rounded integers for mgrs tile boundaries [min x, max x, min y, max y]
+    resolution : string
+        Resolution of the DEM ('30' or '90')
+
+    Returns
+    -------
+    url_list : list of strings
+        URLs for each required DEM tile
+    """
     NS_trans_dict = {"+": "N", "-": "S"}
     EW_trans_dict = {"+": "E", "-": "W"}
     NS_trans_table = "NS".maketrans(NS_trans_dict)
@@ -92,16 +107,16 @@ def download_and_mosaic(url_list, tmp_path, shape, crs, transform):
     """ Download Copernicus DEM tiles and create mosaic according to satellite
     imagery tiling scheme
     
-    file_list : list with strings
-        list of DEM tile filenames
+    url_list : list of strings
+        list of DEM tile URLs
     tmp_path : string
-        work path where to download and untar DEM tiles
+        work path where to download DEM tiles
     shape : list
-        shape of raster
+        shape of raster (input for mosaic)
     crs : string
-        coordinate reference string
+        coordinate reference string (input for mosaic)
     transform :
-
+        (input for mosaic)
     Returns
     -------
     dem_clip : DataArray object
