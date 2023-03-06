@@ -12,12 +12,18 @@ The following acronyms are used:
 """
 import os
 import geopandas as gpd
+<<<<<<< Updated upstream
 import re
 import numpy as np
 from shapely import wkt
+=======
+
+>>>>>>> Stashed changes
 from shapely.geometry import Polygon
-from dhdt.generic.handler_www import get_file_from_www
 from fiona.drvsupport import supported_drivers
+
+from dhdt.generic.handler_www import get_file_from_www
+
 supported_drivers['KML'] = 'rw'
 
 
@@ -29,10 +35,15 @@ MGRS_TILING_URL = (
 
 MGRS_TILING_DIR_DEFAULT = os.path.join('.', 'data', 'MGRS')
 
+<<<<<<< Updated upstream
 
 def download_mgrs_tiling(
         mgrs_dir=None, output='sentinel2_tiles_world.geojson', overwrite=False
 ):
+=======
+def download_mgrs_tiling(mgrs_dir=None, output='sentinel2_tiles_world.geojson',
+                         overwrite=False):
+>>>>>>> Stashed changes
     """
     Retrieve MGRS tiling polygons, and extract geometries to a vector file (by
     default GeoJSON)
@@ -41,7 +52,11 @@ def download_mgrs_tiling(
     ----------
     mgrs_dir : str, optional
         location where the MGRS tiling files will be saved. If None, files will
+<<<<<<< Updated upstream
         be written to './data/MGRS'.
+=======
+        be written to './data/MGRS'. By default None
+>>>>>>> Stashed changes
     output: str, optional
         Output file name, by default 'sentinel2_tiles_world.geojson'
     overwrite: bool
@@ -54,10 +69,17 @@ def download_mgrs_tiling(
 
     Notes
     -----
+<<<<<<< Updated upstream
     The KML file with the MGRS tiling scheme used by Sentinel-2 is provided by
     Copernicus [1]
+=======
+    KML file with the MGRS tiling scheme used by Sentinel-2 is provided by
+    Copernicus [1]_.
+>>>>>>> Stashed changes
 
-    [1] https://sentinels.copernicus.eu/web/sentinel/missions/sentinel-2/data-products
+    References
+    ----------
+    .. [1] https://sentinels.copernicus.eu/web/sentinel/missions/sentinel-2/data-products
     """
 
     mgrs_dir = MGRS_TILING_DIR_DEFAULT if mgrs_dir is None else mgrs_dir
@@ -71,7 +93,6 @@ def download_mgrs_tiling(
         gdf = _kml_to_gdf(os.path.join(mgrs_dir, f_kml))
         gdf.to_file(mgrs_out_file)
     return mgrs_out_file
-
 
 def _kml_to_gdf(filename):
     """
@@ -102,6 +123,7 @@ def _kml_to_gdf(filename):
 
     return gdf_out
 
+<<<<<<< Updated upstream
 
 def get_geom_for_tile_code(tile_code, geom_path=None):
     """
@@ -258,3 +280,17 @@ def _mgrs_to_searchbox(tile_code):
     min_lon = -180.+(nr_lon-1)*6.
     max_lon = -180.+nr_lon*6.
     return min_lon, -90.0, max_lon, 90.0
+=======
+def get_mgrs_geometry(mgrs_tile, mgrs_dir=None,
+                      mgrs_file='sentinel2_tiles_world.geojson'):
+    mgrs_dir = MGRS_TILING_DIR_DEFAULT if mgrs_dir is None else mgrs_dir
+
+    file_path = os.path.join(mgrs_dir, mgrs_file)
+    assert os.path.isfile(file_path), 'make sure file exist'
+
+    mgrs_df = gpd.read_file(file_path) # get dataframe of Sentinel-2 tiles
+    mgrs_df = mgrs_df[mgrs_df['Name'].isin([mgrs_tile])]
+    assert (mgrs_df is not None), ('tile not present in shapefile')
+
+    return mgrs_df['geometry'].item()
+>>>>>>> Stashed changes

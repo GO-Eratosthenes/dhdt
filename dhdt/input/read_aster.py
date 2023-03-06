@@ -1,4 +1,5 @@
 # generic libraries
+import os
 import glob
 
 import numpy as np
@@ -6,21 +7,12 @@ import pandas as pd
 
 # geospatial libaries
 from osgeo import gdal, osr
+from datetime import datetime, timedelta
 
-from ..generic.mapping_io import read_geo_image
-
-def list_platform_metadata_tr():
-    tr_dict = {
-        'COSPAR': '1999-068A',
-        'NORAD': 25994,
-        'instruments': {'ASTER','MODIS','MISR'},
-        'launch_date': '1999-12-18',
-        'constellation': 'landsat',
-        'orbit': 'sso',
-        'mass': 4864.,  # [kg]
-        'inclination': 98.1105,  # https://www.n2yo.com/satellite/?s=25994
-        'equatorial_crossing_time': '10:30'}
-    return tr_dict
+from dhdt.generic.mapping_io import read_geo_image
+from dhdt.generic.mapping_tools import ecef2llh
+from dhdt.generic.handler_aster import \
+    get_as_image_locations
 
 def list_central_wavelength_as():
     """ create dataframe with metadata about Terra's ASTER
@@ -112,16 +104,16 @@ def list_central_wavelength_as():
     df = pd.DataFrame(d)
     return df
 
-def read_band_as(path, band='3N', level=1):
-    if level==1:
+def read_band_as(im_path, band='3N'):
+    if im_path.endswith('.hdf'):
         data, spatialRef, geoTransform, targetprj = \
-            read_band_as_l1(path, band=band)
-    elif level==3:
+            read_band_as_hdf(im_path, band=band)
+    else:
         data, spatialRef, geoTransform, targetprj = \
-            read_band_as_l3(path, band=band)
+            read_geo_image(im_path)
     return data, spatialRef, geoTransform, targetprj
 
-def read_band_as_l1(path, band='3N'):
+def read_band_as_hdf(path, band='3N'):
     """
     This function takes as input the ASTER L1T hdf-filename and the path of the
     folder that the images are stored, reads the image and returns the data as
@@ -151,7 +143,7 @@ def read_band_as_l1(path, band='3N'):
     .. [wwwGCTP] https://www.cmascenter.org/ioapi/documentation/all_versions/html/GCTP.html
 
     """
-    assert len(glob.glob(path))!=0, ('file does not seem to be present')
+    assert os.path.exists(path), ('file does not seem to be present')
 
     if len(band)==3:
         band = band[1:]
@@ -187,10 +179,6 @@ def read_band_as_l1(path, band='3N'):
 
     return data, spatialRef, geoTransform, targetprj
 
-def read_band_as_l3(path, band='3N'):
-    data, spatialRef, geoTransform, targetprj = []
-    return data, spatialRef, geoTransform, targetprj
-
 def read_stack_as(path, as_df, level=1):
     if level==1:
         data, spatialRef, geoTransform, targetprj = read_stack_as_l1(path,as_df)
@@ -224,27 +212,21 @@ def read_stack_as_l1(path, as_df):
     --------
     list_central_wavelength_as
     """
-    if (path == '') or (path is None):
-        if 'filepath' in as_df:
-            path = as_df['filepath'][0]
-        else:
-            assert False, ('please first run "get_as_image_locations" to find' +
-                           ' the proper file locations, or provide path directly')
+    if any((path == '', path is None, 'filepath' not in as_df)):
+        assert False, ('please first run "get_as_image_locations" to find' +
+                       ' the proper file locations, or provide path directly')
 
     for idx, val in enumerate(as_df.index):
         # resolve index and naming issue for ASTER metadata
-        if val[-1] in ['N', 'B']:
-            boi = val[1:]
-        else:
-            boi = str(int(val[1:])) # remove leading zero if present
-
+        boi = val[1:].lstrip('0') # remove leading zero if present
+        im_path = as_df['filepath'][idx]
         if idx==0:
             im_stack, spatialRef, geoTransform, targetprj = \
-                read_band_as(path, band=boi)
+                read_band_as(im_path, band=boi)
         else: # stack others bands
             if im_stack.ndim==2:
                 im_stack = np.atleast_3d(im_stack)
-            band = np.atleast_3d(read_band_as(path, band=boi)[0])
+            band = np.atleast_3d(read_band_as(im_path, band=boi)[0])
             im_stack = np.concatenate((im_stack, band), axis=2)
     return im_stack, spatialRef, geoTransform, targetprj
 
@@ -273,8 +255,73 @@ def read_stack_as_l3(as_df):
                                mask=np.tile(Mask, (1,1,im_stack.shape[2])))
     return im_stack, spatialRef, geoTransform, targetprj
 
-#utc = img.GetMetadata()['CalendarDate'.upper()] + \
-#      img.GetMetadata()['TimeOfDay'.upper()][:-1]
-#utc = np.array(utc[0:4]+'-'+utc[4:6]+'-'+utc[6:8]+'T'+\
-#      utc[8:10]+':'+utc[10:12]+':'+utc[12:14]+\
-#      '.'+utc[14:], dtype='datetime64')
+def get_flight_path_as(as_path, fname='AST_L1A_*.Ancillary_Data.txt',
+                       as_dict=None):
+    """
+
+    Parameters
+    ----------
+    as_path : string
+    fname : string
+        file name of the accillary data
+    as_dict: dictionary
+
+    Returns
+    -------
+
+    See Also
+    --------
+    dhdt.input.read_aster.list_central_wavelength_as
+
+    """
+
+    if fname.find('*')!=-1: # search for ancillary data file
+        starter,ending = fname.split('*')
+        file_list = [x for x in os.listdir(as_path) if (x.endswith(ending) and
+                                                        x.startswith(starter))]
+        if len(file_list)!=1:
+            assert False, 'file does not seem to be present'
+        else:
+            fname = file_list[0]
+
+    with open(os.path.join(as_path, fname)) as file:
+        counter = 0
+        for line in file:
+            counter += 1
+            if counter==1: continue
+            line = " ".join(line.rstrip().split())
+            line = np.fromstring(line, dtype=int, sep=' ')
+
+            time_sat, time_cor = line[:4], line[19:22]
+            time_sat[1:] += time_cor
+
+            time_utc = d_space = datetime.strptime("01/01/1958", "%m/%d/%Y")
+            time_utc += timedelta(days=int(time_sat[0]),
+                                  minutes=int(time_sat[1]),
+                                  seconds=int(time_sat[2]),
+                                  milliseconds=int(time_sat[3]))
+            time_sat = np.datetime64(time_utc, 'ns')
+            sat_ecef, sat_velo = line[22:25].astype(float), \
+                                 line[25:28].astype(float)
+
+            if counter==2:
+                sat_time, sat_xyz, sat_uvw = time_sat.copy(), \
+                                             np.atleast_2d(sat_ecef), \
+                                             np.atleast_2d(sat_velo)
+            else:
+                sat_time, sat_xyz, sat_uvw = np.vstack((sat_time, time_sat)), \
+                                             np.vstack((sat_xyz, sat_ecef)), \
+                                             np.vstack((sat_uvw, sat_velo))
+    sat_uvw *= 244E-9
+    sat_xyz *= .125
+    if as_dict is None:
+        return sat_time, sat_xyz, sat_uvw
+    else:
+        as_dict.update({'gps_xyz': sat_xyz, 'gps_uvw': sat_uvw,
+                        'gps_tim': sat_time})
+        # estimate the altitude above the ellipsoid, and platform speed
+        llh = ecef2llh(sat_xyz)
+        velo = np.sqrt(np.sum(sat_uvw ** 2, axis=1))
+        as_dict.update({'altitude': np.squeeze(llh[:, -1]),
+                        'velocity': np.squeeze(velo)})
+        return as_dict

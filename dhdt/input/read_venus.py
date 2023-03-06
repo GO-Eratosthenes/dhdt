@@ -135,7 +135,7 @@ def read_band_vn(path, band=None):
     else:
         fname = path
     f_full = glob.glob(fname)[0]
-    assert os.path.exists(f_full)
+    assert os.path.isfile(f_full)
 
     data, spatialRef, geoTransform, targetprj = \
         read_geo_image(f_full)
@@ -196,7 +196,7 @@ def read_view_angles_vn(path):
     assert isinstance(path, str)
     fname = os.path.join(path, 'DATA', 'VENUS*UII_ALL.xml')
     f_full = glob.glob(fname)[0]
-    assert os.path.exists(f_full)
+    assert os.path.isfile(f_full)
 
     dom = ElementTree.parse(f_full)
     root = dom.getroot()
@@ -227,7 +227,7 @@ def read_mean_sun_angles_vn(path):
     assert isinstance(path, str)
     fname = os.path.join(path, 'VENUS*MTD_ALL.xml')
     f_full = glob.glob(fname)[0]
-    assert os.path.exists(f_full)
+    assert os.path.isfile(f_full)
 
     dom = ElementTree.parse(f_full)
     root = dom.getroot()
@@ -240,7 +240,7 @@ def read_mean_view_angle_vn(path):
     assert isinstance(path, str)
     fname = os.path.join(path, 'DATA', 'VENUS*UII_ALL.xml')
     f_full = glob.glob(fname)[0]
-    assert os.path.exists(f_full)
+    assert os.path.isfile(f_full)
 
     dom = ElementTree.parse(f_full)
     root = dom.getroot()

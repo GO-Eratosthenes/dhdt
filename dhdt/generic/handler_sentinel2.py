@@ -141,9 +141,9 @@ def _get_safe_structure_s2(im_path, s2_dict=None):
                                                     'DATASTRIP'))))[0]
     tl_path = os.sep.join(im_path.split(os.sep)[:-1])
     ds_path = os.path.join(safe_path, 'DATASTRIP', ds_folder)
-    assert os.path.exists(os.path.join(ds_path, 'MTD_DS.xml')), \
+    assert os.path.isfile(os.path.join(ds_path, 'MTD_DS.xml')), \
         'please make sure MTD_DS.xml is present in the directory'
-    assert os.path.exists(os.path.join(tl_path, 'MTD_TL.xml')), \
+    assert os.path.isfile(os.path.join(tl_path, 'MTD_TL.xml')), \
         'please make sure MTD_TL.xml is present in the directory'
 
     safe_folder = _get_safe_foldername(im_path)
@@ -160,9 +160,9 @@ def _get_safe_structure_s2(im_path, s2_dict=None):
 
 def _get_stac_structure_s2(im_path, s2_dict=None):
     # make sure metadata files are present
-    assert os.path.exists(os.path.join(im_path, 'MTD_DS.xml')), \
+    assert os.path.isfile(os.path.join(im_path, 'MTD_DS.xml')), \
         'please make sure MTD_DS.xml is present in the directory'
-    assert os.path.exists(os.path.join(im_path, 'MTD_TL.xml')), \
+    assert os.path.isfile(os.path.join(im_path, 'MTD_TL.xml')), \
         'please make sure MTD_TL.xml is present in the directory'
 
     if s2_dict is None:
@@ -215,6 +215,126 @@ def list_platform_metadata_s2b():
         'J': np.array([[558, 30, -30],[30, 819, 30],[-30, 30, 1055]])}
     return s2b_dict
 
+<<<<<<< Updated upstream
+=======
+def get_bbox_from_tile_code(tile_code, geom_dir=None, geom_name=None):
+    """  get the bounds of a certain MGRS tile
+
+    Parameters
+    ----------
+    tile_code : string, e.g.: '05VMG'
+        MGRS tile coding
+    geom_dir : string
+        directory where geometric metadata about Sentinel-2 is situated
+    geom_name : string
+        filename of metadata, e.g.: 'sentinel2_tiles_world.geojson'
+
+    Returns
+    -------
+    bbox : numpy.ndarray, size=(1,4), dtype=float
+        bounding box, in the following order: min max X, min max Y
+    """
+    tile_code = check_mgrs_code(tile_code)
+    if geom_dir is None:
+        rot_dir = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3])
+        geom_dir = os.path.join(rot_dir, 'data')
+    else:
+        assert os.path.isdir(geom_dir), 'please provide correct folder'
+    if geom_name is None: geom_name='sentinel2_tiles_world.geojson'
+
+    tile_code = tile_code.upper()
+    geom_path = os.path.join(geom_dir,geom_name)
+
+    mgrs = geopandas.read_file(geom_path)
+
+    toi = mgrs[mgrs['Name']==tile_code].total_bounds
+    bbox = np.array([toi[0], toi[2], toi[1], toi[3]])
+    return bbox
+
+def get_geom_for_tile_code(tile_code, geom_dir=None, geom_name=None):
+    """ get the geometry of a certain MGRS tile
+
+    Parameters
+    ----------
+    tile_code : string, e.g.: '05VMG'
+        MGRS tile coding
+    geom_dir : string
+        directory where geometric metadata about Sentinel-2 is situated
+    geom_name : string
+        filename of metadata, e.g.: 'sentinel2_tiles_world.geojson'
+
+    Returns
+    -------
+    wkt : string
+        well known text of the geometry, i.e.: 'POLYGON ((x y, x y, x y))'
+
+    Notes
+    -----
+    The tile structure is a follows "AABCC"
+        * "AA" utm zone number, starting from the East, with steps of 8 degrees
+        * "B" latitude zone, starting from the South, with steps of 6 degrees
+
+    The following acronyms are used:
+
+    - CRS : coordinate reference system
+    - MGRS : US military grid reference system
+    - s2 : Sentinel-2
+    - WKT : well known text
+    """
+    tile_code = check_mgrs_code(tile_code)
+    if geom_dir is None:
+        rot_dir = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3])
+        geom_dir = os.path.join(rot_dir, 'data')
+    else:
+        assert os.path.isdir(geom_dir), 'please provide correct folder'
+    if geom_name is None: geom_name='sentinel2_tiles_world.geojson'
+
+    geom_path = os.path.join(geom_dir,geom_name)
+
+    shp = ogr.Open(geom_path)
+    lyr = shp.GetLayer()
+
+    geom = None
+    feat = lyr.GetNextFeature()
+    while feat:
+        if feat.GetField('Name') == tile_code:
+            geom = feat.GetGeometryRef()
+            time.sleep(.3)
+            break
+        feat = lyr.GetNextFeature()
+    time.sleep(1) #todo: why is a delay needed?
+    shp = lyr = None
+
+    if geom is None:
+        print('MGRS tile code does not seem to exist')
+    return geom.ExportToWkt()
+
+def get_tile_codes_from_geom(geom, geom_dir=None, geom_name=None):
+    """
+    Get the codes of the MGRS tiles intersecting a given geometry
+
+    Parameters
+    ----------
+    geom : {shapely.geometry, string}
+        geometry object or well known text, i.e.: 'POLYGON ((x y, x y, x y))'
+    geom_dir : string
+        directory where geometric metadata about Sentinel-2 is situated
+    geom_name : string
+        filename of metadata, e.g.: 'sentinel2_tiles_world.geojson'
+
+    Returns
+    -------
+    tile_codes : tuple
+        MGRS tile codes
+
+    See Also
+    --------
+    .get_geom_for_tile_code, .get_bbox_from_tile_code
+    """
+    raise NotImplemented('Function to be added when working on s2 tiling grid')
+
+
+>>>>>>> Stashed changes
 def get_generic_s2_raster(tile_code, spac=10):
     """ create spatial metadata of a Sentinel-2, so no downloading is needed.
 
@@ -316,7 +436,7 @@ def get_s2_image_locations(fname,s2_df):
     'S2A_OPER_MSI_L1C_DS_VGS1_20200923T200821_S20200923T163313_N02.09'
     """
     if os.path.isdir(fname): fname = os.path.join(fname, 'MTD_MSIL1C.xml')
-    assert os.path.exists(fname), ('metafile does not seem to be present')
+    assert os.path.isfile(fname), ('metafile does not seem to be present')
     root = get_root_of_table(fname)
     root_dir = os.path.split(fname)[0]
 
@@ -329,7 +449,7 @@ def get_s2_image_locations(fname,s2_df):
     for im_loc in root.iter('IMAGE_FILE'):
         full_path = os.path.join(root_dir, im_loc.text)
         boi = im_loc.text[-3:] # band of interest
-        if not os.path.exists(os.path.dirname(full_path)):
+        if not os.path.isdir(os.path.dirname(full_path)):
             full_path = None
             for _,_,files in os.walk(root_dir):
                 for file in files:
@@ -348,7 +468,7 @@ def get_s2_image_locations(fname,s2_df):
     return s2_df_new, datastrip_id
 
 def get_s2_granule_id(fname, s2_df):
-    assert os.path.exists(fname), ('metafile does not seem to be present')
+    assert os.path.isfile(fname), ('metafile does not seem to be present')
     root = get_root_of_table(fname)
 
     for im_loc in root.iter('IMAGE_FILE'):
@@ -403,7 +523,7 @@ def meta_s2string(s2_str):
     return s2_time, s2_orbit, s2_tile
 
 def get_s2_folders(im_path):
-    assert os.path.exists(im_path), 'please specify a folder'
+    assert os.path.isdir(im_path), 'please specify a folder'
     s2_list = [x for x in os.listdir(im_path)
                if (os.path.isdir(os.path.join(im_path,x))) & (x[0:2]=='S2')]
     return s2_list

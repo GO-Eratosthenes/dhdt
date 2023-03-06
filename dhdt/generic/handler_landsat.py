@@ -26,7 +26,7 @@ def get_wrs_dataset(geom_dir, geom_name=None, version=2):
     if geom_name is None:
         geom_name = 'wrs' + str(version) + '.geojson'
     ffull = os.path.join(geom_dir, geom_name)
-    if os.path.exists(ffull):
+    if os.path.isfile(ffull):
         return ffull
 
     wrs_url = get_wrs_url(version=version)

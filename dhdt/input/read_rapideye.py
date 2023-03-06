@@ -229,7 +229,7 @@ def read_stack_re(path):
     fname = os.path.join(path, '*_Analytic*tif')
     ffull = glob.glob(fname)[0]
 
-    assert os.path.exists(ffull), ('file does not seem to be present')
+    assert os.path.isfile(ffull), ('file does not seem to be present')
     data, spatialRef, geoTransform, targetprj = \
         read_geo_image(ffull)
     return data, spatialRef, geoTransform, targetprj

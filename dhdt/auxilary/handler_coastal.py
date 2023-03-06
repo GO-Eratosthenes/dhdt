@@ -139,7 +139,7 @@ def clip_coastal_polygon(geom, utm_zone, geom_dir, geom_name):
         utm_epsg += 100
 
     geom_path = os.path.join(geom_dir, geom_name)
-    assert os.path.exists(geom_path), 'make sure data is present'
+    assert os.path.isfile(geom_path), 'make sure data is present'
 
     gshhs = geopandas.read_file(geom_path)
     geom = geopandas.GeoDataFrame(index=[0], crs='epsg:4326',

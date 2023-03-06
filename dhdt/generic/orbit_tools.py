@@ -3,9 +3,10 @@ from osgeo import osr
 import numpy as np
 import pandas as pd
 
-from .mapping_tools import pix_centers, map2ll, ecef2llh, ll2map
-from .unit_check import correct_geoTransform, are_two_arrays_equal, \
-    lat_lon_angle_check, are_three_arrays_equal
+from dhdt.generic.mapping_tools import pix_centers, map2ll, ecef2llh, ll2map
+from dhdt.generic.unit_check import \
+    correct_geoTransform, are_two_arrays_equal, are_three_arrays_equal, \
+    lat_lon_angle_check, is_crs_an_srs
 from ..postprocessing.solar_tools import sun_angles_to_vector
 
 def wgs84_param():
@@ -35,7 +36,8 @@ def zonal_harmonic_coeff():
     return J2
 
 def standard_gravity():
-    """ provide value for the gravity of the Earth
+    """
+    provide value for the gravity of the Earth
 
     Returns
     -------
@@ -60,7 +62,7 @@ def mean_motion(mu, a):
     n = np.sqrt(np.divide(mu, a**3))
     return n
 
-def nodal_rate_of_precession(i,a=None):
+def nodal_rate_of_precession(i, a=None):
     if a is None:
         a= wgs84_param()[0]
     e = earth_eccentricity()
@@ -179,12 +181,15 @@ def calculate_correct_mapping(Zn_grd, Az_grd, bnd, det, grdTransform, crs,
         crs = crs.ExportToWkt()
     depth = 1 if Az_grd.ndim<3 else Az_grd.shape[2]
 
-    X_grd, Y_grd = pix_centers(grdTransform, make_grid=True)
-    (m,n) = X_grd.shape
-    ll_grd = map2ll(np.stack((X_grd.ravel(), Y_grd.ravel()), axis=1), crs)
-    Lat_grd,Lon_grd = ll_grd[:,0].reshape((m,n)), \
-                      ll_grd[:,1].reshape((m,n))
-    del ll_grd
+    if is_crs_an_srs(crs):
+        X_grd, Y_grd = pix_centers(grdTransform, make_grid=True)
+        (m,n) = X_grd.shape
+        ll_grd = map2ll(np.stack((X_grd.ravel(), Y_grd.ravel()), axis=1), crs)
+        Lat_grd,Lon_grd = ll_grd[:,0].reshape((m,n)), \
+                          ll_grd[:,1].reshape((m,n))
+        del ll_grd
+    else:
+        Lon_grd, Lat_grd = pix_centers(grdTransform, make_grid=True)
 
     # remove NaN's, and create vectors
     IN = np.invert(np.isnan(Az_grd))

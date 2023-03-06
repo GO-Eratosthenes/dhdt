@@ -124,7 +124,7 @@ def shape2raster(shp_fname,im_fname,geoTransform,rows,cols,spatialRef,
         shp_fname += '.shp'
     if not im_fname[-4:] in ('.tif', '.TIF',):
         im_fname += '.tif'
-    assert os.path.exists(shp_fname), ('make sure the shapefiles exist')
+    assert os.path.isfile(shp_fname), ('make sure the shapefiles exist')
 
     #making the shapefile as an object.
     rgiShp = ogr.Open(shp_fname)    #getting layer information of shapefile.
@@ -178,7 +178,7 @@ def reproject_shapefile(path, in_file, targetprj):
     # create the output layer
     outputShapefile = os.path.join(path, out_file)
     driver = ogr.GetDriverByName('ESRI Shapefile')
-    if os.path.exists(outputShapefile):
+    if os.path.isfile(outputShapefile):
         driver.DeleteDataSource(outputShapefile)
     outDataSet = driver.CreateDataSource(outputShapefile)
     outLayer = outDataSet.CreateLayer(out_file, geom_type=ogr.wkbMultiPolygon)
@@ -358,7 +358,7 @@ def polylines2shapefile(strokes,spatialRef, path, out_file='strokes.shp'):
 
     # look at destination
     out_full = os.path.join(path, out_file)
-    if os.path.exists(out_full):
+    if os.path.isfile(out_full):
         driver.DeleteDataSource(out_full)
 
     # create files
