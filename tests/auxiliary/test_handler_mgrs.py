@@ -4,6 +4,8 @@ import geopandas as gpd
 import numpy as np
 from shapely.geometry import Point, Polygon
 from shapely import wkt
+
+import dhdt.generic.unit_check
 from dhdt.auxilary import handler_mgrs
 
 # A subset of original MGRS, sampling every 1500 entries
@@ -53,12 +55,12 @@ def test_kml_to_gdf_output_same_crs():
 # MGRS query tests
 def test_normalize_mgrs_code_not_str():
     with pytest.raises(TypeError):
-        handler_mgrs.normalize_mgrs_code(123)
+        dhdt.generic.unit_check.check_mgrs_code(123)
 
 
 def test_normalize_mgrs_code_wrong_code():
     with pytest.raises(ValueError):
-        handler_mgrs.normalize_mgrs_code('WRONG')
+        dhdt.generic.unit_check.check_mgrs_code('WRONG')
 
 
 def test_mgrs_to_searchbox_searchbox_range():

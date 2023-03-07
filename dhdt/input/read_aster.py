@@ -325,3 +325,4 @@ def get_flight_path_as(as_path, fname='AST_L1A_*.Ancillary_Data.txt',
         as_dict.update({'altitude': np.squeeze(llh[:, -1]),
                         'velocity': np.squeeze(velo)})
         return as_dict
+

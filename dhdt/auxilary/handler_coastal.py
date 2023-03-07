@@ -7,7 +7,7 @@ import geopandas
 from dhdt.generic.handler_sentinel2 import \
     get_geom_for_tile_code, get_utmzone_from_tile_code, \
     get_epsg_from_mgrs_tile
-from dhdt.auxilary.handler_mgrs import normalize_mgrs_code
+from dhdt.generic.unit_check import check_mgrs_code
 from dhdt.generic.handler_landsat import \
     get_bbox_from_path_row
 from dhdt.generic.handler_www import get_zip_file
@@ -96,7 +96,7 @@ def get_coastal_polygon_of_tile(tile_code, tile_system='MGRS', out_dir=None,
     if not os.path.isdir(out_dir): os.makedirs(out_dir)
 
     if tile_system=='MGRS':
-        tile_code = normalize_mgrs_code(tile_code)
+        tile_code = check_mgrs_code(tile_code)
         toi = get_geom_for_tile_code(tile_code) # tile of interest
         utm_epsg = get_epsg_from_mgrs_tile(tile_code)
     else: # WRS2

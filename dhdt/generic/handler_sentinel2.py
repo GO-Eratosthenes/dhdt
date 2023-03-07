@@ -4,9 +4,10 @@ from osgeo import ogr, osr
 
 import numpy as np
 import pandas as pd
+import geopandas as gpd
 
-from dhdt.auxilary.handler_mgrs import normalize_mgrs_code, \
-    get_geom_for_tile_code
+from dhdt.auxilary.handler_mgrs import get_geom_for_tile_code
+from dhdt.generic.unit_check import check_mgrs_code
 from dhdt.generic.handler_xml import get_root_of_table
 from dhdt.generic.handler_dat import get_list_files
 
@@ -215,8 +216,6 @@ def list_platform_metadata_s2b():
         'J': np.array([[558, 30, -30],[30, 819, 30],[-30, 30, 1055]])}
     return s2b_dict
 
-<<<<<<< Updated upstream
-=======
 def get_bbox_from_tile_code(tile_code, geom_dir=None, geom_name=None):
     """  get the bounds of a certain MGRS tile
 
@@ -245,96 +244,12 @@ def get_bbox_from_tile_code(tile_code, geom_dir=None, geom_name=None):
     tile_code = tile_code.upper()
     geom_path = os.path.join(geom_dir,geom_name)
 
-    mgrs = geopandas.read_file(geom_path)
+    mgrs = gpd.read_file(geom_path)
 
     toi = mgrs[mgrs['Name']==tile_code].total_bounds
     bbox = np.array([toi[0], toi[2], toi[1], toi[3]])
     return bbox
 
-def get_geom_for_tile_code(tile_code, geom_dir=None, geom_name=None):
-    """ get the geometry of a certain MGRS tile
-
-    Parameters
-    ----------
-    tile_code : string, e.g.: '05VMG'
-        MGRS tile coding
-    geom_dir : string
-        directory where geometric metadata about Sentinel-2 is situated
-    geom_name : string
-        filename of metadata, e.g.: 'sentinel2_tiles_world.geojson'
-
-    Returns
-    -------
-    wkt : string
-        well known text of the geometry, i.e.: 'POLYGON ((x y, x y, x y))'
-
-    Notes
-    -----
-    The tile structure is a follows "AABCC"
-        * "AA" utm zone number, starting from the East, with steps of 8 degrees
-        * "B" latitude zone, starting from the South, with steps of 6 degrees
-
-    The following acronyms are used:
-
-    - CRS : coordinate reference system
-    - MGRS : US military grid reference system
-    - s2 : Sentinel-2
-    - WKT : well known text
-    """
-    tile_code = check_mgrs_code(tile_code)
-    if geom_dir is None:
-        rot_dir = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3])
-        geom_dir = os.path.join(rot_dir, 'data')
-    else:
-        assert os.path.isdir(geom_dir), 'please provide correct folder'
-    if geom_name is None: geom_name='sentinel2_tiles_world.geojson'
-
-    geom_path = os.path.join(geom_dir,geom_name)
-
-    shp = ogr.Open(geom_path)
-    lyr = shp.GetLayer()
-
-    geom = None
-    feat = lyr.GetNextFeature()
-    while feat:
-        if feat.GetField('Name') == tile_code:
-            geom = feat.GetGeometryRef()
-            time.sleep(.3)
-            break
-        feat = lyr.GetNextFeature()
-    time.sleep(1) #todo: why is a delay needed?
-    shp = lyr = None
-
-    if geom is None:
-        print('MGRS tile code does not seem to exist')
-    return geom.ExportToWkt()
-
-def get_tile_codes_from_geom(geom, geom_dir=None, geom_name=None):
-    """
-    Get the codes of the MGRS tiles intersecting a given geometry
-
-    Parameters
-    ----------
-    geom : {shapely.geometry, string}
-        geometry object or well known text, i.e.: 'POLYGON ((x y, x y, x y))'
-    geom_dir : string
-        directory where geometric metadata about Sentinel-2 is situated
-    geom_name : string
-        filename of metadata, e.g.: 'sentinel2_tiles_world.geojson'
-
-    Returns
-    -------
-    tile_codes : tuple
-        MGRS tile codes
-
-    See Also
-    --------
-    .get_geom_for_tile_code, .get_bbox_from_tile_code
-    """
-    raise NotImplemented('Function to be added when working on s2 tiling grid')
-
-
->>>>>>> Stashed changes
 def get_generic_s2_raster(tile_code, spac=10):
     """ create spatial metadata of a Sentinel-2, so no downloading is needed.
 
@@ -366,7 +281,7 @@ def get_generic_s2_raster(tile_code, spac=10):
     """
     assert spac in (10,20,60,), 'please provide correct pixel resolution'
 
-    tile_code = normalize_mgrs_code(tile_code)
+    tile_code = check_mgrs_code(tile_code)
     geom = get_geom_for_tile_code(tile_code)
     geom = ogr.CreateGeometryFromWkt(geom)
 
@@ -568,7 +483,7 @@ def get_utmzone_from_tile_code(tile_code):
     - UTM : universal transverse mercator
     - WGS : world geodetic system
     """
-    tile_code = normalize_mgrs_code(tile_code)
+    tile_code = check_mgrs_code(tile_code)
     return int(tile_code[:2])
 
 def get_epsg_from_mgrs_tile(tile_code):
@@ -603,7 +518,7 @@ def get_epsg_from_mgrs_tile(tile_code):
     - UTM : universal transverse mercator
     - WGS : world geodetic system
     """
-    tile_code = normalize_mgrs_code(tile_code)
+    tile_code = check_mgrs_code(tile_code)
     utm_num = get_utmzone_from_tile_code(tile_code)
     epsg_code = 32600 + utm_num
 
@@ -634,7 +549,7 @@ def get_crs_from_mgrs_tile(tile_code):
         * "AA" utm zone number, starting from the East, with steps of 8 degrees
         * "B" latitude zone, starting from the South, with steps of 6 degrees
     """
-    tile_code = normalize_mgrs_code(tile_code)
+    tile_code = check_mgrs_code(tile_code)
     epsg_code = get_epsg_from_mgrs_tile(tile_code)
 
     crs = osr.SpatialReference()
