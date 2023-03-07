@@ -7,7 +7,7 @@ from dhdt.generic.mapping_tools import pix_centers, map2ll, ecef2llh, ll2map
 from dhdt.generic.unit_check import \
     correct_geoTransform, are_two_arrays_equal, are_three_arrays_equal, \
     lat_lon_angle_check, is_crs_an_srs
-from ..postprocessing.solar_tools import sun_angles_to_vector
+from dhdt.postprocessing.solar_tools import vector_to_sun_angles
 
 def wgs84_param():
     wgs84 = osr.SpatialReference()
@@ -333,8 +333,7 @@ def acquisition_angles(Px,Gx):
     LoS[..., 2] = np.einsum('...i,...i->...', Vx, e_Z)
     del e_Z
 
-    zn, az = np.rad2deg(np.arccos(LoS[..., 2])), \
-             np.rad2deg(np.arctan2(LoS[..., 0], LoS[..., 1]))
+    az, zn = vector_to_sun_angles(LoS[..., 0], LoS[..., 1], LoS[...,2])
     return zn, az
 
 def line_of_sight(Lat, Lon, Zn, Az, eccentricity=None, major_axis=None):

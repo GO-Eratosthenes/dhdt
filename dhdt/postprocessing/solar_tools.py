@@ -99,7 +99,8 @@ def sun_angles_to_vector(az, zn, indexing='ij'):
 
     See Also
     --------
-    az_to_sun_vector
+    dhdt.postprocessing.solar_tools.az_to_sun_vector
+    dhdt.postprocessing.solar_tools.vector_to_sun_angles
 
     Notes
     -----
@@ -152,10 +153,30 @@ def sun_angles_to_vector(az, zn, indexing='ij'):
                         )
 
     n = np.linalg.norm(sun, axis=2)
-    sun[:, :, 0] /= n
-    sun[:, :, 1] /= n
-    sun[:, :, 2] /= n
+    sun[..., 0] /= n
+    sun[..., 1] /= n
+    sun[..., 2] /= n
     return sun
+
+def vector_to_sun_angles(e_x,e_y,e_z):
+    """ transform 3D-unit vector to azimuth and zenith angle
+
+    Parameters
+    ----------
+    e_x,e_y,e_z : {float,numpy.array}, size=(m,), dtype=float, range=0...1
+        the three different unit vectors in the direction of the sun.
+
+    Returns
+    -------
+    az : {float, numpy.ndarray}, unit=degrees
+        azimuth angle of sun.
+    zn : {float, numpy.ndarray}, unit=degrees
+        zenith angle of sun.
+    """
+
+    zn = np.rad2deg(np.arccos(e_z))
+    az = np.rad2deg(np.arctan2(e_x, e_y))
+    return az, zn
 
 # elevation model based functions
 def make_shadowing(Z, az, zn, spac=10, weights=None, radiation=False,

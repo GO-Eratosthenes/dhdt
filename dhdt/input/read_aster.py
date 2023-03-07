@@ -11,8 +11,8 @@ from datetime import datetime, timedelta
 
 from dhdt.generic.mapping_io import read_geo_image
 from dhdt.generic.mapping_tools import ecef2llh
-from dhdt.generic.handler_aster import \
-    get_as_image_locations
+from dhdt.generic.handler_aster import get_as_image_locations
+from dhdt.postprocessing.solar_tools import vector_to_sun_angles
 
 def list_central_wavelength_as():
     """ create dataframe with metadata about Terra's ASTER
@@ -325,4 +325,92 @@ def get_flight_path_as(as_path, fname='AST_L1A_*.Ancillary_Data.txt',
         as_dict.update({'altitude': np.squeeze(llh[:, -1]),
                         'velocity': np.squeeze(velo)})
         return as_dict
+
+def _read_meta_as_3d(ffull):
+    az, zn, Az, Zn = np.array([]), np.array([]), np.array([]), np.array([])
+    with open(ffull) as f:
+        for line in f:
+            line = line.rstrip()
+            if (line == "") and (zn.size!=0): # ending of a row
+                Zn = np.vstack([Zn, zn]) if Zn.size else zn
+                Az = np.vstack([Az, az]) if Az.size else az
+                zn, az = np.array([]), np.array([])
+            elif line != "":
+                elem = np.fromstring(line, sep=' ')
+                azimuth, zenit = vector_to_sun_angles(elem[0], elem[1], elem[2])
+                azimuth, zenit = np.atleast_2d(azimuth), \
+                                 np.atleast_2d(zenit)
+                az = np.hstack([az, azimuth]) if az.size else azimuth
+                zn = np.hstack([zn, zenit]) if zn.size else zenit
+    return Az, Zn
+
+def _read_meta_as_2d(ffull):
+    assert os.path.isfile(ffull), 'make sure file exists'
+    Dat = np.array([])
+    with open(ffull) as f:
+        for line in f:
+            line = line.rstrip()
+            if line == "":  # ending of a row
+                continue
+            elem = np.atleast_2d(np.fromstring(line, sep=' '))
+            Dat = np.vstack([Dat, elem]) if Dat.size else elem
+    return Dat
+
+def _read_meta_as_1d(ffull):
+    assert os.path.isfile(ffull), 'make sure file exists'
+    arr, Dat = np.array([]), np.array([])
+    with open(ffull) as f:
+        for line in f:
+            line = line.rstrip()
+            if (line == "") and (arr.size!=0):  # ending of a row
+                Dat = np.vstack([Dat, arr]) if Dat.size else arr
+                arr = np.array([])
+            elif line != "":
+                elem = np.atleast_2d(np.fromstring(line, sep=' '))
+                arr = np.hstack([arr, elem]) if arr.size else elem
+    return Dat
+
+def _pad_to_same(A,B,size_diff, constant_values=0):
+    for idx,val in enumerate(size_diff):
+        if np.sign(val) == -1:
+            A = _pad_along_axis(A, np.abs(val), axis=idx,
+                                constant_values=constant_values)
+        else:
+            B = _pad_along_axis(B, val, axis=idx,
+                                constant_values=constant_values)
+    return A, B
+
+def _pad_along_axis(A, pad_size, axis=0, constant_values=0):
+    if pad_size <= 0: return A
+
+    npad = [(0, 0)] * A.ndim
+    npad[axis] = (0, pad_size)
+
+    A_new = np.pad(A, pad_width=npad,
+                   mode='constant', constant_values=constant_values)
+    return A_new
+
+def read_view_angles_as(as_dir, boi_df=None):
+
+    if not('filepath' in boi_df.keys()):
+        boi_df = get_as_image_locations(as_dir, boi_df)
+
+    Zn, Az = np.array([]), np.array([])
+    for idx,f_path in boi_df['filepath'].items():
+        fnew = '.'.join(f_path.split('.')[:-2]+['SightVector','txt'])
+        zn, az = _read_meta_as_3d(fnew)
+
+        if Zn.size:
+            # make compatable, as the latice grids can vary, especially for
+            # the stereo bands
+            dim_diff = np.array(Zn.shape[:2]) - np.array(zn.shape[:2])
+            if np.any(dim_diff!=0):
+                Zn, zn = _pad_to_same(Zn, zn, dim_diff, constant_values=np.nan)
+                Az, az = _pad_to_same(Az, az, dim_diff, constant_values=np.nan)
+
+            Zn = np.dstack([Zn, zn])
+            Az = np.dstack([Az, az])
+        else:
+            Zn, Az = zn, az
+    return Zn, Az
 

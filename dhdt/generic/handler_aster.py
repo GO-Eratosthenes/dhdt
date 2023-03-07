@@ -81,7 +81,7 @@ def get_as_image_locations(f_path, as_df):
     return as_df_new
 
 def get_as_image_locations_l1(f_path, as_df):
-    assert os.path.isfile(f_path)
+    assert os.path.isdir(f_path), 'directory does not seem to exist'
 
     im_paths, band_id = [], []
     if f_path.endswith('.hdf'):
