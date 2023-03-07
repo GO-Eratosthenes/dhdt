@@ -326,23 +326,23 @@ def get_flight_path_as(as_path, fname='AST_L1A_*.Ancillary_Data.txt',
                         'velocity': np.squeeze(velo)})
         return as_dict
 
-def _read_meta_as_3d(ffull):
-    az, zn, Az, Zn = np.array([]), np.array([]), np.array([]), np.array([])
+def _read_meta_as_3d(ffull, angles=True):
+    a, b, A, B = np.array([]), np.array([]), np.array([]), np.array([])
     with open(ffull) as f:
         for line in f:
             line = line.rstrip()
-            if (line == "") and (zn.size!=0): # ending of a row
-                Zn = np.vstack([Zn, zn]) if Zn.size else zn
-                Az = np.vstack([Az, az]) if Az.size else az
-                zn, az = np.array([]), np.array([])
+            if (line == "") and (a.size!=0): # ending of a row
+                A = np.vstack([A, a]) if A.size else a
+                B = np.vstack([B, b]) if B.size else b
+                a, b = np.array([]), np.array([])
             elif line != "":
                 elem = np.fromstring(line, sep=' ')
-                azimuth, zenit = vector_to_sun_angles(elem[0], elem[1], elem[2])
-                azimuth, zenit = np.atleast_2d(azimuth), \
-                                 np.atleast_2d(zenit)
-                az = np.hstack([az, azimuth]) if az.size else azimuth
-                zn = np.hstack([zn, zenit]) if zn.size else zenit
-    return Az, Zn
+                if angles:
+                    elem = vector_to_sun_angles(elem[0], elem[1], elem[2])
+                a0, b0 = np.atleast_2d(elem[0]), np.atleast_2d(elem[1])
+                a = np.hstack([a, a0]) if a.size else a0
+                b = np.hstack([b, b0]) if b.size else b0
+    return A, B
 
 def _read_meta_as_2d(ffull):
     assert os.path.isfile(ffull), 'make sure file exists'
@@ -398,7 +398,7 @@ def read_view_angles_as(as_dir, boi_df=None):
     Zn, Az = np.array([]), np.array([])
     for idx,f_path in boi_df['filepath'].items():
         fnew = '.'.join(f_path.split('.')[:-2]+['SightVector','txt'])
-        zn, az = _read_meta_as_3d(fnew)
+        zn, az = _read_meta_as_3d(fnew, angles=True)
 
         if Zn.size:
             # make compatable, as the latice grids can vary, especially for
@@ -414,3 +414,31 @@ def read_view_angles_as(as_dir, boi_df=None):
             Zn, Az = zn, az
     return Zn, Az
 
+def read_lattice_as(as_dir, boi_df=None):
+    if not('filepath' in boi_df.keys()):
+        boi_df = get_as_image_locations(as_dir, boi_df)
+
+    Lat, Lon = np.array([]), np.array([]) # spherical coordiantes
+    I, J = np.array([]), np.array([]) # local image frame
+    for idx,f_path in boi_df['filepath'].items():
+        fbase = f_path.split('.')[:-2]
+        ϕ = _read_meta_as_2d('.'.join(fbase + ['Latitude','txt']))
+        λ = _read_meta_as_2d('.'.join(fbase + ['Longitude','txt']))
+        fnew = '.'.join(fbase + ['LatticePoint','txt'])
+        i, j = _read_meta_as_3d(fnew, angles=False)
+
+        if Lat.size:
+            # make compatable, as the latice grids can vary, especially for
+            # the stereo bands
+            dim_diff = np.array(Lat.shape[:2]) - np.array(ϕ.shape[:2])
+            if np.any(dim_diff!=0):
+                Lat, ϕ = _pad_to_same(Lat, ϕ, dim_diff, constant_values=np.nan)
+                Lon, λ = _pad_to_same(Lon, λ, dim_diff, constant_values=np.nan)
+                I, i = _pad_to_same(I, i, dim_diff, constant_values=np.nan)
+                J, j = _pad_to_same(J, j, dim_diff, constant_values=np.nan)
+
+            Lat, Lon = np.dstack([Lat, ϕ]), np.dstack([Lon, λ])
+            I, J = np.dstack([I, i]), np.dstack([J, j])
+        else:
+            Lat, Lon, I, J = ϕ, λ, i, j
+    return Lat, Lon, I, J
