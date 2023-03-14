@@ -273,7 +273,7 @@ def construct_correlation_peak(I, di, dj, fwhm=3., origin='center'):
 
     Parameters
     ----------
-    I : np.array, size=(m,n)
+    I : numpy.ndarray, size=(m,n)
         image domain
     di : {float, np.array}
         displacement along the vertical axis
@@ -297,7 +297,7 @@ def construct_correlation_peak(I, di, dj, fwhm=3., origin='center'):
         J_grd -= n//2
     I_grd,J_grd = I_grd.astype('float64'), J_grd.astype('float64')
 
-    if len(di)==1:
+    if isinstance(di, float):
         I_grd -= di
         J_grd -= dj
         C = np.exp(-4*np.log(2) * (I_grd**2 + J_grd**2) / fwhm**2)
