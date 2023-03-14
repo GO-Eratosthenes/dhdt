@@ -5,7 +5,7 @@ from scipy import ndimage
 
 from osgeo import ogr, osr, gdal
 
-def create_crs_from_utm_number(utm_code):
+def create_crs_from_utm_zone(utm_code):
     """ generate GDAL SpatialReference from UTM code
     
 
