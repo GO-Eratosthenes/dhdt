@@ -16,7 +16,7 @@ import geopandas as gpd
 import numpy as np
 from shapely import wkt
 
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, MultiPolygon
 from fiona.drvsupport import supported_drivers
 
 from dhdt.generic.handler_www import get_file_from_www
@@ -129,20 +129,18 @@ def get_geom_for_tile_code(tile_code, geom_path=None):
 
     tile_code = check_mgrs_code(tile_code)
 
-    # Derive a search box from the tile code
-    search_box = _mgrs_to_searchbox(tile_code)
+    # Derive a search geometry from the tile code
+    search_geom = _mgrs_to_search_geometry(tile_code)
 
-    # Load tiles intersects the search box
-    mgrs_tiles = gpd.read_file(geom_path, bbox=search_box)
+    # Load tiles
+    mgrs_tiles = gpd.read_file(geom_path, mask=search_geom)
 
     geom = mgrs_tiles[mgrs_tiles['Name'] == tile_code]["geometry"]
 
     if len(geom) == 0:
         raise ValueError('MGRS tile code does not seem to exist')
-    elif len(geom) > 1:
-        raise ValueError('Multiple tiles matching the tile code')
 
-    return geom.squeeze()
+    return geom.unary_union
 
 def get_bbox_from_tile_code(tile_code, geom_path=None):
     """
@@ -212,10 +210,11 @@ def get_tile_codes_from_geom(geom, geom_path=None):
 
     return codes
 
-def _mgrs_to_searchbox(tile_code):
+def _mgrs_to_search_geometry(tile_code):
     """
-    Get a search box from the tile code. The search box is a 6-deg longitude
-    stripe
+    Get a geometry from the tile code. The search geometry is a 6-deg longitude
+    stripe, augmented with the stripe across the antimeridian for the tiles
+    that are crossing this line.
 
     Parameters
     ----------
@@ -224,13 +223,21 @@ def _mgrs_to_searchbox(tile_code):
 
     Returns
     -------
-    tuple
-        bounding box of the search area in (minx, miny, maxx, maxy)
+    shapely.Geometry
+        geometry to restrict the search area
     """
     nr_lon = int(tile_code[0:2])  # first two letters indicates longitude range
     min_lon = -180.+(nr_lon-1)*6.
     max_lon = -180.+nr_lon*6.
-    return min_lon, -90.0, max_lon, 90.0
+    geom = Polygon.from_bounds(min_lon, -90.0, max_lon, 90.0)
+    extra = None
+    if nr_lon == 1:
+        extra = Polygon.from_bounds(174, -90.0, 180, 90.0)
+    elif nr_lon == 60:
+        extra = Polygon.from_bounds(-180, -90.0, -174, 90.0)
+    if extra is not None:
+        geom = MultiPolygon(polygons=[geom, extra])
+    return geom
 
 def get_mgrs_geometry(mgrs_tile, mgrs_dir=None,
                       mgrs_file='sentinel2_tiles_world.geojson'):
