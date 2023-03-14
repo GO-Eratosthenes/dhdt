@@ -267,7 +267,9 @@ def get_generic_s2_raster(tile_code, spac=10, mgrs_tiling_file=None):
         crs_from=crs, crs_to=crs_utm, always_xy=True
     )
     geom_utm = shapely.ops.transform(transformer.transform, geom)
-    xx, yy = geom_utm.exterior.coords.xy
+    # geom can still be a multipolygon for tiles crossing the antimeridian
+    geom_merged = shapely.unary_union(geom_utm, grid_size=0.001)
+    xx, yy = geom_merged.exterior.coords.xy
     x, y = np.round(np.array(xx)/spac)*spac, np.round(np.array(yy)/spac)*spac
 
     spac = float(spac)
