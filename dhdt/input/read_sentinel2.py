@@ -266,7 +266,7 @@ def read_band_s2(path, band=None):
             fname = os.path.join(path, '*' + band + '.jp2')
     else:
         fname = path
-    assert os.path.exists(fname), ('file does not seem to be present')
+    assert os.path.isfile(fname), ('file does not seem to be present')
 
     data, spatialRef, geoTransform, targetprj = \
         read_geo_image(glob.glob(fname)[0])
@@ -503,7 +503,7 @@ def read_geotransform_s2(path, fname='MTD_TL.xml', resolution=10):
     - L1C : product specification,i.e.: level 1, processing step C
     """
     assert (resolution in (10, 20, 60)), ('please provide correct resolution')
-    if not os.path.exists(os.path.join(path, fname)):
+    if not os.path.isfile(os.path.join(path, fname)):
         return None
     root = get_root_of_table(path, fname)
 
@@ -680,7 +680,7 @@ def read_sun_angles_s2(path, fname='MTD_TL.xml'):
     - MSI : multi spectral instrument
     - L1C : product specification,i.e.: level 1, processing step C
     """
-    if not os.path.exists(os.path.join(path, fname)):
+    if not os.path.isfile(os.path.join(path, fname)):
         return None, None
     root = get_root_of_table(path, fname)
 
@@ -1141,7 +1141,7 @@ def read_detector_mask(path_meta, boi, geoTransform):
         else:
             f_meta = os.path.join(path_meta, 'MSK_DETFOO_'+ im_id +'.gml')
 
-        if os.path.exists(f_meta): # old Sentinel-2 files had gml-files
+        if os.path.isfile(f_meta): # old Sentinel-2 files had gml-files
             dom = ElementTree.parse(glob.glob(f_meta)[0])
             root = dom.getroot()
 
@@ -1165,7 +1165,7 @@ def read_detector_mask(path_meta, boi, geoTransform):
                 det_stack[:,:,i] = np.maximum(det_stack[:,:,i], msk)
         else:
             im_meta = f_meta[:-3]+'jp2'
-            assert os.path.exists(im_meta), ('gml and jp2 file not present')
+            assert os.path.isfile(im_meta), ('gml and jp2 file not present')
             msk = read_geo_image(im_meta)[0]
             if det_stack is None:
                 det_stack = np.zeros((*msk.shape[:2], len(boi)), dtype='int8')
@@ -1243,7 +1243,7 @@ def read_sensing_time_s2(path, fname='MTD_TL.xml'):
     >>> rec_time
 
     """
-    assert os.path.exists(os.path.join(path,fname)), \
+    assert os.path.isfile(os.path.join(path,fname)), \
         ('file does not seem to exist')
     root = get_root_of_table(path, fname)
     for att in root.iter('Sensing_Time'.upper()):
@@ -1796,7 +1796,7 @@ def get_flight_path_s2(ds_path, fname='MTD_DS.xml', s2_dict=None):
                         'gps_tim': sat_time, 'gps_err': sat_err})
         # estimate the altitude above the ellipsoid, and platform speed
         llh = ecef2llh(sat_xyz)
-        velo = np.sqrt(np.sum(sat_uvw**2, axis=1))
+        velo = np.linalg.norm(sat_uvw, axis=1)
         s2_dict.update({'altitude': np.squeeze(llh[:,-1]),
                         'velocity': np.squeeze(velo)})
         return s2_dict

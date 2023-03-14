@@ -207,7 +207,7 @@ def output_cast_lines_from_conn_txt(conn_dir, geoTransform, RGI,
                                     color=np.array([255, 128, 0])):
     RGI = RGI.astype(bool)
     f_full = os.path.join(conn_dir, inputname)
-    assert os.path.exists(f_full), ('please provide correct whereabouts')
+    assert os.path.isfile(f_full), ('please provide correct whereabouts')
 
     cast_list = np.loadtxt(f_full, comments='#')
 

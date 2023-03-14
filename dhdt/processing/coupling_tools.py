@@ -337,8 +337,8 @@ def couple_pair(file_1, file_2, bbox=None, rgi_id=None,
               Science of remote sensing, vol.6 pp.100070, 2022.
     """
     # admin
-    assert os.path.exists(file_1), ('file does not seem to exist')
-    assert os.path.exists(file_2), ('file does not seem to exist')
+    assert os.path.isfile(file_1), ('file does not seem to exist')
+    assert os.path.isfile(file_2), ('file does not seem to exist')
     dir_im1, name_im1 = os.path.split(file_1)
     dir_im2, name_im2 = os.path.split(file_2)
 
@@ -348,7 +348,7 @@ def couple_pair(file_1, file_2, bbox=None, rgi_id=None,
     if bbox is None:  bbox = get_local_bbox_in_s2_tile(file_1, dir_im1)
 
     # text file listing coordinates of shadow casting and casted points
-    if os.path.exists(file_1[:-4]+'.tif'): # testing dataset is created
+    if os.path.isfile(file_1[:-4]+'.tif'): # testing dataset is created
         conn_fname1 = name_im1[:-4]+'.txt'
         conn_fname2 = name_im2[:-4]+'.txt'
     elif rgi_id is not None:

@@ -73,7 +73,7 @@ def get_vn_image_locations(fname, vn_df):
     """
     if os.path.isdir(fname): # only directory is given, search for metadata
         fname = glob.glob(os.path.join(fname,'*MTD*.xml'))[0]
-    assert os.path.exists(fname), 'metafile does not seem to be present'
+    assert os.path.isfile(fname), 'metafile does not seem to be present'
 
     root = get_root_of_table(fname)
 
@@ -116,7 +116,7 @@ def get_vn_mean_view_angles(fname,vn_df):
     """
     if os.path.isdir(fname): # only directory is given, search for metadata
         fname = glob.glob(os.path.join(fname,'*MTD*.xml'))[0]
-    assert os.path.exists(fname), 'metafile does not seem to be present'
+    assert os.path.isfile(fname), 'metafile does not seem to be present'
 
     root = get_root_of_table(fname)
 

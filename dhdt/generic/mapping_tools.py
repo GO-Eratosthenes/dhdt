@@ -10,10 +10,10 @@ from rasterio import Affine
 # raster/image libraries
 from scipy import ndimage
 
-from .attitude_tools import rot_mat
-from .handler_im import get_grad_filters
-from .unit_check import correct_geoTransform, are_two_arrays_equal, \
-    correct_floating_parameter
+from dhdt.generic.attitude_tools import rot_mat
+from dhdt.generic.handler_im import get_grad_filters
+from dhdt.generic.unit_check import correct_geoTransform, \
+    are_two_arrays_equal, correct_floating_parameter
 
 def cart2pol(x, y):
     """ transform Cartesian coordinate(s) to polar coordinate(s)
@@ -222,19 +222,17 @@ def map2pix(geoTransform, x, y):
     else: # if only a float is given
         x,y = correct_floating_parameter(x), correct_floating_parameter(y)
 
-    def _zero_div(a, b):
-        return a/b if b else 0
-
+    A = np.array(geoTransform[:-2]).reshape(2, 3)[:, 1:]
+    A_inv = np.linalg.inv(A)
     # # offset the center of the pixel
     # x -= geoTransform[1] / 2.0
     # y -= geoTransform[5] / 2.0
     # ^- this messes-up python with its pointers....
-    j = x - geoTransform[0]
-    i = y - geoTransform[3]
+    x_loc = x - geoTransform[0]
+    y_loc = y - geoTransform[3]
 
-    j = _zero_div(j, geoTransform[1]) + _zero_div(i, geoTransform[2])
-    i = _zero_div(j, geoTransform[4]) + _zero_div(i, geoTransform[5])
-
+    j = np.multiply(x_loc, A_inv[0,0]) + np.multiply(y_loc, A_inv[0,1])
+    i = np.multiply(x_loc, A_inv[1,0]) + np.multiply(y_loc, A_inv[1,1])
     return i,j
 
 def vel2pix(geoTransform, dx, dy):
@@ -573,6 +571,20 @@ def GDAL_transform_to_affine(GDALtransform):
                            GDALtransform[4], GDALtransform[5], GDALtransform[3])
     return new_transform
 
+def estimate_geoTransform(I,J,X,Y, samp=10):
+    m,n = I.shape[:2]
+    y = np.vstack([X[::samp,::samp].reshape(-1,1),
+                   Y[::samp,::samp].reshape(-1,1)])
+    # design matrix
+    A_sub = np.hstack([I[::samp,::samp].reshape(-1,1),
+                       J[::samp,::samp].reshape(-1,1)])
+    A_sub = np.pad(A_sub, ((0,0),(1,0)), constant_values=1.)
+    A = np.kron(np.eye(2), A_sub)
+
+    x_hat = np.linalg.lstsq(A, y, rcond=None)[0]
+    geoTransform = tuple(np.squeeze(x_hat))+(m,n)
+    return geoTransform
+
 def ref_trans(geoTransform, dI, dJ):
     """ translate reference transform
 
@@ -622,7 +634,8 @@ def ref_trans(geoTransform, dI, dJ):
     return newTransform
 
 def ref_scale(geoTransform, scaling):
-    """ scale image reference transform
+    """
+    scale image reference transform
 
     Parameters
     ----------
@@ -638,7 +651,7 @@ def ref_scale(geoTransform, scaling):
 
     See Also
     --------
-    ref_trans, ref_update
+    ref_trans, ref_update, ref_rotate
     """
     geoTransform = correct_geoTransform(geoTransform)
     if len(geoTransform)==8: # sometimes the image dimensions are also included
@@ -648,12 +661,44 @@ def ref_scale(geoTransform, scaling):
         # a grid based on a group of pixels or some sort of kernel
 
     # not using center of pixel
-    R = np.asarray(geoTransform).reshape((2,3)).T
-    R[0,:] += np.diag(R[1:,:]*scaling/2)
-    R[1:,:] = R[1:,:]*float(scaling)
-    newTransform = tuple(map(tuple, np.transpose(R).reshape((1,6))))
+    A = np.asarray(geoTransform).reshape((2,3)).T
+    A[0,:] += np.diag(A[1:,:]*scaling/2)
+    A[1:,:] = A[1:,:]*float(scaling)
+    newTransform = tuple(map(tuple, np.transpose(A).reshape((1,6))))
 
     return newTransform[0]
+
+def ref_rotate(geoTransform, θ):
+    """
+    rotate image reference transform
+
+    Parameters
+    ----------
+    Transform : tuple, size=(1,6)
+        georeference transform of an image.
+    scaling : float
+        isotropic scaling in both rows and collumns.
+
+    Returns
+    -------
+    newTransform : tuple, size=(1,6)
+        georeference transform of an image with different pixel spacing.
+
+    See Also
+    --------
+    dhdt.generic.mapping_tools.ref_trans
+    dhdt.generic.mapping_tools.ref_update
+    dhdt.generic.mapping_tools.ref_scale
+    dhdt.generic.attitude_tools.rot_mat
+    """
+    geoTransform = correct_geoTransform(geoTransform)
+    m,n = geoTransform[-2:]
+    A = np.asarray(geoTransform[:-2]).reshape((2, 3)).T
+    A[1:,:] = A[1:,:]@rot_mat(θ)
+
+    newTransform = tuple(float(x) for x in
+                         np.squeeze(np.transpose(A).ravel())) + tuple((m,n))
+    return newTransform
 
 def ref_update(geoTransform, rows, cols):
     geoTransform = correct_geoTransform(geoTransform)

@@ -62,7 +62,7 @@ def get_timestamp_conn_file(conn_path, no_lines=6):
     get_header_conn_file
     """
     assert isinstance(conn_path, str), ('please provide a string')
-    assert os.path.exists(conn_path), ('please provide a correct location')
+    assert os.path.isfile(conn_path), ('please provide a correct location')
     timestamp=None
     with open(conn_path) as file:
         lines = [next(file, '') for x in range(no_lines)]
@@ -93,7 +93,7 @@ def get_header_conn_file(conn_path, no_lines=6):
     get_timestamp_conn_file
     """
     assert isinstance(conn_path, str), ('please provide a string')
-    assert os.path.exists(conn_path), ('please provide a correct location')
+    assert os.path.isfile(conn_path), ('please provide a correct location')
     header=None
     with open(conn_path) as file:
         lines = [next(file, '') for x in range(no_lines)]
@@ -159,7 +159,7 @@ def read_conn_files_to_stack(folder_list, conn_file="conn.txt",
         else:
             conn_path = os.path.join(folder_path, folder_list[i], c_file)
 
-        if not os.path.exists(conn_path):
+        if not os.path.isfile(conn_path):
             continue
 
         if isinstance(conn_file, tuple):
@@ -317,7 +317,7 @@ def read_conn_files_to_df(folder_list, conn_file="conn.txt",
         else:
             conn_path = os.path.join(folder_path, folder_list, c_file)
 
-        if not os.path.exists(conn_path):
+        if not os.path.isfile(conn_path):
             continue
 
         dh = read_conn_to_df(conn_path)
