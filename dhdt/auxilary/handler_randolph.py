@@ -206,7 +206,7 @@ def download_rgi(aoi=None, version=7, rgi_dir=None, overwrite=False):
     return shapefiles
 
 
-def create_rgi_raster(rgi_shapes, transform, shape, crs, raster_path=None):
+def create_rgi_raster(rgi_shapes, geoTransform, crs, raster_path=None):
     """
     Creates a raster file in the location given by "raster_path", the content
     of which are the RGI glaciers in the input vector files
@@ -215,10 +215,8 @@ def create_rgi_raster(rgi_shapes, transform, shape, crs, raster_path=None):
     ----------
     rgi_shapes : iterable
         RGI glacier shapes to rasterize
-    transform : affine.Affine
-        georeference transform of an image.
-    shape : tuple
-        shape of the image: (ny, nx)
+    geoTransform : tuple, size=(8,)
+        georeference transform of an image, including image shape.
     crs : pyproj.crs.crs.CRS
         coordinate reference system (CRS)
     raster_path : string
@@ -232,10 +230,12 @@ def create_rgi_raster(rgi_shapes, transform, shape, crs, raster_path=None):
     CRS : Coordinate reference system
     """
 
+    *transform_gdal, ny, nx = geoTransform
+    transform = affine.Affine.from_gdal(*transform_gdal)
     rgi_shapes_repr = rgi_shapes.to_crs(crs)
     data = rasterio.features.rasterize(
         zip(rgi_shapes_repr.geometry, rgi_shapes_repr.index),
-        out_shape=shape,
+        out_shape=(ny, nx),
         fill=0,
         transform=transform,
         dtype=int,
@@ -305,11 +305,11 @@ def create_rgi_tile_s2(
 
     rgi_raster_paths = []
     for mgrs_code in mgrs_codes:
-        transform, shape, crs = get_generic_s2_raster(
+        geoTransform, crs = get_generic_s2_raster(
             mgrs_code, mgrs_tiling_file=mgrs_tiling_file
         )
         rgi_raster_path = os.path.join(rgi_out_dir, f'{mgrs_code}.tif')
         rgi_shapes = _get_rgi_shapes(rgi_paths, version)
-        create_rgi_raster(rgi_shapes, transform, shape, crs, rgi_raster_path)
+        create_rgi_raster(rgi_shapes, geoTransform, crs, rgi_raster_path)
         rgi_raster_paths.append(rgi_raster_path)
     return rgi_raster_paths

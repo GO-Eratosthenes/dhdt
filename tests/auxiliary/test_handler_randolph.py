@@ -1,7 +1,6 @@
 import os
 import tempfile
 
-import affine
 import geopandas as gpd
 import numpy as np
 import pyproj
@@ -25,18 +24,17 @@ def _set_up_data_for_rgi_raster():
     crs = pyproj.CRS.from_epsg(EPSG_CODE)
 
     gdal_transform = (461000, 20., 0.,  6624200., 0., -20.)
-    transform = affine.Affine.from_gdal(*gdal_transform)
-    return shapes, crs, transform, RASTER_SHAPE
+    geoTransform = (*gdal_transform, *RASTER_SHAPE)
+    return shapes, crs, geoTransform
 
 
 def test_create_rgi_raster_set_up_correct_raster_file():
-    shapes, crs, transform, shape = _set_up_data_for_rgi_raster()
+    shapes, crs, geoTransform = _set_up_data_for_rgi_raster()
     with tempfile.TemporaryDirectory() as tmpdir:
         raster_path = os.path.join(tmpdir, "tmp.tif")
         create_rgi_raster(
             rgi_shapes=shapes,
-            transform=transform,
-            shape=shape,
+            geoTransform=geoTransform,
             crs=crs,
             raster_path=raster_path,
         )

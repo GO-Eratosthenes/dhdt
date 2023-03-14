@@ -2,7 +2,6 @@ import os
 
 from osgeo import osr
 
-import affine
 import numpy as np
 import pandas as pd
 import pyproj
@@ -233,10 +232,8 @@ def get_generic_s2_raster(tile_code, spac=10, mgrs_tiling_file=None):
 
     Returns
     -------
-    affine.Affine
-        georeference transform of an image
     tuple
-        shape of the image: (ny, nx)
+        georeference transform of an image, including shape
     pyproj.crs.crs.CRS
         coordinate reference system (CRS)
 
@@ -273,9 +270,10 @@ def get_generic_s2_raster(tile_code, spac=10, mgrs_tiling_file=None):
     x, y = np.round(np.array(xx)/spac)*spac, np.round(np.array(yy)/spac)*spac
 
     spac = float(spac)
-    transform = affine.Affine(spac, 0., np.min(x), 0., -spac, np.max(y))
-    shape = (int(np.round(np.ptp(y)/spac)), int(np.round(np.ptp(x)/spac)))
-    return transform, shape, crs_utm
+    nx = int(np.round(np.ptp(x)/spac))
+    ny = int(np.round(np.ptp(y)/spac))
+    geoTransform = (np.min(x), +spac, 0., np.max(y), 0., -spac, ny, nx)
+    return geoTransform, crs_utm
 
 def get_s2_image_locations(fname,s2_df):
     """
