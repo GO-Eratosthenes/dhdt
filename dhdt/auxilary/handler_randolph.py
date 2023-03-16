@@ -247,7 +247,9 @@ def create_rgi_raster(rgi_shapes, geoTransform, crs, raster_path=None):
     raster.rio.write_transform(transform, inplace=True)
 
     os.makedirs(os.path.dirname(raster_path), exist_ok=True)
-    raster.rio.to_raster(raster_path, tiled=True, compress='LZW')
+    raster.rio.to_raster(
+        raster_path, tiled=True, compress='LZW', dtype="uint32"
+    )
 
 
 def create_rgi_tile_s2(
