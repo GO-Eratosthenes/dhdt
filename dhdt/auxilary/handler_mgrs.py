@@ -238,16 +238,3 @@ def _mgrs_to_search_geometry(tile_code):
     if extra is not None:
         geom = MultiPolygon(polygons=[geom, extra])
     return geom
-
-def get_mgrs_geometry(mgrs_tile, mgrs_dir=None,
-                      mgrs_file='sentinel2_tiles_world.geojson'):
-    mgrs_dir = MGRS_TILING_DIR_DEFAULT if mgrs_dir is None else mgrs_dir
-
-    file_path = os.path.join(mgrs_dir, mgrs_file)
-    assert os.path.isfile(file_path), 'make sure file exist'
-
-    mgrs_df = gpd.read_file(file_path) # get dataframe of Sentinel-2 tiles
-    mgrs_df = mgrs_df[mgrs_df['Name'].isin([mgrs_tile])]
-    assert (mgrs_df is not None), ('tile not present in shapefile')
-
-    return mgrs_df['geometry'].item()
