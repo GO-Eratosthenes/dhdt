@@ -26,7 +26,7 @@ from dhdt.generic.mapping_io import read_geo_info
 from dhdt.generic.mapping_tools import get_bbox, get_shape_extent
 from dhdt.generic.handler_sentinel2 import get_crs_from_mgrs_tile
 from dhdt.generic.unit_check import check_mgrs_code
-from dhdt.auxilary.handler_mgrs import get_mgrs_geometry
+from dhdt.auxilary.handler_mgrs import get_geom_for_tile_code
 
 
 def get_itersecting_DEM_tile_names(index, geometry):
@@ -363,8 +363,9 @@ def get_copDEM_s2_tile_intersect_list(mgrs_tile, mgrs_path=None,
     - DTED : digital terrain elevation data
     """
     mgrs_tile = check_mgrs_code(mgrs_tile)
-    s2_geom = get_mgrs_geometry(mgrs_tile, mgrs_dir=mgrs_path,
-                                mgrs_file=mgrs_file)
+    s2_geom = get_geom_for_tile_code(
+        mgrs_tile, geom_path=os.path.join(mgrs_path, mgrs_file)
+    )
 
     urls, tars = get_copDEM_geometry_intersect_list(s2_geom,
         sso=sso, pw=pw, cop_path=cop_path, cop_file=cop_file, map_file=map_file)
