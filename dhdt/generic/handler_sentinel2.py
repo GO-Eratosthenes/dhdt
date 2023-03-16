@@ -7,8 +7,8 @@ import pandas as pd
 import pyproj
 import shapely.ops
 
-from dhdt.auxilary.handler_mgrs import normalize_mgrs_code, \
-    get_geom_for_tile_code
+from dhdt.auxilary.handler_mgrs import get_geom_for_tile_code
+from dhdt.generic.unit_check import check_mgrs_code
 from dhdt.generic.handler_xml import get_root_of_table
 from dhdt.generic.handler_dat import get_list_files
 
@@ -143,9 +143,9 @@ def _get_safe_structure_s2(im_path, s2_dict=None):
                                                     'DATASTRIP'))))[0]
     tl_path = os.sep.join(im_path.split(os.sep)[:-1])
     ds_path = os.path.join(safe_path, 'DATASTRIP', ds_folder)
-    assert os.path.exists(os.path.join(ds_path, 'MTD_DS.xml')), \
+    assert os.path.isfile(os.path.join(ds_path, 'MTD_DS.xml')), \
         'please make sure MTD_DS.xml is present in the directory'
-    assert os.path.exists(os.path.join(tl_path, 'MTD_TL.xml')), \
+    assert os.path.isfile(os.path.join(tl_path, 'MTD_TL.xml')), \
         'please make sure MTD_TL.xml is present in the directory'
 
     safe_folder = _get_safe_foldername(im_path)
@@ -162,9 +162,9 @@ def _get_safe_structure_s2(im_path, s2_dict=None):
 
 def _get_stac_structure_s2(im_path, s2_dict=None):
     # make sure metadata files are present
-    assert os.path.exists(os.path.join(im_path, 'MTD_DS.xml')), \
+    assert os.path.isfile(os.path.join(im_path, 'MTD_DS.xml')), \
         'please make sure MTD_DS.xml is present in the directory'
-    assert os.path.exists(os.path.join(im_path, 'MTD_TL.xml')), \
+    assert os.path.isfile(os.path.join(im_path, 'MTD_TL.xml')), \
         'please make sure MTD_TL.xml is present in the directory'
 
     if s2_dict is None:
@@ -310,7 +310,7 @@ def get_s2_image_locations(fname,s2_df):
     'S2A_OPER_MSI_L1C_DS_VGS1_20200923T200821_S20200923T163313_N02.09'
     """
     if os.path.isdir(fname): fname = os.path.join(fname, 'MTD_MSIL1C.xml')
-    assert os.path.exists(fname), ('metafile does not seem to be present')
+    assert os.path.isfile(fname), ('metafile does not seem to be present')
     root = get_root_of_table(fname)
     root_dir = os.path.split(fname)[0]
 
@@ -323,7 +323,7 @@ def get_s2_image_locations(fname,s2_df):
     for im_loc in root.iter('IMAGE_FILE'):
         full_path = os.path.join(root_dir, im_loc.text)
         boi = im_loc.text[-3:] # band of interest
-        if not os.path.exists(os.path.dirname(full_path)):
+        if not os.path.isdir(os.path.dirname(full_path)):
             full_path = None
             for _,_,files in os.walk(root_dir):
                 for file in files:
@@ -342,7 +342,7 @@ def get_s2_image_locations(fname,s2_df):
     return s2_df_new, datastrip_id
 
 def get_s2_granule_id(fname, s2_df):
-    assert os.path.exists(fname), ('metafile does not seem to be present')
+    assert os.path.isfile(fname), ('metafile does not seem to be present')
     root = get_root_of_table(fname)
 
     for im_loc in root.iter('IMAGE_FILE'):
@@ -397,7 +397,7 @@ def meta_s2string(s2_str):
     return s2_time, s2_orbit, s2_tile
 
 def get_s2_folders(im_path):
-    assert os.path.exists(im_path), 'please specify a folder'
+    assert os.path.isdir(im_path), 'please specify a folder'
     s2_list = [x for x in os.listdir(im_path)
                if (os.path.isdir(os.path.join(im_path,x))) & (x[0:2]=='S2')]
     return s2_list
@@ -442,7 +442,7 @@ def get_utmzone_from_tile_code(tile_code):
     - UTM : universal transverse mercator
     - WGS : world geodetic system
     """
-    tile_code = normalize_mgrs_code(tile_code)
+    tile_code = check_mgrs_code(tile_code)
     return int(tile_code[:2])
 
 def get_epsg_from_mgrs_tile(tile_code):
@@ -477,7 +477,7 @@ def get_epsg_from_mgrs_tile(tile_code):
     - UTM : universal transverse mercator
     - WGS : world geodetic system
     """
-    tile_code = normalize_mgrs_code(tile_code)
+    tile_code = check_mgrs_code(tile_code)
     utm_num = get_utmzone_from_tile_code(tile_code)
     epsg_code = 32600 + utm_num
 
@@ -508,7 +508,7 @@ def get_crs_from_mgrs_tile(tile_code):
         * "AA" utm zone number, starting from the East, with steps of 8 degrees
         * "B" latitude zone, starting from the South, with steps of 6 degrees
     """
-    tile_code = normalize_mgrs_code(tile_code)
+    tile_code = check_mgrs_code(tile_code)
     epsg_code = get_epsg_from_mgrs_tile(tile_code)
 
     crs = osr.SpatialReference()

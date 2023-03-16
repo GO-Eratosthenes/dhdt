@@ -12,7 +12,7 @@ def dh_txt2shp(dh_mat, DEM_1, DEM_2, shp_name, srs):
 
     driver = ogr.GetDriverByName('ESRI Shapefile') # set up the shapefile driver
     
-    if os.path.exists(shp_name):
+    if os.path.isfile(shp_name):
          driver.DeleteDataSource(shp_name)
     ds = driver.CreateDataSource(shp_name) # create the data source
         
@@ -52,7 +52,7 @@ def casting_pairs_mat2shp(xy_1, caster, xy_2, shp_name, srs):
 
     driver = ogr.GetDriverByName('ESRI Shapefile')  # set up the shapefile driver
 
-    if os.path.exists(shp_name):
+    if os.path.isfile(shp_name):
         driver.DeleteDataSource(shp_name)
     ds = driver.CreateDataSource(shp_name)  # create the data source
 
@@ -96,7 +96,7 @@ def casting_pairs_mat2shp(xy_1, xy_2, shp_name, srs):
 
     driver = ogr.GetDriverByName('ESRI Shapefile')  # set up the shapefile driver
 
-    if os.path.exists(shp_name):
+    if os.path.isfile(shp_name):
         driver.DeleteDataSource(shp_name)
     ds = driver.CreateDataSource(shp_name)  # create the data source
 

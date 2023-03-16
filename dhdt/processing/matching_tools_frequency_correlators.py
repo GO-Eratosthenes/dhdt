@@ -1062,7 +1062,7 @@ def orientation_corr(I1, I2):
     return Q
 
 def windrose_corr(I1, I2):
-    """ match two imagery through windrose phase correlation, see [KJ91]_.
+    r""" match two imagery through windrose phase correlation, see [KJ91]_.
 
     Parameters
     ----------
@@ -1226,6 +1226,7 @@ def phase_corr(I1, I2):
     I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
     if (I1.ndim!=3) and (I2.ndim!=3): # single pair processing
         Q = _phase_corr_core(I1sub, I2sub)
+        return Q
 
     # multi-spectral frequency stacking
     bands = I1.shape[2]

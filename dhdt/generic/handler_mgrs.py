@@ -4,7 +4,7 @@ import numpy as np
 
 from osgeo import osr
 
-from dhdt.auxilary.handler_mgrs import normalize_mgrs_code
+from dhdt.generic.unit_check import check_mgrs_code
 from dhdt.generic.gis_tools import get_utm_zone
 from dhdt.generic.mapping_tools import ll2map
 

@@ -157,7 +157,7 @@ def sum_sad_diff(I1, I2):
                           t_size,
                     strides=I2.strides * 2)
 
-    sad = np.sum(np.abs(y - I1[...,None,None]), axis=(0,1))
+    sad = np.sum(np.abs(y - I1[None,None, ...]), axis=(0,1))
     return sad
 
 # maximum likelihood

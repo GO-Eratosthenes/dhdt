@@ -103,7 +103,7 @@ def read_geo_image(fname, boi=np.array([]), no_dat=None):
     assert os.path.exists(fname), ('file must exist')
 
     """
-    assert os.path.exists(fname), ('file does not seem to be present')
+    assert os.path.isfile(fname), ('file does not seem to be present')
 
     img = gdal.Open(fname)
     assert img is not None, ('could not open dataset ' + fname)
@@ -134,7 +134,7 @@ def read_geo_image(fname, boi=np.array([]), no_dat=None):
     return data, spatialRef, geoTransform, targetprj
 
 def read_nc_image(fname, layer_name):
-    assert os.path.exists(fname), ('file does not seem to be present')
+    assert os.path.isfile(fname), ('file does not seem to be present')
 
     ds = gdal.Open("NETCDF:{0}:{1}".format(fname, layer_name))
     assert ds is not None, ('could not open dataset ' + fname)
@@ -368,7 +368,7 @@ def make_im_from_geojson(geoTransform, crs, out_name, geom_name, out_dir=None,
 
     out_path = os.path.join(out_dir, out_name)
     geom_path = os.path.join(geom_dir, geom_name)
-    assert os.path.exists(geom_path), 'file does not seem to exist'
+    assert os.path.isfile(geom_path), 'file does not seem to exist'
 
     # read shapefile
     shp = ogr.Open(geom_path)
