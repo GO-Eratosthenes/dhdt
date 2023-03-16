@@ -143,7 +143,7 @@ def which_rgi_regions(
 
     if aoi is not None:
         if isinstance(aoi, str):
-            geom = get_geom_for_tile_code(aoi, geom_path=mgrs_tiling_file)
+            geom = get_geom_for_tile_code(aoi, tile_path=mgrs_tiling_file)
         else:
             geom = shapely.geometry.Point(aoi[1], aoi[0])  # lon, lat
         mask = rgi_reg.intersects(geom)
@@ -301,7 +301,7 @@ def create_rgi_tile_s2(
         mgrs_codes = [aoi]
     else:
         geom = shapely.geometry.Point(aoi[1], aoi[0])  # lon, lat
-        mgrs_codes = get_tile_codes_from_geom(geom, geom_path=mgrs_tiling_file)
+        mgrs_codes = get_tile_codes_from_geom(geom, tile_path=mgrs_tiling_file)
 
     rgi_raster_paths = []
     for mgrs_code in mgrs_codes:

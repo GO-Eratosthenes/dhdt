@@ -189,11 +189,11 @@ sso, pw = 'basalt', '!Q2w3e4r5t6y7u8i9o0p'
 cop_dem_mgrs = os.path.join(dat_dir, 'COP-DEM-'+s2_dict['tile_code']+'.tif')
 if not os.path.exists(cop_dem_mgrs):
     cop_dem_mgrs = make_copDEM_mgrs_tile(s2_dict['tile_code'],
-         os.path.dirname(s2_df['filepath'][0]),
-         s2_df['filepath'][0].split('/')[-1]+'.jp2',
-         s2_path, dem_path,
-         tile_name='sentinel2_tiles_world.shp', cop_name='mapping.csv',
-         map_name='DGED-30.geojson', sso=sso, pw=pw, out_path=dat_dir)
+                                         os.path.dirname(s2_df['filepath'][0]),
+                                         s2_df['filepath'][0].split('/')[-1] +'.jp2',
+                                         s2_path, dem_path,
+                                         tile_name='sentinel2_tiles_world.shp', dem_name='mapping.csv',
+                                         map_name='DGED-30.geojson', sso=sso, pw=pw, out_path=dat_dir)
 
 couple_list = get_network_indices(s2_df.shape[0]).T
 

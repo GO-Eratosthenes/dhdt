@@ -140,15 +140,15 @@ def get_copDEM_filestructure(tmp_path, cds_sso, cds_pw,
                        cds_path, file_name, tmp_path)
     return cds_path
 
-def make_copDEM_geojson(cop_path, cop_file='mapping.csv',
+def make_copDEM_geojson(dem_dir, dem_file='mapping.csv',
                         out_file='DGED-30.geojson'):
     """ construct a geographic file of the CopDEM meta-data
 
     Parameters
     ----------
-    cop_path : string
+    dem_dir : string
         location where CopDEM meta-data is situated
-    cop_file : string, default='mapping.csv'
+    dem_file : string, default='mapping.csv'
         file name of the CopDEM meta-data
     out_file : out_file, default='DGED-30.geojson'
         file name of the CopDEM geographic file
@@ -168,12 +168,12 @@ def make_copDEM_geojson(cop_path, cop_file='mapping.csv',
     - WGS : World Geodetic System
     - EGM : Earth Gravitational Model
     """
-    assert os.path.exists(cop_path), 'please provide correct folder'
-    file_path = os.path.join(cop_path, cop_file)
-    assert os.path.isfile(file_path), 'make sure file exist'
+    assert os.path.isdir(dem_dir), 'please provide correct folder'
+    dem_path = os.path.join(dem_dir, dem_file)
+    assert os.path.isfile(dem_path), 'make sure file exist'
 
     # load file with ftp-addresses
-    df = pandas.read_csv(file_path, delimiter=";", header=0)
+    df = pandas.read_csv(dem_path, delimiter=";", header=0)
     df_org = df.copy()
 
     # creating dictionary for trans table
@@ -194,30 +194,30 @@ def make_copDEM_geojson(cop_path, cop_file='mapping.csv',
     # include geometry and make a geopandas dataframe
     gdf = geopandas.GeoDataFrame(df_org, geometry=geom)
     gdf.set_crs(epsg=4326)
-    gdf.to_file(os.path.join(cop_path, out_file), driver='GeoJSON')
+    gdf.to_file(os.path.join(dem_dir, out_file), driver='GeoJSON')
     return
 
-def make_copDEM_mgrs_tile(mgrs_tile, im_path, im_name, tile_path, cop_path,
+def make_copDEM_mgrs_tile(tile_code, im_dir, im_name, tile_dir, dem_dir,
                           tile_name='sentinel2_tiles_world.shp',
-                          cop_name='mapping.csv', map_name='DGED-30.geojson',
+                          dem_name='mapping.csv', map_name='DGED-30.geojson',
                           sso='', pw='', out_path=None):
     """
 
     Parameters
     ----------
-    mgrs_tile : string
+    tile_code : string
         MGRS code of the tile of interest
-    im_path : string
+    im_dir : string
         location where the raster of interest is located
     im_name : string
         name of the raster of interest
-    tile_path : string
+    tile_dir : string
         location where the satellite orbit files are situated
-    cop_path : string
+    dem_dir : string
         location where the elevation data is situated
     tile_name : string, default='sentinel2_tiles_world'
         name of shapefile with tile coordinates
-    cop_name : string, default='mapping.csv'
+    dem_name : string, default='mapping.csv'
         filename of the table with CopDEM meta-data
     map_name : string, default='DGED-30.geojson'
         filename of the geographic CopDEM meta-data
@@ -230,7 +230,7 @@ def make_copDEM_mgrs_tile(mgrs_tile, im_path, im_name, tile_path, cop_path,
 
     Returns
     -------
-    cop_dem_out : string
+    string
         location and filename of the raster
 
     Notes
@@ -249,41 +249,41 @@ def make_copDEM_mgrs_tile(mgrs_tile, im_path, im_name, tile_path, cop_path,
     """
     if (len(sso) == 0) or (len(pw) == 0):
         raise Exception('No username or password were given')
-    mgrs_tile = check_mgrs_code(mgrs_tile)
-    assert os.path.exists(im_path), 'please provide correct folder'
-    assert os.path.isfile(os.path.join(im_path, im_name)), \
+    tile_code = check_mgrs_code(tile_code)
+    assert os.path.isdir(im_dir), 'please provide correct folder'
+    assert os.path.isfile(os.path.join(im_dir, im_name)), \
         ('file does not seem to exist')
-    assert os.path.exists(tile_path), 'please provide correct folder'
-    assert os.path.isfile(os.path.join(tile_path, tile_name)), \
+    assert os.path.isdir(tile_dir), 'please provide correct folder'
+    assert os.path.isfile(os.path.join(tile_dir, tile_name)), \
         ('file does not seem to exist')
 
     if out_path is None:
-        out_path = cop_path
+        out_path = dem_dir
 
-    urls, tars = get_copDEM_s2_tile_intersect_list(mgrs_tile,
-       tile_path, cop_path, s2_file=tile_name, cop_file=cop_name,
-       map_file=map_name)
+    urls, tars = get_copDEM_s2_tile_intersect_list(tile_code,
+                                                   tile_dir, dem_dir, s2_file=tile_name, dem_file=dem_name,
+                                                   map_file=map_name)
 
-    crs = get_crs_from_mgrs_tile(mgrs_tile)
-    geoTransform = read_geo_info(os.path.join(im_path,im_name))[1]
+    crs = get_crs_from_mgrs_tile(tile_code)
+    geoTransform = read_geo_info(os.path.join(im_dir, im_name))[1]
     bbox = get_bbox(geoTransform).reshape((2, 2)).T.ravel()
     # bbox needs to be in format (x_min, y_min, x_max, y_max)
 
     cds_path, cds_url = get_cds_path_copDEM(), get_cds_url()
-    cop_dem = download_and_mosaic_through_ftps(tars, cop_path,
+    cop_dem = download_and_mosaic_through_ftps(tars, dem_dir,
                                                cds_url, cds_path[4:],
                                                sso, pw, bbox, crs, geoTransform)
-    cop_dem_out = os.path.join(out_path, 'COP-DEM-' + mgrs_tile + '.tif')
+    cop_dem_out = os.path.join(out_path, 'COP-DEM-' + tile_code + '.tif')
     cop_dem.rio.to_raster(cop_dem_out, dtype=cop_dem.dtype)
     return cop_dem_out
 
-def get_copDEM_in_raster(geoTransform, crs, cop_path,
+def get_copDEM_in_raster(geoTransform, crs, cop_dir,
                          cop_file='mapping.csv',
                          map_file='DGED-30.geojson',
                          sso='', pw=''):
     if not isinstance(crs, str): crs = crs.ExportToWkt()
-    assert os.path.exists(cop_path), 'please provide correct folder'
-    assert os.path.isfile(os.path.join(cop_path, cop_file)), \
+    assert os.path.isdir(cop_dir), 'please provide correct folder'
+    assert os.path.isfile(os.path.join(cop_dir, cop_file)), \
         'make sure file exist'
 
     bbox = get_bbox(geoTransform).reshape((2, 2)).T.ravel()
@@ -291,21 +291,21 @@ def get_copDEM_in_raster(geoTransform, crs, cop_path,
     im_df = geopandas.GeoDataFrame(index=[0], crs=crs, geometry=[polygon])
 
     # get meta-data of CopDEM if it is not present
-    if not os.path.isfile(os.path.join(cop_path,cop_file)):
+    if not os.path.isfile(os.path.join(cop_dir, cop_file)):
         if (len(sso)==0) or (len(pw)==0):
             raise Exception('No username or password were given')
-        _ = get_copDEM_filestructure(cop_path, sso, pw)
-        make_copDEM_geojson(cop_path, cop_file=cop_file,
+        _ = get_copDEM_filestructure(cop_dir, sso, pw)
+        make_copDEM_geojson(cop_dir, dem_file=cop_file,
                             out_file=map_file)
     # read CopDEM meta-data
-    cop_df = geopandas.read_file(os.path.join(cop_path, map_file))
+    cop_df = geopandas.read_file(os.path.join(cop_dir, map_file))
 
     cop_oi = cop_df[cop_df.intersects(im_df['geometry'].item())]
 
     tars = list(cop_oi['CPP filename'])
 
     cds_path, cds_url = get_cds_path_copDEM(), get_cds_url()
-    cop_dem = download_and_mosaic_through_ftps(tars, cop_path,
+    cop_dem = download_and_mosaic_through_ftps(tars, cop_dir,
                                                cds_url, cds_path[4:],
                                                sso, pw, bbox, crs, geoTransform)
     Z_cop = np.squeeze(cop_dem.values)
@@ -313,9 +313,9 @@ def get_copDEM_in_raster(geoTransform, crs, cop_path,
     Z_cop = np.ma.array(Z_cop, mask=Msk)
     return Z_cop
 
-def get_copDEM_s2_tile_intersect_list(mgrs_tile, mgrs_path=None,
-                                      mgrs_file='sentinel2_tiles_world.geojson',
-                                      cop_path=None, cop_file='mapping.csv',
+def get_copDEM_s2_tile_intersect_list(tile_code, tile_path=None,
+                                      tile_file='sentinel2_tiles_world.geojson',
+                                      dem_path=None, dem_file='mapping.csv',
                                       map_file='DGED-30.geojson',
                                       sso='', pw=''):
     """ get a list of filenames and urls of CopDEM tiles that are touching or
@@ -323,15 +323,15 @@ def get_copDEM_s2_tile_intersect_list(mgrs_tile, mgrs_path=None,
 
     Parameters
     ----------
-    mgrs_tile : string
+    tile_tile : string
         MGRS Sentinel-2 tile code of interest
-    mgrs_path : string
+    tile_path : string
         location where the MGRS (Sentinel-2) tile data is situated
-    mgrs_file : string, default='sentinel2_tiles_world.shp'
+    tile_file : string, default='sentinel2_tiles_world.shp'
         filename of the MGRS Sentinel-2 tiles
-    cop_path : string
+    dem_path : string
         location where the CopDEM tile data is situated
-    cop_file : string, default='mapping.csv'
+    dem_file : string, default='mapping.csv'
         filename of the table with CopDEM meta-data
     map_file : string, default='DGED-30.geojson'
         filename of the geographic CopDEM meta-data
@@ -362,28 +362,29 @@ def get_copDEM_s2_tile_intersect_list(mgrs_tile, mgrs_path=None,
     - DGED : defence gridded elevation data
     - DTED : digital terrain elevation data
     """
-    mgrs_tile = check_mgrs_code(mgrs_tile)
+
+    tile_code = check_mgrs_code(tile_code)
     s2_geom = get_geom_for_tile_code(
-        mgrs_tile, geom_path=os.path.join(mgrs_path, mgrs_file)
+        tile_code, tile_path=os.path.join(tile_path, tile_file)
     )
 
     urls, tars = get_copDEM_geometry_intersect_list(s2_geom,
-        sso=sso, pw=pw, cop_path=cop_path, cop_file=cop_file, map_file=map_file)
+                                                    sso=sso, pw=pw, dem_dir=dem_path, dem_file=dem_file, map_file=map_file)
     return urls, tars
 
 def get_copDEM_geometry_intersect_list(geom, sso='', pw='',
-                                       cop_path=None, cop_file='mapping.csv',
+                                       dem_dir=None, dem_file='mapping.csv',
                                        map_file='DGED-30.geojson'):
-    if cop_path is None:
+    if dem_dir is None:
         root_dir = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3])
         cop_dir = os.path.join(root_dir, 'data')
 
     # get meta-data of CopDEM if it is not present
-    if not os.path.isfile(os.path.join(cop_dir,cop_file)):
+    if not os.path.isfile(os.path.join(cop_dir, dem_file)):
         if (len(sso)==0) or (len(pw)==0):
             raise Exception('No username or password were given')
         _ = get_copDEM_filestructure(cop_dir, sso, pw)
-        make_copDEM_geojson(cop_dir, cop_file=cop_file,
+        make_copDEM_geojson(cop_dir, dem_file=dem_file,
                             out_file=map_file)
 
     # read CopDEM meta-data
@@ -496,8 +497,8 @@ def mosaic_tiles(dem_tiles_filenames, bbox, crs, geoTransform):
                                     nodata=dem_tile.rio.nodata)
     return merged
 
-def create_copDEM_tiling(sso,pw, cop_path='Cop-DEM_GLO-30/',
-                         cop_file='mapping.csv', out_file='DGED-30.geojson'):
+def create_copDEM_tiling(sso, pw, dem_dir='Cop-DEM_GLO-30/',
+                         dem_file='mapping.csv', out_file='DGED-30.geojson'):
     """ create geojson file of the tiling system of the CopernicusDEM
 
     Parameters
@@ -506,18 +507,18 @@ def create_copDEM_tiling(sso,pw, cop_path='Cop-DEM_GLO-30/',
         CDS single sign on username
     pw : string
         CDS password
-    cop_path : string
+    dem_dir : string
         location where copDEM metadata is situated
-    cop_file : string
+    dem_file : string
         filename of the copDEM metadata
     out_file
         filename of the geographic metadata file for copDEM
 
     """
-    file_path = os.path.join(cop_path, cop_file)
+    dem_path = os.path.join(dem_dir, dem_file)
 
     # load file with ftp-addresses
-    df = pandas.read_csv(file_path, delimiter=";", header=0)
+    df = pandas.read_csv(dem_path, delimiter=";", header=0)
     df_org = df.copy()
 
     # creating dictionary for trans table
@@ -540,6 +541,6 @@ def create_copDEM_tiling(sso,pw, cop_path='Cop-DEM_GLO-30/',
     gdf = geopandas.GeoDataFrame(df_org, geometry=geom)
     gdf.set_crs(epsg=4326)
 
-    file_path = os.path.join(cop_path, out_file)
-    gdf.to_file(file_path, driver='GeoJSON')
+    dem_path = os.path.join(dem_dir, out_file)
+    gdf.to_file(dem_path, driver='GeoJSON')
     return
