@@ -13,3 +13,5 @@ scipy
 Pillow
 shapely
 statsmodels
+affine
+pyproj
