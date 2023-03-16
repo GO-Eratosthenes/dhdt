@@ -251,7 +251,7 @@ def get_generic_s2_raster(tile_code, spac=10, mgrs_tiling_file=None):
     """
     assert spac in (10, 20, 60,), 'please provide correct pixel resolution'
 
-    tile_code = normalize_mgrs_code(tile_code)
+    tile_code = check_mgrs_code(tile_code)
     geom = get_geom_for_tile_code(tile_code, geom_path=mgrs_tiling_file)
 
     # specify coordinate systems
