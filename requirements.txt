@@ -11,7 +11,7 @@ scikit-image
 scikit-learn
 scipy
 Pillow
-shapely
+shapely>=2
 statsmodels
 affine
 pyproj
