@@ -2,7 +2,7 @@ import pytest
 import urllib.request
 import geopandas as gpd
 import numpy as np
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Polygon, MultiPolygon
 from shapely import wkt
 
 import dhdt.generic.unit_check
@@ -63,9 +63,9 @@ def test_normalize_mgrs_code_wrong_code():
         dhdt.generic.unit_check.check_mgrs_code('WRONG')
 
 
-def test_mgrs_to_searchbox_searchbox_range():
-    box = handler_mgrs._mgrs_to_searchbox(TILE_CODE)
-    assert box == pytest.approx((120.0, -90.0, 126.0, 90.0), 0.001)
+def test_mgrs_to_search_geometry_range():
+    geom = handler_mgrs._mgrs_to_search_geometry(TILE_CODE)
+    assert geom == Polygon.from_bounds(120.0, -90.0, 126.0, 90.0)
 
 
 def test_get_bbox_from_tile_code_bbox_equal():
@@ -82,6 +82,13 @@ def test_get_geom_for_tile_code_geometry():
     gdf = gpd.read_file(TESTDATA_GEOJSON)
     geom_read = gdf.loc[gdf["Name"] == TILE_CODE]["geometry"]
     assert geom.equals(geom_read.squeeze())
+
+
+def test_get_geom_for_tile_code_crossing_antimeridian():
+    # geom of tiles crossing the antimeridian should be multipolygons
+    geom = handler_mgrs.get_geom_for_tile_code(
+        "01CCV", geom_path=TESTDATA_GEOJSON)
+    assert isinstance(geom, MultiPolygon)
 
 
 @pytest.mark.parametrize("geom", geom_types(POINT_WITHIN))
