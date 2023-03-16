@@ -12,6 +12,6 @@ def test_get_generic_s2_raster_returns_correct_crs():
     for tile_code, utm_zone in zip(tile_codes, utm_zones):
         _, crs = get_generic_s2_raster(
             tile_code=tile_code,
-            mgrs_tiling_file=MGRS_INDEX_FILE
+            tile_path=MGRS_INDEX_FILE
         )
         assert crs.utm_zone == utm_zone

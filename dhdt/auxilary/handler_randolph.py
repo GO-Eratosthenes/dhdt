@@ -306,7 +306,7 @@ def create_rgi_tile_s2(
     rgi_raster_paths = []
     for mgrs_code in mgrs_codes:
         geoTransform, crs = get_generic_s2_raster(
-            mgrs_code, mgrs_tiling_file=mgrs_tiling_file
+            mgrs_code, tile_path=mgrs_tiling_file
         )
         rgi_raster_path = os.path.join(rgi_out_dir, f'{mgrs_code}.tif')
         rgi_shapes = _get_rgi_shapes(rgi_paths, version)

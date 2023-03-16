@@ -313,7 +313,7 @@ def get_copDEM_in_raster(geoTransform, crs, cop_dir,
     Z_cop = np.ma.array(Z_cop, mask=Msk)
     return Z_cop
 
-def get_copDEM_s2_tile_intersect_list(tile_code, tile_path=None,
+def get_copDEM_s2_tile_intersect_list(tile_code, tile_dir=None,
                                       tile_file='sentinel2_tiles_world.geojson',
                                       dem_path=None, dem_file='mapping.csv',
                                       map_file='DGED-30.geojson',
@@ -325,7 +325,7 @@ def get_copDEM_s2_tile_intersect_list(tile_code, tile_path=None,
     ----------
     tile_tile : string
         MGRS Sentinel-2 tile code of interest
-    tile_path : string
+    tile_dir : string
         location where the MGRS (Sentinel-2) tile data is situated
     tile_file : string, default='sentinel2_tiles_world.shp'
         filename of the MGRS Sentinel-2 tiles
@@ -365,11 +365,11 @@ def get_copDEM_s2_tile_intersect_list(tile_code, tile_path=None,
 
     tile_code = check_mgrs_code(tile_code)
     s2_geom = get_geom_for_tile_code(
-        tile_code, tile_path=os.path.join(tile_path, tile_file)
+        tile_code, tile_path=os.path.join(tile_dir, tile_file)
     )
 
     urls, tars = get_copDEM_geometry_intersect_list(s2_geom,
-                                                    sso=sso, pw=pw, dem_dir=dem_path, dem_file=dem_file, map_file=map_file)
+        sso=sso, pw=pw, dem_dir=dem_path, dem_file=dem_file, map_file=map_file)
     return urls, tars
 
 def get_copDEM_geometry_intersect_list(geom, sso='', pw='',

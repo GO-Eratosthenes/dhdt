@@ -217,7 +217,7 @@ def list_platform_metadata_s2b():
         'J': np.array([[558, 30, -30],[30, 819, 30],[-30, 30, 1055]])}
     return s2b_dict
 
-def get_generic_s2_raster(tile_code, spac=10, mgrs_tiling_file=None):
+def get_generic_s2_raster(tile_code, spac=10, tile_path=None):
     """
     Create spatial metadata of a Sentinel-2, so no downloading is needed.
 
@@ -227,7 +227,7 @@ def get_generic_s2_raster(tile_code, spac=10, mgrs_tiling_file=None):
         mgrs tile coding, which is also given in the filename ("TXXXXX")
     spac : integer, {10,20,60}, unit=m
         pixel spacing of the raster
-    mgrs_tiling_file : string
+    tile_path : string
         path to the MGRS tiling file
 
     Returns
@@ -252,7 +252,7 @@ def get_generic_s2_raster(tile_code, spac=10, mgrs_tiling_file=None):
     assert spac in (10, 20, 60,), 'please provide correct pixel resolution'
 
     tile_code = check_mgrs_code(tile_code)
-    geom = get_geom_for_tile_code(tile_code, tile_path=mgrs_tiling_file)
+    geom = get_geom_for_tile_code(tile_code, tile_path=tile_path)
 
     # specify coordinate systems
     crs = pyproj.CRS.from_epsg(4326)  # lat lon
