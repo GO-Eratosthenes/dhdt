@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 def get_midpoint_altitude(RGI, Z, roi=None):
-    """ the mid-point altitude is a for the ELA [1]
+    """ the mid-point altitude is a for the ELA [RB09]_.
 
     Parameters
     ----------
@@ -36,7 +36,7 @@ def get_midpoint_altitude(RGI, Z, roi=None):
 
     f = lambda x: np.quantile(x, 0.5)
     if roi is None:
-        labels, altitude = get_stats_from_labelled_array(RGI, Z, f)
+        labels, altitude,_ = get_stats_from_labelled_array(RGI, Z, f)
         labels = labels.astype(int)
     else:
         labels, altitude = np.array([roi]), f(Z[RGI==roi])
@@ -67,9 +67,9 @@ def get_normalized_hypsometry(RGI, Z, dZ, bins=20):
     ----------
     .. [Mc19] McNabb et al. "Sensitivity of glacier volume estimation to DEM
               void interpolation", The cryosphere, vol.13 pp.895-910, 2019.
-    .. [MaXX] Mannerfelt et al. "Halving of Swiss glacier volume since 1931
+    .. [Ma22] Mannerfelt et al. "Halving of Swiss glacier volume since 1931
               observed from terrestrial image photogrammetry", The crysophere
-              discussions
+              vol.16(8) pp.3249-3268, 2022.
     .. [Hu10] Huss et al. "Future high-mountain hydrology: a new
               parameterization of glacier retreat", Hydrology and earth system
               sciences, vol.14 pp.815-829, 2010
@@ -80,7 +80,8 @@ def get_normalized_hypsometry(RGI, Z, dZ, bins=20):
     for rgiid in np.unique(RGI):
         z_r, dz_r = Z[RGI==rgiid], dZ[RGI==rgiid]
         z_n = np.floor(np.divide(z_r -np.min(z_r), np.ptp(z_r)) * (bins-1))
-        labels, indices, counts = np.unique(z_n, return_counts=True, return_inverse=True)
+        labels, indices, counts = np.unique(z_n, return_counts=True,
+                                            return_inverse=True)
         arr_split = np.split(dz_r[indices.argsort()], counts.cumsum()[:-1])
 
         result = np.array(list(map(func, arr_split)))
@@ -116,6 +117,8 @@ def get_general_hypsometry(Z, dZ, interval=100., quant=.5):
         value of the interval center
     hypsometry : numpy.array, unit=meter
         group statistics within the elevation interval
+    counts : numpy.ndarray
+        amount of datapoints used for estimating
     """
     if type(Z) is pd.core.series.Series: Z = Z.to_numpy()
     if type(dZ) is pd.core.series.Series: dZ = dZ.to_numpy()
@@ -125,13 +128,13 @@ def get_general_hypsometry(Z, dZ, interval=100., quant=.5):
     assert isinstance(quant, float)
     assert quant<=1
 
-    L = np.round(Z/interval)
-    f =  lambda x: np.quantile(x, quant)
+    L = (Z // interval).astype(int)
+    f =  lambda x: np.quantile(x, quant) if x.size!=0 else np.nan
     label, hypsometry, counts = get_stats_from_labelled_array(L, dZ, f)
     label *= interval
     return label, hypsometry, counts
 
-def get_stats_from_labelled_array(L,I,func): #todo is tuple: multiple functions?
+def get_stats_from_labelled_array(L,I,func):
     """ get properties of a labelled array
 
     Parameters
@@ -140,14 +143,14 @@ def get_stats_from_labelled_array(L,I,func): #todo is tuple: multiple functions?
         array with unique labels
     I : numpy.array, size=(m,n)
         data array of interest
-    func : function
+    func : {function, list of functions}
         group operation, that extracts information about the labeled group
 
     Returns
     -------
     labels : numpy.array, size=(k,1), {bool,integer,float}
         array with the given labels
-    result : numpy.array, size=(k,1)
+    result : numpy.array, size={(k,1), (k,l)}
         array with the group property, as given by func
 
     Examples
@@ -163,13 +166,22 @@ def get_stats_from_labelled_array(L,I,func): #todo is tuple: multiple functions?
     False: 74
     True: 172
     """
-    L, I = L.flatten(), I.flatten()
+    if type(L) in (np.ma.core.MaskedArray,):
+        OUT = np.logical_or(L.mask, I.mask)
+        L, I = L.data[~OUT], I.data[~OUT]
+    else:
+        L, I = L.flatten(), I.flatten()
     labels, indices, counts = np.unique(L,
                                         return_counts=True,
                                         return_inverse=True)
     arr_split = np.split(I[indices.argsort()], counts.cumsum()[:-1])
 
-    result = np.array(list(map(func, arr_split)))
+    if isinstance(func, list):
+        result = np.empty((len(arr_split), len(func)))
+        for idx,f in enumerate(func):
+            result[...,idx] = np.array(list(map(f, arr_split)))
+    else:
+        result = np.array(list(map(func, arr_split)))
     return labels, result, counts
 
 def hypsometeric_void_interpolation(z,dz,Z,deg=3):

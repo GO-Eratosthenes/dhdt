@@ -1,7 +1,20 @@
-from .group_statistics import get_midpoint_altitude
+import numpy as np
 
-def volume2icemass(V, Z=None, RGI=None, ELA=None, distinction='Kaeaeb'):
-    """
+from scipy import ndimage
+
+from dhdt.postprocessing.group_statistics import get_midpoint_altitude, \
+    get_stats_from_labelled_array
+
+def _create_ela_grid(R, r_id, ela):
+    lookup = np.empty((np.max(r_id) + 1), dtype=int)
+    lookup[r_id] = np.arange(len(r_id))
+    indices = lookup[R]
+    ELA = ela[indices]
+    np.putmask(ELA, indices==0, np.nan)
+    return ELA
+
+def volume2icemass(V, Z=None, RGI=None, ela=None, distinction='Kaeaeb'):
+    """ Estimate the amount of mass change, given the volume change.
 
     Parameters
     ----------
@@ -11,14 +24,17 @@ def volume2icemass(V, Z=None, RGI=None, ELA=None, distinction='Kaeaeb'):
         array with elevation
     RGI : numpy.ndarray, dtype={boolean,integer}, size=(m,n)
         array with labelled glaciers
+    ela : float
+        equilibrium line altitude
     distinction:
         either following [Kä12]_ or [Hu13]_
             - 'Kaeaeb' : make a distinction between accumulation and ablation
-            - 'Huss' : use a generic conversion factor of 850
+            - 'Huss' : use a generic conversion factor of 850 for glacier ice
 
     Returns
     -------
-    Mass : numpy.ndarray, size=(m,n), unit=kg
+    M : numpy.ndarray, size=(m,n), unit=kg
+        array with differences in meters water equivalent
 
     Notes
     -----
@@ -37,11 +53,29 @@ def volume2icemass(V, Z=None, RGI=None, ELA=None, distinction='Kaeaeb'):
     """
 
     if distinction in ('Kaeaeb', 'Kääb',):
-        a_abl, a_acc = 300, 900
-        if ELA is None:
-            ELA = get_midpoint_altitude(RGI, Z)
-    else:
-        a = 850
+        ρ_abl, ρ_acc = 300, 900
+        if ela is None:
+            rid, ela = get_midpoint_altitude(RGI, Z)
+        # create ELA array
+        ELA = _create_ela_grid(RGI, rid, ela)
+        ρ = np.choose((Z>ELA).astype(int), [ρ_acc, ρ_abl])
+    else: # do uniform density estimate
+        ρ = 850
 
-    M = None
+    M = np.multiply(ρ, V)
     return M
+
+def mass_change2specific_glaciers(dM, RGI):
+
+    f = lambda x: np.quantile(x, 0.5)
+    labels, mb, count = get_stats_from_labelled_array(RGI, dM, f)
+
+    IN = ~np.isnan(mb[...,0])
+    labels, mb, count = labels[IN], mb[IN], count[IN]
+    return labels, mb, count
+
+def mass_changes2specific_glacier_hypsometries(dM, Z, RGI,
+                                               step=None,start=None,stop=None):
+    # ndimage.labeled_comprehension
+    labels, mb, header = []
+    return labels, mb, header

@@ -101,7 +101,7 @@ def _get_rgi_shapes(rgi_paths, version):
 
 
 def which_rgi_regions(
-        aoi=None, version=7, rgi_file=None, mgrs_tiling_file=None
+        aoi=None, version=7, rgi_path=None, tile_path=None
 ):
     """
     Discover which Randolph Glacier Inventory (RGI) regions are used
@@ -113,9 +113,9 @@ def which_rgi_regions(
         location of interest, given as (lat, lon) or as MGRS tile code
     version : {6,7}
         version of the glacier inventory
-    rgi_file : string
+    rgi_path : string
         file path of the shapefile that describes the RGI regions
-    mgrs_tiling_file : string
+    tile_path : string
         path to the MGRS tiling file
 
     Returns
@@ -134,16 +134,17 @@ def which_rgi_regions(
     """
     assert isinstance(version, int), 'please provide an integer'
     assert version in RGI_DATASETS.keys(), f'version {version} not supported'
-    if rgi_file is None:
-        rgi_file = os.path.join(
+    if rgi_path is None:
+        rgi_path = os.path.join(
             RGI_DIR_DEFAULT, _get_rgi_index_filename(version)
         )
+    assert os.path.isfile(rgi_path), 'file does not seem to be present'
 
-    rgi_reg = gpd.read_file(rgi_file)
+    rgi_reg = gpd.read_file(rgi_path)
 
     if aoi is not None:
         if isinstance(aoi, str):
-            geom = get_geom_for_tile_code(aoi, tile_path=mgrs_tiling_file)
+            geom = get_geom_for_tile_code(aoi, tile_path=tile_path)
         else:
             geom = shapely.geometry.Point(aoi[1], aoi[0])  # lon, lat
         mask = rgi_reg.intersects(geom)
@@ -156,7 +157,8 @@ def which_rgi_regions(
         return get_rgi_region_urls(rgi_reg)
 
 
-def download_rgi(aoi=None, version=7, rgi_dir=None, overwrite=False):
+def download_rgi(aoi=None, version=7, rgi_dir=None, tile_path=None,
+                 overwrite=False):
     """
     Download the relevant Randolph Glacier Inventory (RGI) files. If a region
     of interest is not provided, download all regions.
@@ -169,6 +171,8 @@ def download_rgi(aoi=None, version=7, rgi_dir=None, overwrite=False):
         version of the glacier inventory
     rgi_dir : string
         location where the geospatial files of the RGI will be saved
+    tile_path : string, default=None
+        path to the MGRS tiling file
     overwrite : bool
         if True and files exist, download them again, otherwise do nothing
 
@@ -187,6 +191,7 @@ def download_rgi(aoi=None, version=7, rgi_dir=None, overwrite=False):
     - AOI : area of interest
     """
     rgi_dir = RGI_DIR_DEFAULT if rgi_dir is None else rgi_dir
+    assert os.path.isdir(rgi_dir), 'folder does not seem to exist'
 
     # download region index
     index_url = RGI_DATASETS[version]['index_url']
@@ -194,7 +199,8 @@ def download_rgi(aoi=None, version=7, rgi_dir=None, overwrite=False):
 
     # determine relevant region(s)
     rgi_region_urls = which_rgi_regions(
-        aoi, version, os.path.join(rgi_dir, index_file)
+        aoi, version, rgi_path=os.path.join(rgi_dir, index_file),
+        tile_path=tile_path
     )
 
     # download region files
@@ -253,7 +259,7 @@ def create_rgi_raster(rgi_shapes, geoTransform, crs, raster_path=None):
 
 
 def create_rgi_tile_s2(
-        aoi, version=7, rgi_dir=None, rgi_out_dir=None, mgrs_tiling_file=None
+        aoi, version=7, rgi_dir=None, out_dir=None, tile_path=None
 ):
     """
     Creates a raster file with the extent of a generic Sentinel-2 tile, that is
@@ -267,10 +273,10 @@ def create_rgi_tile_s2(
         version of the glacier inventory
     rgi_dir : string
         directory where the glacier geometry files are located
-    rgi_out_dir : string
+    out_dir : string
         directory where the glacier geometry files should be saved
         (default is where input geometry files are located)
-    mgrs_tiling_file : string
+    tile_path : string
         path to the MGRS tiling file
 
     Returns
@@ -293,24 +299,26 @@ def create_rgi_tile_s2(
     - AOI : area of interest
     """
     rgi_dir = RGI_DIR_DEFAULT if rgi_dir is None else rgi_dir
-    rgi_out_dir = rgi_dir if rgi_out_dir is None else rgi_out_dir
+    out_dir = rgi_dir if out_dir is None else out_dir
+    assert os.path.isdir(rgi_dir), 'folder does not seem to exist'
 
     # search in which region the glacier is situated, and download its
     # geometric data, if this in not present on the local machine
-    rgi_paths = download_rgi(aoi, version, rgi_dir)
+    rgi_paths = download_rgi(aoi=aoi, version=version, rgi_dir=rgi_dir,
+                             tile_path=tile_path)
 
     if isinstance(aoi, str):
         mgrs_codes = [aoi]
     else:
         geom = shapely.geometry.Point(aoi[1], aoi[0])  # lon, lat
-        mgrs_codes = get_tile_codes_from_geom(geom, tile_path=mgrs_tiling_file)
+        mgrs_codes = get_tile_codes_from_geom(geom, tile_path=tile_path)
 
     rgi_raster_paths = []
     for mgrs_code in mgrs_codes:
         geoTransform, crs = get_generic_s2_raster(
-            mgrs_code, tile_path=mgrs_tiling_file
+            mgrs_code, tile_path=tile_path
         )
-        rgi_raster_path = os.path.join(rgi_out_dir, f'{mgrs_code}.tif')
+        rgi_raster_path = os.path.join(out_dir, f'{mgrs_code}.tif')
         rgi_shapes = _get_rgi_shapes(rgi_paths, version)
         create_rgi_raster(rgi_shapes, geoTransform, crs, rgi_raster_path)
         rgi_raster_paths.append(rgi_raster_path)
