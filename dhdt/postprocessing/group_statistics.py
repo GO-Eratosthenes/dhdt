@@ -131,7 +131,7 @@ def get_general_hypsometry(Z, dZ, interval=100., quant=.5):
     L = (Z // interval).astype(int)
     f =  lambda x: np.quantile(x, quant) if x.size!=0 else np.nan
     label, hypsometry, counts = get_stats_from_labelled_array(L, dZ, f)
-    label *= interval
+    label = np.multiply(label.astype(float), interval)
     return label, hypsometry, counts
 
 def get_stats_from_labelled_array(L,I,func):
