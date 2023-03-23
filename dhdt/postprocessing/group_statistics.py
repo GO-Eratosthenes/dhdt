@@ -97,7 +97,7 @@ def get_normalized_hypsometry(RGI, Z, dZ, bins=20):
     hypsometry /= count
     return hypsometry, count
 
-def get_general_hypsometry(Z, dZ, interval=100., quant=.5):
+def get_general_hypsometry(Z, dZ, interval=100.):
     """ robust estimation of the general hypsometry
 
     Parameters
@@ -108,8 +108,6 @@ def get_general_hypsometry(Z, dZ, interval=100., quant=.5):
         array with elevation change
     interval : {float, integer}, default=100, unit=meter
         bin interval for the hypsometry estimation
-    quant : float, default=.5, range=0...1
-        quantile to be estimated, when .5 is taken this corresponds to the median
 
     Returns
     -------
@@ -125,11 +123,9 @@ def get_general_hypsometry(Z, dZ, interval=100., quant=.5):
 
     assert len(set({Z.size, dZ.size})) == 1, \
         ('please provide arrays of the same size')
-    assert isinstance(quant, float)
-    assert quant<=1
 
     L = (Z // interval).astype(int)
-    f =  lambda x: np.quantile(x, quant) if x.size!=0 else np.nan
+    f =  lambda x: np.nanmedian(x) if x.size!=0 else np.nan
     label, hypsometry, counts = get_stats_from_labelled_array(L, dZ, f)
     label = np.multiply(label.astype(float), interval)
     return label, hypsometry, counts
@@ -168,9 +164,10 @@ def get_stats_from_labelled_array(L,I,func):
     """
     if type(L) in (np.ma.core.MaskedArray,):
         OUT = np.logical_or(L.mask, I.mask)
-        L, I = L.data[~OUT], I.data[~OUT]
     else:
-        L, I = L.flatten(), I.flatten()
+        OUT = np.logical_or(np.isnan(L), np.isnan(I))
+    L, I = L.data[~OUT], I.data[~OUT]
+
     labels, indices, counts = np.unique(L,
                                         return_counts=True,
                                         return_inverse=True)
@@ -183,6 +180,53 @@ def get_stats_from_labelled_array(L,I,func):
     else:
         result = np.array(list(map(func, arr_split)))
     return labels, result, counts
+
+def get_stats_from_labelled_arrays(L1,L2,I,func):
+    """ get properties of an array via a double labelling
+
+    Parameters
+    ----------
+    L1,L2 : numpy.array, size=(m,n), {bool,integer,float}
+        arrays with unique labels
+    I : numpy.array, size=(m,n)
+        data array of interest
+    func : {function, list of functions}
+        group operation, that extracts information about the labeled group
+
+    Returns
+    -------
+    L : numpy.ndarray, size=(k,l), float
+        array with group statistics
+    labels_1, labels_2 : numpy.ndarray, size={(k,),(l,)}
+        array with the given labels
+    C : numpy.ndarray, size={(k,1), (k,l)}
+        array with the sample size, used to estimate the property given in L
+
+    """
+    if type(L1) in (np.ma.core.MaskedArray,):
+        OUT = np.logical_or(L1.mask, L2.mask, I.mask)
+    else:
+        OUT = np.logical_or(np.isnan(L1), np.isnan(L2), np.isnan(I))
+    L1, L2, I = L1.data[~OUT], L2.data[~OUT], I.data[~OUT]
+
+    labels_1, indices, counts = np.unique(L1,
+        return_counts=True, return_inverse=True)
+    labels_2 = np.unique(L2)
+
+    arr_I_split = np.split(I[indices.argsort()], counts.cumsum()[:-1])
+    arr_L_split = np.split(L2[indices.argsort()], counts.cumsum()[:-1])
+
+    L = np.zeros((labels_1.size, labels_2.size))
+    C = np.zeros_like(L)
+    for idx, I_L1 in enumerate(arr_I_split):
+        L2_split = arr_L_split[idx]
+        labels, indices, counts = np.unique(L2_split,
+                return_counts=True, return_inverse=True)
+        I_L2 = np.split(I_L1[indices.argsort()], counts.cumsum()[:-1])
+        result = np.array(list(map(func, I_L2)))
+        L[idx, np.searchsorted(labels_2, labels)] = result
+        C[idx, np.searchsorted(labels_2, labels)] = counts
+    return L, labels_1, labels_2, C
 
 def hypsometeric_void_interpolation(z,dz,Z,deg=3):
     """

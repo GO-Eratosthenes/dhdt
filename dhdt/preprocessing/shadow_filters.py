@@ -243,8 +243,8 @@ def fade_shadow_cast(Shw, az, t_size=9):
     return Shf
 
 def diffusion_strength_1(I,K):
-    """ first diffusion function, proposed by [1], when a complex array is
-    provided the absolute magnitude is used, following [2]
+    """ first diffusion function, proposed by [PM87]_, when a complex array is
+    provided the absolute magnitude is used, following [Ge92]_
 
     Parameters
     ----------
