@@ -10,29 +10,32 @@ from dhdt.postprocessing.group_statistics import get_midpoint_altitude, \
 
 def update_glacier_mask(Z, R, iter=50, curv_max=2.):
     """
-    refin
+    refine glacier outline, via snakes
 
     Parameters
     ----------
-    Z : numpy.ndarray, size=(m,n), unit=meter
+    Z : {numpy.ndarray, numpy.masked.array}, size=(m,n), unit=meter
         grid with elevation values
-    R : numpy.ndarray, size=(m,n)
+    R : {numpy.ndarray, numpy.masked.array}, size=(m,n)
         grid with glacier labels
     iter : integer
-        iteration steps, that is the maximum schrinking or growing size
+        iteration steps, that is the maximum shrinking or growing size
     curv_max : float
         cap on curvature
 
     Returns
     -------
-    R_new : numpy.ndarray, size=(m,n)
-        grid with rifined glacier labels
+    R_new : {numpy.ndarray, numpy.masked.array}, size=(m,n)
+        grid with refined glacier labels
 
     """
     if type(Z) in (np.ma.core.MaskedArray,):
         Z = Z.data
     if type(R) in (np.ma.core.MaskedArray,):
+        maskedArray = True
         R = R.data
+    else:
+        maskedArray = False
 
     C = np.minimum(np.abs(terrain_curvature(Z)), curv_max)
     # remove block effect, but enhance edges
@@ -53,8 +56,9 @@ def update_glacier_mask(Z, R, iter=50, curv_max=2.):
         OUT = np.logical_and(L != 0, L != max_poly)
         np.putmask(R_new, OUT, 0)
 
+    if maskedArray:
+        R_new = np.ma.array(R_new, mask=R_new==0)
     return R_new
-
 
 def _create_ela_grid(R, r_id, ela):
     lookup = np.empty((np.max(r_id) + 1), dtype=int)
@@ -130,6 +134,33 @@ def mass_change2specific_glaciers(dM, RGI):
 
 def mass_changes2specific_glacier_hypsometries(dM, Z, RGI, interval=100,
                                                Z_start=None, Z_stop=None):
+    """
+
+    Parameters
+    ----------
+    dM : numpy.ndarray, size=(m,n), unit={meter, water meter equivalent}
+        grid with elevation changes
+    Z : numpy.ndarray, size=(m,n), unit={meter}
+        elevation grid
+    RGI : numpy.ndarray, size=(m,n), dtype=int
+        grid with labels of the glacier numbers
+    interval : float, unit=meters
+        interval between elevation bins
+    Z_start : float, unit=meters
+        elevation beginning of the binning
+    Z_stop : float, unit=meters
+        elevation ending of the binning
+
+    Returns
+    -------
+    Mb : numpy.ndarray, size=(k,l), dtype=float
+        hypsometric elevation change
+    rgi : numpy.ndarray, size=(k,), dtype=integer
+        glacier numbering, in descending ordering in relation to its size
+    header : numpy.ndarray, size=(l,), dtype=float, unit=meter
+        elvation binnning of "Mb"
+    """
+
     if Z_start is not None:
         Z = np.maximum(Z, Z_start)
     if Z_stop is not None:
@@ -139,6 +170,13 @@ def mass_changes2specific_glacier_hypsometries(dM, Z, RGI, interval=100,
     f = lambda x: np.quantile(x, 0.5) if x.size>0 else np.nan
     Mb, rgi, z_bin, Count = get_stats_from_labelled_arrays(RGI, Z_bin, dM, f)
 
+    # sort array, so biggest glacier is first
+    new_idx = np.flip(np.argsort(np.sum(Count, axis=1)))
+    rgi = rgi[new_idx]
+    Mb, Count = Mb[new_idx,:], Count[new_idx,:]
+
+
     header = z_bin.astype(float) * interval
+    # np.putmask(Mb, Count==0, np.nan)
     # plt.plot(np.tile(header, (Mb.shape[0],1)).T, Mb.T);
     return Mb, rgi, header

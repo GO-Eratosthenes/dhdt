@@ -317,7 +317,7 @@ Multiple displacement and velocity products over time create redundancy and make
 it possible to apply inversion. This results in harmonised and evenly sampled
 data. Such functions can be found in ``adjustment_geometric_temporal``.
 
-The spatialtemporal coupling of can be found in ``photohypsometric\_tools``
+The spatial-temporal coupling of can be found in ``photohypsometric\_tools``
 
 Further specific application domain functions, that relate to glaciology,
 hydrology, meteorology can be found in the other packages.
@@ -355,26 +355,57 @@ Especially terrain tools based on the elevation model used.
 
 ![Example of shadow refinement (red) starting from an initial shadowing (purple) that is based on an elevation model.](fig/red-snake.pdf){ width=100% }
 
-
-## [auxilary](https://dhdt.readthedocs.io/en/latest/modules.html#auxilary)
-
-CopernicusDEM, Randolph Glacier Inventory, ERA-5
-
-Localization of the glaciers is needed.
-
-The XXX
-
-For the estimation of the refraction, the state of the atmosphere needs to be
-known. Hence, atmospheric variables such as temperature and humidity are XX
+## [auxiliary](https://dhdt.readthedocs.io/en/latest/modules.html#auxiliary)
+The main data source for satellite based geometric information extraction are
+imagery. However, in order to translate such displacements to domain specific
+information, a suit of auxiliary data is needed. Hence function in this folder
+help to fulfil this task, it has the following structure:
 
 ```
-auxilary/
+auxiliary/
 ├── handler_coastal.py
 ├── handler_copernicusdem.py
 ├── handler_era5.py
 ├── handler_mgrs.py
 └── handler_randolph.py
 ```
+
+Discrimination where land and sea are situated in the satellite imagery, is
+provided by functions in [``handler_coastal``](https://dhdt.readthedocs.io/en/latest/modules.html#handle-land-and-sea-regions).
+These functions are based upon the GSHHS dataset, see also [@wessel1996global].
+An almost global coverage of the surface topography is given by the
+CopernicusDEM. Functions for acquiring such data are situated in
+[``handler_copernicusdem``](https://dhdt.readthedocs.io/en/latest/modules.html#handle-copernicusdem).
+For localization of glaciers, the global dataset of the Randolph Glacier
+Inventory is used, see also [@pfeffer2014randolph].
+In [``handler_randolph``](https://dhdt.readthedocs.io/en/latest/modules.html#handle-randolph-glacier-inventory)
+functions to discover the glacier region and download regional polygons are
+situated therein.
+For the estimation of the amount of refraction, the state of the atmosphere
+needs to be known. Hence, atmospheric variables such as temperature and humidity
+need to be extracted for any given place and past time stamp. These variables
+can be extracted from ERA-5 via the Copernicus Climate Data Store. Functions
+to download such variables of interest are given in[``handler_era5``](https://dhdt.readthedocs.io/en/latest/modules.html#module-dhdt.auxilary.handler_era5).
+The wide swath of Sentinel-2 is subdivided into smaller overlapping tiles.
+This tiling system is based upon the MGRS system, functions to work with this
+system are given in [``handler_mgrs``](https://dhdt.readthedocs.io/en/latest/modules).
+
+## [testing](https://dhdt.readthedocs.io/en/latest/modules.html)
+Many functions within the `dhdt` library need internet access or registration in
+order to work. To bypass such inconvenience, the functions in this folder create
+artificial datasets, so debugging and testing is more convenient. The folder has
+the following structure:
+
+```
+testing/
+├── matching_tools.py
+├── mapping_tools.py
+└── terrain_tools.py
+```
+
+Imagery with artificial displacements can be created with ``matching_tools``,
+while artificial terrain and terrain masks are situated in functions given by
+``terrain_tools``.
 
 # Functionality
 
@@ -432,7 +463,7 @@ data [@kaab2008glacier]. Such systems are relatively limited in space, but their
 detailed footprint in the order of tens of meters and their repeated
 overflights make the generated products spatially sparse but consistent.
 Currently, ICESAT-2 is operational and tools for data processing can be found in
-the [icepyx](https://github.com/icesat2py/icepyx) repository.
+the [@scheick2023icepyx] repository.
 
 In the same realm one can use of microwave altimetry can be used for geodetic
 mass balance. Such altimeters have a footprint in the order of kilometers, thus
