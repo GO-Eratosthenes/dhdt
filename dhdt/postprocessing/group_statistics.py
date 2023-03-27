@@ -85,6 +85,36 @@ def get_hypsometric_index(RGI, Z):
     HI = np.divide(stats[:,0]-stats[:,1], denom, where=denom!=0)
     return labels, HI
 
+def get_kurowsky_altitude(RGI, Z):
+    """ get the 'Kurowski’s Schneegrenze' of glaciers based on [Ku91]_.
+
+    Parameters
+    ----------
+    RGI : numpy.ndarray, size=(m,n), unit=meter
+        array with labelled glaciers
+    Z : numpy.ndarray, size=(m,n), unit=meter
+        array with elevation
+
+    Returns
+    -------
+    labels : numpy.ndarray, size=(k,)
+        the RGI ids of the glacier of interest
+    HI : numpy.ndarray, size=(k,)
+        mid-way altitudes of the glaciers given by "labels"
+
+    References
+    ----------
+    .. [Ku91] Kurowski, "Die höhe der schneegrenze mit besonderer
+              berücksichtigung der Finsteraarhorn-gruppe" Pencks geographische
+              abhandlungen vol.5 pp.119–160, 1891.
+    """
+    f = [lambda x: np.nanmax(x),
+         lambda x: np.nanmin(x)]
+
+    labels, stats, _ = get_stats_from_labelled_array(RGI, Z, f)
+    K = np.divide(stats[:,0]+stats[:,1], 2)
+    return labels, K
+
 def get_normalized_hypsometry(RGI, Z, dZ, bins=20):
     """
 
@@ -140,6 +170,7 @@ def get_normalized_hypsometry(RGI, Z, dZ, bins=20):
     hypsometry /= count
     return hypsometry, count
 
+
 def get_general_hypsometry(Z, dZ, interval=100.):
     """ robust estimation of the general hypsometry
 
@@ -172,6 +203,7 @@ def get_general_hypsometry(Z, dZ, interval=100.):
     label, hypsometry, counts = get_stats_from_labelled_array(L, dZ, f)
     label = np.multiply(label.astype(float), interval)
     return label, hypsometry, counts
+
 
 def get_stats_from_labelled_array(L,I,func):
     """ get properties of a labelled array

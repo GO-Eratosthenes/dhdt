@@ -85,3 +85,29 @@ def terrain_aspect_slope(Z, spac=10.):
     Asp = np.arctan2(Z_dy, Z_dx)
     Slp = np.hypot(Z_dy, Z_dx)
     return Asp, Slp
+
+def get_slope_corrected_area(Z, spac=10.):
+    """ take the slope of the surface into account when the area is calculated
+
+    Parameters
+    ----------
+    Z : numpy.ndarray, size=(m,n), unit=meter
+        array with elevation
+    spac : float, unit=meters
+        spacing of the elevation grid
+
+    Returns
+    -------
+    A : numpy.ndarray, size=(m,n), unit=meter
+        array with area values
+
+    References
+    ----------
+    .. [RF81] Rasmussen & Ffolliott, "Surface area corrections applied to a
+              resource map", Water resources bulletin, vol.17(6), pp.1079–1082,
+              1981.
+    """
+    Z_dx, Z_dy = terrain_slope(Z, spac=10.)
+    Slp = np.hypot(Z_dy, Z_dx)
+    A = np.cos(Slp) * spac**2
+    return A
