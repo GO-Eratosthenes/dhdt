@@ -180,3 +180,32 @@ def mass_changes2specific_glacier_hypsometries(dM, Z, RGI, interval=100,
     # np.putmask(Mb, Count==0, np.nan)
     # plt.plot(np.tile(header, (Mb.shape[0],1)).T, Mb.T);
     return Mb, rgi, header
+
+
+def hypsometric_void_interpolation(z, dz, Z, deg=3):
+    """
+
+    Parameters
+    ----------
+    z :  numpy.array, size=(k,), unit=meters
+        binned elevation
+    dz : numpy.array, size=(k,), unit=meters
+        general elevation change of the elevation bin given by 'z'
+    Z : numpy.array, size=(m,n), unit=meters
+        array with elevation
+    deg : integer, {x ∈ ℕ | x ≥ 0}, default=3
+        order of the polynomial
+
+    Returns
+    -------
+    dZ : numpy.array, size=(m,n), unit=meters
+        interpolated elevation change
+
+    References
+    ----------
+    .. [Mc19] McNabb et al. "Sensitivity of glacier volume estimation to DEM
+              void interpolation", The cryosphere, vol.13 pp.895-910, 2019.
+    """
+    f = np.polyfit1d(np.polyfit(z,dz, deg=deg))
+    dZ = f(Z)
+    return dZ

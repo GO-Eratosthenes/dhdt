@@ -42,6 +42,49 @@ def get_midpoint_altitude(RGI, Z, roi=None):
         labels, altitude = np.array([roi]), f(Z[RGI==roi])
     return labels, altitude
 
+def get_hypsometric_index(RGI, Z):
+    """ get the hypsometric index of glaciers based on [Ji09]_.
+
+    Parameters
+    ----------
+    RGI : numpy.ndarray, size=(m,n), unit=meter
+        array with labelled glaciers
+    Z : numpy.ndarray, size=(m,n), unit=meter
+        array with elevation
+
+    Returns
+    -------
+    labels : numpy.ndarray, size=(k,)
+        the RGI ids of the glacier of interest
+    HI : numpy.ndarray, size=(k,)
+        mid-point altitudes of the glaciers given by "labels"
+
+    Notes
+    -----
+    This index can be grouped into five categories:
+        - very top-heavy (HI < –1.5)
+        - top-heavy (–1.5 < HI< -1.2)
+        - through equidimensional (–1.2 < HI< 1.2) to
+        - bottom-heavy (1.2 < HI < 1.5)
+        - very bottom-heavy (H > 1.5)
+
+    References
+    ----------
+    .. [Ji09] Jiskoot, et al. "Changes in Clemenceau Icefield and Chaba Group
+              glaciers, Canada, related to hypsometry, tributary detachment,
+              length–slope and area–aspect relations." Annals of glaciology,
+              vol.50(53) pp.133-143, 2009.
+    """
+
+    f = [lambda x: np.nanmax(x),
+         lambda x: np.nanmedian(x),
+         lambda x: np.nanmin(x)]
+
+    labels, stats, _ = get_stats_from_labelled_array(RGI, Z, f)
+    denom = stats[:,1]-stats[:,2]
+    HI = np.divide(stats[:,0]-stats[:,1], denom, where=denom!=0)
+    return labels, HI
+
 def get_normalized_hypsometry(RGI, Z, dZ, bins=20):
     """
 
@@ -227,31 +270,3 @@ def get_stats_from_labelled_arrays(L1,L2,I,func):
         L[idx, np.searchsorted(labels_2, labels)] = result
         C[idx, np.searchsorted(labels_2, labels)] = counts
     return L, labels_1, labels_2, C
-
-def hypsometeric_void_interpolation(z,dz,Z,deg=3):
-    """
-
-    Parameters
-    ----------
-    z :  numpy.array, size=(k,), unit=meters
-        binned elevation
-    dz : numpy.array, size=(k,), unit=meters
-        general elevation change of the elevation bin given by 'z'
-    Z : numpy.array, size=(m,n), unit=meters
-        array with elevation
-    deg : integer, {x ∈ ℕ | x ≥ 0}, default=3
-        order of the polynomial
-
-    Returns
-    -------
-    dZ : numpy.array, size=(m,n), unit=meters
-        interpolated elevation change
-
-    References
-    ----------
-    .. [Mc19] McNabb et al. "Sensitivity of glacier volume estimation to DEM
-              void interpolation", The cryosphere, vol.13 pp.895-910, 2019.
-    """
-    f = np.polyfit1d(np.polyfit(z,dz, deg=deg))
-    dZ = f(Z)
-    return dZ
