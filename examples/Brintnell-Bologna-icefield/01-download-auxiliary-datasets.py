@@ -12,27 +12,25 @@ from dhdt.auxilary.handler_copernicusdem import make_copDEM_mgrs_tile
 
 
 # Brintnell-Bologna icefield (Northwest Territories)
-LAT = 62.09862204
-LON = -127.9693738
+MGRS_TILE = "09VWJ"
 
 DATA_DIR = "/project/eratosthenes/Data/"
 
 
 def main():
-    aoi = (LAT, LON)
     mgrs_index = download_mgrs_tiling(
-        mgrs_dir=os.path.join(DATA_DIR, "MGRS")
+        tile_dir=os.path.join(DATA_DIR, "MGRS")
     )
     create_rgi_tile_s2(
-        aoi=aoi,
+        MGRS_TILE,
         rgi_dir=os.path.join(DATA_DIR, "RGI"),
-        mgrs_tiling_file=mgrs_index,
+        tile_path=mgrs_index,
     )
-#    make_copDEM_mgrs_tile(
-#        aoi=aoi,
-#        dem_path=os.path.join(DATA_DIR, "DEM"),
-#        mgrs_index=mgrs_index,
-#    )
+    make_copDEM_mgrs_tile(
+        MGRS_TILE,
+        dem_dir=os.path.join(DATA_DIR, "DEM"),
+        tile_path=mgrs_index,
+    )
 
 
 if __name__ == "__main__":
