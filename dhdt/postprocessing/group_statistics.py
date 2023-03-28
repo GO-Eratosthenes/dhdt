@@ -1,6 +1,10 @@
 import numpy as np
 import pandas as pd
 
+from scipy import ndimage
+
+from dhdt.generic.terrain_tools import terrain_slope
+
 def get_midpoint_altitude(RGI, Z, roi=None):
     """ the mid-point altitude is a for the ELA [RB09]_.
 
@@ -278,11 +282,17 @@ def get_stats_from_labelled_arrays(L1,L2,I,func):
         array with the sample size, used to estimate the property given in L
 
     """
-    if type(L1) in (np.ma.core.MaskedArray,):
-        OUT = np.logical_or(L1.mask, L2.mask, I.mask)
-    else:
-        OUT = np.logical_or(np.isnan(L1), np.isnan(L2), np.isnan(I))
-    L1, L2, I = L1.data[~OUT], L2.data[~OUT], I.data[~OUT]
+    def _get_mask_dat(A):
+        Msk = A.mask if type(A) in (np.ma.core.MaskedArray,) else np.isnan(A)
+        Dat = A.data if type(A) in (np.ma.core.MaskedArray,) else A
+        return Dat, Msk
+
+    L1, M1 = _get_mask_dat(L1)
+    L2, M2 = _get_mask_dat(L2)
+    I, M = _get_mask_dat(I)
+    OUT = np.logical_or(M1, M2, M)
+    L1, L2, I = L1[~OUT], L2[~OUT], I[~OUT]
+    del OUT, M1, M2, M
 
     labels_1, indices, counts = np.unique(L1,
         return_counts=True, return_inverse=True)
