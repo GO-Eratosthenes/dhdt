@@ -905,7 +905,7 @@ def get_bbox(geoTransform, rows=None, cols=None):
 
     Returns
     -------
-    bbox : np.array, size=(1,4), dtype=float
+    bbox : np.ndarray, size=(1,4), dtype=float
         bounding box, in the following order: min max X, min max Y
 
     See Also
