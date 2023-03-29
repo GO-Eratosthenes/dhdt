@@ -493,7 +493,8 @@ def update_casted_elevation_pd(dxyt, Z, geoTransform):
     # get elevation of the caster locations
     for i in range(2):
         x_str, y_str, z_str = 'X_'+str(i+1), 'Y_'+str(i+1), 'Z_'+str(i+1)
-        i_im, j_im = map2pix(geoTransform, dxyt[x_str], dxyt[y_str])
+        i_im, j_im = map2pix(geoTransform,
+                             dxyt[x_str].to_numpy(), dxyt[y_str].to_numpy())
         dh_Z = bilinear_interpolation(Z, i_im, j_im)
         if not z_str in dxyt.columns: dxyt[z_str] = None
         dxyt.loc[:,z_str] = dh_Z
@@ -535,7 +536,8 @@ def update_glacier_id_pd(dh, R, geoTransform):
     assert np.all([header in dh.columns for header in
                    ('casted_X', 'casted_Y')])
     # get elevation of the caster locations
-    i_im, j_im = map2pix(geoTransform, dh['caster_X'], dh['caster_Y'])
+    i_im, j_im = map2pix(geoTransform,
+                         dh['caster_X'].to_numpy(), dh['caster_Y'].to_numpy())
     rgi_id = simple_nearest_neighbor(R, i_im, j_im).astype(int)
     if not 'glacier_id' in dh.columns: dh['glacier_id'] = None
     dh.loc[:,'glacier_id'] = rgi_id

@@ -216,7 +216,6 @@ def map2pix(geoTransform, x, y):
 
     """
     geoTransform = correct_geoTransform(geoTransform)
-
     if type(x) in (np.ma.core.MaskedArray, np.ndarray):
         are_two_arrays_equal(x, y)
     else: # if only a float is given
