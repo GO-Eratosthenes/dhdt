@@ -63,7 +63,11 @@ def update_glacier_mask(Z, R, iter=50, curv_max=2.):
 def _create_ela_grid(R, r_id, ela):
     lookup = np.empty((np.max(r_id) + 1), dtype=int)
     lookup[r_id] = np.arange(len(r_id))
-    indices = lookup[R]
+    if type(R) in (np.ma.core.MaskedArray,):
+        np.putmask(R.data, R.mask, 0)
+        indices = np.take(lookup, R.data)
+    else:
+        indices = lookup[R]
     ELA = ela[indices]
     np.putmask(ELA, indices==0, np.nan)
     return ELA

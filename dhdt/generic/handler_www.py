@@ -13,6 +13,21 @@ import warnings
 # geospatial libaries
 from osgeo import gdal
 
+def _check_surfdrive(url):
+    """
+    SURFdrive URLs on SURFsharekit pages point to HTML pages, and
+    need '/download' attached at the end of their path.
+    """
+    if ('surfdrive.surf.nl' in url) and not (url.endswith('/download')):
+        return '{}/download'.format(url)
+
+    return url
+
+def get_file_name_of_url_without_extension(url):
+    req = urllib.request.Request(url, method='HEAD')
+    r = urllib.request.urlopen(req)
+    file_name = r.info().get_filename()
+    return file_name
 
 def get_file_from_ftps(url, user, password,
                        file_path, file_name, dump_dir=os.getcwd()):
@@ -68,10 +83,15 @@ def get_file_from_www(full_url, dump_dir=os.getcwd(), overwrite=False):
     assert isinstance(full_url, str), 'please provide a string'
     assert isinstance(dump_dir, str), 'please provide a string'
 
-    file_name = full_url.split('/')[-1]
+    file_name = os.path.basename(full_url)
+    if '.' not in file_name:
+        full_url = _check_surfdrive(full_url)
+        file_name = get_file_name_of_url_without_extension(full_url)
+
     file_path = os.path.join(dump_dir, file_name)
 
     if not os.path.isfile(file_path) or overwrite:
+        full_url = _check_surfdrive(full_url)
         assert url_exist(full_url), f"Non-existing URL: {full_url}"
         os.makedirs(dump_dir, exist_ok=True)
         # download data
@@ -102,7 +122,7 @@ def get_file_from_protected_www(full_url, dump_dir=os.getcwd(),
     assert password is not None, 'please provide a password'
     if not os.path.isdir(dump_dir): os.makedirs(dump_dir)
 
-    file_name = full_url.split('/')[-1]
+    file_name = os.path.basename(full_url)
     with requests.Session() as session:
         r1 = session.request('get', full_url)
         r = session.get(r1.url, auth=(user, password))

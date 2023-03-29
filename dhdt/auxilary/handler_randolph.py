@@ -191,7 +191,6 @@ def download_rgi(aoi=None, version=7, rgi_dir=None, tile_path=None,
     - AOI : area of interest
     """
     rgi_dir = RGI_DIR_DEFAULT if rgi_dir is None else rgi_dir
-    assert os.path.isdir(rgi_dir), 'folder does not seem to exist'
 
     # download region index
     index_url = RGI_DATASETS[version]['index_url']
@@ -300,7 +299,6 @@ def create_rgi_tile_s2(
     """
     rgi_dir = RGI_DIR_DEFAULT if rgi_dir is None else rgi_dir
     out_dir = rgi_dir if out_dir is None else out_dir
-    assert os.path.isdir(rgi_dir), 'folder does not seem to exist'
 
     # search in which region the glacier is situated, and download its
     # geometric data, if this in not present on the local machine
