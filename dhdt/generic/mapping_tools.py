@@ -1212,7 +1212,7 @@ def make_same_size(Old,geoTransform_old, geoTransform_new, rows_new, cols_new):
 
 def create_offset_grid(I, dx, dy, geoTransform):
     geoTransform = correct_geoTransform(geoTransform)
-    are_two_arrays_equal(dx, dy)
+    dx, dy = correct_floating_parameter(dx), correct_floating_parameter(dy)
     di, dj = vel2pix(geoTransform, dx, dy)
     if len(geoTransform)==8: # sometimes the image dimensions are also included
         mI, nI = geoTransform[-2], geoTransform[-1]
