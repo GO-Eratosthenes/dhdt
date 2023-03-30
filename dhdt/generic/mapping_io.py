@@ -11,7 +11,9 @@ from osgeo import gdal, osr, ogr
 from xml.etree import ElementTree
 from netCDF4 import Dataset, date2num
 
+from dhdt.__version__ import __version__
 from dhdt.generic.unit_check import correct_geoTransform, is_crs_an_srs
+from dhdt.generic.unit_conversion import deg2compass
 from dhdt.generic.mapping_tools import pix_centers
 from dhdt.testing.mapping_tools import create_local_crs
 
@@ -147,6 +149,12 @@ def read_nc_image(fname, layer_name):
     targetprj = osr.SpatialReference(wkt=ds.GetProjection())
     return data, spatialRef, geoTransform, targetprj
 
+def _correct_sun_angle_string(sun_angles):
+    if isinstance(sun_angles, list):
+        sun_angles[0] = deg2compass(sun_angles[0])
+        sun_angles = f'az:{int(sun_angles[0]):03d}-zn:{int(sun_angles[1]):02d}'
+    return sun_angles
+
 # output functions
 def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes',
                 no_dat=np.nan, sun_angles='az:360-zn:90',
@@ -168,7 +176,7 @@ def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes',
     sun_angles : string
         string giving meta data about the illumination angles
     date_created : string
-        string given the acquistion date in YYYY-MM-DD
+        string given the acquistion date in +YYYY-MM-DD
 
     Examples
     --------
@@ -184,6 +192,8 @@ def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes',
     if crs is None: crs = create_local_crs()
     if not isinstance(crs, str): crs = crs.ExportToWkt()
     R = correct_geoTransform(R)
+    sun_angles = _correct_sun_angle_string(sun_angles)
+
     bands = I.shape[2] if I.ndim == 3 else 1
 
     drv = gdal.GetDriverByName("GTiff")  # export image
@@ -205,7 +215,7 @@ def make_geo_im(I, R, crs, fName, meta_descr='project Eratosthenes',
                                                "PREDICTOR=" + predictor])
 
     # set metadata in datasource
-    ds.SetMetadata({'TIFFTAG_SOFTWARE':'dhdt v0.1',
+    ds.SetMetadata({'TIFFTAG_SOFTWARE':'dhdt v' + __version__,
                     'TIFFTAG_ARTIST':'bas altena and team Atlas',
                     'TIFFTAG_COPYRIGHT': 'contains modified Copernicus data',
                     'TIFFTAG_IMAGEDESCRIPTION': meta_descr,

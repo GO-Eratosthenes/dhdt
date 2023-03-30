@@ -78,7 +78,7 @@ def online_F_test(y_ol):
     F = np.divide(max_s, min_s)
     return F
 
-def make_2D_Gaussian(size, fwhm=3):
+def make_2D_Gaussian(size, fwhm=3.):
     r"""make a 2D Gaussian kernel.
     
     find slope of the phase plane through 
@@ -110,7 +110,7 @@ def make_2D_Gaussian(size, fwhm=3):
     
     x = np.linspace(-(size[0]-1)/2,+(size[0]-1)/2, size[0], float)
     y = np.linspace(-(size[1]-1)/2,+(size[1]-1)/2, size[0], float)
-    y = np.atleast_2d(y)
+    y = y[:,np.newaxis]
     M = np.exp(-4*np.log(2) * (x**2 + y**2) / fwhm**2)
     return M
 

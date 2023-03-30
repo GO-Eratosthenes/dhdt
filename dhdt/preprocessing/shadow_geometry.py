@@ -250,7 +250,7 @@ def find_valley(values, base, neighbors=2):
     quantiles = cumsum_norm[selec]
     return dips, quantiles
 
-def shadow_image_to_suntrace_list(M, geoTransform, Az, method='nearest'):
+def shadow_image_to_suntrace_list(M, geoTransform, az, method='nearest'):
     """ given an mask, compute the suntraces with caster and casted locations
 
     Parameters
@@ -259,7 +259,7 @@ def shadow_image_to_suntrace_list(M, geoTransform, Az, method='nearest'):
         grid with a shadow classification
     geoTransform : tuple, size={(1,6), (1,8)}
         affine transformation coefficients
-    Az : float, unit=degrees
+    az : float, unit=degrees
         argument of the illumination
     method : string, default='nearest'
         interpolation of the, the following are implemented:
@@ -280,17 +280,17 @@ def shadow_image_to_suntrace_list(M, geoTransform, Az, method='nearest'):
     else:
         spl_order = 3
     # turn towards the sun
-    M_rot = ndimage.rotate(M.astype(float), 180-Az,
+    M_rot = ndimage.rotate(M.astype(float), 180-az,
                            axes=(1, 0), reshape=True, output=None,
                            order=spl_order, mode='constant', cval=-9999)
 
     # neither ndimage or transform.warp gives the new coordinate system.
     # hence, clumsy interpolation of the grid is applied here
     X,Y = pix_centers(geoTransform, M.shape[0], M.shape[1], make_grid=True)
-    X_rot = ndimage.rotate(X, 180-Az,
+    X_rot = ndimage.rotate(X, 180-az,
                            axes=(1, 0), reshape=True, output=None,
                            order=spl_order, mode='constant', cval=X[0,0])
-    Y_rot = ndimage.rotate(Y, 180-Az,
+    Y_rot = ndimage.rotate(Y, 180-az,
                            axes=(1, 0), reshape=True, output=None,
                            order=spl_order, mode='constant', cval=-9999)
 
@@ -314,7 +314,7 @@ def shadow_image_to_suntrace_list(M, geoTransform, Az, method='nearest'):
         shade_node = np.roll(shade_exten, 1)-shade_exten
 
         # (col_idx, ) = np.where(IN)
-        if -90<Az<90:
+        if -90<az<90:
             (shade_beg, ) = np.where(shade_node[1::]==-1)
             (shade_end, ) = np.where(shade_node[2::]==+1)
         else:

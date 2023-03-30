@@ -1,11 +1,13 @@
 import numpy as np
 
-from ..generic.filtering_statistical import make_2D_Gaussian
-from ..generic.handler_im import \
+from scipy import ndimage
+
+from dhdt.generic.filtering_statistical import make_2D_Gaussian
+from dhdt.generic.handler_im import \
     bilinear_interpolation
-from ..generic.mapping_tools import create_offset_grid, vel2pix
-from ..processing.matching_tools import pad_radius
-from .shadow_geometry import estimate_surface_normals
+from dhdt.generic.mapping_tools import create_offset_grid, vel2pix
+from dhdt.processing.matching_tools import pad_radius
+from dhdt.preprocessing.shadow_geometry import estimate_surface_normals
 
 def slope_along_perp(Z, Az, spac=10):
     """ get the slope of the terrain along a specific direction
@@ -211,7 +213,7 @@ def get_template_aspect_slope(Z,i_samp,j_samp,t_size,spac=10.):
 
     Slope = np.zeros_like(i_samp, dtype=np.float64)
     Aspect = np.zeros_like(i_samp, dtype=np.float64)
-    for idx_ij, val_i in enumerate(i_samp.flatten()):
+    for idx_ij,_ in enumerate(i_samp.flatten()):
         idx_i, idx_j = np.unravel_index(idx_ij, i_samp.shape, order='C')
         i_min = i_samp[idx_i, idx_j] - t_rad + 0
         j_min = j_samp[idx_i, idx_j] - t_rad + 0
@@ -220,17 +222,12 @@ def get_template_aspect_slope(Z,i_samp,j_samp,t_size,spac=10.):
 
         n_sub = Normal[i_min:i_max, j_min:j_max]
         # estimate mean surface normal
-        try:
-            slope_bar = np.arccos(np.sum(n_sub[...,-1] * kernel))  # slope
-            aspect_bar = np.arctan2(np.sum(n_sub[..., 0] * kernel),
-                                    np.sum(n_sub[..., 1] * kernel))
-        except:
-            breakpoint
+        slope_bar = np.arccos(np.sum(n_sub[...,-1] * kernel))  # slope
+        aspect_bar = np.arctan2(np.sum(n_sub[..., 0] * kernel),
+                                np.sum(n_sub[..., 1] * kernel))
         Slope[idx_i, idx_j] = np.degrees(slope_bar)
         Aspect[idx_i, idx_j] = np.degrees(aspect_bar)
     return Slope, Aspect
-
-#todo:
 
 def get_template_acquisition_angles(Az,Zn,Det,i_samp,j_samp,t_size):
     """
