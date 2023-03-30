@@ -1,11 +1,6 @@
 import numpy as np
 
-from pysolar.solar import get_azimuth, get_altitude
-from pysolar.radiation import get_radiation_direct
 from datetime import datetime, timedelta
-from pytz import timezone
-
-from scipy import ndimage
 
 from ..generic.unit_conversion import doy2dmy, deg2arg
 from ..generic.data_tools import estimate_sinus

@@ -21,6 +21,3 @@ prerequisites
 * `scipy <https://scipy.org>`_ generic data analytics functions library
 * `Pillow <https://python-pillow.org>`_ is a wrapper used for raster manipulation
 * `shapely <https://github.com/shapely/shapely>`_ a package used for vector manipulation
-* `statsmodels <https://www.statsmodels.org>`_ is used for filtering data
-* `pytz <https://pythonhosted.org/pytz/>`_ which is used for time zones
-* `pysolar <https://pysolar.org>`_ is a collection of libraries used for irradiance calculations

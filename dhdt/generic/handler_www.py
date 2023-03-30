@@ -6,7 +6,6 @@ import zipfile
 import bz2
 import urllib.request
 
-import ftps # for Copernicus FTP-download
 import requests # for NASA Earthdata Login
 import warnings
 
@@ -28,35 +27,6 @@ def get_file_name_of_url_without_extension(url):
     r = urllib.request.urlopen(req)
     file_name = r.info().get_filename()
     return file_name
-
-def get_file_from_ftps(url, user, password,
-                       file_path, file_name, dump_dir=os.getcwd()):
-    """ Downloads a file from a ftps-server
-
-    Paramters
-    ---------
-    url : string
-        server address
-    user : string
-        username
-    password : string
-        password for access
-    file_path : string
-        location on the server
-    file_name : string
-        name of the file
-    dump_dir : string
-        path to place the content
-    """
-    if dump_dir[-1]!=os.sep:
-        dump_dir += os.sep
-    if not os.path.isdir(dump_dir): os.makedirs(dump_dir)
-
-    client = ftps.FTPS('ftps://' +user+ ':' +password+ '@' +url)
-    client.list()
-    client.download( os.path.join(file_path, file_name),
-                     os.path.join(dump_dir, file_name))
-    return
 
 
 def get_file_from_www(full_url, dump_dir=os.getcwd(), overwrite=False):

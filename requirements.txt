@@ -1,6 +1,4 @@
 geopandas
-pytz
-pysolar
 pygrib
 numpy
 rasterio
@@ -12,6 +10,5 @@ scikit-learn
 scipy
 Pillow
 shapely>=2
-statsmodels
 affine
 pyproj

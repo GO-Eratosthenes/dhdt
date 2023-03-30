@@ -9,7 +9,6 @@ import rioxarray
 import shapely.geometry
 import shapely.ops
 
-from rioxarray.merge import merge_arrays
 from rasterio.enums import Resampling
 from affine import Affine
 

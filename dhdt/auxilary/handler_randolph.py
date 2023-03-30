@@ -5,7 +5,6 @@ import affine
 import geopandas as gpd
 import pandas as pd
 import rasterio.features
-import rioxarray
 import shapely.geometry
 import xarray as xr
 
