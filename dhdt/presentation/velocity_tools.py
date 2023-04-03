@@ -2,11 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from PIL import Image
+from scipy import ndimage
 
-from ..generic.handler_im import bilinear_interpolation
-from ..generic.mapping_tools import vel2pix
-from ..testing.matching_tools import construct_correlation_peak
-from ..generic.gis_tools import polylines2shapefile
+from dhdt.generic.handler_im import bilinear_interpolation
+from dhdt.generic.mapping_tools import vel2pix
+from dhdt.testing.matching_tools import construct_correlation_peak
+from djdt.generic.gis_tools import polylines2shapefile
 
 def make_seeds(Msk, n=1E2):
     if not np.any(Msk):
@@ -20,8 +21,8 @@ def make_seeds(Msk, n=1E2):
     return i_samp, j_samp
 
 def propagate_seeds(V_i, V_j, i, j):
-    i += bilinear_interpolation(V_i, i, j)
-    j += bilinear_interpolation(V_j, i, j)
+    i += ndimage.map_coordinates(V_i, [i, j], order=1, mode='mirror')
+    j += ndimage.map_coordinates(V_j, [i, j], order=1, mode='mirror')
     return i, j
 
 def flow_anim(V_x, V_y, geoTransform, M=np.array([]),

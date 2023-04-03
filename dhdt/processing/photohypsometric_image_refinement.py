@@ -3,13 +3,11 @@ import os
 import numpy as np
 import pandas
 
-from scipy.optimize import curve_fit
-from scipy.interpolate import CubicSpline
-from skimage.filters import threshold_otsu
+from scipy import ndimage
 
 from ..generic.debugging import loggg
 from ..generic.mapping_tools import get_max_pixel_spacing, map2pix
-from ..generic.handler_im import bilinear_interpolation, simple_nearest_neighbor
+from ..generic.handler_im import simple_nearest_neighbor
 from ..generic.data_tools import \
     four_pl_curve, logit, hough_transf, logit_weighting
 from ..generic.unit_check import are_two_arrays_equal
@@ -94,7 +92,8 @@ def refine_cast_location(I, M, geoTransform, x_casted, y_casted, azimuth,
     line_y = np.cos(az_rad)*rng + y_casted
 
     line_i, line_j = map2pix(geoTransform, line_x, line_y)
-    line_I = bilinear_interpolation(I, line_i, line_j)
+    line_I = ndimage.map_coordinates(I, [line_i, line_j],
+                                     order=1, mode='mirror')
     line_M = simple_nearest_neighbor(M.astype(int), line_i, line_j)
     local_x = np.arange(samples)
 

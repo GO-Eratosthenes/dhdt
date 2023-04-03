@@ -99,7 +99,7 @@ def get_ortho_offset(Z, dx, dy, obs_az, obs_zn, geoTransform):
 
     """
     I_grd, J_grd = create_offset_grid(Z, dx, dy, geoTransform)
-    Z_dij = bilinear_interpolation(Z, I_grd, J_grd)
+    Z_dij = ndimage.map_coordinates(Z, [I_grd, J_grd], order=1, mode='mirror')
 
     # estimate elevation change due to miss-registration
     dZ = Z-Z_dij
@@ -145,11 +145,13 @@ def compensate_ortho_offset(I, Z, dx, dy, obs_az, obs_zn, geoTransform):
     I_grd, J_grd = np.meshgrid(np.linspace(0, mI-1, mI),
                                np.linspace(0, nI-1, nI), indexing='ij')
 
-    I_warp = bilinear_interpolation(I, I_grd+dI, J_grd+dJ)
+    I_warp = ndimage.map_coordinates(I, [I_grd+dI, J_grd+dJ],
+                                     order=1, mode='mirror')
     del I # sometime the files are very big, so memory is emptied
     # remove registration mismatch
     dI, dJ = vel2pix(geoTransform, dx, dy)
-    I_cor = bilinear_interpolation(I_warp, dI, dJ)
+    I_cor = ndimage.map_coordinates(I_warp, [dI, dJ],
+                                    order=1, mode='mirror')
     return I_cor
 
 def get_template_aspect_slope(Z,i_samp,j_samp,t_size,spac=10.):

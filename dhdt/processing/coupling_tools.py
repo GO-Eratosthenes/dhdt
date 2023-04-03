@@ -11,13 +11,13 @@ import pandas as pd
 from numpy.lib.recfunctions import stack_arrays, merge_arrays
 
 from sklearn.neighbors import NearestNeighbors
-from scipy.spatial.distance import cdist
+from scipy import ndimage
 
 from dhdt.generic.unit_check import correct_geoTransform
 from dhdt.generic.mapping_tools import pix2map, ref_trans, \
     aff_trans_template_coord
 from dhdt.generic.mapping_io import read_geo_image, read_geo_info
-from dhdt.generic.handler_im import bilinear_interpolation, select_boi_from_stack
+from dhdt.generic.handler_im import select_boi_from_stack
 from dhdt.input.read_sentinel2 import \
     get_local_bbox_in_s2_tile
 from dhdt.processing.matching_tools import \
@@ -905,10 +905,14 @@ def match_shadow_casts(M1, M2, L1, L2, geoTransform1, geoTransform2,
             X_aff, Y_aff = aff_trans_template_coord(A_inv, search_radius,
                                                     fourier=False)
 
-        M1_sub = bilinear_interpolation(M1, i1[idx]+Y_one, j1[idx]+X_one)
-        L1_sub = bilinear_interpolation(L1, i1[idx]+Y_one, j1[idx]+X_one)
-        M2_sub = bilinear_interpolation(M2, i2[idx]+Y_aff, j2[idx]+X_aff)
-        L2_sub = bilinear_interpolation(L2, i2[idx]+Y_aff, j2[idx]+X_aff)
+        M1_sub = ndimage.map_coordinates(M1, [i1[idx]+Y_one, j1[idx]+X_one],
+                                         order=1, mode='mirror')
+        L1_sub = ndimage.map_coordinates(L1, [i1[idx]+Y_one, j1[idx]+X_one],
+                                         order=1, mode='mirror')
+        M2_sub = ndimage.map_coordinates(M2, [i2[idx]+Y_aff, j2[idx]+X_aff],
+                                         order=1, mode='mirror')
+        L2_sub = ndimage.map_coordinates(L2, [i2[idx]+Y_aff, j2[idx]+X_aff],
+                                         order=1, mode='mirror')
 
         if correlator in ['aff_of']:
             (di,dj,Aff,snr) = affine_optical_flow(M1_sub, M2_sub)

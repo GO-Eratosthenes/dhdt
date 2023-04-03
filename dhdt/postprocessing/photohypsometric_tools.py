@@ -5,12 +5,11 @@ import warnings
 import numpy as np
 import pandas as pd
 from numpy.lib.recfunctions import stack_arrays, merge_arrays
-from scipy import sparse
+from scipy import ndimage
 
 from ..generic.debugging import loggg
 from ..generic.mapping_tools import map2pix, pix2map
-from ..generic.handler_im import \
-    bilinear_interpolation, simple_nearest_neighbor
+from ..generic.handler_im import simple_nearest_neighbor
 from ..processing.coupling_tools import \
     pair_posts, merge_ids, get_elevation_difference, angles2unit
 from ..processing.matching_tools import remove_posts_pairs_outside_image
@@ -430,7 +429,7 @@ def update_caster_elevation_pd(dh, Z, geoTransform):
                    ('caster_X', 'caster_Y')])
     # get elevation of the caster locations
     i_im, j_im = map2pix(geoTransform, dh['caster_X'], dh['caster_Y'])
-    dh_Z = bilinear_interpolation(Z, i_im, j_im)
+    dh_Z = ndimage.map_coordinates(Z, [I_im, J_im], order=1, mode='mirror')
     if not 'caster_Z' in dh.columns: dh['caster_Z'] = None
     dh.loc[:,'caster_Z'] = dh_Z
     return dh
@@ -495,7 +494,7 @@ def update_casted_elevation_pd(dxyt, Z, geoTransform):
         x_str, y_str, z_str = 'X_'+str(i+1), 'Y_'+str(i+1), 'Z_'+str(i+1)
         i_im, j_im = map2pix(geoTransform,
                              dxyt[x_str].to_numpy(), dxyt[y_str].to_numpy())
-        dh_Z = bilinear_interpolation(Z, i_im, j_im)
+        dh_Z = ndimage.map_coordinates(Z, [i_im, j_im], order=1, mode='mirror')
         if not z_str in dxyt.columns: dxyt[z_str] = None
         dxyt.loc[:,z_str] = dh_Z
     return dxyt
@@ -844,11 +843,12 @@ def get_hypsometric_elevation_change_rec(dxyt, Z=None, geoTransform=None):
     i_1,j_1 = map2pix(geoTransform, dxyt['X_1'], dxyt['Y_1'])
     i_2,j_2 = map2pix(geoTransform, dxyt['X_2'], dxyt['Y_2'])
 
-    Z_1 = bilinear_interpolation(Z, i_1, j_1),
-    Z_2 = bilinear_interpolation(Z, i_2, j_2)
+    Z_1 = ndimage.map_coordinates(Z, [i_1, j_1], order=1, mode='mirror')
+    Z_2 = ndimage.map_coordinates(Z, [i_2, j_2], order=1, mode='mirror')
 
     # calculate mid point elevation
-    Z_12 = bilinear_interpolation(Z, (i_1+i_2)/2, (j_1+j_2)/2)
+    Z_12 = ndimage.map_coordinates(Z, [(i_1+i_2)/2, (j_1+j_2)/2],
+                                   order=1, mode='mirror')
 
     dZ = np.squeeze(Z_1) - np.squeeze(Z_2)
     dz_12 = dxyt['dH_12'] - dZ
@@ -863,11 +863,12 @@ def get_hypsometric_elevation_change_np(dxyt, Z=None, geoTransform=None):
     i_1,j_1 = map2pix(geoTransform, dxyt[:,0], dxyt[:,1])
     i_2,j_2 = map2pix(geoTransform, dxyt[:,3], dxyt[:,4])
 
-    Z_1 = bilinear_interpolation(Z, i_1, j_1),
-    Z_2 = bilinear_interpolation(Z, i_2, j_2)
+    Z_1 = ndimage.map_coordinates(Z, [i_1, j_1], order=1, mode='mirror')
+    Z_2 = ndimage.map_coordinates(Z, [i_2, j_2], order=1, mode='mirror')
 
     # calculate mid point elevation
-    Z_12 = bilinear_interpolation(Z, (i_1+i_2)/2, (j_1+j_2)/2)
+    Z_12 = ndimage.map_coordinates(Z, [(i_1+i_2)/2, (j_1+j_2)/2],
+                                   order=1, mode='mirror')
 
     dZ = np.squeeze(Z_1) - np.squeeze(Z_2)
     dz_12 = dxyt[:,-1] - dZ
@@ -881,13 +882,13 @@ def get_hypsometric_elevation_change_pd(dxyt, Z=None, geoTransform=None):
     if 'Z_1' not in dxyt.columns:
         i_1,j_1 = map2pix(geoTransform,
                           dxyt['X_1'].to_numpy(), dxyt['Y_1'].to_numpy())
-        Z_1 = bilinear_interpolation(Z, i_1, j_1)
+        Z_1 = ndimage.map_coordinates(Z, [i_1, j_1], order=1, mode='mirror')
     else:
         Z_1 = dxyt['Z_1'].to_numpy()
     if 'Z_2' not in dxyt.columns:
         i_2,j_2 = map2pix(geoTransform,
                           dxyt['X_2'].to_numpy(), dxyt['Y_2'].to_numpy())
-        Z_2 = bilinear_interpolation(Z, i_2, j_2)
+        Z_2 = ndimage.map_coordinates(Z, [i_2, j_2], order=1, mode='mirror')
     else:
         Z_2 = dxyt['Z_2'].to_numpy()
 
@@ -895,7 +896,8 @@ def get_hypsometric_elevation_change_pd(dxyt, Z=None, geoTransform=None):
         Z_12 = (Z_1+Z_2)/2
     else:
         # calculate mid point elevation
-        Z_12 = bilinear_interpolation(Z, (i_1+i_2)/2, (j_1+j_2)/2)
+        Z_12 = ndimage.map_coordinates(Z, [(i_1 + i_2) / 2, (j_1 + j_2) / 2],
+                                       order=1, mode='mirror')
 
     dZ = np.squeeze(Z_1) - np.squeeze(Z_2)
     dz_12 = dxyt['dH_12'] - dZ
