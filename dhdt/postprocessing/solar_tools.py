@@ -2,9 +2,9 @@ import numpy as np
 
 from datetime import datetime, timedelta
 
-from ..generic.unit_conversion import doy2dmy, deg2arg
-from ..generic.data_tools import estimate_sinus
-from ..generic.mapping_tools import get_mean_map_lat_lon, get_max_pixel_spacing
+from dhdt.generic.unit_conversion import doy2dmy, deg2arg
+from dhdt.generic.data_tools import estimate_sinus
+from dhdt.generic.mapping_tools import get_mean_map_lat_lon, get_max_pixel_spacing
 
 # general location functions
 def az_to_sun_vector(az, indexing='ij'):
