@@ -12,6 +12,8 @@ Pillow
 pandas
 pygrib
 pyproj
+pystac
+pystac-client
 random
 rasterio
 rioxarray
