@@ -47,7 +47,7 @@ def main():
     scenes_L1C = api.query(
         platformname="Sentinel-2",
         producttype="S2MSI1C",
-        tileid=MGRS_TILE,
+        raw=f'tileid:{MGRS_TILE} OR filename:*_T{MGRS_TILE}_*',
         date=toi,
         cloudcoverpercentage=(0, 70),
     )

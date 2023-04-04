@@ -1152,16 +1152,17 @@ def find_overlapping_DEM_tiles(dem_path,dem_file, poly_tile):
 
     return url_list
 
-def make_same_size(Old,geoTransform_old, geoTransform_new, rows_new, cols_new):
+def make_same_size(Old,geoTransform_old, geoTransform_new,
+                   rows_new=None, cols_new=None):
     """ clip array to the same size as another array
 
     Parameters
     ----------
     Old : np.array, size=(m,n), dtype={float,complex}
         data array to be clipped.
-    geoTransform_new : tuple, size=(6,1)
+    geoTransform_old : tuple, size={(6,), (8,)}
         georeference transform of the old image.
-    geoTransform_new : tuple, size=(6,1)
+    geoTransform_new : tuple, size={(6,), (8,)}
         georeference transform of the new image.
     rows_new : integer, {x ∈ ℕ | x ≥ 0}
         amount of rows of the new image.
@@ -1175,6 +1176,9 @@ def make_same_size(Old,geoTransform_old, geoTransform_new, rows_new, cols_new):
     """
     geoTransform_old = correct_geoTransform(geoTransform_old)
     geoTransform_new = correct_geoTransform(geoTransform_new)
+
+    if len(geoTransform_new)==8:
+        rows_new, cols_new = geoTransform_new[-2], geoTransform_new[-1]
 
     # look at upper left coordinate
     dj = np.round((geoTransform_new[0]-geoTransform_old[0])/geoTransform_new[1])

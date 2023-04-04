@@ -1,7 +1,7 @@
 affine
 cdsapi
 datetime
-dotenv
+fnmatch
 geopandas
 glob
 netCDF4

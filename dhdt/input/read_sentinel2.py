@@ -20,7 +20,7 @@ from scipy.signal import convolve2d
 from dhdt.generic.handler_sentinel2 import get_s2_dict
 from dhdt.generic.handler_xml import get_array_from_xml, get_root_of_table
 from dhdt.generic.mapping_tools import \
-    map2pix, ecef2map, ecef2llh, get_bbox, pol2xyz
+    map2pix, ecef2map, ecef2llh, get_bbox, pol2xyz, make_same_size
 from dhdt.generic.mapping_io import read_geo_image, read_geo_info
 
 def list_central_wavelength_msi():
@@ -1166,10 +1166,12 @@ def read_detector_mask(path_meta, boi, geoTransform):
         else:
             im_meta = f_meta[:-3]+'jp2'
             assert os.path.isfile(im_meta), ('gml and jp2 file not present')
-            msk = read_geo_image(im_meta)[0]
+            msk,_,mskTransform,_ = read_geo_image(im_meta)
             if det_stack is None:
                 det_stack = np.zeros((*msk.shape[:2], len(boi)), dtype='int8')
-            det_stack[...,i] = msk
+            if mskTransform!=geoTransform:
+                msk = make_same_size(msk,mskTransform, geoTransform)
+            det_stack[..., i] = msk
 
     det_stack = np.ma.array(det_stack, mask=det_stack==0)
     return det_stack

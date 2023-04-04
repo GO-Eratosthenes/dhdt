@@ -102,8 +102,6 @@ def read_geo_image(fname, boi=np.array([]), no_dat=None):
     
     >>> I_ones = np.zeros(I.shape, dtype=bool)
     >>> make_geo_im(I_ones, geoTransformM, spatialRefM, "ones.tif")
-    assert os.path.exists(fname), ('file must exist')
-
     """
     assert os.path.isfile(fname), ('file does not seem to be present')
 

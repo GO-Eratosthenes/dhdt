@@ -35,16 +35,20 @@ def zonal_harmonic_coeff():
     J2 = 0.00108263
     return J2
 
+def gravitational_constant():
+    g = 9.80665
+    return g
+
 def standard_gravity():
     """
-    provide value for the gravity of the Earth
+    provide value for the standard gravitational parameter of the Earth
 
     Returns
     -------
-    mu : float, unit: m * s**-2
+    mu : float, unit: m**3 * s**-2
         standard gravity
     """
-    mu = 9.80665
+    mu = 3.986004418E14
     return mu
 
 def mean_motion(mu, a):
@@ -247,6 +251,7 @@ def remap_observation_angles(Ltime, lat, lon, radius, inclination, period,
 
         for cnt, sca in enumerate(combos[doi,1]):
             IN = det_stack[...,idx]==sca
+            if not np.any(IN): continue
             dX, dY = X_grd[IN]-geoTransform[0], geoTransform[3]-Y_grd[IN]
 
             # time stamps
@@ -473,7 +478,7 @@ def time_fitting(Ltime, Az, Zn, bnd, det, X, Y, geoTransform):
 
 def orbital_fitting(Sat, Gx, lat=None, lon=None, radius=None, inclination=None,
                     period=None, sat_dict=None,
-                    convtol = 0.001, orbtol=1.0, maxiter=20):
+                    convtol = 0.001, orbtol=1.0, maxiter=20, printing=False):
     """
 
     Parameters
@@ -509,7 +514,8 @@ def orbital_fitting(Sat, Gx, lat=None, lon=None, radius=None, inclination=None,
         if 'altitude' in sat_dict:
             radius = major_axis + np.mean(sat_dict['altitude'])
         else:
-            breakpoint
+            radius = np.cbrt(np.divide(period, 2*np.pi)**2 * \
+                             standard_gravity())
 
     if (lat is None) or (lon is None):
         V_dist = np.sqrt( radius**2 +
@@ -590,8 +596,9 @@ def orbital_fitting(Sat, Gx, lat=None, lon=None, radius=None, inclination=None,
         X_0[3] *= radius
         orbrss = np.linalg.norm(X_0)
         counter += 1
-        print('RMS Orbit Fit (meters): ', orbrss)
-        print('RMS Time Fit (seconds): ', rmstime)
+        if printing:
+            print('RMS Orbit Fit (meters): ', orbrss)
+            print('RMS Time Fit (seconds): ', rmstime)
     lat_bar, lon_bar = np.rad2deg(lat_bar[0]), np.rad2deg(lon_bar[0])
     return Ltime, lat_bar, lon_bar, radius, inclination, period
 
