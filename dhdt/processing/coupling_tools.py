@@ -32,6 +32,31 @@ from dhdt.processing.matching_tools_differential import \
     affine_optical_flow, simple_optical_flow
 
 # simple image matching
+def _assert_match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2,
+                       X_grd, Y_grd, temp_radius, search_radius):
+    assert type(I1) in (np.ma.core.MaskedArray, np.ndarray), \
+         ("please provide an array")
+    assert type(I2) in (np.ma.core.MaskedArray, np.ndarray), \
+         ("please provide an array")
+    if (type(I1) not in (np.ma.core.MaskedArray,)) and (L1 is None):
+        L1 = np.ones_like(I1, dtype=bool)
+    elif L1 is None: L1 = np.array([])
+    if (type(I2) not in (np.ma.core.MaskedArray,)) and (L2 is None):
+        L2 = np.ones_like(I2, dtype=bool)
+    elif L2 is None: L2 = np.array([])
+    assert isinstance(L1, np.ndarray), "please provide an array"
+    assert isinstance(L2, np.ndarray), "please provide an array"
+    geoTransform1, geoTransform2 = correct_geoTransform(geoTransform1), \
+                                   correct_geoTransform(geoTransform2)
+    assert X_grd.shape == Y_grd.shape  # should be of the same size
+    assert temp_radius <= search_radius, "given search radius is too small"
+
+    if len(geoTransform1)>=6:
+        assert I1.shape[:2]==geoTransform1[-2:], "both should have same extent"
+    if len(geoTransform2)>=6:
+        assert I2.shape[:2]==geoTransform2[-2:], "both should have same extent"
+    return L1, L2, geoTransform1, geoTransform2
+
 def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
                temp_radius=7, search_radius=22,
                correlator='robu_corr', subpix='moment',
@@ -123,22 +148,9 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
         list_frequency_correlators
 
     # init
-    assert type(I1) in (np.ma.core.MaskedArray, np.ndarray), \
-         ("please provide an array")
-    assert type(I2) in (np.ma.core.MaskedArray, np.ndarray), \
-         ("please provide an array")
-    if (type(I1) not in (np.ma.core.MaskedArray,)) and (L1 is None):
-        L1 = np.ones_like(I1)
-    elif L1 is None: L1 = np.array([])
-    if (type(I2) not in (np.ma.core.MaskedArray,)) and (L2 is None):
-        L2 = np.ones_like(I2)
-    elif L2 is None: L2=np.array([])
-    assert isinstance(L1, np.ndarray), "please provide an array"
-    assert isinstance(L2, np.ndarray), "please provide an array"
-    geoTransform1, geoTransform2 = correct_geoTransform(geoTransform1), \
-                                   correct_geoTransform(geoTransform2)
-    assert X_grd.shape == Y_grd.shape  # should be of the same size
-    assert temp_radius <= search_radius, 'given search radius is too small'
+    L1, L2, geoTransform1, geoTransform2 = _assert_match_pair(I1, I2, L1, L2,
+          geoTransform1, geoTransform2, X_grd, Y_grd,
+          temp_radius, search_radius)
 
     b=1 if kwargs.get('num_estimates') == None else kwargs.get('num_estimates')
 

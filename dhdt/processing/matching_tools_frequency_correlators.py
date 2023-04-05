@@ -1144,7 +1144,7 @@ def windrose_corr(I1, I2):
     return Q
 
 def phase_corr(I1, I2):
-    """ match two imagery through phase correlation
+    r""" match two imagery through phase correlation
 
     Parameters
     ----------
@@ -1239,7 +1239,7 @@ def phase_corr(I1, I2):
     return Q
 
 def gaussian_transformed_phase_corr(I1, I2):
-    """ match two imagery through Gaussian transformed phase correlation, see
+    r""" match two imagery through Gaussian transformed phase correlation, see
     [Ec08]_.
 
     Parameters
@@ -1407,7 +1407,7 @@ def upsampled_cross_corr(S1, S2, upsampling=2):
     return i_offset,j_offset
 
 def cross_corr(I1, I2):
-    """ match two imagery through cross correlation in FFT
+    r""" match two imagery through cross correlation in FFT
 
     Parameters
     ----------
@@ -1499,7 +1499,7 @@ def cross_corr(I1, I2):
     return Q
 
 def binary_orientation_corr(I1, I2):
-    """ match two imagery through binary phase only correlation, see [KJ91]_.
+    r""" match two imagery through binary phase only correlation, see [KJ91]_.
 
     Parameters
     ----------

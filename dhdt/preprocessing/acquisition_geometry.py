@@ -139,18 +139,19 @@ def compensate_ortho_offset(I, Z, dx, dy, obs_az, obs_zn, geoTransform):
     get_ortho_offset
     """
     # warp
-    dI,dJ = get_ortho_offset(Z, dx, dy, obs_az, obs_zn, geoTransform)
+    dI_ortho, dJ_ortho = get_ortho_offset(Z, dx, dy, obs_az, obs_zn,
+                                          geoTransform)
 
     mI, nI = Z.shape[0], Z.shape[1]
     I_grd, J_grd = np.meshgrid(np.linspace(0, mI-1, mI),
                                np.linspace(0, nI-1, nI), indexing='ij')
 
-    I_warp = ndimage.map_coordinates(I, [I_grd+dI, J_grd+dJ],
+    I_warp = ndimage.map_coordinates(I, [I_grd+dI_ortho, J_grd+dJ_ortho],
                                      order=1, mode='mirror')
     del I # sometime the files are very big, so memory is emptied
     # remove registration mismatch
-    dI, dJ = vel2pix(geoTransform, dx, dy)
-    I_cor = ndimage.map_coordinates(I_warp, [dI, dJ],
+    dI_coreg, dJ_coreg = vel2pix(geoTransform, dx, dy)
+    I_cor = ndimage.map_coordinates(I_warp, [I_grd+dI_coreg, J_grd+dJ_coreg],
                                     order=1, mode='mirror')
     return I_cor
 

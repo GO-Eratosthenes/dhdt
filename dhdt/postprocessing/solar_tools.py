@@ -1,5 +1,6 @@
 import numpy as np
 
+from scipy import ndimage
 from datetime import datetime, timedelta
 
 from dhdt.generic.unit_conversion import doy2dmy, deg2arg

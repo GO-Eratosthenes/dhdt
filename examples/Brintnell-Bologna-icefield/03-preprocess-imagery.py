@@ -4,20 +4,16 @@ preprocessing of the multi-spectral imagery, doing the following:
 - co-register the imagery to common frame
 """
 import os
-import pystac
 
 import numpy as np
 
-from dhdt.generic.mapping_io import read_geo_image
+from dhdt.generic.unit_conversion import datetime2calender
+from dhdt.generic.mapping_io import read_geo_image, make_geo_im
 from dhdt.generic.mapping_tools import pix2map, map2pix, ref_trans, ref_update
 from dhdt.generic.handler_stac import read_stac_catalog, load_bands, \
-    get_items_via_id_s2, load_input_metadata_s2
-from dhdt.generic.handler_sentinel2 import \
-    get_s2_image_locations, get_s2_dict
+    get_items_via_id_s2, load_input_metadata_s2, load_cloud_cover_s2
 from dhdt.input.read_sentinel2 import \
-    list_central_wavelength_msi, read_sun_angles_s2
-from dhdt.preprocessing.handler_multispec import \
-    get_shadow_bands,read_shadow_bands
+    list_central_wavelength_msi, dn2toa_s2
 from dhdt.preprocessing.acquisition_geometry import \
     get_template_aspect_slope, compensate_ortho_offset
 from dhdt.preprocessing.shadow_transforms import \
@@ -36,6 +32,7 @@ BBOX = [543001, 6868001, 570001, 6895001] # this is the way rasterio does it
 
 
 DATA_DIR = os.path.join(os.getcwd(), 'data') #"/project/eratosthenes/Data/"
+DUMP_DIR = os.path.join(os.getcwd(), 'processing')
 DEM_PATH = os.path.join(DATA_DIR, "DEM", MGRS_TILE+'.tif')
 RGI_PATH = os.path.join(DATA_DIR, "RGI", MGRS_TILE+'.tif')
 STAC_L1C_PATH = os.path.join(DATA_DIR, "SEN2", "sentinel2-l1c-small")
@@ -45,7 +42,7 @@ s2_df = list_central_wavelength_msi()
 s2_df = s2_df[s2_df['gsd']==RESOLUTION_OF_INTEREST]
 
 # import and create general assets
-dem_dat,_,dem_aff,_ = read_geo_image(DEM_PATH)
+dem_dat,crs,dem_aff,_ = read_geo_image(DEM_PATH)
 
 # decrease the image size to bounding box
 bbox_xy = np.array(BBOX).reshape((2,2)).T.ravel()
@@ -57,10 +54,12 @@ new_aff = ref_update(new_aff, dem_dat.shape[0], dem_dat.shape[1])
 
 sample_i, sample_j = get_coordinates_of_template_centers(new_aff, MATCH_WINDOW)
 sample_x, sample_y = pix2map(new_aff, sample_i, sample_j)
+slope_dat = get_template_aspect_slope(dem_dat, sample_i, sample_j,
+                                      MATCH_WINDOW)[0]
 
 rgi_dat = read_geo_image(RGI_PATH)[0]
 rgi_dat = rgi_dat[bbox_i[0]:bbox_i[1],bbox_j[0]:bbox_j[1]]
-stable_dat = rgi_dat==0
+stable_dat = rgi_dat.data==0
 
 def _compute_shadow_images(
         bands, dem_dat, sun_zn_mean, sun_az_mean
@@ -96,10 +95,27 @@ def _compute_shadow_images(
     shading_art = make_shading(dem_dat, sun_az_mean, sun_zn_mean)
     return shadow_dat, albedo_dat, shadow_art, shading_art
 
+def _filter_displacements(offset_x, offset_y, slope_dat, match_score,
+                          max_slope=20., min_metric=2.):
+    # filter integers
+    IN_float = np.logical_and(np.mod(offset_x,1)!=0,
+                              np.mod(offset_x,1)!=0)
+
+    # filter steep slopes
+    IN_flat = slope_dat <= max_slope
+
+    # filter empty values
+    IN_val = np.invert(np.logical_or(np.isnan(offset_x), np.isnan(offset_y)))
+
+    # filter on matching metrics
+    IN_metric = match_score >= min_metric
+
+    pure = np.logical_and.reduce((IN_float, IN_flat, IN_val, IN_metric))
+    return pure
 
 def _coregister(
         shadow_dat, albedo_dat, shading_art, dem_dat, stable_dat,
-        view_zn, view_az, shadow_aff):
+        view_zn, view_az, shadow_aff, slope_dat):
     """
     Co-register shadow and albedo rasters using an artificial shading image as
     a target
@@ -135,41 +151,77 @@ def _coregister(
        temp_radius=MATCH_WINDOW, search_radius=MATCH_WINDOW,
        correlator=MATCH_CORRELATOR, subpix=MATCH_SUBPIX, metric=MATCH_METRIC)
 
-    offset_y, offset_x = sample_y - match_y, sample_x - match_x
-
-    slope, aspect = get_template_aspect_slope(dem_dat, sample_i, sample_j,
-                                              MATCH_WINDOW)
-
-    pure = np.logical_and(~np.isnan(offset_x), slope < 20)
+    offset_x, offset_y = sample_x - match_x, sample_y - match_y
+    pure = _filter_displacements(offset_x, offset_y, slope_dat, match_score)
     dx_coreg, dy_coreg = np.median(offset_x[pure]), np.median(offset_y[pure])
 
     shadow_ort = compensate_ortho_offset(
-        shadow_dat, dem_dat, dx_coreg, dy_coreg, view_az, view_zn, dem_aff
+        shadow_dat, dem_dat, dx_coreg, dy_coreg, view_az, view_zn, shadow_aff
     )
     albedo_ort = compensate_ortho_offset(
-        albedo_dat, dem_dat, dx_coreg, dy_coreg, view_az, view_zn, dem_aff
+        albedo_dat, dem_dat, dx_coreg, dy_coreg, view_az, view_zn, shadow_aff
     )
     return shadow_ort, albedo_ort
 
-catalog_L1C = read_stac_catalog(STAC_L1C_PATH)
-catalog_L2A = read_stac_catalog(STAC_L2A_PATH)
+def _organize(shadow_dat, albedo_dat, shadow_art, shade_art,
+              im_aff, crs, im_date):
 
-for item in catalog_L1C.get_all_items():
-    item_L1C, item_L2A = get_items_via_id_s2(catalog_L1C, catalog_L2A, item.id)
+    # get year, month, day
+    year, month, day = datetime2calender(np.datetime64(im_date[:-1]))
+    year, month, day = str(year), str(month), str(day)
+    # create folder structure
+    item_dir = os.path.join(DUMP_DIR, year, month, day)
+    os.makedirs(item_dir, exist_ok=True)
+    im_date_str = year + '-' + month.zfill(2) + '-' + day.zfill(2)
 
-    # read imagery
-    sun_zn, sun_az, view_zn, view_az = load_input_metadata_s2(item, s2_df, new_aff)
+    # write outpu
+    make_geo_im(shadow_dat.astype('float32'), im_aff, crs,
+                os.path.join(item_dir, 'shadow.tif'),
+                meta_descr='illumination enhanced imagery',
+                date_created=im_date_str)
+    make_geo_im(albedo_dat.astype('float32'), im_aff, crs,
+                os.path.join(item_dir,'albedo.tif'),
+                meta_descr='reflection enhanced imagery',
+                date_created=im_date_str)
+    make_geo_im(shadow_art.astype('float32'), im_aff, crs,
+                os.path.join(item_dir, 'shadow_artificial.tif'),
+                meta_descr='shadow calculated from CopernicusDEM',
+                date_created=im_date_str)
+    make_geo_im(shade_art.astype('float32'), im_aff, crs,
+                os.path.join(item_dir, 'shading_artificial.tif'),
+                meta_descr='shading calculated from CopernicusDEM',
+                date_created=im_date_str)
+    return
 
-    bands, cloud_cover = load_bands(item, s2_df)
-    sun_zn_mean, sun_az_mean = 90-item.properties['view:sun_elevation'], \
-                               item.properties['view:sun_azimuth']
-    shadow_dat, albedo_dat, shadow_art, shading_art = _compute_shadow_images(
-        bands, dem_dat, sun_zn_mean, sun_az_mean)
-    print('.')
+def main():
+    catalog_L1C = read_stac_catalog(STAC_L1C_PATH)
+    catalog_L2A = read_stac_catalog(STAC_L2A_PATH)
 
-    shadow_ort, albedo_ort = _coregister(shadow_dat, albedo_dat, shade_art,
-        dem_dat, stable_dat, view_zn, view_az, dem_aff)
+    for item in catalog_L1C.get_all_items():
+        item_L1C, item_L2A = get_items_via_id_s2(catalog_L1C, catalog_L2A, item.id)
 
-    im_time = item.properties['datetime']
-    sun_angles = [sun_zn_mean, sun_az_mean]
-# meta_descr='illumination enhanced imagery'
+        # read imagery
+        bands = load_bands(item_L1C, s2_df, new_aff)
+        for id, band in bands.items():
+            bands[id] = dn2toa_s2(band)
+        cloud_cover = load_cloud_cover_s2(item_L2A, new_aff)
+        sun_zn, sun_az, view_zn, view_az = load_input_metadata_s2(
+            item, s2_df, new_aff)
+        if view_zn.ndim==3: view_zn = view_zn[...,-1]
+        if view_az.ndim==3: view_az = view_az[...,-1]
+
+        sun_zn_mean, sun_az_mean = 90-item.properties['view:sun_elevation'], \
+                                   item.properties['view:sun_azimuth']
+        shadow_dat, albedo_dat, shadow_art, shade_art = _compute_shadow_images(
+            bands, dem_dat, sun_zn_mean, sun_az_mean)
+
+        no_moving_dat = np.logical_and(stable_dat, cloud_cover!=9)
+        shadow_ort, albedo_ort = _coregister(shadow_dat, albedo_dat, shade_art,
+            dem_dat, no_moving_dat, view_zn, view_az, new_aff, slope_dat)
+
+        im_date = item.properties['datetime']
+        _organize(shadow_ort, albedo_ort, shadow_art, shade_art,
+                  new_aff, crs, im_date)
+
+if __name__ == "__main__":
+    main()

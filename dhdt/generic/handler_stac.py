@@ -2,8 +2,10 @@ import os
 import pystac
 import fnmatch
 
+from scipy import ndimage
+
 from dhdt.generic.mapping_io import read_geo_image
-from dhdt.generic.mapping_tools import pix_centers, make_same_size
+from dhdt.generic.mapping_tools import map2pix, pix_centers, make_same_size
 from dhdt.generic.handler_xml import get_root_of_table
 from dhdt.generic.handler_sentinel2 import list_platform_metadata_s2a, \
     list_platform_metadata_s2b
@@ -34,7 +36,7 @@ def read_stac_catalog(urlpath, stac_io=None):
     catalog = pystac.Catalog.from_file(urlpath, stac_io=stac_io)
     return catalog
 
-def load_bands(item, sat_df):
+def load_bands(item, sat_df, geoTransform):
     """
     Load input raster files
 
@@ -47,15 +49,28 @@ def load_bands(item, sat_df):
 
     Returns
     -------
-    bands : numpy.ndarray, size=(m,n)
+    bands : list with numpy.ndarrays, size=(m,n)
     """
-    bands = {
-        v: read_geo_image(item[k])[0]
-        for k, v in sat_df["common_name"].items()
-    }
-    bands = {k: v for k, v in bands.items()}
+    bands = {}
+    for _, v in sat_df["common_name"].items():
+        full_path = item.assets[v].get_absolute_href()
+        band,_,bandTransform,_ = read_geo_image(full_path)
+        if bandTransform != geoTransform:
+            band = make_same_size(band, bandTransform, geoTransform)
+        bands[v] = band
+    return bands
 
-    return {k: v.data for k, v in bands.items()}
+def load_cloud_cover_s2(item, geoTransform):
+    full_path = item.assets['scl'].get_absolute_href()
+    scl,_,sclTransform,_ = read_geo_image(full_path)
+
+
+    if sclTransform!=geoTransform:
+        x_grd, y_grd = pix_centers(geoTransform)
+        i_grd, j_grd = map2pix(sclTransform, x_grd, y_grd)
+        scl = ndimage.map_coordinates(scl, [i_grd, j_grd],
+            order=0, mode='nearest')
+    return scl
 
 def get_items_via_id_s2(catalog_L1C, catalog_L2A, item_id_L1C):
     item_L1C = catalog_L1C.get_item(item_id_L1C, recursive=True)
