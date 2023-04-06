@@ -23,16 +23,16 @@ from dhdt.processing.coupling_tools import match_pair
 from dhdt.postprocessing.solar_tools import make_shadowing, make_shading
 
 # initialization parameters
+BBOX = [543001, 6868001, 570001, 6895001] # this is the way rasterio does it
 MGRS_TILE = "09VWJ"
 RESOLUTION_OF_INTEREST = 10.
 SHADOW_METHOD = "entropy"
 MATCH_CORRELATOR, MATCH_SUBPIX, MATCH_METRIC = "phas_only","moment","peak_entr"
 MATCH_WINDOW = 2**4
-BBOX = [543001, 6868001, 570001, 6895001] # this is the way rasterio does it
 
 
-DATA_DIR = os.path.join(os.getcwd(), 'data') #"/project/eratosthenes/Data/"
-DUMP_DIR = os.path.join(os.getcwd(), 'processing')
+DATA_DIR = os.path.join(os.getcwd(), "data") #"/project/eratosthenes/Data/"
+DUMP_DIR = os.path.join(os.getcwd(), "processing")
 DEM_PATH = os.path.join(DATA_DIR, "DEM", MGRS_TILE+'.tif')
 RGI_PATH = os.path.join(DATA_DIR, "RGI", MGRS_TILE+'.tif')
 STAC_L1C_PATH = os.path.join(DATA_DIR, "SEN2", "sentinel2-l1c-small")
@@ -200,11 +200,22 @@ def main():
     for item in catalog_L1C.get_all_items():
         item_L1C, item_L2A = get_items_via_id_s2(catalog_L1C, catalog_L2A, item.id)
 
+        # get year, month, day
+        im_date = item.properties['datetime']
+        year, month, day = datetime2calender(np.datetime64(im_date[:-1]))
+        year, month, day = str(year), str(month), str(day)
+        # create folder structure
+        item_dir = os.path.join(DUMP_DIR, year, month, day)
+        if os.path.exists(item_dir): continue
+
         # read imagery
         bands = load_bands(item_L1C, s2_df, new_aff)
         for id, band in bands.items():
             bands[id] = dn2toa_s2(band)
-        cloud_cover = load_cloud_cover_s2(item_L2A, new_aff)
+        if item_L2A is not None:
+            cloud_cover = load_cloud_cover_s2(item_L2A, new_aff)
+        else:
+            cloud_cover = np.zeros(new_aff[-2:], dtype=int)
         sun_zn, sun_az, view_zn, view_az = load_input_metadata_s2(
             item, s2_df, new_aff)
         if view_zn.ndim==3: view_zn = view_zn[...,-1]

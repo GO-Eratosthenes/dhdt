@@ -13,7 +13,7 @@ import pandas as pd
 from PIL import Image, ImageDraw
 from skimage.transform import resize
 from sklearn.neighbors import NearestNeighbors
-from scipy.interpolate import griddata
+from scipy.interpolate import RegularGridInterpolator
 from scipy.ndimage import label
 from scipy.signal import convolve2d
 
@@ -689,26 +689,24 @@ def read_sun_angles_s2(path, fname='MTD_TL.xml'):
 
     zi = np.linspace(0 - 10, mI + 10, np.size(Zn, axis=0))
     zj = np.linspace(0 - 10, nI + 10, np.size(Zn, axis=1))
-    Zi, Zj = np.meshgrid(zi, zj)
-    Zij = np.dstack([Zi, Zj]).reshape(-1, 2)
-    del zi, zj, Zi, Zj
+
+    interp = RegularGridInterpolator((zi, zj), Zn)
 
     iGrd, jGrd = np.arange(0, mI), np.arange(0, nI)
     Igrd, Jgrd = np.meshgrid(iGrd, jGrd)
 
-    Zn = griddata(Zij, Zn.reshape(-1), (Igrd, Jgrd), method="linear")
+    Zn = interp((Igrd, Jgrd))
+    del zi, zj
 
     # get Azimuth array
     Az = get_sun_angles_s2_from_root(root, angle='Azimuth')[0]
 
     ai = np.linspace(0 - 10, mI + 10, np.size(Az, axis=0))
     aj = np.linspace(0 - 10, nI + 10, np.size(Az, axis=1))
-    Ai, Aj = np.meshgrid(ai, aj)
-    Aij = np.dstack([Ai, Aj]).reshape(-1, 2)
-    del ai, aj, Ai, Aj
 
-    Az = griddata(Aij, Az.reshape(-1), (Igrd, Jgrd), method="linear")
-    del Igrd, Jgrd, Zij, Aij
+    interp = RegularGridInterpolator((ai, aj), Az)
+    Az = interp((Igrd, Jgrd))
+    del ai, aj
     return Zn, Az
 
 def get_view_angles_s2_from_root(root):

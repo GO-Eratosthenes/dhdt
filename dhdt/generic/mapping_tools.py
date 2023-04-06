@@ -1152,7 +1152,7 @@ def find_overlapping_DEM_tiles(dem_path,dem_file, poly_tile):
 
     return url_list
 
-def make_same_size(Old,geoTransform_old, geoTransform_new,
+def make_same_size(Old, geoTransform_old, geoTransform_new,
                    rows_new=None, cols_new=None):
     """ clip array to the same size as another array
 

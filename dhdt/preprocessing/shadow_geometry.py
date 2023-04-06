@@ -3,6 +3,7 @@ import glob
 import numpy as np
 
 from scipy import ndimage  # for image filtering
+from scipy.interpolate import RegularGridInterpolator # for interpolation
 from scipy import special  # for trigonometric functions
 
 from skimage import segmentation  # for superpixels
@@ -395,15 +396,12 @@ def shadow_image_to_list(M, geoTransform, s2_path,
             sunAz = sunAz[kwargs['bbox'][0]:kwargs['bbox'][1],
                           kwargs['bbox'][2]:kwargs['bbox'][3]]
 
-    (iC,jC) = map2pix(geoTransform,
-                      suntrace_list[:,0].copy(), suntrace_list[:,1].copy())
-    iC, jC = np.round(iC).astype(int), np.round(jC).astype(int)
-    np.putmask(iC, iC<=0, 0) # move into the array range
-    np.putmask(jC, jC<=0, 0)
-    np.putmask(iC, iC<=sunZn.shape[0], sunZn.shape[0]-1)
-    np.putmask(jC, jC<=sunZn.shape[1], sunZn.shape[1]-1)
+    i, j = map2pix(geoTransform,
+                   suntrace_list[:,0].copy(), suntrace_list[:,1].copy())
 
-    sun_angles = np.transpose(np.vstack((sunAz[iC,jC], sunZn[iC,jC])))
+    interp = RegularGridInterpolator(
+        (np.arange(sunZn.shape[0]), np.arange(sunZn.shape[1])), sun_Zn)
+    sun_angles = interp(np.array([i, j]).T)
 
     # write to file
     f = open(os.path.join(s2_path, out_name), 'w')

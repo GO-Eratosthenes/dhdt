@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.interpolate import griddata
+from scipy.interpolate import RegularGridInterpolator
 from skimage import data
 
 from dhdt.preprocessing.image_transforms import mat_to_gray
@@ -60,40 +60,29 @@ def create_sample_image_pair(d=2**7, max_range=1, integer=False, ndim=1):
     else:
         im1 = data.astronaut()
         ndim = np.maximum(im1.shape[-1], ndim)
-    mI,nI = im1.shape[0:2]
+    m,n = im1.shape[0:2]
 
     scalar_mul = 2*np.minimum(d // 2, max_range)
 
     random_di = (np.random.random()-.5)*scalar_mul
-    random_dj = (np.random.random()-.5)*scalar_mul # random tranlation
+    random_dj = (np.random.random()-.5)*scalar_mul # random translation
 
     if integer: random_di,random_dj = np.round(random_di),np.round(random_dj)
 
-    (grd_j1,grd_i1) = np.meshgrid(np.linspace(1, mI, mI), np.linspace(1, nI, nI))
-    stk_1 = np.vstack( (grd_i1.flatten(), grd_j1.flatten()) ).T
+    grd_i1, grd_j1, grd_k1 = np.arange(m), np.arange(n), np.arange(ndim)
 
-    grd_2 = stk_1 + np.array([random_di, random_dj])
     # calculate new interpolation grid
-    grd_i2 = np.reshape(grd_2[:,0], (mI, nI))
-    grd_j2 = np.reshape(grd_2[:,1], (mI, nI))
+    grd_j2, grd_i2, grd_k2 = np.meshgrid(grd_i1, grd_j1, grd_k1)
+    grd_i2 += random_di
+    grd_j2 += random_dj
 
+    interp = RegularGridInterpolator((grd_i1, grd_j1, grd_k1),
+                                     np.atleast_3d(im1))
+
+    im1_same = np.atleast_3d(im1)[m//2-d:m//2+d,n//2-d:n//2+d,:]
     # do interpolation
-    if ndim==1:
-        im2 = griddata(stk_1, im1.flatten().T,
-                       (grd_i2[mI//2-d:mI//2+d,nI//2-d:nI//2+d],
-                        grd_j2[mI//2-d:mI//2+d,nI//2-d:nI//2+d]),
-                       method='cubic')
-        im1_same = im1[mI//2-d:mI//2+d,nI//2-d:nI//2+d]
-
-    else:
-        im2 = np.zeros((2*d,2*d,ndim))
-        for i in range(ndim):
-            im2[...,i] = griddata(stk_1, im1[...,i].flatten().T,
-                                  (grd_i2[mI//2-d:mI//2+d,nI//2-d:nI//2+d],
-                                   grd_j2[mI//2-d:mI//2+d,nI//2-d:nI//2+d]),
-                                  method='linear')
-        im2 = im2.astype('uint8')
-        im1_same = im1[mI//2-d:mI//2+d, nI//2-d:nI//2+d,:]
+    im2 = interp((grd_i2, grd_j2, grd_k2))
+    im2 = im2.astype('uint8')
     return im1_same, im2, random_di, random_dj, im1
 
 

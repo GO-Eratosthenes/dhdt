@@ -7,19 +7,20 @@ import pandas as pd
 from numpy.lib.recfunctions import stack_arrays, merge_arrays
 from scipy import ndimage
 
-from ..generic.debugging import loggg
-from ..generic.mapping_tools import map2pix, pix2map
-from ..generic.handler_im import simple_nearest_neighbor
-from ..processing.coupling_tools import \
+from dhdt.generic.debugging import loggg
+from dhdt.generic.mapping_tools import map2pix, pix2map
+from dhdt.generic.handler_im import simple_nearest_neighbor
+from dhdt.processing.coupling_tools import \
     pair_posts, merge_ids, get_elevation_difference, angles2unit
-from ..processing.matching_tools import remove_posts_pairs_outside_image
-from ..processing.network_tools import get_network_indices
+from dhdt.processing.matching_tools import remove_posts_pairs_outside_image
+from dhdt.processing.network_tools import get_network_indices
 
 def get_conn_col_header():
     """ give the collumn name and datatypes
 
     photohypsometric connectivity textfiles can have different data collumns
-    adasd be of different types. Such are typically given in the
+    and be of different types. Such are typically given in the header. This
+    function specifies its order, so connectivity files can be consistent.
 
     Returns
     -------
@@ -428,8 +429,9 @@ def update_caster_elevation_pd(dh, Z, geoTransform):
     assert np.all([header in dh.columns for header in
                    ('caster_X', 'caster_Y')])
     # get elevation of the caster locations
-    i_im, j_im = map2pix(geoTransform, dh['caster_X'], dh['caster_Y'])
-    dh_Z = ndimage.map_coordinates(Z, [I_im, J_im], order=1, mode='mirror')
+    i_im, j_im = map2pix(geoTransform,
+                         dh['caster_X'].to_numpy(), dh['caster_Y'].to_numpy())
+    dh_Z = ndimage.map_coordinates(Z, [i_im, i_im], order=1, mode='mirror')
     if not 'caster_Z' in dh.columns: dh['caster_Z'] = None
     dh.loc[:,'caster_Z'] = dh_Z
     return dh
@@ -769,8 +771,10 @@ def get_relative_hypsometric_network(dxyt, Z, geoTransform):
     """
 
     if type(dxyt) in (np.recarray,):
-        i_1,j_1 = map2pix(geoTransform, dxyt['X_1'], dxyt['Y_1'])
-        i_2,j_2 = map2pix(geoTransform, dxyt['X_2'], dxyt['Y_2'])
+        i_1,j_1 = map2pix(geoTransform,
+                          dxyt['X_1'].to_numpy(), dxyt['Y_1'].to_numpy())
+        i_2,j_2 = map2pix(geoTransform,
+                          dxyt['X_2'].to_numpy(), dxyt['Y_2'].to_numpy())
     else:
         i_1,j_1 = map2pix(geoTransform, dxyt[:,0], dxyt[:,1])
         i_2,j_2 = map2pix(geoTransform, dxyt[:,3], dxyt[:,4])
@@ -840,8 +844,10 @@ def get_hypsometric_elevation_change(dxyt, Z=None, geoTransform=None):
     return dhdt
 
 def get_hypsometric_elevation_change_rec(dxyt, Z=None, geoTransform=None):
-    i_1,j_1 = map2pix(geoTransform, dxyt['X_1'], dxyt['Y_1'])
-    i_2,j_2 = map2pix(geoTransform, dxyt['X_2'], dxyt['Y_2'])
+    i_1,j_1 = map2pix(geoTransform,
+                      dxyt['X_1'].to_numpy(), dxyt['Y_1'].to_numpy())
+    i_2,j_2 = map2pix(geoTransform,
+                      dxyt['X_2'].to_numpy(), dxyt['Y_2'].to_numpy())
 
     Z_1 = ndimage.map_coordinates(Z, [i_1, j_1], order=1, mode='mirror')
     Z_2 = ndimage.map_coordinates(Z, [i_2, j_2], order=1, mode='mirror')

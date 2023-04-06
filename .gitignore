@@ -28,9 +28,13 @@ data/
 examples/conn/conn-2019-04-13.png
 examples/conn/conn-2019-04-03.txt
 examples/conn/conn-2019-04-03.png
+examples/Brintnell-Bologna-icefield/data
+examples/Brintnell-Bologna-icefield/processing
 *.png
 *.txt
 *.jpg
+*.tif
+*.tfw
 *.shp
 *.shx
 *.prj

@@ -4,6 +4,11 @@ import numpy as np
 import pandas
 
 from scipy import ndimage
+from scipy.optimize import curve_fit
+from scipy.interpolate import CubicSpline
+from skimage.filters import threshold_otsu
+
+from tqdm import tqdm
 
 from ..generic.debugging import loggg
 from ..generic.mapping_tools import get_max_pixel_spacing, map2pix
@@ -206,7 +211,7 @@ def update_casted_location(dh, S, M, geoTransform, extent=120.):
                                  dh.columns.get_loc("casted_Y_refine")
 
     idx_azimuth = dh.columns.get_loc("azimuth")
-    for cnt in range(dh.shape[0]):
+    for cnt in tqdm(range(dh.shape[0])):
         x, y = dh.iloc[cnt, idx_casted_x], dh.iloc[cnt, idx_casted_y]
         x_t, y_t = dh.iloc[cnt, idx_caster_x], dh.iloc[cnt, idx_caster_y]
         az = dh.iloc[cnt, idx_azimuth]
@@ -334,3 +339,5 @@ def update_list_with_refined_casted(dh, file_dir, file_name='conn.txt'):
         print(line[:-1], file=f) # remove last spacer
     f.close()
     return
+
+# def filter_unresolved_refinements(dh):
