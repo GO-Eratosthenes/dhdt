@@ -24,24 +24,59 @@ def get_conn_col_header():
 
     Returns
     -------
-    col_names: list
+    col_names : list
         list with names of the collumns
     col_dtype : numpy.datatype
         specifies the datatypes of the different collumns
+    col_frmt : tuple of strings
+        specifies the format for export
     """
     col_names = ['timestamp', 'caster_X', 'caster_Y', 'caster_Z',
-                 'casted_X', 'casted_Y',
-                 'azimuth', 'zenith', 'zenith_refracted','id',
+                 'casted_X', 'casted_Y', 'casted_X_refine', 'casted_Y_refine',
+                 'azimuth', 'zenith', 'zenith_refrac','id',
                  'dh', 'dt']
     col_dtype = np.dtype([('timestamp', '<M8[D]'),
                           ('caster_X', np.float64), ('caster_Y', np.float64),
                           ('caster_Z', np.float64),
                           ('casted_X', np.float64), ('casted_Y', np.float64),
+                          ('casted_X_refine', np.float64),
+                          ('casted_Y_refine', np.float64),
                           ('azimuth', np.float64), ('zenith', np.float64),
-                          ('zenith_refracted', np.float64), ('id', np.int),
-                          ('dh', np.float64), 'dt', '<m8[D]'])
+                          ('zenith_refrac', np.float64), ('id', np.int32),
+                          ('dh', np.float64), ('dt', '<m8[D]')])
     return col_names, col_dtype
 
+def write_df_to_conn_file(df, conn_dir, conn_file="conn.txt"):
+    col_names, col_dtype = get_conn_col_header()
+
+    # write to file
+    conn_path = os.path.join(conn_dir, conn_file)
+    f = open(conn_path, 'w')
+
+    df_sel = df[df.columns.intersection(list(col_names))]
+
+    # add header
+    col_idx = df_sel.columns.get_indexer(list(col_names))
+    IN = col_idx!=-1
+    print('# '+' '.join(tuple(np.array(col_names)[IN])), file=f)
+    col_idx = col_idx[IN]
+
+    # write rows of dataframe into text file
+    for k in range(df_sel.shape[0]):
+        line = ''
+        for idx,val in enumerate(col_idx):
+            if col_names[idx] in ('timestamp', 'date',):
+                line += str(df_sel.iloc[k,val])[:10]
+            elif col_names[idx] in ('azimuth', 'zenith', 'zenith_refrac'):
+                line += '{:+3.4f}'.format(df_sel.iloc[k,val])
+            elif col_names[idx] in ('caster_Z', 'casted_Z', 'dh'):
+                line += '{:+4.2f}'.format(df_sel.iloc[k,val])
+            else:
+                line += '{:+8.2f}'.format(df_sel.iloc[k,val])
+            line += ' '
+        print(line[:-1], file=f) # remove last spacer
+    f.close()
+    return
 
 def get_timestamp_conn_file(conn_path, no_lines=6):
     """ looks inside the comments of a .txt for the time stamp
@@ -371,6 +406,15 @@ def clean_dh_np(dh):
 def clean_dh_pd(dh):
     if 'id' in dh.columns:
         dh.drop(dh[dh['id'] == 0].index, inplace=True)
+    return dh
+
+@loggg
+def keep_refined_locations(dh):
+    if np.all([header in dh.columns for header in
+               ('casted_X_refine', 'casted_Y_refine')]):
+        # only keep data points that we able to refine their position
+        dh.drop(dh[dh['casted_X_refine'] == dh['casted_X']].index,
+                inplace=True)
     return dh
 
 def update_caster_elevation(dh, Z, geoTransform):

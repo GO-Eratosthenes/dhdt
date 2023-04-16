@@ -24,7 +24,8 @@ from dhdt.preprocessing.atmospheric_geometry import get_refraction_angle
 from dhdt.preprocessing.shadow_geometry import shadow_image_to_suntrace_list
 from dhdt.processing.photohypsometric_image_refinement import \
     update_casted_location
-from dhdt.postprocessing.photohypsometric_tools import update_caster_elevation
+from dhdt.postprocessing.photohypsometric_tools import \
+    update_caster_elevation, write_df_to_conn_file, keep_refined_locations
 
 BBOX = [543001, 6868001, 570001, 6895001] # this is the way rasterio does it
 MGRS_TILE = "09VWJ"
@@ -59,7 +60,8 @@ def _get_im_dates():
     for root,directories,_ in os.walk(DUMP_DIR):
         ymd = os.path.relpath(root, DUMP_DIR)
         if ymd.count(os.sep)==2:
-            im_dates.append(ymd.replace(os.sep,'-'))
+            year,mon,day = ymd.split(os.sep)
+            im_dates.append('-'.join([year, mon.zfill(2), day.zfill(2)]))
     return im_dates
 
 def _refine_shadow_polygon(shadow_dat, albedo_dat, shadow_art):
@@ -98,9 +100,14 @@ def main():
     im_dates = _get_im_dates()
     for im_date in im_dates:
         # loop through the imagery
-        stac_dir = os.path.join(STAC_L1C_PATH, im_date.replace('-', os.sep))
+        yr,mn,dy = im_date.split('-')
+        int_date = os.sep.join([yr, str(int(mn)), str(int(dy))])
+
+        stac_dir = os.path.join(STAC_L1C_PATH, int_date)
         stac_dir = os.path.join(stac_dir, next(os.walk(stac_dir))[1][0])
-        dump_dir = os.path.join(DUMP_DIR, im_date.replace('-', os.sep))
+        dump_dir = os.path.join(DUMP_DIR, int_date)
+
+        if os.path.exists(os.path.join(dump_dir, 'conn.txt')): continue
 
         # load data
         shadow_dat = read_geo_image(os.path.join(dump_dir, 'shadow.tif'))[0]
@@ -119,12 +126,14 @@ def main():
         print('refine')
         dh = (dh
               .pipe(update_casted_location, shadow_dat, shadow_snk, new_aff)
+              .pipe(keep_refined_locations)
               .pipe(update_caster_elevation, dem_dat, new_aff)
               .pipe(get_refraction_angle, x_bar, y_bar, crs,
                     central_wavelength, h)
               )
 
         # construct connectivity files
+        write_df_to_conn_file(dh, dump_dir)
         print('.')
 
 if __name__ == "__main__":
