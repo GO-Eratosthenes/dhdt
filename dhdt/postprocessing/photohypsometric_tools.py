@@ -612,6 +612,8 @@ def get_casted_elevation_difference(dh):
             - x_2, y_2 : unit=meter, map coordinate at instance t_2
             - t_2 : unit=days, date stamp
             - dh_12 : unit=meter, estimated elevation change, between t_1 & t_2
+            optional:
+            - g_1, g_2 : integer, glacier identification
 
     See Also
     --------
@@ -731,7 +733,7 @@ def get_casted_elevation_difference_rec(dh):
                             asrecarray=True, usemask=False)
     return dxyt
 
-def get_casted_elevation_difference_np():
+def get_casted_elevation_difference_np(dh):
     dxyt = np.zeros((0,7))
     ids = np.unique(dh[:,-1]).astype(int)
 
@@ -856,6 +858,7 @@ def get_hypsometric_elevation_change(dxyt, Z=None, geoTransform=None):
             - dH_12 : estimated elevation change, between t_1 & t_2
         optional:
             - Z_1, Z_2 : elevation at instance/location _1 and _2
+            - G_1, G_2 : glacier identification
     Z : numpy.array, size=(m,n)
         array with elevation data
     geoTransform : tuple, size={(1,6), (1,8)}
@@ -869,6 +872,8 @@ def get_hypsometric_elevation_change(dxyt, Z=None, geoTransform=None):
             - t_2 : date stamp
             - z_12 : mid-point elevation
             - dz_12 : elevation change, between instance t_1 & t_2
+            optional:
+            - g_1 & g_2 : glacier identification
 
     See Also
     --------

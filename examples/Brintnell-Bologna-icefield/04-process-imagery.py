@@ -16,8 +16,6 @@ from scipy.interpolate import RegularGridInterpolator
 from dhdt.generic.mapping_io import read_geo_image
 from dhdt.generic.mapping_tools import get_mean_map_location, map2pix, \
     ref_trans, ref_update, make_same_size
-from dhdt.generic.handler_stac import read_stac_catalog
-from dhdt.generic.gis_tools import get_mask_boundary
 from dhdt.input.read_sentinel2 import \
     list_central_wavelength_msi, read_mean_sun_angles_s2, read_sun_angles_s2
 from dhdt.preprocessing.atmospheric_geometry import get_refraction_angle
@@ -26,6 +24,7 @@ from dhdt.processing.photohypsometric_image_refinement import \
     update_casted_location
 from dhdt.postprocessing.photohypsometric_tools import \
     update_caster_elevation, write_df_to_conn_file, keep_refined_locations
+from dhdt.presentation.image_io import output_cast_lines_from_conn_txt
 
 BBOX = [543001, 6868001, 570001, 6895001] # this is the way rasterio does it
 MGRS_TILE = "09VWJ"
@@ -35,6 +34,7 @@ ITER_COUNT = 30
 DATA_DIR = os.path.join(os.getcwd(), "data") #"/project/eratosthenes/Data/"
 DUMP_DIR = os.path.join(os.getcwd(), "processing")
 DEM_PATH = os.path.join(DATA_DIR, "DEM", MGRS_TILE+'.tif')
+RGI_PATH = os.path.join(DATA_DIR, "RGI", MGRS_TILE+'.tif')
 STAC_L1C_PATH = os.path.join(DATA_DIR, "SEN2", "sentinel2-l1c-small")
 
 # import and create general assets
@@ -47,6 +47,9 @@ bbox_i, bbox_j = np.round(bbox_i).astype(int), np.round(bbox_j).astype(int)
 new_aff = ref_trans(org_aff, int(bbox_i[0]), int(bbox_j[0]))
 dem_dat = dem_dat[bbox_i[0]:bbox_i[1],bbox_j[0]:bbox_j[1]]
 new_aff = ref_update(new_aff, dem_dat.shape[0], dem_dat.shape[1])
+
+rgi_dat = read_geo_image(RGI_PATH)[0]
+rgi_dat = rgi_dat[bbox_i[0]:bbox_i[1],bbox_j[0]:bbox_j[1]]
 
 h = np.linspace(0, np.round(np.max(dem_dat) / 100) * 100 + 100, 10)
 x_bar, y_bar = get_mean_map_location(new_aff, crs)
@@ -107,7 +110,11 @@ def main():
         stac_dir = os.path.join(stac_dir, next(os.walk(stac_dir))[1][0])
         dump_dir = os.path.join(DUMP_DIR, int_date)
 
-        if os.path.exists(os.path.join(dump_dir, 'conn.txt')): continue
+        if os.path.exists(os.path.join(dump_dir, 'conn.txt')):
+            # create casting caster images
+
+            output_cast_lines_from_conn_txt(dump_dir, new_aff, rgi_dat, step=5)
+            continue
 
         # load data
         shadow_dat = read_geo_image(os.path.join(dump_dir, 'shadow.tif'))[0]

@@ -3,13 +3,15 @@ import numpy as np
 
 from PIL import Image, ImageDraw
 from skimage.color import hsv2rgb
+from scipy import ndimage
 
 import matplotlib.pyplot as plt
 
-from ..generic.mapping_tools import map2pix
-from ..generic.handler_im import bilinear_interpolation
-from ..preprocessing.image_transforms import mat_to_gray
-from ..postprocessing.solar_tools import make_shading
+from dhdt.generic.mapping_tools import map2pix
+from dhdt.generic.handler_im import bilinear_interpolation
+from dhdt.preprocessing.image_transforms import mat_to_gray
+from dhdt.postprocessing.photohypsometric_tools import read_conn_to_df
+from dhdt.postprocessing.solar_tools import make_shading
 
 def make_image(data, outputname, size=(1, 1), dpi=80, cmap='hot'):
     """ create a matplotlib figure and export this view
@@ -201,29 +203,46 @@ def output_glacier_map_background(Z, RGI, outputname, compress=95,
     img.save(outputname, quality=compress)
     return
 
-def output_cast_lines_from_conn_txt(conn_dir, geoTransform, RGI,
+def output_cast_lines_from_conn_txt(conn_dir, geoTransform, RGI=None,
                                     outputname='conn.png', pen=1, step=2,
                                     inputname='conn.txt',
                                     color=np.array([255, 128, 0])):
-    RGI = RGI.astype(bool)
-    f_full = os.path.join(conn_dir, inputname)
-    assert os.path.isfile(f_full), ('please provide correct whereabouts')
+    if RGI is None:
+        assert len(geoTransform)>6, ('image dimensions should be given')
+        m,n = geoTransform[-2:]
+    else:
+        RGI = RGI.astype(bool)
+        m,n = RGI.shape
 
-    cast_list = np.loadtxt(f_full, comments='#')
+    file_path = os.path.join(conn_dir, inputname)
+    assert os.path.isfile(file_path), ('please provide correct whereabouts')
+
+    cast_df = read_conn_to_df(file_path)
 
     # transform to pixel coordinates
-    shdw_i, shdw_j = map2pix(geoTransform, cast_list[:, 2], cast_list[:, 3])
+    if 'casted_X_refine' in cast_df.columns:
+        shdw_i, shdw_j = map2pix(geoTransform,
+                                 cast_df['casted_X_refine'].to_numpy(),
+                                 cast_df['casted_Y_refine'].to_numpy())
+    else:
+        shdw_i, shdw_j = map2pix(geoTransform,
+                                 cast_df['casted_X'].to_numpy(),
+                                 cast_df['casted_Y'].to_numpy())
 
     # make selection if shadow is on glacier
-    IN_glac = bilinear_interpolation(RGI, shdw_i, shdw_j)>.5
-    cast_list = cast_list[IN_glac, :]
+    if RGI is not None:
+        IN = ndimage.map_coordinates(RGI, [shdw_i, shdw_j], order=1,
+                                          mode='mirror') >.5
+        cast_df = cast_df[IN]
+        shdw_i, shdw_j = shdw_i[IN], shdw_j[IN]
 
     # transform to pixel coordinates
-    ridg_i, ridg_j = map2pix(geoTransform, cast_list[:, 0], cast_list[:, 1])
-    shdw_i, shdw_j = map2pix(geoTransform, cast_list[:, 2], cast_list[:, 3])
+    ridg_i, ridg_j = map2pix(geoTransform,
+                             cast_df['caster_X'].to_numpy(),
+                             cast_df['caster_Y'].to_numpy())
 
     output_draw_lines_overlay(ridg_i, ridg_j, shdw_i, shdw_j,
-                              RGI.shape, os.path.join(conn_dir, outputname),
+                              (m,n), os.path.join(conn_dir, outputname),
                               color=color, interval=step,
                               pen=pen)
     return

@@ -12,17 +12,28 @@ from dhdt.postprocessing.photohypsometric_tools import \
 
 MGRS_TILE = "09VWJ"
 
-DATA_DIR = "/project/eratosthenes/Data/"
-CONN_DIR = "/project/eratosthenes/Conn/"
+DATA_DIR = os.path.join(os.getcwd(), "data") #os.sep.join(["project", "eratosthenes", "data"])
+CONN_DIR = os.path.join(os.getcwd(), "processing") #os.sep.join(["project", "eratosthenes", "processing"])
+DUMP_DIR = os.path.join(os.getcwd(), "glaciers")
 RGI_PATH = os.path.join(DATA_DIR, "RGI", MGRS_TILE+'.tif')
 DEM_PATH = os.path.join(DATA_DIR, "DEM", MGRS_TILE+'.tif')
 
-im_path = ('S2_2017-10-20', 'S2_2020-10-19')
+
+def _get_stac_dates():
+    stac_dates = []
+    for root,directories,_ in os.walk(CONN_DIR):
+        ymd = os.path.relpath(root, CONN_DIR)
+        if ymd.count(os.sep)==2:
+            stac_dates.append(ymd)
+    return tuple(stac_dates)
 
 def main():
+    # loop through all different glaciers
+
     # load data
-    dh = read_conn_files_to_df(im_path, folder_path=CONN_DIR,
-                               dist_thres=100.)
+    im_paths = _get_stac_dates()
+    dh = read_conn_files_to_df(im_paths, folder_path=CONN_DIR,
+                               dist_thres=9.)
     rgi_dat,_,rgi_aff,_ = read_geo_image(RGI_PATH)
     dem_dat,_,dem_aff,_ = read_geo_image(DEM_PATH)
 
