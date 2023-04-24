@@ -46,20 +46,21 @@ def get_conn_col_header():
                           ('dh', np.float64), ('dt', '<m8[D]')])
     return col_names, col_dtype
 
-def write_df_to_conn_file(df, conn_dir, conn_file="conn.txt"):
+def write_df_to_conn_file(df, conn_dir, conn_file="conn.txt", append=False):
     col_names, col_dtype = get_conn_col_header()
 
-    # write to file
     conn_path = os.path.join(conn_dir, conn_file)
-    f = open(conn_path, 'w')
 
     df_sel = df[df.columns.intersection(list(col_names))]
-
-    # add header
     col_idx = df_sel.columns.get_indexer(list(col_names))
     IN = col_idx!=-1
-    print('# '+' '.join(tuple(np.array(col_names)[IN])), file=f)
     col_idx = col_idx[IN]
+
+    if append and os.path.isfile(conn_path):
+        f = open(conn_path, 'a+')
+    else:
+        f = open(conn_path, 'w')
+        print('# '+' '.join(tuple(np.array(col_names)[IN])), file=f)
 
     # write rows of dataframe into text file
     for k in range(df_sel.shape[0]):
@@ -77,6 +78,8 @@ def write_df_to_conn_file(df, conn_dir, conn_file="conn.txt"):
         print(line[:-1], file=f) # remove last spacer
     f.close()
     return
+
+#def write_df_to_belev_file(df):
 
 def get_timestamp_conn_file(conn_path, no_lines=6):
     """ looks inside the comments of a .txt for the time stamp
@@ -542,7 +545,7 @@ def update_casted_elevation_pd(dxyt, Z, geoTransform):
                              dxyt[x_str].to_numpy(), dxyt[y_str].to_numpy())
         dh_Z = ndimage.map_coordinates(Z, [i_im, j_im], order=1, mode='mirror')
         if not z_str in dxyt.columns: dxyt[z_str] = None
-        dxyt.loc[:,z_str] = dh_Z
+        dxyt[z_str] = dh_Z
     return dxyt
 
 def update_glacier_id(dh, R, geoTransform):
@@ -644,6 +647,7 @@ def get_casted_elevation_difference(dh):
     return dxyt
 
 def get_casted_elevation_difference_pd(dh):
+    assert 'id' in dh.columns, 'please couple the dataframe to other timestamps'
     # is refraction present
     if 'zenith_refrac' not in dh.columns:
         warnings.warn('OBS: refractured zenith does not seem to be calculated')
@@ -674,6 +678,9 @@ def get_casted_elevation_difference_pd(dh):
 
         n = dh_ioi.shape[0]
         if n<2: continue
+
+        # sort in temporal progression
+        dh_ioi = dh_ioi.iloc[np.argsort(dh_ioi['timestamp']), :]
 
         network_id = get_network_indices(n).T
 
@@ -969,3 +976,4 @@ def get_hypsometric_elevation_change_pd(dxyt, Z=None, geoTransform=None):
     dhdt = np.rec.fromarrays(arrs, dtype=np.dtype(desc))
     dhdt = pd.DataFrame.from_records(dhdt)
     return dhdt
+

@@ -811,6 +811,39 @@ def merge_ids_pd(dh_mother, dh_child, idx_uni):
     dh_stack = pd.concat([dh_mother, dh_child])
     return dh_stack
 
+def merge_ids_simple(dh):
+    """
+    the locations provided for different timestamps can also be merged directly,
+    this can be done when the imagery is co-registered, then the caster
+    locations have the same rounded pixel coordinates. This function uses this
+    simplification, to include an additional collumn to the data stack.
+
+    Parameters
+    ----------
+    dh : pandas.DataFrame
+        stack of coordinates and times, having at least the following collumns:
+            - timestamp : unit=days, date stamp
+            - caster_x,caster_y : unit=meter, map coordinate of start of shadow
+            - casted_x,casted_y : unit=meter, map coordinate of end of shadow
+            - azimuth : unit=degrees, sun orientation
+            - zenith : unit=degrees, overhead angle of the sun
+
+    Returns
+    -------
+    dh : pandas.DataFrame
+        data stack, now with a new entry, being:
+        - id : identification
+    """
+    def _unique_return_inverse_2D_viewbased(a):
+        a = np.ascontiguousarray(a)
+        void_dt = np.dtype((np.void, a.dtype.itemsize * np.prod(a.shape[1:])))
+        return np.unique(a.view(void_dt).ravel(), return_inverse=1)[1]
+    XY = np.stack((dh['caster_X'].to_numpy(),
+                   dh['caster_Y'].to_numpy())).T
+    id = _unique_return_inverse_2D_viewbased(XY)
+    dh.insert(len(dh.columns), 'id', id)
+    return dh
+
 # refine by matching, and include correlation score
 def match_shadow_casts(M1, M2, L1, L2, geoTransform1, geoTransform2,
                        xy1, xy2, scale_12, simple_sh,
@@ -1010,9 +1043,9 @@ def angles2unit(azimuth):
 
 def _get_zenith_from_sun(sun):
     if type(sun) in (float,): return np.deg2rad(sun)
-    if sun.size==1: # only zenith angles are given
+    if sun.ndim==1: # only zenith angles are given
         zn = np.squeeze(np.deg2rad(sun))
-    elif sun.shape[1]==2: # both azimuth an zenith are given
+    elif (sun.ndim==2) and (sun.shape[1]>1): # both azimuth an zenith are given
         zn = np.squeeze(np.deg2rad(sun[:,1]))
     return zn
 
