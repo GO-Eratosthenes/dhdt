@@ -40,9 +40,9 @@ def ajne_test(dXY, α=0.05):
     n = ψ.size
 
     deg = np.linspace(0,359,360)
-
+    m1 = np.zeros((n))
     for i, θ in enumerate(deg):
-        m1[i, ...] = np.sum(((α > θ) & (α < 360 + α)), axis=axis)
+        m1[i, ...] = np.sum(((α > θ) & (α < 360 + α)))
     m2 = n - m1
     m = np.stack((m1,m2)).ravel().min()
     if n<50: # use [Aj68]_
