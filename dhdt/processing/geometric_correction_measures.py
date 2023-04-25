@@ -1,6 +1,57 @@
 import numpy as np
 
 from scipy.stats import spearmanr, wilcoxon, ttest_1samp
+from dhdt.generic.unit_conversion import deg2compass
+
+def doubling_the_angles(θ):
+    ψ = np.mod(2*deg2compass(θ),360)
+    return ψ
+
+def _nchoosek(n, k):
+    if k == 0:
+        r = 1
+    else:
+        r = n/k * _nchoosek(n-1, k-1)
+    return round(r)
+
+def ajne_test(dXY, α=0.05):
+    """ implementing the Hodges-Ajne test, see also [BP97]_ for implementation
+    details. Hence, the direction of the misfits are uniformly distributed.
+
+    Parameters
+    ----------
+    dXY : numpy.ndarray, size=(k,2)
+        planimetric corrections / misfits
+    α : float, range=0...1
+        significance level
+
+    References
+    ----------
+    .. [BP97] Buiten & van Putten, "Quality assessment of remote sensing image
+              registration—analysis and testing of control point residuals"
+              ISPRS journal of photogrammetry and remote sensing vol.52(2)
+              pp.57-73, 1997.
+    .. [Aj68] Ajne, "A simple test for uniformity of a circular distribution",
+              Biometrika vol.55(2) pp.343-354, 1968.
+    .. [Ho55] Hodges, "A bivariate sign test." The annals of mathematical
+              statistics vol.26(3) pp.523-527, 1955.
+    """
+    ψ = doubling_the_angles(np.rad2deg(np.angle(dXY[:,0] + 1j*dXY[:,0])))
+    n = ψ.size
+
+    deg = np.linspace(0,359,360)
+
+    for i, θ in enumerate(deg):
+        m1[i, ...] = np.sum(((α > θ) & (α < 360 + α)), axis=axis)
+    m2 = n - m1
+    m = np.stack((m1,m2)).ravel().min()
+    if n<50: # use [Aj68]_
+        A = np.pi*np.sqrt(n) / 2 / (n - 2*m)
+        p_val = np.divide(np.sqrt(2 * np.pi),
+                          A * np.exp(-np.pi**2 / 8 / A**2))
+    else: # use [Ho55]_
+        p_val = 2**(1-n) * (n-2*m) * _nchoosek(n,m)
+    return p_val
 
 def bad_point_propagation(dXY, r=1.):
     """ see [Go09]_
