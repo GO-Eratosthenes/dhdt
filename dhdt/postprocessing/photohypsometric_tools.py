@@ -14,6 +14,8 @@ from dhdt.processing.coupling_tools import \
     pair_posts, merge_ids, get_elevation_difference, angles2unit
 from dhdt.processing.matching_tools import remove_posts_pairs_outside_image
 from dhdt.processing.network_tools import get_network_indices
+from dhdt.postprocessing.temporal_tools import get_temporal_incidence_matrix, \
+    get_temporal_weighting
 
 def get_conn_col_header():
     """ give the collumn name and datatypes
@@ -79,7 +81,21 @@ def write_df_to_conn_file(df, conn_dir, conn_file="conn.txt", append=False):
     f.close()
     return
 
-#def write_df_to_belev_file(df):
+def write_df_to_belev_file(df, belev_dir, rgi_num=0, rgi_region=0):
+    belev_name = 'belev_' + str(rgi_region).zfill(2) + '.' + \
+                 str(rgi_num).zfill(5) + '.dat.txt'
+    belev_path = os.path.join(belev_dir, belev_name)
+    f = open(belev_path, 'w')
+
+    header = 'Elev  ' + "  ".join(list(map(str, df.columns)))
+    print(header, file=f)
+
+    func = lambda x: '{:+.2f}'.format(x)
+    for index, row in df.iterrows():
+        line = index + "  " + "  ".join(list(map(func, row)))
+        print(line, file=f)
+    f.close()
+    return
 
 def get_timestamp_conn_file(conn_path, no_lines=6):
     """ looks inside the comments of a .txt for the time stamp
@@ -480,7 +496,7 @@ def update_caster_elevation_pd(dh, Z, geoTransform):
                          dh['caster_X'].to_numpy(), dh['caster_Y'].to_numpy())
     dh_Z = ndimage.map_coordinates(Z, [i_im, i_im], order=1, mode='mirror')
     if not 'caster_Z' in dh.columns: dh['caster_Z'] = None
-    dh.loc[:,'caster_Z'] = dh_Z
+    dh.loc['caster_Z'] = dh_Z
     return dh
 
 def update_casted_elevation(dxyt, Z, geoTransform):
@@ -588,7 +604,7 @@ def update_glacier_id_pd(dh, R, geoTransform):
                          dh['caster_X'].to_numpy(), dh['caster_Y'].to_numpy())
     rgi_id = simple_nearest_neighbor(R, i_im, j_im).astype(int)
     if not 'glacier_id' in dh.columns: dh['glacier_id'] = None
-    dh.loc[:,'glacier_id'] = rgi_id
+    dh.loc['glacier_id'] = rgi_id
     return dh
 
 def get_casted_elevation_difference(dh):
@@ -977,3 +993,48 @@ def get_hypsometric_elevation_change_pd(dxyt, Z=None, geoTransform=None):
     dhdt = pd.DataFrame.from_records(dhdt)
     return dhdt
 
+def get_mass_balance_per_elev(dhdt, spac=100.):
+    L = (dhdt['Z_12'].to_numpy() // spac).astype(int)
+    labels, indices, counts = np.unique(L,
+                                        return_counts=True,
+                                        return_inverse=True)
+    dZ_split = np.split(dhdt.iloc[indices.argsort(),
+                                   dhdt.columns.get_loc('dZ_12')],
+                         counts.cumsum()[:-1])
+
+    # using the fixed-date system of a mass-balance year,
+    # see also "Mass-balance year" at pp.66 in [COG11]_
+    yr_min = np.min(dhdt['T_1'].to_numpy())
+    yr_mnd = yr_min.astype('datetime64[M]').astype(int) % 12
+    yr_min = yr_min.astype('datetime64[Y]').astype(int) + 1970
+    if yr_mnd < 9: yr_min -= 1
+
+    yr_max = np.max(dhdt['T_2'].to_numpy())
+    yr_mnd = yr_max.astype('datetime64[M]').astype(int) % 12
+    yr_max = yr_max.astype('datetime64[Y]').astype(int) + 1970
+    if yr_mnd >= 9: yr_max += 1
+
+    T_step = pd.date_range(start=str(yr_min), end=str(yr_max+1),
+                           freq='A-SEP').to_numpy()
+
+    time_range = np.arange(yr_min+1,yr_max+1)
+    belev = np.zeros((labels.size, time_range.size))
+    for idx,arr in enumerate(dZ_split):
+        df_sub = dhdt.iloc[arr.index,:]
+
+        T_1,T_2 = df_sub['T_1'].values.astype('datetime64[D]'),\
+                  df_sub['T_2'].values.astype('datetime64[D]')
+
+        A = get_temporal_incidence_matrix(T_1, T_2, T_step, open_network=True)
+        W = get_temporal_weighting(T_1, T_2, covariance=True)
+
+        x_hat = np.linalg.lstsq(np.dot(W,A),
+                                np.dot(df_sub['dZ_12'].to_numpy(), W),
+                                rcond=None)[0]
+        belev[idx,:] = x_hat
+
+    elev = labels * spac
+    belev = pd.DataFrame(belev,
+                         columns=list(map(str, time_range.tolist())),
+                         index=list(map(str, elev.astype(int).tolist())))
+    return belev

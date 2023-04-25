@@ -1055,7 +1055,8 @@ def get_refraction_angle(dh, x_bar, y_bar, spatialRef, central_wavelength,
         zn_new = refraction_angle_analytical(sub_dh['zenith'], n_0)
 
         if not 'zenith_refrac' in dh.columns: dh['zenith_refrac'] = None
-        dh.loc[IN, 'zenith_refrac'] = zn_new
+        col_idx = dh.columns.get_loc('zenith_refrac')
+        dh.loc[IN,col_idx] = zn_new
     return dh
 
 def update_list_with_corr_zenith_pd(dh, file_dir, file_name='conn.txt'):

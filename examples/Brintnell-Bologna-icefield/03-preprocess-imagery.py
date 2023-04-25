@@ -18,6 +18,7 @@ from dhdt.preprocessing.acquisition_geometry import \
     get_template_aspect_slope, compensate_ortho_offset
 from dhdt.preprocessing.shadow_transforms import \
     apply_shadow_transform
+from dhdt.preprocessing.image_transforms import log_adjustment
 from dhdt.processing.matching_tools import get_coordinates_of_template_centers
 from dhdt.processing.coupling_tools import match_pair
 from dhdt.postprocessing.solar_tools import make_shadowing, make_shading
@@ -206,7 +207,7 @@ def main():
         year, month, day = str(year), str(month), str(day)
         # create folder structure
         item_dir = os.path.join(DUMP_DIR, year, month, day)
-        if os.path.exists(item_dir): continue
+        #if os.path.exists(item_dir): continue
 
         # read imagery
         bands = load_bands(item_L1C, s2_df, new_aff)

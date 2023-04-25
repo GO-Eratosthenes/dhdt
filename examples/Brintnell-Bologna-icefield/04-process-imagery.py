@@ -112,8 +112,7 @@ def main():
 
         if os.path.exists(os.path.join(dump_dir, 'conn.txt')):
             # create casting caster images
-
-            output_cast_lines_from_conn_txt(dump_dir, new_aff, rgi_dat, step=5)
+            output_cast_lines_from_conn_txt(dump_dir, new_aff, rgi_dat, step=2)
             continue
 
         # load data

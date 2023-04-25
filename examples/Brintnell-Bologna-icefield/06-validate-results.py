@@ -49,6 +49,8 @@ def main():
     Mb, rgi, z_bin = mass_changes2specific_glacier_hypsometries(
         mass_dat, dem_dat, rgi_dat, interval=100.)
 
+#    Mb /= 1E3 # mwe
+#    Mb /= 5 # yr
     print('.')
     plt.plot(np.tile(z_bin, (Mb.shape[0], 1)).T, Mb.T);
 

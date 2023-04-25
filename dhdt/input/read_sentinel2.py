@@ -905,8 +905,9 @@ def read_view_angles_s2(path, fname='MTD_TL.xml', det_stack=np.array([]),
 
         col_sep = float(grd[0][0].text) # in meters
         row_sep = float(grd[0][0].text) # in meters
-        col_res = float(boi_df.loc[boi_df.index[det_idx],'gsd'])
-        row_res = float(boi_df.loc[boi_df.index[det_idx],'gsd'])
+        col_idx = boi_df.columns.get_loc('gsd')
+        col_res = float(boi_df.iloc[boi_df.index[det_idx],col_idx])
+        row_res = float(boi_df.iloc[boi_df.index[det_idx],col_idx])
 
         Zarray = get_array_from_xml(grd[0][2])
         if Zn_grd is None:
