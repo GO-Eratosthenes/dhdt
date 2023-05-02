@@ -9,8 +9,9 @@ import rioxarray
 import shapely.geometry
 import shapely.ops
 
-from rasterio.enums import Resampling
 from affine import Affine
+from rasterio.enums import Resampling
+from rioxarray.merge import merge_arrays
 
 # import local functions
 from dhdt.generic.handler_www import get_file_from_www
