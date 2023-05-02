@@ -1,21 +1,17 @@
 affine
 cdsapi
 datetime
-fnmatch
 geopandas
-glob
 netCDF4
 logging
 matplotlib
 numpy
-os
 Pillow
 pandas
 pygrib
 pyproj
 pystac
 pystac-client
-random
 rasterio
 rioxarray
 scikit-image
@@ -24,5 +20,3 @@ scipy
 skimage
 sklearn
 shapely>=2
-warnings
-xml
