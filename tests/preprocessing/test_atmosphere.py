@@ -112,11 +112,11 @@ def test_refractive_index_broadband():
     n_tilde = np.array([21458.0, 26824.4, 32191.6, 27774.7, 25937.2])
     n_tilde *= 1E-8 # convert to refraction
     n_tilde += 1
-    assert np.all(np.isclose(n_0, n_tilde, atol=1E-8))
+    assert np.allclose(n_0, n_tilde, atol=1.E-8)
 
     frac_Hum = np.array([0., 0., 0., 0., 0.])
     n_0 = refractive_index_broadband(sigma, T, P, frac_Hum, LorentzLorenz=False) #todo
-    assert np.all(np.isclose(n_0, n_tilde, atol=1E-8))
+    assert np.allclose(n_0, n_tilde, atol=1.E-8)
 
     # from Table.4 in [1], for ambient air
     T = np.array([19.526, 19.517, 19.173, 19.173, 19.188,
@@ -130,11 +130,9 @@ def test_refractive_index_broadband():
     CO2 = np.array([510., 510., 450., 440., 450., 440., 600., 600., 610.])
                                             # carbondioxide concentration, [ppm]
     n_0 = refractive_index_visible(sigma, T, P, p_w, CO2=CO2)
-    n_0 = refractive_index_broadband(sigma, T, P, p_w, CO2=CO2)
 
     n_tilde = np.array([27392.3, 27394.0, 27683.4, 27686.9, 27659.1,
                       27661.4, 27802.1, 27800.3, 27801.8])  # measured refraction
     n_tilde *= 1E-8
     n_tilde += 1
-    assert np.all(np.isclose(n_0, n_tilde, atol=1E-8))
-    return
+    assert np.allclose(n_0, n_tilde, atol=1.E-8)
