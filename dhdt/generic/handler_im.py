@@ -24,8 +24,6 @@ def conv_2Dfilter(I, kernel):
     V = np.einsum('ij,ijkl->kl', kernel, sub_matrices)
     return V
 
-# def conv_2Dfft(): todo: https://gist.github.com/thearn/5424195
-
 def toeplitz_block(kernel, image_size):
     # from https://stackoverflow.com/questions/56702873/is-there-an-function-in-pytorch-for-converting-convolutions-to-fully-connected-n
     # admin
