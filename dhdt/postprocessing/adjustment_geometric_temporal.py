@@ -127,6 +127,8 @@ def rotate_disp_field(UV, θ):
     θ : {numpy.ndarray, float}, angle, unit=degrees
         rotation angle
 
+    Returns
+    -------
     UV_r :  numpy.ndarray, size=(m,n), dtype=complex
         grid with rotated displacements in complex form
     """
