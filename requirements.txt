@@ -2,6 +2,7 @@ affine
 cdsapi
 geopandas
 matplotlib
+morphsnakes @ git+https://github.com/GO-Eratosthenes/morphsnakes@albedo-included
 netCDF4
 numpy
 Pillow

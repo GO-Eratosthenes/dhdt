@@ -17,7 +17,7 @@ with open('README.rst') as readme_file:
     readme = readme_file.read()
 
 with open('requirements.txt') as requirements_file:
-    requirements = [line.strip('\n') for line in requirements_file.readlines()]
+    requirements = [line.split()[0] for line in requirements_file.readlines()]
 
 setup(
     name='dhdt',
