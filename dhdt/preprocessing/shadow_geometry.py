@@ -400,7 +400,7 @@ def shadow_image_to_list(M, geoTransform, s2_path,
                    suntrace_list[:,0].copy(), suntrace_list[:,1].copy())
 
     interp = RegularGridInterpolator(
-        (np.arange(sunZn.shape[0]), np.arange(sunZn.shape[1])), sun_Zn)
+        (np.arange(sunZn.shape[0]), np.arange(sunZn.shape[1])), sunZn)
     sun_angles = interp(np.array([i, j]).T)
 
     # write to file
