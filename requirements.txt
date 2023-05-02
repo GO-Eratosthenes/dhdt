@@ -1,10 +1,8 @@
 affine
 cdsapi
-datetime
 geopandas
-netCDF4
-logging
 matplotlib
+netCDF4
 numpy
 Pillow
 pandas
@@ -17,6 +15,4 @@ rioxarray
 scikit-image
 scikit-learn
 scipy
-skimage
-sklearn
 shapely>=2
