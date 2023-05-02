@@ -7,7 +7,7 @@ from scipy import ndimage
 from dhdt.generic.handler_im import bilinear_interpolation
 from dhdt.generic.mapping_tools import vel2pix
 from dhdt.testing.matching_tools import construct_correlation_peak
-from djdt.generic.gis_tools import polylines2shapefile
+from dhdt.generic.gis_tools import polylines2shapefile
 
 def make_seeds(Msk, n=1E2):
     if not np.any(Msk):
