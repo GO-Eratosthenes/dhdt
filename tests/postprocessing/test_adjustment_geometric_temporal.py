@@ -49,4 +49,3 @@ def test_helmholtz_hodge(m=40, n=30):
     dX_divfre, dY_divfre, dX_irrot, dY_irrot = helmholtz_hodge(Z_dx, Z_dy)
     assert np.all(np.isclose(Z_dx, dX_divfre+dX_irrot))
     assert np.all(np.isclose(Z_dy, dY_divfre+dY_irrot))
-    

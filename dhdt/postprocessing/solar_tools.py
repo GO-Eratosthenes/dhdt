@@ -80,9 +80,9 @@ def sun_angles_to_vector(az, zn, indexing='ij'):
 
     Parameters
     ----------
-    az : float, unit=degrees
+    az : {float, numpy.ndarray}, unit=degrees
         azimuth angle of sun.
-    zn : float, unit=degrees
+    zn : {float, numpy.ndarray}, unit=degrees
         zenith angle of sun.
     indexing : {‘xy’, ‘ij’}
          * "xy" : using map coordinates
@@ -152,14 +152,17 @@ def sun_angles_to_vector(az, zn, indexing='ij'):
     sun[..., 0] /= n
     sun[..., 1] /= n
     sun[..., 2] /= n
-    return sun
+    if type(az) in (np.ndarray,):
+        return sun
+    else: # if single entry is given
+        return np.squeeze(sun)
 
-def vector_to_sun_angles(e_x,e_y,e_z):
+def vector_to_sun_angles(sun):
     """ transform 3D-unit vector to azimuth and zenith angle
 
     Parameters
     ----------
-    e_x,e_y,e_z : {float,numpy.array}, size=(m,), dtype=float, range=0...1
+    sun : {float,numpy.array}, size=(m,), dtype=float, range=0...1
         the three different unit vectors in the direction of the sun.
 
     Returns
@@ -168,10 +171,22 @@ def vector_to_sun_angles(e_x,e_y,e_z):
         azimuth angle of sun.
     zn : {float, numpy.ndarray}, unit=degrees
         zenith angle of sun.
+
+    The angles related to the suns' heading are as follows:
+
+        .. code-block:: text
+
+          surface normal              * sun
+          ^                     ^    /
+          |                     |   /
+          ├-- zenith angle      |  /
+          | /                   | /|
+          |/                    |/ | elevation angle
+          └----                 └--┴---
     """
 
-    zn = np.rad2deg(np.arccos(e_z))
-    az = np.rad2deg(np.arctan2(e_x, e_y))
+    az = np.rad2deg(np.arctan2(sun[..., 1], sun[..., 0]))
+    zn = np.rad2deg(np.arccos(sun[..., 2]))
     return az, zn
 
 # elevation model based functions

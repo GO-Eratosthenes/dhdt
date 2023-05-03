@@ -7,9 +7,8 @@ from ..generic.attitude_tools import rot_mat
 from ..processing.matching_tools_frequency_filters import \
     make_fourier_grid
 
-
 def project_along_flow(dX_raw,dY_raw,dX_prio,dY_prio,e_perp):
-    """
+    r"""
 
     Parameters
     ----------
@@ -175,39 +174,3 @@ def helmholtz_hodge(dX, dY):
 
     if np.any(Msk): dX_irrot[Msk], dY_irrot[Msk] = np.nan, np.nan
     return dX_divfre, dY_divfre, dX_irrot, dY_irrot
-
-def nan_resistant(buffer, kernel):
-    OUT = np.isnan(buffer)
-    filter = kernel.copy().ravel()
-    if np.all(OUT):
-        return np.nan
-    elif np.all(~OUT):
-        return np.nansum(buffer[~OUT] * filter[~OUT])
-
-    surplus = np.sum(filter[OUT]) # energy to distribute
-    grouping = np.sign(filter).astype(int)
-    np.putmask(grouping, OUT, 0) # do not include no-data location in re-organ
-
-    if np.sign(surplus)==-1 and np.any(grouping==-1):
-        idx = grouping==+1
-        filter[idx] += surplus/np.sum(idx)
-        central_pix = np.nansum(buffer[~OUT]*filter[~OUT])
-    elif np.sign(surplus)==+1 and np.any(grouping==+1):
-        idx = grouping == -1
-        filter[idx] += surplus /np.sum(idx)
-        central_pix = np.nansum(buffer[~OUT] * filter[~OUT])
-    elif surplus == 0:
-        central_pix = np.nansum(buffer[~OUT] * filter[~OUT])
-    else:
-        central_pix = np.nan
-
-    return central_pix
-
-def relaxation_labelling(I, tsize=3, magnitude=False):
-    I_new = ndimage.generic_filter(I, nan_resistant, size=(tsize, tsize),
-                                   extra_arguments=(magnitude,))
-    return I_new
-
-
-# geometric_configuration
-# temporal_configuration  

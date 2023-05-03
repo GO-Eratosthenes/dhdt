@@ -132,7 +132,7 @@ def d8_flow(Class, V_x, V_y, iter=20, analysis=True): #todo: create colored poly
     """
 
     # admin
-    m, n = C.shape[0:2]
+    m, n = Class.shape[0:2]
     mn = np.multiply(m, n)
     idx_offset = get_d8_offsets(Class.shape)
 
@@ -159,7 +159,7 @@ def d8_flow(Class, V_x, V_y, iter=20, analysis=True): #todo: create colored poly
 
         # update
         Class_new[Bnd] = Class_new.ravel()[downstream_idx]
-        if analysis: Class_stack[:,:,i] = Class_new.copy()
+        if analysis: Class_stack[...,i] = Class_new.copy()
 
     if analysis:
         return Class_stack
