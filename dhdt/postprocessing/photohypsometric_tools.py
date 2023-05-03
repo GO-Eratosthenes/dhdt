@@ -35,7 +35,7 @@ def get_conn_col_header():
     """
     col_names = ['timestamp', 'caster_X', 'caster_Y', 'caster_Z',
                  'casted_X', 'casted_Y', 'casted_X_refine', 'casted_Y_refine',
-                 'azimuth', 'zenith', 'zenith_refrac','id',
+                 'azimuth', 'zenith', 'zenith_refrac','id','row',
                  'dh', 'dt']
     col_dtype = np.dtype([('timestamp', '<M8[D]'),
                           ('caster_X', np.float64), ('caster_Y', np.float64),
@@ -45,6 +45,7 @@ def get_conn_col_header():
                           ('casted_Y_refine', np.float64),
                           ('azimuth', np.float64), ('zenith', np.float64),
                           ('zenith_refrac', np.float64), ('id', np.int32),
+                          ('row', np.int32),
                           ('dh', np.float64), ('dt', '<m8[D]')])
     return col_names, col_dtype
 
@@ -68,12 +69,15 @@ def write_df_to_conn_file(df, conn_dir, conn_file="conn.txt", append=False):
     for k in range(df_sel.shape[0]):
         line = ''
         for idx,val in enumerate(col_idx):
-            if col_names[idx] in ('timestamp', 'date',):
+            col_oi = df_sel.columns[val]
+            if col_oi in ('timestamp', 'date',):
                 line += str(df_sel.iloc[k,val])[:10]
-            elif col_names[idx] in ('azimuth', 'zenith', 'zenith_refrac'):
+            elif col_oi in ('azimuth', 'zenith', 'zenith_refrac'):
                 line += '{:+3.4f}'.format(df_sel.iloc[k,val])
-            elif col_names[idx] in ('caster_Z', 'casted_Z', 'dh'):
+            elif col_oi in ('caster_Z', 'casted_Z', 'dh'):
                 line += '{:+4.2f}'.format(df_sel.iloc[k,val])
+            elif col_oi in ('row', 'id'):
+                line += "{:03d}".format(df_sel.iloc[k,val])
             else:
                 line += '{:+8.2f}'.format(df_sel.iloc[k,val])
             line += ' '
