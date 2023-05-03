@@ -1,11 +1,9 @@
 import numpy as np
 
 from scipy import ndimage
-from datetime import datetime, timedelta
 
-from dhdt.generic.unit_conversion import doy2dmy, deg2arg
-from dhdt.generic.data_tools import estimate_sinus
-from dhdt.generic.mapping_tools import get_mean_map_lat_lon, get_max_pixel_spacing
+from dhdt.generic.unit_conversion import deg2arg
+from dhdt.generic.mapping_tools import get_max_pixel_spacing
 
 # general location functions
 def az_to_sun_vector(az, indexing='ij'):
@@ -137,27 +135,24 @@ def sun_angles_to_vector(az, zn, indexing='ij'):
           based      v           based       |
 
     """
+    az, zn = np.deg2rad(az), np.deg2rad(zn)
     if indexing=='ij': # local image system
-        sun = np.dstack((-np.cos(np.radians(az)), \
-                         +np.sin(np.radians(az)), \
-                         +np.tan(np.radians(zn)))
+        sun = np.dstack((-np.cos(az)*np.sin(zn),
+                         +np.sin(az)*np.sin(zn),
+                         +np.cos(zn))
                         )
     else: # 'xy' that is map coordinates
-        sun = np.dstack((+np.sin(np.radians(az)), \
-                         +np.cos(np.radians(az)), \
-                         +np.tan(np.radians(zn)))
+        sun = np.dstack((+np.sin(az)*np.sin(zn),
+                         +np.cos(az)*np.sin(zn),
+                         +np.cos(zn))
                         )
 
-    n = np.linalg.norm(sun, axis=2)
-    sun[..., 0] /= n
-    sun[..., 1] /= n
-    sun[..., 2] /= n
     if type(az) in (np.ndarray,):
         return sun
     else: # if single entry is given
         return np.squeeze(sun)
 
-def vector_to_sun_angles(sun):
+def vector_to_sun_angles(sun, indexing='ij'):
     """ transform 3D-unit vector to azimuth and zenith angle
 
     Parameters
@@ -185,7 +180,10 @@ def vector_to_sun_angles(sun):
           └----                 └--┴---
     """
 
-    az = np.rad2deg(np.arctan2(sun[..., 1], sun[..., 0]))
+    if indexing == 'ij':  # local image system
+        az = np.rad2deg(np.arctan2(sun[..., 1], -sun[..., 0]))
+    else: # 'xy' that is map coordinates
+        az = np.rad2deg(np.arctan2(sun[..., 0], sun[..., 1]))
     zn = np.rad2deg(np.arccos(sun[..., 2]))
     return az, zn
 
@@ -338,13 +336,13 @@ def make_shading(Z, az, zn, spac=10):
 
     normal = np.dstack((dx, dy, np.ones_like(Z)))
     n = np.linalg.norm(normal, axis=2)
-    normal[:, :, 0] /= n
-    normal[:, :, 1] /= n
-    normal[:, :, 2] /= n
+    normal[..., 0] /= n
+    normal[..., 1] /= n
+    normal[..., 2] /= n
 
-    Sh = normal[:,:,0]*sun[:,:,0] + \
-        normal[:,:,1]*sun[:,:,1] + \
-        normal[:,:,2]*sun[:,:,2]
+    Sh = normal[...,0]*sun[...,0] + \
+         normal[...,1]*sun[...,1] + \
+         normal[...,2]*sun[...,2]
     return Sh
 
 def make_doppler_range(Z, az, zn, Lambertian=True, spac=10):
@@ -390,13 +388,13 @@ def make_doppler_range(Z, az, zn, Lambertian=True, spac=10):
     S_r = np.zeros_like(Z_r, dtype=float)
     for i in range(Z_r.shape[0]):
         if Lambertian:
-            his,_ = np.histogram(D_r[i,:],
-                                 bins=np.arange(0, K_r.shape[1]+1),
-                                 weights=Sd_r[i,:])
+            his = np.histogram(D_r[i,:],
+                               bins=np.arange(0, K_r.shape[1]+1),
+                               weights=Sd_r[i,:])[0]
         else:
-            his,_ = np.histogram(D_r[i,:],
-                                 bins=np.arange(0, K_r.shape[1]+1),
-                                 weights=M_r[i,:].astype(float))
+            his = np.histogram(D_r[i,:],
+                               bins=np.arange(0, K_r.shape[1]+1),
+                               weights=M_r[i,:].astype(float))[0]
         S_r[i,:] = his
     return
 
@@ -453,241 +451,16 @@ def make_shading_minnaert(Z, az, zn, k=1, spac=10):
 
     normal = np.dstack((dx, dy, np.ones_like(Z)))
     n = np.linalg.norm(normal, axis=2)
-    normal[:, :, 0] /= n
-    normal[:, :, 1] /= n
-    normal[:, :, 2] /= n
+    normal[..., 0] /= n
+    normal[..., 1] /= n
+    normal[..., 2] /= n
 
-    L = normal[:,:,0]*sun[:,:,0] + \
-        normal[:,:,1]*sun[:,:,1] + \
-        normal[:,:,2]*sun[:,:,2]
+    L = normal[...,0]*sun[...,0] + \
+        normal[...,1]*sun[...,1] + \
+        normal[...,2]*sun[...,2]
     # assume overhead
-    Sh = L**(k+1) * (1-normal[:,:,2])**(1-k)
+    Sh = L**(k+1) * (1-normal[...,2])**(1-k)
     return Sh
-
-def annual_solar_graph(latitude=51.707524, longitude=6.244362, deg_sep=.5,
-                       year = 2018, sec_resol=20):
-    """ calculate the solar graph of a location
-
-    Parameters
-    ----------
-    latitude : float, unit=degrees, range=-90...+90
-        latitude of the location of interest
-    longitude : float, unit=degrees, range=-180...+180
-        longitude of the location of interest
-    deg_sep : float, unit=degrees
-        resolution of the solargraph grid
-    year : integer, {x ∈ ℕ}
-        year of interest
-    sec_resol : float, unit=seconds, default=20
-        resolution of sun location calculation
-
-    Returns
-    -------
-    Sky : numpy.ndarray, size=(k,l), dtype=integer
-        array with solargraph
-    az : numpy.ndarray, size=(l,_), dtype=float, unit=degrees
-        azimuth values, that is the axis ticks of the solar graph
-    zenit : numpy.ndarray, size=(k,_), dtype=float, unit=degrees
-        zenit values, that is the axis ticks of the solar graph
-
-    See Also
-    --------
-    annual_solar_population : calculate the occurance
-    """
-    az = np.arange(0, 360, deg_sep)
-    zn = np.flip(np.arange(-.5, +90, deg_sep))
-
-    Sol = np.zeros((zn.shape[0], az.shape[0]))
-
-    month = np.array([12, 6])     # 21/12 typical winter solstice - lower bound
-    day = np.array([21, 21])      # 21/06 typical summer solstice - upper bound
-
-    # loop through all times to get sun paths
-    for i in range(0,2):
-        for hour in range(0, 24):
-            for minu in range(0, 60):
-                for sec in range(0, 60, sec_resol):
-                    sun_zen = get_altitude(latitude, longitude,
-                                          datetime(year, month[i], day[i],
-                                                   hour, minu, sec,
-                                                   tzinfo=timezone('UTC')))
-                    sun_azi = get_azimuth(latitude, longitude,
-                                          datetime(year, month[i], day[i],
-                                                   hour, minu, sec,
-                                                   tzinfo=timezone('UTC')))
-
-                az_id = (np.abs(az - sun_azi)).argmin()
-                zn_id = (np.abs(zn - sun_zen)).argmin()
-                if i==0:
-                    Sol[zn_id,az_id] = -1
-                else:
-                    Sol[zn_id,az_id] = +1
-    # remove the line below the horizon
-    Sol = Sol[:-1,:]
-
-    # mathematical morphology to do infilling, and extent the boundaries a bit
-    Sol_plu, Sol_min = Sol==+1, Sol==-1
-    Sol_plu = ndimage.binary_dilation(Sol_plu, np.ones((5,5))).cumsum(axis=0)==1
-    Sol_min = np.flipud(ndimage.binary_dilation(Sol_min, np.ones((5,5))))
-    Sol_min = np.flipud(Sol_min.cumsum(axis=0)==1)
-
-    # populated the solargraph between the upper and lower bound
-    Sky = np.zeros(Sol.shape)
-    for i in range(0,Sol.shape[1]):
-        mat_idx = np.where(Sol_plu[:,i]==+1)
-        if len(mat_idx[0]) > 0:
-            start_idx = mat_idx[0][0]
-            mat_idx = np.where(Sol_min[:,i]==1)
-            if len(mat_idx[0]) > 0:
-                end_idx = mat_idx[0][-1]
-            else:
-                end_idx = Sol.shape[1]
-            Sky[start_idx:end_idx,i] = 1
-
-    return Sky, az, zn
-
-def annual_solar_population(latitude=51.707524, longitude=6.244362, deg_sep=.5,
-                            year = 2018, poly=True, radiation=True):
-    """ calculate the solar graph distribution of a location
-
-    Parameters
-    ----------
-    latitude : float, unit=degrees, range=-90...+90
-        latitude of the location of interest
-    longitude : float, unit=degrees, range=-180...+180
-        longitude of the location of interest
-    deg_sep : {float,list}, unit=degrees
-        resolution of the solargraph grid, if a list is given
-        the first element corresponds to the azimuth resolution,
-        the second element corresponds to the zenith resolution
-    year : integer, {x ∈ ℕ}
-        year of interest
-    poly : boolean, default=True
-        estimate a polynomial through the sun's daily orbit
-    radiation : boolean, default=True
-        estimate the radiation
-
-    Returns
-    -------
-    Sol : numpy.ndarray, size=(k,l), dtype=integer
-        array with solargraph occurance
-    az : numpy.ndarray, size=(l,_), dtype=float, unit=degrees
-        azimuth values, that is the axis ticks of the solar graph
-    zn : numpy.ndarray, size=(k,_), dtype=float, unit=degrees
-        zenit values, that is the axis ticks of the solar graph
-
-    See Also
-    --------
-    annual_solar_graph : calculate the spread
-    """
-    if not isinstance(deg_sep, list):
-        deg_sep = [deg_sep, deg_sep]
-    if len(deg_sep)==1:
-        deg_sep = [deg_sep[0], deg_sep[0]]
-
-    az = np.arange(0, 360, deg_sep[0])
-    zn = np.arange(-.5, +90, deg_sep[1])
-
-    Sol = np.zeros((zn.shape[0], az.shape[0]))
-
-    # loop through all days of the year
-    for doy in np.arange(0, 365):
-        d_1,m_1,y_1 = doy2dmy(np.array([doy]), np.array([year]))
-        d_2,m_2,y_2 = doy2dmy(np.array([doy+1]), np.array([year]))
-
-        time_steps = np.arange(datetime(y_1,m_1,d_1),
-                               datetime(y_2,m_2,d_2),
-                               timedelta(hours=1)).astype(datetime)
-
-        sun_zen = np.zeros_like(time_steps, dtype=float)
-        sun_azi = np.zeros_like(time_steps, dtype=float)
-        for i,t in enumerate(time_steps):
-            t = t.replace(tzinfo=timezone('UTC'))
-            sun_zen[i] = get_altitude(latitude, longitude, t)
-            sun_azi[i] = get_azimuth(latitude, longitude, t)
-
-        # estimate curve, does not seem to be a sinus...
-        if poly is True:
-            p = np.poly1d(np.polyfit(sun_azi, sun_zen, 6))
-            zn_hat = p(az)
-        else:
-            # estimate sinus
-            az_hat,amp_hat,bias = estimate_sinus(sun_azi, sun_zen)
-            zn_hat = (amp_hat*np.cos(np.deg2rad(az-az_hat))) + bias
-
-        zn_id = np.abs(np.tile(zn_hat[np.newaxis,:], (zn.size, 1)) -
-                       np.tile(zn[:,np.newaxis], (1, zn_hat.size)) ).argmin(axis=0)
-
-        if radiation == True:
-            delta_sec = (deg_sep[0]/360)*(24*60*60) # amount of seconds
-            for counter, idx in enumerate(zn_id):
-                tot_rad = delta_sec*get_radiation_direct(t, zn[idx])
-                Sol[zn_id[idx],counter] += tot_rad
-        else:
-            Sol[zn_id,np.arange(0,az.size)] += 1
-
-    # remove the line below the horizon
-    Sol, zn = np.flipud(Sol[1:,:]), np.flip(zn[1:])
-    return Sol, az, zn
-
-def annual_illumination(Z, geoTransform, spatialRef, deg_sep=[5,1], year=2018):
-    """ estimate the annual illumination of for a section of terrain
-
-    Parameters
-    ----------
-    Z : numpy.array, size=(m,n), dtype={integer,float}, unit=meter
-        grid with elevation data
-    geoTransform : tuple, size={(1,6), (1,8)}
-        georeference transform of the array 'Z'
-    spatialRef : osgeo.osr.SpatialReference() object
-        coordinate reference system
-    deg_sep : {float,list}, unit=degrees
-        resolution of the solargraph grid
-    year : integer, {x ∈ ℕ}
-        year of interest
-
-    Returns
-    -------
-    SW : numpy.array, size=(m,n), dtype=integer
-        annual illumination on the terrain
-
-    See Also
-    --------
-    annual_solar_population, make_shadowing
-
-    Examples
-    --------
-    >>> import matplotlib.pyplot as plt
-    >>> from dhdt.generic.mapping_io import read_geo_image
-    >>> from dhdt.postprocessing.solar_tools import annual_illumination
-
-    >>> Z,spatialRef,geoTransform,_ = read_geo_image(fpath)
-    >>> SW = annual_illumination(Z,spatialRef,geoTransform)
-
-    >>> plt.figure()
-    >>> plt.imshow(SW, cmap=plt.cm.magma)
-    >>> plt.show()
-    """
-    if not isinstance(deg_sep, list):
-        deg_sep = [deg_sep, deg_sep]
-    if len(deg_sep)==1:
-        deg_sep = [deg_sep[0], deg_sep[0]]
-
-    lat,lon = get_mean_map_lat_lon(geoTransform, spatialRef)
-
-    Sol,az,el = annual_solar_population(latitude=lat,longitude=lon,
-                                        deg_sep=deg_sep, year=year, poly=True,
-                                        radiation=True)
-    SW = np.zeros_like(Z)
-    for idx, azimuth in enumerate(az):
-        occurance = Sol[:, idx]
-        if np.sum(occurance)>0:
-            IN = occurance!=0
-            zenits, occurance = 90-el[IN], occurance[IN]
-
-            SW += make_shadowing(Z, azimuth, zenits, weights=occurance,
-                                 radiation=True)
-    return SW
 
 # topocalc has horizon calculations
 # based upon Dozier & Frew 1990

@@ -582,7 +582,7 @@ def hough_sinus(φ, ρ,
     are_two_arrays_equal(φ, ρ)
 
     normalize = True
-    IN = np.logical_and(~np.isnan(φ), ~np.isnan(ρ))
+    IN = np.logical_and.reduce((~np.isnan(φ), ~np.isnan(ρ), np.abs(ρ)<max_amp))
     if np.sum(IN)<2: return 0, 0, 0
     φ, ρ = φ[IN], ρ[IN]
 
@@ -612,7 +612,7 @@ def hough_sinus(φ, ρ,
         democracy = _point_sample(φ, ρ, idx, param_resol, max_amp, u, v)
 
     # find multiple peaks if present and wanted
-    ind,score = get_peak_indices(democracy, num_estimates=num_estimates)
+    ind, score = get_peak_indices(democracy, num_estimates=num_estimates)
     score /= sample_size # normalize
 
     if indexing in ('polar', 'circular',):

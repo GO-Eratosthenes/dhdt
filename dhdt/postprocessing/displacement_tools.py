@@ -1,7 +1,7 @@
 import numpy as np
 
 from scipy import ndimage
-from ..generic.handler_im import get_grad_filters
+from dhdt.generic.handler_im import get_grad_filters
 
 def estimate_strain_rates(X,Y,U,V):
     fx, fy = get_grad_filters(ftype='kroon', tsize=3, order=1, indexing='xy')
