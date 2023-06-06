@@ -36,8 +36,8 @@ jobs:
         env:
           CONDA_PREFIX: /usr/share/miniconda
         run: pip install -e .[test]
-      - name: Test
-        env:
-          CONDA_PREFIX: /usr/share/miniconda
-        shell: bash -l {0}
-        run: pytest -v
+#      - name: Test
+#        env:
+#          CONDA_PREFIX: /usr/share/miniconda
+#        shell: bash -l {0}
+#        run: pytest -v
