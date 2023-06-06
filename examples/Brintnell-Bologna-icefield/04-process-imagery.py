@@ -131,7 +131,6 @@ def main():
                                                   sun_az_mean)
         dh = _create_conn_pd(suntraces, new_aff, org_aff, im_date, stac_dir)
 
-        write_df_to_conn_file(dh, dump_dir)
         # refine shadow edge position
         print('refine')
         dh = (dh

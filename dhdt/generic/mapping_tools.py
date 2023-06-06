@@ -5,7 +5,6 @@ import numpy as np
 
 # geospatial libaries
 from osgeo import ogr, osr
-from rasterio import Affine
 
 # raster/image libraries
 from scipy import ndimage
@@ -573,31 +572,6 @@ def cast_orientation(I, Az, indexing='ij'):
         Ican = (np.multiply(np.cos(np.radians(Az)), Idy)
                     + np.multiply(np.sin(np.radians(Az)), Idx))
     return Ican
-
-def GDAL_transform_to_affine(GDALtransform):
-    """
-
-    Parameters
-    ----------
-    GDALtransform : tuple, size={(1,6),(1,8)}
-        tuple with transformation parameters
-
-    Returns
-    -------
-    new_transform : Affine module
-        transformation parameters in different order, see Notes below
-
-    Notes
-    -----
-    the GDAL-style geotransform is like:
-        (c, a, b, f, d, e)
-    but should be an Affine structre to work with rasterio:
-        affine.Affine(a, b, c,
-                      d, e, f)
-    """
-    new_transform = Affine(GDALtransform[1], GDALtransform[2], GDALtransform[0],
-                           GDALtransform[4], GDALtransform[5], GDALtransform[3])
-    return new_transform
 
 def estimate_geoTransform(I,J,X,Y, samp=10):
     m,n = I.shape[:2]

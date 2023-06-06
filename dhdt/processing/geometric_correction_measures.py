@@ -53,6 +53,161 @@ def ajne_test(dXY, α=0.05):
         p_val = 2**(1-n) * (n-2*m) * _nchoosek(n,m)
     return p_val
 
+def moore_test(dXY):
+    cXY = dXY[:,0] + 1j*dXY[:,1]
+    l, ψ = np.abs(cXY), np.angle(cXY)
+    t = np.argsort(l)
+
+    n = ψ.size
+
+    C, S = np.sum(t*np.cos(ψ)), np.sum(t*np.sin(ψ))
+    D = np.sqrt(C**2 + S**2)
+    D_star = np.divide(D, np.power(n, 3/2))
+
+    return D_star
+
+def spearman_test(dXY):
+    """ implementing the Spearman test, see also [BP97]_ for implementation
+    details.
+
+    Parameters
+    ----------
+    dXY : numpy.ndarray, size=(k,2)
+        planimetric corrections / misfits
+
+    References
+    ----------
+    .. [BP97] Buiten & van Putten, "Quality assessment of remote sensing image
+              registration—analysis and testing of control point residuals"
+              ISPRS journal of photogrammetry and remote sensing vol.52(2)
+              pp.57-73, 1997.
+
+    """
+    r,s = np.argsort(dXY[:,0]), np.argsort(dXY[:,1])
+    n = dXY.shape[0]
+    r_2 = np.divide(1 - 6*np.sum((r-s)**2),
+                    n*(n**2 - 1))
+    # student t-test
+
+    return verdict, p_value
+
+def rayleigh_test(dXY):
+    """ see [Ba81]_
+
+    Parameters
+    ----------
+    dXY : numpy.ndarray, size=(k,2)
+        planimetric corrections / misfits
+
+    Returns
+    -------
+    z : float
+        test statistic
+
+    References
+    ----------
+    .. [Ba81] Batschelet, "Circular statistics in biology." Academic press,
+              1981.
+    """
+    n = dXY.shape[0]
+    r = np.mean(dXY, axis=0) # (1.3.6)  in [Ba81]_
+
+    if n>30:
+        z = n*np.power(r,2) # (1.3.6)  in [Ba81]_
+    else:
+        z = r
+    return z
+
+def v_test(dXY, e):
+    """ see [Ba81]_
+
+    Parameters
+    ----------
+    dXY : numpy.ndarray, size=(k,2)
+        planimetric corrections / misfits
+    e : numpy.ndarray, size=(2,)
+        preferred direction, in the form of a unit vector
+
+    Returns
+    -------
+    u : float
+        test statistic
+
+    References
+    ----------
+    .. [Ba81] Batschelet, "Circular statistics in biology." Academic press,
+              1981.
+    """
+    n = dXY.shape[0]
+
+    ϕ = np.mean(dXY, axis=0)                        # (1.3.6)  in [Ba81]_
+    r = np.linalg.norm(ϕ)
+    ϕ_e = np.divide(ϕ, np.linalg.norm(ϕ))
+    e = np.divide(e, np.linalg.norm(e))
+    v = r*np.cos(np.clip(np.dot(ϕ_e, e), -1.0, 1.0))# (4.3.1)  in [Ba81]_
+    u = np.sqrt(2*n)*v                              # (4.3.2)  in [Ba81]_
+    return u
+
+def rao_test(dXY):
+    """ see [Ba81]_
+
+    Parameters
+    ----------
+    dXY : numpy.ndarray, size=(k,2)
+        planimetric corrections / misfits
+
+    Returns
+    -------
+    U : float
+        test statistic
+
+    References
+    ----------
+    .. [Ba81] Batschelet, "Circular statistics in biology." Academic press,
+              1981.
+    """
+    n = dXY.shape[0]
+
+    ψ = np.rad2deg(np.angle(dXY[:,0] + 1j*dXY[:,1]))
+    ψ = np.argsort(deg2compass(ψ))
+
+    T = np.zeros_like(ψ)
+    T[:-1] = ψ[:-1] - ψ[1:]
+    T[-1] = 360 + ψ[0] - ψ[-1]                  # (4.6.1)  in [Ba81]_
+
+    dT = 360/n
+    U = .5 * np.sum(np.abs(T-dT))               # (4.6.4)  in [Ba81]_
+    return U
+
+def kuiper_test(dXY):
+    """ see [Ba81]_
+
+    Parameters
+    ----------
+    dXY : numpy.ndarray, size=(k,2)
+        planimetric corrections / misfits
+
+    Returns
+    -------
+    U : float
+        test statistic
+
+    References
+    ----------
+    .. [Ba81] Batschelet, "Circular statistics in biology." Academic press,
+              1981.
+    """
+    n = dXY.shape[0]
+    ψ = np.rad2deg(np.angle(dXY[:,0] + 1j*dXY[:,1]))
+    ψ = np.argsort(deg2compass(ψ))
+
+    cdf = np.linspace(0,1,n)
+    D = ψ - cdf
+    Dmin, Dplus = np.min(D), np.max(D)
+    V_n = Dplus + Dmin                          # (4.9.1)  in [Ba81]_
+    K = np.sqrt(n)*V_n                          # (4.9.2)  in [Ba81]_
+    return K
+
 def bad_point_propagation(dXY, r=1.):
     """ see [Go09]_
 

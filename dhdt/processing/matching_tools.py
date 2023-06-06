@@ -2,8 +2,6 @@
 import warnings
 import numpy as np
 
-from skimage.morphology import extrema
-
 from dhdt.generic.mapping_tools import map2pix
 
 
@@ -118,6 +116,8 @@ def get_peak_indices(C, num_estimates=1):
          |                       |
          +-----------------------+
     """
+    from skimage.morphology import extrema
+
     peak_C = extrema.local_maxima(C)
     ids = np.array(np.where(peak_C)) # this seems to go in rows
     scores = C[peak_C]
