@@ -242,7 +242,7 @@ di_pca, dj_pca = phase_pca(Q_hat, W_hat)
 
 
 #di_hat, dj_hat = phase_ransac(Q_tilde, precision_threshold=.05)
-#(ddi,ddj) = test_subpixel_localization(di_hat,dj_hat,di,dj, tolerance=.1)
+#(ddi,ddj) = _test_subpixel_localization(di_hat,dj_hat,di,dj, tolerance=.1)
 #print('phase_ransac is OK, maximum difference is '+\
 #      '{:.4f}'.format(np.maximum(abs(ddi), abs(ddj))) + ' pixels')
 
@@ -445,7 +445,7 @@ snr = signal_to_noise(Q_hat, Q_tilde, norm=1)
 print('orientation_corr correlator is OK, snr is '+'{:.2f}'.format(snr))
 
 #Q_hat = windrose_corr(im1, im2)
-#_ = test_phase_plane_localization(Q_hat, di, dj, tolerance=1)
+#_ = _test_phase_plane_localization(Q_hat, di, dj, tolerance=1)
 #snr = signal_to_noise(Q_hat, Q_tilde, norm=1)
 #print('windrose_corr correlator is OK, snr is '+'{:.2f}'.format(snr))
 
@@ -456,7 +456,7 @@ print('cross_corr correlator is OK, snr is '+'{:.2f}'.format(snr))
 
 print('binary_orientation_corr does not seem to do a good job')
 # Q_hat = binary_orientation_corr(im1, im2)
-# _ = test_phase_plane_localization(Q_hat, di, dj, tolerance=1)
+# _ = _test_phase_plane_localization(Q_hat, di, dj, tolerance=1)
 # snr = signal_to_noise(Q_hat, Q_tilde, norm=1)
 # print('binary_orientation_corr correlator is OK, snr is '+'{:.2f}'.format(snr))
 

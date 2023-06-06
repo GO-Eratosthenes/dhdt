@@ -18,7 +18,7 @@ from dhdt.processing.matching_tools_organization import \
 
 # artificial creation functions
 from dhdt.testing.matching_tools import \
-    create_sample_image_pair, test_subpixel_localization
+    create_sample_image_pair, _test_subpixel_localization
 from dhdt.testing.terrain_tools import \
     create_artificial_terrain, create_artifical_sun_angles, \
     create_shadow_caster_casted
@@ -64,7 +64,7 @@ def _test_spatial_correlators(im1,im2,geoTransform,X_samp,Y_samp,temp_size,
         dX, dY = X_samp-X_disp, Y_samp-Y_disp
         dX_hat, dY_hat = np.nanmedian(dX.ravel()), np.nanmedian(dY.ravel())
         di_hat,dj_hat = map2pix(geoTransform, dX_hat, dY_hat)
-        test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)
+        _test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)
         print('passed')
     return
 
@@ -82,7 +82,7 @@ def _test_frequency_correlators(im1,im2,geoTransform,X_samp,Y_samp,temp_size,
         dX, dY = X_disp-X_samp, Y_disp-Y_samp
         dX_hat, dY_hat = np.nanmedian(dX.ravel()), np.nanmedian(dY.ravel())
         di_hat,dj_hat = map2pix(geoTransform, dX_hat, dY_hat)
-        test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)
+        _test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)
         print('passed')
     return
 
@@ -112,18 +112,18 @@ def test_photohypsometric_coupling(N=10, Z_shape=(400,600), tolerance=20):
 def test_photohypsometric_refinement_by_same(Z_shape=(400,600), tolerance=1.0,
                                              weight=False):
     Z, geoTransform = create_artificial_terrain(Z_shape[0], Z_shape[1])
-    az,zn = create_artifical_sun_angles(1)
+    az, zn = create_artifical_sun_angles(1)
 
     # create temperary directory
     with tempfile.TemporaryDirectory(dir=os.getcwd()) as tmpdir:
         dump_path = os.path.join(os.getcwd(), tmpdir)
         create_shadow_caster_casted(Z, geoTransform,
-                                    az[0], zn[0], dump_path, out_name="conn.txt", incl_image=True,
-                                    incl_wght=weight)
+                                    az, zn, dump_path, out_name="conn.txt",
+                                    incl_image=True, incl_wght=weight)
         # read and refine through image matching
         if weight:
              post_1,post_2_new,caster,dh,score,caster_new,_,_,_ = \
-                 couple_pair(os.path.join(dump_path, "conn.tif"), \
+                 couple_pair(os.path.join(dump_path, "conn.tif"),
                              os.path.join(dump_path, "conn.tif"),
                              wght_1=os.path.join(dump_path, "connwgt.tif"),
                              wght_2=os.path.join(dump_path, "connwgt.tif"),
@@ -138,7 +138,7 @@ def test_photohypsometric_refinement_by_same(Z_shape=(400,600), tolerance=1.0,
                                            post_1[:,1]-post_2_new[:,1]))
     assert np.isclose(0, pix_dispersion, atol=tolerance)
 
-def test_photohypsometric_refinement(N, Z_shape, tolerance=0.1):
+def _test_photohypsometric_refinement(N, Z_shape, tolerance=0.1):
     Z, geoTransform = create_artificial_terrain(Z_shape[0], Z_shape[1])
     az,zn = create_artifical_sun_angles(N, az_min=179.9, az_max=180.1,
                                         zn_min=60., zn_max=65.)
