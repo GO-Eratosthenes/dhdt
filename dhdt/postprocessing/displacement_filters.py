@@ -61,9 +61,10 @@ def local_infilling_filter(I, tsize=5):
     I_new = ndimage.generic_filter(I, infill_func, size=(tsize, tsize))
     return I_new
 
-def nan_resistant(buffer, kernel):
+def nan_resistant_func(buffer, kernel):
     OUT = np.isnan(buffer)
-    filter = kernel.copy().ravel()
+    # ndimage.generic_filter seems to work from last dimension backwards...
+    filter = np.flip(kernel, (0, 1)).copy().ravel()
     if np.all(OUT):
         return np.nan
     elif np.all(~OUT):
@@ -73,39 +74,37 @@ def nan_resistant(buffer, kernel):
     grouping = np.sign(filter).astype(int)
     np.putmask(grouping, OUT, 0) # do not include no-data location in re-organ
 
-    if np.sign(surplus)==-1 and np.any(grouping==-1):
-        idx = grouping==+1
+    if np.sign(surplus)==-1  and np.any(grouping==-1):
+        idx = grouping == -1
         filter[idx] += surplus/np.sum(idx)
         central_pix = np.nansum(buffer[~OUT]*filter[~OUT])
     elif np.sign(surplus)==+1 and np.any(grouping==+1):
-        idx = grouping == -1
+        idx = grouping == +1
         filter[idx] += surplus /np.sum(idx)
-        central_pix = np.nansum(buffer[~OUT] * filter[~OUT])
+        central_pix = np.sum(buffer[~OUT] * filter[~OUT])
     elif surplus == 0:
-        central_pix = np.nansum(buffer[~OUT] * filter[~OUT])
+        central_pix = np.sum(buffer[~OUT] * filter[~OUT])
     else:
         central_pix = np.nan
 
     return central_pix
 
-def nan_resistant_filter(I, filter):
-    """ apply convolution over array with no-data values.
-
-    If no data gaps are present, the kernel is adjusted and more weights are
-    given to the other neighbors. If to much data is missing, this results in
-    no estimation. From [Al22]_.
+def nan_resistant_filter(I, kernel):
+    """ operate zonal filter on image with missing values. Energy within the
+    kernel that fals on missing instances is distributed over other elements.
+    Hence, regions with no data are shrinking, instead of growing. For a more
+    detailed describtion see [Al22]_
 
     Parameters
     ----------
-    I : numpy.array, size=(m,n), dtype=float
-        intensity array with no-data values
-    filter : numpy.array, size=(k,l), dtype=float
-        filter to be applied to the image
+    I : {numpy.ndarray, numpy.masked.array}, size=(m,n)
+        grid with values
+    kernel : numpy.ndarray, size=(k,l)
+        convolution kernel
 
     Returns
-    -------
-    I_new : numpy.array, size=(m,n), dtype=float
-        intensity array convolved through the filter
+    I_new : numpy.ndarray, size=(m,n)
+        convolved estimate
 
     References
     ----------
@@ -113,10 +112,14 @@ def nan_resistant_filter(I, filter):
               estimate uncertainty of remotely sensed glacier displacements",
               The Crysophere, vol.16(6) pp.2285–2300, 2022.
     """
-    #todo if all entities have the same sign
-    I_new = ndimage.generic_filter(I, nan_resistant,
-                                   size=(filter.shape[0], filter.shape[1]),
-                                   extra_arguments=(filter,))
+    if type(I) in (np.ma.core.MaskedArray, ):
+        OUT = I.mask
+        I = I.data
+        np.putmask(I, OUT, np.nan)
+
+    I_new = ndimage.generic_filter(I, nan_resistant_func, mode='reflect',
+                                   size=kernel.shape,
+                                   extra_keywords = {'kernel': kernel})
     return I_new
 
 def var_func(buffer):

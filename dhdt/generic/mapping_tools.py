@@ -5,7 +5,6 @@ import numpy as np
 
 # geospatial libaries
 from osgeo import ogr, osr
-from rasterio import Affine
 
 # raster/image libraries
 from scipy import ndimage
@@ -13,7 +12,7 @@ from scipy import ndimage
 from dhdt.generic.attitude_tools import rot_mat
 from dhdt.generic.handler_im import get_grad_filters
 from dhdt.generic.unit_check import correct_geoTransform, \
-    are_two_arrays_equal, correct_floating_parameter
+    are_two_arrays_equal, correct_floating_parameter, is_crs_an_srs
 
 def cart2pol(x, y):
     """ transform Cartesian coordinate(s) to polar coordinate(s)
@@ -419,6 +418,35 @@ def ecef2map(xyz, spatialRef):
     xy = ll2map(llh[:, :-1], spatialRef)
     return xy
 
+def haversine(Δlat, Δlon, lat, radius=None):
+    """ calculate the distance along a great-circle
+
+    Parameters
+    ----------
+    Δlat, Δlon : float, unit=degrees
+        step size or angle difference
+    lat : float, unit=degrees
+        (mean) latitude where angles are situated
+    radius : float, unit=meters
+        estimate of the radius of the earth
+    """
+    Δlat, Δlon, lat = np.deg2rad(Δlat), np.deg2rad(Δlon), np.deg2rad(lat)
+
+    if radius is None:
+        wgs84 = osr.SpatialReference()
+        wgs84.ImportFromEPSG(4326)
+        a,b = wgs84.GetSemiMajor(), wgs84.GetSemiMinor()
+        radius = np.sqrt(np.divide((a**2*np.cos(lat))**2 +
+                                   (b**2*np.sin(lat))**2,
+                                   (a*np.cos(lat))**2 + (b*np.sin(lat))**2)
+                         )
+
+    a = np.sin(Δlat / 2) ** 2 + \
+        np.cos(lat) * np.cos(lat+Δlat) * np.sin(Δlon / 2) ** 2
+    c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a)) # great circle distance
+    d = radius * c
+    return d
+
 def rot_covar(V, R):
     V_r = R @ V @ np.transpose(R)
     return V_r
@@ -544,31 +572,6 @@ def cast_orientation(I, Az, indexing='ij'):
         Ican = (np.multiply(np.cos(np.radians(Az)), Idy)
                     + np.multiply(np.sin(np.radians(Az)), Idx))
     return Ican
-
-def GDAL_transform_to_affine(GDALtransform):
-    """
-
-    Parameters
-    ----------
-    GDALtransform : tuple, size={(1,6),(1,8)}
-        tuple with transformation parameters
-
-    Returns
-    -------
-    new_transform : Affine module
-        transformation parameters in different order, see Notes below
-
-    Notes
-    -----
-    the GDAL-style geotransform is like:
-        (c, a, b, f, d, e)
-    but should be an Affine structre to work with rasterio:
-        affine.Affine(a, b, c,
-                      d, e, f)
-    """
-    new_transform = Affine(GDALtransform[1], GDALtransform[2], GDALtransform[0],
-                           GDALtransform[4], GDALtransform[5], GDALtransform[3])
-    return new_transform
 
 def estimate_geoTransform(I,J,X,Y, samp=10):
     m,n = I.shape[:2]
@@ -1014,6 +1017,20 @@ def get_max_pixel_spacing(geoTransform):
                       np.hypot(geoTransform[4], geoTransform[5]))
     return spac
 
+def get_pixel_spacing(geoTransform, spatialRef):
+    """ provide the pixel spacing of an image in meters
+
+    """
+    geoTransform = correct_geoTransform(geoTransform)
+    if is_crs_an_srs(spatialRef):
+        d_1 = np.hypot(geoTransform[1], geoTransform[2])
+        d_2 = np.hypot(geoTransform[4], geoTransform[5])
+        return d_1, d_2
+    else:
+        d_1 = haversine(geoTransform[2], geoTransform[1], geoTransform[3])
+        d_2 = haversine(geoTransform[5], geoTransform[4], geoTransform[3])
+        return d_1, d_2
+
 def get_map_extent(bbox):
     """ generate coordinate list in counterclockwise direction from boundingbox
 
@@ -1093,10 +1110,14 @@ def get_mean_map_lat_lon(geoTransform, spatialRef, rows=None, cols=None):
     """
     geoTransform = correct_geoTransform(geoTransform)
     bbox = get_bbox(geoTransform, rows=rows, cols=cols)
-    x_bbox,y_bbox = get_map_extent(bbox)
-    ll = map2ll(np.concatenate((x_bbox, y_bbox), axis=1), spatialRef)
-    lat_bar,lon_bar = np.mean(ll[:,0]), np.mean(ll[:,1])
-    return lat_bar,lon_bar
+
+    if is_crs_an_srs(spatialRef):
+        x_bbox, y_bbox = get_map_extent(bbox)
+        ll = map2ll(np.concatenate((x_bbox, y_bbox), axis=1), spatialRef)
+        lat_bar,lon_bar = np.mean(ll[:,0]), np.mean(ll[:,1])
+        return lat_bar,lon_bar
+    else:
+        return np.mean(bbox[-2:]), np.mean(bbox[:2])
 
 def get_bbox_polygon(geoTransform, rows, cols):
     """ given array meta data, create bounding polygon

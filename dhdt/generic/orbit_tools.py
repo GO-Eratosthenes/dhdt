@@ -338,7 +338,8 @@ def acquisition_angles(Px,Gx):
     LoS[..., 2] = np.einsum('...i,...i->...', Vx, e_Z)
     del e_Z
 
-    az, zn = vector_to_sun_angles(LoS[..., 0], LoS[..., 1], LoS[...,2])
+    az = np.rad2deg(np.arctan2(LoS[..., 0], LoS[..., 1]))
+    zn = np.rad2deg(np.arccos(LoS[...,2]))
     return zn, az
 
 def line_of_sight(Lat, Lon, Zn, Az, eccentricity=None, major_axis=None):

@@ -431,7 +431,7 @@ def affine_optical_flow(I1, I2, model='affine', iteration=10,
     snr = s[:2]
     return -2*u, -2*v, A, snr
 
-def hough_optical_flow(I1, I2, param_resol=100, sample_fraction=1,
+def hough_optical_flow(I1, I2, param_resol=100, sample_fraction=0,
                        num_estimates=1, max_amp=1,
                        preprocessing=None):
     """ estimating optical flow through the Hough transform, based on [FT79]_.
@@ -515,8 +515,35 @@ def hough_optical_flow(I1, I2, param_resol=100, sample_fraction=1,
     # plt.hexbin(θ_G[IN], ρ[IN], extent=(-3.14, +3.14, -1, +1)), plt.show()
     return di,dj, score
 
-def hough_sinus(φ,ρ,
-                param_resol=100, max_amp=1, sample_fraction=1,
+def _point_sample(φ, ρ, idx, param_resol, max_amp, u, v):
+    democracy = np.zeros((param_resol, param_resol), dtype=np.float32)
+    for counter in idx:
+        diff = ρ[counter] - \
+               (u*+np.sin(φ[counter]) +
+                v*+np.cos(φ[counter]))
+        # Gaussian weighting
+        vote = np.exp(-np.abs(diff*param_resol)/max_amp)
+        #todo: outer product, to speed-up
+        np.putmask(vote, np.isnan(vote), 0)
+        democracy += vote
+    return democracy
+
+def _histogram_sample(φ, ρ, param_resol, max_amp, u, v):
+    H,φ_h,ρ_h = np.histogram2d(φ, ρ, bins=param_resol,
+                               range=[[-180, +180], [-max_amp, +max_amp]])
+
+    democracy = np.zeros((param_resol, param_resol), dtype=np.float32)
+    for i, j in np.ndindex(H.shape):
+        if H[i,j]==0: continue
+        diff = ρ_h[j] - \
+               (u*+np.sin(φ_h[i]) + v*+np.cos(φ_h[i]))
+        vote = np.exp(-np.abs(diff*param_resol)/max_amp)
+        np.putmask(vote, np.isnan(vote), 0)
+        democracy += H[i,j]*vote
+    return democracy
+
+def hough_sinus(φ, ρ,
+                param_resol=100, max_amp=1, sample_fraction=0,
                 num_estimates=1, indexing='polar'):
     """ estimates parameters of sinus curve through the Hough transform
 
@@ -531,6 +558,7 @@ def hough_sinus(φ,ρ,
     max_amp : float
         maximum extent of the sinus curve, and the Hough space
     sample_fraction : float
+        * ==0 : use histogram
         * < 1 : takes a random subset of the collection
         * ==1 : uses all data given
         * > 1 : uses a random collection of the number specified
@@ -554,13 +582,18 @@ def hough_sinus(φ,ρ,
     are_two_arrays_equal(φ, ρ)
 
     normalize = True
-    φ,rho = φ.flatten(), ρ.flatten()
+    IN = np.logical_and.reduce((~np.isnan(φ), ~np.isnan(ρ), np.abs(ρ)<max_amp))
+    if np.sum(IN)<2: return 0, 0, 0
+    φ, ρ = φ[IN], ρ[IN]
+
     if normalize:
         ρ -= np.nanmedian(ρ)
 
     sample_size = ρ.size
     if sample_fraction==1:
         idx = np.arange(0, sample_size)
+    elif sample_fraction==0:
+        idx = None
     elif sample_fraction>1: # use the amount given by sample_fraction
         idx = np.random.choice(sample_size,
            np.round(np.minimum(sample_size, sample_fraction)).astype(np.int32),
@@ -570,19 +603,35 @@ def hough_sinus(φ,ρ,
            np.round(sample_size*sample_fraction).astype(np.int32),
            replace=False)
 
-    (u,v) = np.meshgrid(np.linspace(-max_amp,+max_amp, param_resol),
-                        np.linspace(-max_amp,+max_amp, param_resol))
-    democracy = np.zeros((param_resol, param_resol), dtype=np.float32)
+    u,v = np.meshgrid(np.linspace(-max_amp,+max_amp, param_resol),
+                      np.linspace(-max_amp,+max_amp, param_resol))
 
-    for counter in idx:
-        diff = ρ[counter] - \
-               (u*+np.sin(φ[counter]) +
-                v*+np.cos(φ[counter]))
-        # Gaussian weighting
-        vote = np.exp(-np.abs(diff*param_resol)/max_amp)
-        #todo: outer product, to speed-up
-        np.putmask(vote, np.isnan(vote), 0)
-        democracy += vote
+    if idx is None: # histogram goes quicker
+        democracy = _histogram_sample(φ, ρ, param_resol, max_amp, u, v)
+    else:
+        democracy = _point_sample(φ, ρ, idx, param_resol, max_amp, u, v)
+
+    # find multiple peaks if present and wanted
+    ind, score = get_peak_indices(democracy, num_estimates=num_estimates)
+    score /= sample_size # normalize
+
+    if indexing in ('polar', 'circular',):
+        rho_H, φ_H = np.zeros(num_estimates), np.zeros(num_estimates)
+        for cnt,sc in enumerate(score):
+            if sc!=0:
+                rho_H[cnt] = np.sqrt( u[ind[cnt,0]][ind[cnt,1]]**2 +
+                                 v[ind[cnt,0]][ind[cnt,1]]**2 )
+                φ_H[cnt] = np.arctan2(u[ind[cnt,0]][ind[cnt,1]],
+                                   v[ind[cnt,0]][ind[cnt,1]])
+        return φ_H, rho_H, score
+    elif indexing in ('cartesian', 'xy',):
+        u_H, v_H = np.zeros(num_estimates), np.zeros(num_estimates)
+        for cnt,sc in enumerate(score):
+            if sc!=0:
+                u_H[cnt] = u[ind[cnt,0]][ind[cnt,1]]
+                v_H[cnt] = v[ind[cnt,0]][ind[cnt,1]]
+
+        return u_H, v_H, score
 
 def differential_stacking(I_st, id_1, id_2, dt):
     """ differential stack with different time intervals
@@ -629,49 +678,6 @@ def differential_stacking(I_st, id_1, id_2, dt):
                                                           θ.flatten()]).T))
     return diff_stack
 
-    #todo: histogram goes quicker
-#    H,φ_h,ρ_h = np.histogram2d(φ[idx], [idx],
-#                               bins=24, range=[[-180, +180], [-max_amp, +max_amp]])
-
-    # import matplotlib.pyplot as plt
-    # plt.figure()
-    # plt.imshow(vote, extent=(-max_amp,+max_amp,-max_amp,+max_amp)), plt.show()
-    # plt.figure()
-    # plt.hexbin(phi, ρ, gridsize=32, extent=(-180,+180,-max_amp,+max_amp)),
-    # plt.show()
-
-    # find multiple peaks if present and wanted
-    ind,score = get_peak_indices(democracy, num_estimates=num_estimates)
-    score /= sample_size # normalize
-
-    if indexing in ('polar', 'circular',):
-        rho_H, φ_H = np.zeros(num_estimates), np.zeros(num_estimates)
-        for cnt,sc in enumerate(score):
-            if sc!=0:
-                rho_H[cnt] = np.sqrt( u[ind[cnt,0]][ind[cnt,1]]**2 +
-                                 v[ind[cnt,0]][ind[cnt,1]]**2 )
-                φ_H[cnt] = np.arctan2(u[ind[cnt,0]][ind[cnt,1]],
-                                   v[ind[cnt,0]][ind[cnt,1]])
-        return φ_H, rho_H, score
-    elif indexing in ('cartesian', 'xy',):
-        u_H, v_H = np.zeros(num_estimates), np.zeros(num_estimates)
-        for cnt,sc in enumerate(score):
-            if sc!=0:
-                u_H[cnt] = u[ind[cnt,0]][ind[cnt,1]]
-                v_H[cnt] = v[ind[cnt,0]][ind[cnt,1]]
-
-        # A_H = np.sqrt(u_H ** 2 + v_H ** 2)
-        # φ_H = np.arctan2(u_H, v_H)
-        # psi = np.linspace(-np.pi, +np.pi)
-        # curv = A_H * np.sin(psi + φ_H)
-
-        # import matplotlib.pyplot as plt
-        # plt.hexbin(φ, rho, extent=(-3, +3, -1, +1), gridsize=32, cmap=plt.cm.gray_r),
-        # plt.plot(psi, curv), plt.show()
-        # plt.show(), plt.colorbar()
-
-        return u_H, v_H, score
-# no_signals
 
 #todo episolar_optical_flow
 

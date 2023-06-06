@@ -510,6 +510,35 @@ def read_geotransform_s2(path, fname='MTD_TL.xml', resolution=10):
     geoTransform = get_geotransform_s2_from_root(root, resolution=resolution)
     return geoTransform
 
+def read_orbit_number_s2(path, fname='MTD_MSIL1C.xml'):
+    """ read the orbit number of the image
+
+    """
+    root = get_root_of_table(path, fname)
+    gnrl_info = None
+    for child in root:
+        if child.tag.endswith('General_Info'):
+            gnrl_info = child
+    assert(gnrl_info is not None), ('metadata not in xml file')
+
+    prod_info = None
+    for child in gnrl_info:
+        if child.tag == 'Product_Info':
+            prod_info = child
+    assert(prod_info is not None), ('metadata not in xml file')
+
+    data_take = None
+    for child in prod_info:
+        if child.tag == 'Datatake':
+            data_take = child
+    assert(data_take is not None), ('metadata not in xml file')
+
+    row = None
+    for field in data_take:
+        if field.tag == 'SENSING_ORBIT_NUMBER':
+            row = int(field.text)
+    return row
+
 def get_local_bbox_in_s2_tile(fname_1, s2dir):
     _,geoTransform, _, rows, cols, _ = read_geo_info(fname_1)
     bbox_xy = get_bbox(geoTransform, rows, cols)

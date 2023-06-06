@@ -52,6 +52,12 @@ def test_weighted_normalized_cross_corr(d=2**5, tolerance=.4):
 def test_cosine_similarity(d=2**5, tolerance=.4):
     im1,im2,di,dj,im1_big = create_sample_image_pair(d=d, max_range=np.inf,
                                                      integer=True, ndim=1)
+
+    H_x = get_grad_filters(ftype='kroon', tsize=3, order=1)[0]
+    H_y = np.transpose(H_x)
+    G1 = ndimage.convolve(im2, H_x) + 1j*ndimage.convolve(im2, H_y)
+    G2 = ndimage.convolve(im1_big, H_x) + 1j*ndimage.convolve(im1_big, H_y)
+    G1, G2 = normalize_power_spectrum(G1), normalize_power_spectrum(G2)
     C = cosine_similarity(im2, im1_big)
     di_hat,dj_hat = get_integer_peak_location(C)[:2]
     _test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=tolerance)

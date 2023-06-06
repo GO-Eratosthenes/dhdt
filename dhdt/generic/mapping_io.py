@@ -140,7 +140,7 @@ def read_nc_image(fname, layer_name):
     assert ds is not None, ('could not open dataset ' + fname)
 
     data = np.array(ds.ReadAsArray())
-    np.putmask(data, data==ds.GetRasterBand(1).GetNoDataValue(), np.nan)
+    data = np.ma.array(data, mask=data==ds.GetRasterBand(1).GetNoDataValue())
 
     spatialRef = ds.GetProjection()
     geoTransform = ds.GetGeoTransform() + data.shape

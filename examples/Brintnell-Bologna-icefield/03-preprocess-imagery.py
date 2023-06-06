@@ -175,7 +175,7 @@ def _organize(shadow_dat, albedo_dat, shadow_art, shade_art,
     os.makedirs(item_dir, exist_ok=True)
     im_date_str = year + '-' + month.zfill(2) + '-' + day.zfill(2)
 
-    # write outpu
+    # write output
     make_geo_im(shadow_dat.astype('float32'), im_aff, crs,
                 os.path.join(item_dir, 'shadow.tif'),
                 meta_descr='illumination enhanced imagery',

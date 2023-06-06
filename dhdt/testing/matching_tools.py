@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
-from skimage import data
 
 from dhdt.preprocessing.image_transforms import mat_to_gray
 from dhdt.processing.matching_tools import get_integer_peak_location
@@ -55,6 +54,7 @@ def create_sample_image_pair(d=2**7, max_range=1, integer=False, ndim=1):
           based      v
 
     """
+    from skimage import data
     if ndim == 1:
         im1 = mat_to_gray(data.grass())
         im1 = np.atleast_3d(im1)
@@ -149,6 +149,8 @@ def create_sheared_image_pair(d=2**7,sh_i=0.00, sh_j=0.00, max_range=1):
     The shear parameter is based upon a centered unit image domain, that is, the
     image extent spans -1...+1
     """
+    from skimage import data
+
     scalar_mul = 2*np.minimum(d // 2, max_range)
 
     random_di = (np.random.random()-.5)*scalar_mul
@@ -227,6 +229,8 @@ def create_scaled_image_pair(d=2**7,sc_x=1.00, sc_y=1.00, max_range=1):
             +--------+      +------------+
 
     """
+    from skimage import data
+
     scalar_mul = 2*np.minimum(d // 2, max_range)
 
     random_di = (np.random.random()-.5)*scalar_mul
@@ -279,7 +283,7 @@ def construct_correlation_peak(I, di, dj, fwhm=3., origin='center'):
     C : np.array, size=(m,n), complex
         array with correlation peak in the form of a circular Gaussian
     """
-    (m,n) = I.shape
+    m,n = I.shape[:2]
 
     (I_grd, J_grd) = np.meshgrid(np.arange(0, m),
                                  np.arange(0, n),

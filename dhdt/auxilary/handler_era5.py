@@ -144,29 +144,28 @@ def get_pressure_from_grib_file(fname='download.grib'):
 #        G, Rh, T = np.squeeze(G), np.squeeze(Rh), np.squeeze(T)
     return ϕ, λ, G, Rh, T, t
 
-def get_wind_from_grib_file(fname='download.grib', pres_level=1000):
-    pres_levels = get_era5_pressure_levels()
+def get_wind_from_grib_file(fname='download.grib'):
     U, V, Rh, T = None, None, None, None
 
     grbs = pygrib.open(fname)
     for i in np.linspace(1,grbs.messages,grbs.messages, dtype=int):
         grb = grbs.message(i)
-        idx = np.where(pres_level==grb['level'])[0][0]
+        idx = int(str(grb['date'])[4:-2])-1
 
         # initial admin
         if T is None:
-            T = np.zeros((len(pres_levels), grb['numberOfDataPoints']))
+            T = np.zeros((12, grb['Ni'], grb['Nj']))
             Rh, U, V = np.zeros_like(T), np.zeros_like(T), np.zeros_like(T)
             ϕ, λ = grb['latitudes'], grb['longitudes']
 
-        if grb['parameterName']=='Geopotential':
-            U[idx,:] = grb['values']
-        elif grb['parameterName']=='Geopotential':
-            V[idx,:] = grb['values']
+        if grb['parameterName']=='U component of wind':
+            U[idx,...] = grb['values']
+        elif grb['parameterName']=='V component of wind':
+            V[idx,...] = grb['values']
         elif grb['parameterName']=='Relative humidity':
-            Rh[idx,:] = grb['values']
+            Rh[idx,...] = grb['values']
         elif grb['parameterName']=='Temperature':
-            T[idx,:] = grb['values']
+            T[idx,...] = grb['values']
     grbs.close()
     return ϕ, λ, U, V, Rh, T
 
@@ -315,6 +314,7 @@ def get_era5_monthly_surface_wind(ϕ,λ,year):
             'year': str(year),
             'month': ['01', '02', '03', '04', '05', '06',
                       '07', '08', '09', '10', '11', '12', ],
+            'time': '00:00',
             'area': [
                 ϕ_max, λ_min, ϕ_min, λ_max,
             ],
@@ -323,4 +323,4 @@ def get_era5_monthly_surface_wind(ϕ,λ,year):
     ϕ, λ, U, V, Rh, T = get_wind_from_grib_file(fname=fname)
     os.remove(fname)
 
-    return U,V, Rh, T
+    return ϕ, λ, U, V, Rh, T

@@ -1,7 +1,7 @@
 import numpy as np
 
 from dhdt.auxilary.handler_era5 import get_era5_monthly_surface_wind
-from ..generic.mapping_tools import get_mean_map_lat_lon
+from dhdt.generic.mapping_tools import get_mean_map_lat_lon, get_pixel_spacing
 
 def calculate_coriolis(ϕ):
     """
@@ -41,7 +41,7 @@ def water_vapour_scale_height(T_0, alpha=0.0065, R_v=461, L=2.5E6):
 
 def oro_precip(Z, geoTransform, spatialRef, u_wind, v_wind,
                conv_time=1000, fall_time=1000, nm=1E-2, T_0=0,
-               lapse_rate=-5.8E-3, lapse_rate_m=-6.5E-3,ref_ρ=7.4E-3):
+               lapse_rate=-5.8E-3, lapse_rate_m=-6.5E-3, ref_ρ=7.4E-3):
     """ estimate the orographic precipitation pattern from an elevation model,
     based upon [SB04]_ and application implementation by [Sc08]_.
 
@@ -111,8 +111,9 @@ def oro_precip(Z, geoTransform, spatialRef, u_wind, v_wind,
     Z = np.pad(Z, mn_pad, 'constant')
     Z_f = np.fft.fftn(Z)
 
-    k_x = np.fft.fftfreq(m_pow2.astype(int), np.abs(geoTransform[1]))
-    k_y = np.fft.fftfreq(n_pow2.astype(int), np.abs(geoTransform[5]))
+    dx, dy = get_pixel_spacing(geoTransform, spatialRef)
+    k_x = np.fft.fftfreq(m_pow2.astype(int), dx)
+    k_y = np.fft.fftfreq(n_pow2.astype(int), dy)
 
     K_X,K_Y = np.meshgrid(k_y,k_x)
     K_X *= 2*np.pi
@@ -131,7 +132,7 @@ def oro_precip(Z, geoTransform, spatialRef, u_wind, v_wind,
     dir = np.ones_like(Z)
     np.putmask(dir, sigma<0, -1)
 
-    # vertical wavenumber, eq.3 in [2]
+    # vertical wavenumber, eq.3 in [Sc08]
     m = dir * np.sqrt(np.abs(np.divide(mf_num,mf_den) *
                               np.hypot(K_X, K_Y)))
 
@@ -148,7 +149,18 @@ def oro_precip(Z, geoTransform, spatialRef, u_wind, v_wind,
     return P
 
 def annual_precip(Z, geoTransform, spatialRef, year=2018):
-    ϕ,λ = get_mean_map_lat_lon(geoTransform, spatialRef)
-    U,V,Rh,T = get_era5_monthly_surface_wind(ϕ, λ, year)
+    ϕ_bar, λ_bar = get_mean_map_lat_lon(geoTransform, spatialRef)
+    ϕ, λ, U, V, Rh, T = get_era5_monthly_surface_wind(ϕ_bar, λ_bar, year)
+
+    # get nearest node
+    idx_near = np.argmin(np.sqrt((ϕ - ϕ_bar)**2+(λ-λ_bar)**2))
+    j_near, k_near = np.unravel_index(idx_near, U.shape[:2])
+    # take lapse rate into account
+    # use relative humidity as factor
+
+    breakpoint #todo
+    for idx in range(U.shape[2]):
+        P_mon = oro_precip(Z, geoTransform, spatialRef, U[idx,j_near,k_near],
+                           V[idx,j_near,k_near], T_0=T[idx,j_near,k_near])
 
     return

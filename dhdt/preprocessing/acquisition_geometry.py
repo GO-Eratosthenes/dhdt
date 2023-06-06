@@ -211,25 +211,15 @@ def get_template_aspect_slope(Z,i_samp,j_samp,t_size,spac=10.):
     kernel = make_2D_Gaussian((t_size, t_size), fwhm=t_size)
     kernel /= np.sum(kernel)
 
+    Z_sm = ndimage.convolve(Z, kernel, mode='reflect')
+
     # get aspect and slope from elevation
-    Normal = estimate_surface_normals(Z, spac)
+    Normal = estimate_surface_normals(Z_sm, spac)
+    Normal_samp = Normal[i_samp,j_samp,:]
 
-    Slope = np.zeros_like(i_samp, dtype=np.float64)
-    Aspect = np.zeros_like(i_samp, dtype=np.float64)
-    for idx_ij,_ in enumerate(i_samp.flatten()):
-        idx_i, idx_j = np.unravel_index(idx_ij, i_samp.shape, order='C')
-        i_min = i_samp[idx_i, idx_j] - t_rad + 0
-        j_min = j_samp[idx_i, idx_j] - t_rad + 0
-        i_max = i_samp[idx_i, idx_j] + t_rad + offset
-        j_max = j_samp[idx_i, idx_j] + t_rad + offset
-
-        n_sub = Normal[i_min:i_max, j_min:j_max]
-        # estimate mean surface normal
-        slope_bar = np.arccos(np.sum(n_sub[...,-1] * kernel))  # slope
-        aspect_bar = np.arctan2(np.sum(n_sub[..., 0] * kernel),
-                                np.sum(n_sub[..., 1] * kernel))
-        Slope[idx_i, idx_j] = np.degrees(slope_bar)
-        Aspect[idx_i, idx_j] = np.degrees(aspect_bar)
+    Slope = np.rad2deg(np.arccos(Normal_samp[...,-1]))
+    Aspect = np.rad2deg(np.arctan2(Normal_samp[...,0],
+                                   Normal_samp[...,1]))
     return Slope, Aspect
 
 def get_template_acquisition_angles(Az,Zn,Det,i_samp,j_samp,t_size):

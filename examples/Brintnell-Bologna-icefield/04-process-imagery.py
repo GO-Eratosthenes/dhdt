@@ -17,7 +17,8 @@ from dhdt.generic.mapping_io import read_geo_image
 from dhdt.generic.mapping_tools import get_mean_map_location, map2pix, \
     ref_trans, ref_update, make_same_size
 from dhdt.input.read_sentinel2 import \
-    list_central_wavelength_msi, read_mean_sun_angles_s2, read_sun_angles_s2
+    list_central_wavelength_msi, read_mean_sun_angles_s2, read_sun_angles_s2, \
+    read_orbit_number_s2
 from dhdt.preprocessing.atmospheric_geometry import get_refraction_angle
 from dhdt.preprocessing.shadow_geometry import shadow_image_to_suntrace_list
 from dhdt.processing.photohypsometric_image_refinement import \
@@ -79,6 +80,7 @@ def _refine_shadow_polygon(shadow_dat, albedo_dat, shadow_art):
 def _create_conn_pd(suntraces, new_aff, org_aff, timestamp, s2_path):
     m = suntraces.shape[0]
     sun_zn, sun_az = read_sun_angles_s2(s2_path)
+    row = read_orbit_number_s2(s2_path)
 
     if new_aff != org_aff:
         sun_zn = make_same_size(sun_zn, org_aff, new_aff)
@@ -94,6 +96,7 @@ def _create_conn_pd(suntraces, new_aff, org_aff, timestamp, s2_path):
     angles_az = interp(np.array([i, j]).T)
 
     dh = pd.DataFrame({'timestamp': np.tile(np.datetime64(timestamp), m),
+                       'row': np.tile(row, m),
                        'caster_X': suntraces[:,0], 'caster_Y': suntraces[:,1],
                        'casted_X': suntraces[:,2], 'casted_Y': suntraces[:,3],
                        'azimuth': angles_az, 'zenith': angles_zn})
@@ -110,10 +113,10 @@ def main():
         stac_dir = os.path.join(stac_dir, next(os.walk(stac_dir))[1][0])
         dump_dir = os.path.join(DUMP_DIR, int_date)
 
-        if os.path.exists(os.path.join(dump_dir, 'conn.txt')):
-            # create casting caster images
-            output_cast_lines_from_conn_txt(dump_dir, new_aff, rgi_dat, step=2)
-            continue
+#        if os.path.exists(os.path.join(dump_dir, 'conn.txt')):
+#            # create casting caster images
+#            output_cast_lines_from_conn_txt(dump_dir, new_aff, rgi_dat, step=2)
+#            continue
 
         # load data
         shadow_dat = read_geo_image(os.path.join(dump_dir, 'shadow.tif'))[0]
