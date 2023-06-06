@@ -164,8 +164,8 @@ def _coregister(
     )
     return shadow_ort, albedo_ort
 
-def _organize(shadow_dat, albedo_dat, shadow_art, shade_art,
-              im_aff, crs, im_date):
+def _organize(im_aff, crs, im_date, shadow_dat=None, albedo_dat=None,
+              shadow_art=None, shade_art=None, view_az=None, view_zn=None):
 
     # get year, month, day
     year, month, day = datetime2calender(np.datetime64(im_date[:-1]))
@@ -176,22 +176,36 @@ def _organize(shadow_dat, albedo_dat, shadow_art, shade_art,
     im_date_str = year + '-' + month.zfill(2) + '-' + day.zfill(2)
 
     # write output
-    make_geo_im(shadow_dat.astype('float32'), im_aff, crs,
-                os.path.join(item_dir, 'shadow.tif'),
-                meta_descr='illumination enhanced imagery',
-                date_created=im_date_str)
-    make_geo_im(albedo_dat.astype('float32'), im_aff, crs,
-                os.path.join(item_dir,'albedo.tif'),
-                meta_descr='reflection enhanced imagery',
-                date_created=im_date_str)
-    make_geo_im(shadow_art.astype('float32'), im_aff, crs,
+    if shadow_dat is not None:
+        make_geo_im(shadow_dat.astype('float32'), im_aff, crs,
+                    os.path.join(item_dir, 'shadow.tif'),
+                    meta_descr='illumination enhanced imagery',
+                    date_created=im_date_str)
+    if albedo_dat is not None:
+        make_geo_im(albedo_dat.astype('float32'), im_aff, crs,
+                    os.path.join(item_dir,'albedo.tif'),
+                    meta_descr='reflection enhanced imagery',
+                    date_created=im_date_str)
+    if shadow_art is not None:
+        make_geo_im(shadow_art.astype('float32'), im_aff, crs,
                 os.path.join(item_dir, 'shadow_artificial.tif'),
                 meta_descr='shadow calculated from CopernicusDEM',
                 date_created=im_date_str)
-    make_geo_im(shade_art.astype('float32'), im_aff, crs,
-                os.path.join(item_dir, 'shading_artificial.tif'),
-                meta_descr='shading calculated from CopernicusDEM',
-                date_created=im_date_str)
+    if shade_art is not None:
+        make_geo_im(shade_art.astype('float32'), im_aff, crs,
+                    os.path.join(item_dir, 'shading_artificial.tif'),
+                    meta_descr='shading calculated from CopernicusDEM',
+                    date_created=im_date_str)
+    if view_zn is not None:
+        make_geo_im(view_zn.astype('float32'), im_aff, crs,
+                    os.path.join(item_dir, 'view_sat_zenith.tif'),
+                    meta_descr='zenith observation angle towards the satellite',
+                    date_created=im_date_str)
+    if view_az is not None:
+        make_geo_im(view_az.astype('float32'), im_aff, crs,
+                    os.path.join(item_dir, 'view_sat_azimuth.tif'),
+                    meta_descr='azimuth observation angle towards the satellite',
+                    date_created=im_date_str)
     return
 
 def main():
@@ -232,8 +246,9 @@ def main():
             dem_dat, no_moving_dat, view_zn, view_az, new_aff, slope_dat)
 
         im_date = item.properties['datetime']
-        _organize(shadow_ort, albedo_ort, shadow_art, shade_art,
-                  new_aff, crs, im_date)
+        _organize(new_aff, crs, im_date, shadow_ort=shadow_ort,
+                  albedo_ort=albedo_ort, shadow_art=shadow_art,
+                  shade_art=shade_art)
 
 if __name__ == "__main__":
     main()

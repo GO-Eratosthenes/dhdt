@@ -35,7 +35,8 @@ def get_conn_col_header():
     """
     col_names = ['timestamp', 'caster_X', 'caster_Y', 'caster_Z',
                  'casted_X', 'casted_Y', 'casted_X_refine', 'casted_Y_refine',
-                 'azimuth', 'zenith', 'zenith_refrac','id','row',
+                 'azimuth', 'zenith', 'zenith_refrac','id',
+                 'row', 'view_az', 'view_zn',
                  'dh', 'dt']
     col_dtype = np.dtype([('timestamp', '<M8[D]'),
                           ('caster_X', np.float64), ('caster_Y', np.float64),
@@ -46,6 +47,7 @@ def get_conn_col_header():
                           ('azimuth', np.float64), ('zenith', np.float64),
                           ('zenith_refrac', np.float64), ('id', np.int32),
                           ('row', np.int32),
+                          ('view_az', np.float64), ('view_zn', np.float64),
                           ('dh', np.float64), ('dt', '<m8[D]')])
     return col_names, col_dtype
 
@@ -72,7 +74,8 @@ def write_df_to_conn_file(df, conn_dir, conn_file="conn.txt", append=False):
             col_oi = df_sel.columns[val]
             if col_oi in ('timestamp', 'date',):
                 line += str(df_sel.iloc[k,val])[:10]
-            elif col_oi in ('azimuth', 'zenith', 'zenith_refrac'):
+            elif col_oi in ('azimuth', 'zenith', 'zenith_refrac',
+                            'view_zn', 'view_az'):
                 line += '{:+3.4f}'.format(df_sel.iloc[k,val])
             elif col_oi in ('caster_Z', 'casted_Z', 'dh'):
                 line += '{:+4.2f}'.format(df_sel.iloc[k,val])
@@ -493,14 +496,18 @@ def update_caster_elevation(dh, Z, geoTransform):
 
 @loggg
 def update_caster_elevation_pd(dh, Z, geoTransform):
+    coi = 'caster_Z' # column of interest
     assert np.all([header in dh.columns for header in
                    ('caster_X', 'caster_Y')])
     # get elevation of the caster locations
     i_im, j_im = map2pix(geoTransform,
                          dh['caster_X'].to_numpy(), dh['caster_Y'].to_numpy())
     dh_Z = ndimage.map_coordinates(Z, [i_im, i_im], order=1, mode='mirror')
-    if not 'caster_Z' in dh.columns: dh['caster_Z'] = None
-    dh.loc['caster_Z'] = dh_Z
+
+    if not coi in dh.columns:
+        dh.insert(len(dh.keys()), coi, dh_Z)
+    else:
+        dh[coi] = dh_Z
     return dh
 
 def update_casted_elevation(dxyt, Z, geoTransform):
@@ -564,9 +571,37 @@ def update_casted_elevation_pd(dxyt, Z, geoTransform):
         i_im, j_im = map2pix(geoTransform,
                              dxyt[x_str].to_numpy(), dxyt[y_str].to_numpy())
         dh_Z = ndimage.map_coordinates(Z, [i_im, j_im], order=1, mode='mirror')
-        if not z_str in dxyt.columns: dxyt[z_str] = None
-        dxyt[z_str] = dh_Z
+        if not z_str in dxyt.columns:
+            dxyt.insert(len(dxyt.keys()), z_str, dh_Z)
+        else:
+            dxyt[z_str] = dh_Z
     return dxyt
+
+def update_caster_view_angles(dh, view_zn, view_az, geoTransform):
+    if type(dh) in (pd.core.frame.DataFrame,):
+        update_caster_view_angles_pd(dh, view_zn, view_az, geoTransform)
+    #todo : make the same function for recordarray
+    return dh
+
+@loggg
+def update_caster_view_angles_pd(dh, view_zn, view_az, geoTransform):
+    assert np.all([header in dh.columns for header in
+                   ('caster_X', 'caster_Y')])
+    # get location of the caster locations
+    i_im, j_im = map2pix(geoTransform,
+                         dh['caster_X'].to_numpy(), dh['caster_Y'].to_numpy())
+    zn_im = simple_nearest_neighbor(view_zn, i_im, j_im).astype(int)
+    if not 'view_zn' in dh.columns:
+        dh.insert(len(dh.keys()), 'view_zn', zn_im)
+    else:
+        dh['view_zn'] = zn_im
+
+    az_im = simple_nearest_neighbor(view_az, i_im, j_im).astype(int)
+    if not 'view_az' in dh.columns:
+        dh.insert(len(dh.keys()), 'view_az', az_im)
+    else:
+        dh['view_az'] = az_im
+    return dh
 
 def update_glacier_id(dh, R, geoTransform):
     """ include the glacier id (as given by R), where the shadow is casted on.
@@ -603,9 +638,9 @@ def update_glacier_id(dh, R, geoTransform):
 def update_glacier_id_pd(dh, R, geoTransform):
     assert np.all([header in dh.columns for header in
                    ('casted_X', 'casted_Y')])
-    # get elevation of the caster locations
+    # get location of the casted locations
     i_im, j_im = map2pix(geoTransform,
-                         dh['caster_X'].to_numpy(), dh['caster_Y'].to_numpy())
+                         dh['casted_X'].to_numpy(), dh['casted_Y'].to_numpy())
     rgi_id = simple_nearest_neighbor(R, i_im, j_im).astype(int)
     if not 'glacier_id' in dh.columns: dh['glacier_id'] = None
     dh.loc['glacier_id'] = rgi_id
@@ -691,6 +726,7 @@ def get_casted_elevation_difference_pd(dh):
         formats = [np.float64, np.float64, '<M8[D]', np.int16,
                    np.float64, np.float64, '<M8[D]', np.int16, np.float64]
 
+    #todo: use iteritems?
     dxyt = None
     ids = np.unique(dh['id']).astype(int)
     for ioi in ids:

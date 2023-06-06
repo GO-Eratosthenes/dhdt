@@ -1277,7 +1277,9 @@ def read_sensing_time_s2(path, fname='MTD_TL.xml'):
         ('file does not seem to exist')
     root = get_root_of_table(path, fname)
     for att in root.iter('Sensing_Time'.upper()):
-        rec_time = np.datetime64(att.text, 'ns')
+        time_str = att.text
+        if time_str.endswith('Z'): time_str = time_str[:-1]
+        rec_time = np.datetime64(time_str, 'ns')
     return rec_time
 
 def get_timing_mask(s2_df, geoTransform, spatialRef):
@@ -1341,69 +1343,6 @@ def get_timing_mask(s2_df, geoTransform, spatialRef):
     o_grd -= o_min
     Across = np.mod(o_grd, o_mod)
     return dT, Across, Φ, s2_dict
-
-def get_timing_stack_s2(s2_df, det_stack,
-                        spac=10, sat_height=750E3, sat_velo=7.5):
-    """
-    Using the parallax angles, geometric and positioning info to get the time
-    configuration of the acquisition by the instrument onboard Sentinel-2
-
-    Parameters
-    ----------
-    s2_df : pandas.DataFrame
-        metadata and general multispectral information about the MSI
-        instrument that is onboard Sentinel-2
-    det_stack : numpy.array, size=(m,n,b), ndim={2,3}, dtype=int
-        numbers of the different detectors for different bands, given by s2_df
-    path_det: str
-        asd
-    spac : float, unit=meter, default=10
-        pixel spacing
-
-    Returns
-    -------
-    tim_stack : np.array, size=(m,n,b), ndim={2,3}, unit=seconds
-        relative timing of acquisition for different bands
-    cross_grd : np.array, size=(m,n), ndim=2, unit=meter
-        cross orbit reference frame
-
-    See Also
-    --------
-    list_central_wavelength_msi : creates a dataframe for the MSI instrument
-    read_detector_mask : get ids of the different sensors that make up an image
-    """
-    assert isinstance(s2_df, pd.DataFrame), ('please provide a dataframe')
-
-    # get_bearing_from_detector_mask
-    ψ = get_flight_bearing_from_detector_mask_s2(det_stack[:, :, 0])
-
-    # construct grid
-    x_grd, y_grd = np.meshgrid(np.linspace(1, det_stack.shape[1],
-                                           det_stack.shape[1]),
-                               np.linspace(1, det_stack.shape[0],
-                                           det_stack.shape[0]),
-                               indexing='xy')
-    t_grd = -np.sin(np.deg2rad(ψ)) * x_grd + np.cos(np.deg2rad(ψ)) * y_grd
-    t_grd *= line_period.astype('float')
-
-    cross_grd = -np.cos(np.deg2rad(ψ))*x_grd - np.sin(np.deg2rad(ψ))*y_grd
-    cross_grd *= spac # convert from pixels to meters
-
-    cross_parallax_timing = (1E9 * s2_df.crossdetector_parallax * sat_height /
-                             sat_velo).to_numpy().astype('timedelta64[ns]')
-
-    # odd detector numbers are forward, thus earlier
-    band_timing = cross_parallax_timing / 2
-
-    tim_stack = np.zeros_like(det_stack, dtype=float)
-    # run through stack, band per band
-    for band_id in range(tim_stack.shape[2]):
-        tim_band = 1 - 2 * ((det_stack[:, :, band_id] % 2) == 0).astype('float')
-        tim_band *= band_timing[band_id].astype('float')
-        tim_band += t_grd
-        tim_band /= np.timedelta64(int(1E9), 'ns').astype('float')
-        tim_stack[:, :, band_id] = tim_band
-    return tim_stack, cross_grd
 
 #todo: robustify
 def get_xy_poly_from_gml(gml_struct,idx):
