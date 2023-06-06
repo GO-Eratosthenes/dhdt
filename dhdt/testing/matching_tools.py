@@ -55,34 +55,37 @@ def create_sample_image_pair(d=2**7, max_range=1, integer=False, ndim=1):
 
     """
     from skimage import data
-    if ndim==1:
+    if ndim == 1:
         im1 = mat_to_gray(data.grass())
+        im1 = np.atleast_3d(im1)
     else:
         im1 = data.astronaut()
         ndim = np.maximum(im1.shape[-1], ndim)
-    m,n = im1.shape[0:2]
+    m, n = im1.shape[0:2]
 
     scalar_mul = 2*np.minimum(d // 2, max_range)
 
     random_di = (np.random.random()-.5)*scalar_mul
-    random_dj = (np.random.random()-.5)*scalar_mul # random translation
+    random_dj = (np.random.random()-.5)*scalar_mul  # random translation
 
-    if integer: random_di,random_dj = np.round(random_di),np.round(random_dj)
+    if integer:
+        random_di, random_dj = np.round(random_di), np.round(random_dj)
 
+    # interpolate on original grid
     grd_i1, grd_j1, grd_k1 = np.arange(m), np.arange(n), np.arange(ndim)
+    interp = RegularGridInterpolator((grd_i1, grd_j1, grd_k1), im1)
 
-    # calculate new interpolation grid
-    grd_j2, grd_i2, grd_k2 = np.meshgrid(grd_i1, grd_j1, grd_k1)
-    grd_i2 += random_di
-    grd_j2 += random_dj
+    # define new grid by applying offset
+    grd_i2, grd_j2, grd_k2 = np.meshgrid(grd_i1, grd_j1, grd_k1,
+                                         indexing='ij', sparse=True)
+    grd_i2 = grd_i2 + random_di
+    grd_j2 = grd_j2 + random_dj
 
-    interp = RegularGridInterpolator((grd_i1, grd_j1, grd_k1),
-                                     np.atleast_3d(im1))
-
-    im1_same = np.atleast_3d(im1)[m//2-d:m//2+d,n//2-d:n//2+d,:]
-    # do interpolation
-    im2 = interp((grd_i2, grd_j2, grd_k2))
-    im2 = im2.astype('uint8')
+    # extract subregion and evaluate image on new grid
+    i_slice = slice(m//2-d//2, m//2+d//2)
+    j_slice = slice(n//2-d//2, n//2+d//2)
+    im1_same = im1[i_slice, j_slice, :]
+    im2 = interp((grd_i2[i_slice, :, :], grd_j2[:, j_slice, :], grd_k2))
     return im1_same, im2, random_di, random_dj, im1
 
 
@@ -306,7 +309,7 @@ def construct_correlation_peak(I, di, dj, fwhm=3., origin='center'):
     return C
 
 
-def test_phase_plane_localization(Q, di, dj, tolerance=1.):
+def _test_phase_plane_localization(Q, di, dj, tolerance=1.):
     """ test if an estimate is within bounds
 
     Parameters
@@ -325,12 +328,12 @@ def test_phase_plane_localization(Q, di, dj, tolerance=1.):
     assert np.isclose(np.round(dj), dj_hat, tolerance)
     return
 
-def test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=.1):
+def _test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=.1):
     assert np.isclose(di, di_hat, tolerance)
     assert np.isclose(dj, dj_hat, tolerance)
     return
 
-def test_phase_direction(θ, di, dj, tolerance=5):
+def _test_phase_direction(θ, di, dj, tolerance=5):
     tolerance = np.deg2radrad(tolerance)
     θ = np.deg2rad(θ)
     θ_tilde = np.arctan2(di, dj)
@@ -342,7 +345,7 @@ def test_phase_direction(θ, di, dj, tolerance=5):
     assert np.isclose(a,b, tolerance)
     return
 
-def test_normalize_power_spectrum(Q, tolerance=.001):
+def _test_normalize_power_spectrum(Q, tolerance=.001):
     # trigonometric version
     Qn = 1j*np.sin(np.angle(Q))
     Qn += np.cos(np.angle(Q))

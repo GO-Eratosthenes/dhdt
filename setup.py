@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
-import numpy as np
-np.set_printoptions(precision=3, suppress=True)
 
 from setuptools import setup, find_packages
 
@@ -17,7 +15,7 @@ with open('README.rst') as readme_file:
     readme = readme_file.read()
 
 with open('requirements.txt') as requirements_file:
-    requirements = [line.strip('\n') for line in requirements_file.readlines()]
+    requirements = [line.split()[0] for line in requirements_file.readlines()]
 
 setup(
     name='dhdt',

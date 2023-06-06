@@ -593,7 +593,7 @@ def get_data_and_mask(I,M=None):
     M : numpy.array, dtype=bool
         masking array, where True means data, and False neglecting elements
     """
-    # make compatible with masekd array
+    # make compatible with masked array
     if type(I)==np.ma.core.MaskedArray:
         if M is None:
             M = np.invert(np.ma.getmaskarray(I))
