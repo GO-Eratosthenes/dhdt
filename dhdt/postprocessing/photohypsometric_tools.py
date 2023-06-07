@@ -40,14 +40,15 @@ def get_conn_col_header():
                  'dh', 'dt']
     col_dtype = np.dtype([('timestamp', '<M8[D]'),
                           ('caster_X', np.float64), ('caster_Y', np.float64),
+                          ('caster_az', np.float64), ('caster_zn', np.float64),
                           ('caster_Z', np.float64),
                           ('casted_X', np.float64), ('casted_Y', np.float64),
+                          ('casted_az', np.float64), ('casted_zn', np.float64),
                           ('casted_X_refine', np.float64),
                           ('casted_Y_refine', np.float64),
                           ('azimuth', np.float64), ('zenith', np.float64),
                           ('zenith_refrac', np.float64), ('id', np.int32),
-                          ('row', np.int32),
-                          ('view_az', np.float64), ('view_zn', np.float64),
+                          ('orbit', np.int32),
                           ('dh', np.float64), ('dt', '<m8[D]')])
     return col_names, col_dtype
 
@@ -75,7 +76,7 @@ def write_df_to_conn_file(df, conn_dir, conn_file="conn.txt", append=False):
             if col_oi in ('timestamp', 'date',):
                 line += str(df_sel.iloc[k,val])[:10]
             elif col_oi in ('azimuth', 'zenith', 'zenith_refrac',
-                            'view_zn', 'view_az'):
+                            'caster_zn', 'caster_az', 'casted_zn', 'casted_az'):
                 line += '{:+3.4f}'.format(df_sel.iloc[k,val])
             elif col_oi in ('caster_Z', 'casted_Z', 'dh'):
                 line += '{:+4.2f}'.format(df_sel.iloc[k,val])
@@ -395,7 +396,7 @@ def read_conn_files_to_df(folder_list, conn_file="conn.txt",
         dh_df = merge_ids(dh_df, dh, idx_uni)
     return dh_df
 
-def clean_dh(dh):
+def clean_locations_with_no_id(dh):
     """ multi-temporal photohypsometric data can have common caster locations.
     An identification number can be given to them. If this is not done, these
     data are redunant, and can be removed. This function does that.
@@ -415,27 +416,46 @@ def clean_dh(dh):
     read_conn_files_to_stack, read_conn_files_to_df
     """
     if type(dh) in (np.recarray,):
-        dh = clean_dh_rec(dh)
+        dh = clean_locations_with_no_id_rec(dh)
     elif type(dh) in (np.ndarray,):
-        dh = clean_dh_np(dh)
+        dh = clean_locations_with_no_id_np(dh)
     else:
-        dh = clean_dh_pd(dh)
+        dh = clean_dh_with_no_id_pd(dh)
     return dh
 
-def clean_dh_rec(dh):
+def clean_locations_with_no_id_rec(dh):
     return dh[dh['id']!=0]
 
-def clean_dh_np(dh):
+def clean_locations_with_no_id_np(dh):
     return dh[dh[:,-1]!=0]
 
 @loggg
-def clean_dh_pd(dh):
+def clean_dh_with_no_id_pd(dh):
     if 'id' in dh.columns:
         dh.drop(dh[dh['id'] == 0].index, inplace=True)
     return dh
 
 @loggg
 def keep_refined_locations(dh):
+    """ if the refinement has not been able to get a sub-pixel location estimate
+    it will have the same location as the initial location. Hence, such
+    locations can be excluded, which this function does.
+
+    Parameters
+    ----------
+    dh : pandas.DataFrame
+        DataFrame of coordinates and times, having at least the following
+        collumns:
+            - caster_z : elevation of the start of shadow
+                (the newly created collumn)
+            - timestamp : date stamp
+            - caster_X, caster_Y : map coordinate of start of shadow
+            - casted_X, casted_Y : map coordinate of end of shadow
+            - casted_X_refine, casted_Y_refine :
+                refined map coordinate of end of shadow
+            - azimuth : sun orientation, unit=degrees
+            - zenith : overhead angle of the sun, unit=degrees
+    """
     if np.all([header in dh.columns for header in
                ('casted_X_refine', 'casted_Y_refine')]):
         # only keep data points that we able to refine their position
@@ -472,6 +492,7 @@ def update_caster_elevation(dh, Z, geoTransform):
     See Also
     --------
     update_casted_elevation
+    update_caster_view_angles
 
     Notes
     -----
@@ -578,6 +599,54 @@ def update_casted_elevation_pd(dxyt, Z, geoTransform):
     return dxyt
 
 def update_caster_view_angles(dh, view_zn, view_az, geoTransform):
+    """  include the observation angles towards the satellite platform, at
+    the casted location (the start of the shadow trace) as a collumn in the
+    DataFrama (dh). Which has the name 'caster_zn' and 'caster_az'.
+
+    Parameters
+    ----------
+    dh : {numpy.ndarray, numpy.recordarray, pandas.DataFrame}
+        array with photohypsometric information
+    Z : numpy.ndarray, size=(m,n), unit=meters
+        grid with elevation values
+    geoTransform : tuple, size={(1,6), (1,8)}
+        affine transformation coefficients
+
+    Returns
+    -------
+    dh : pandas.DataFrame
+        DataFrame of coordinates and times, having at least the following
+        collumns:
+            - casted_zn : zenith angle towards the platform in degrees
+                (the newly created collumn)
+            - casted_az : azimuth angle towards the platform in degrees
+                (the newly created collumn)
+            - timestamp : date stamp
+            - caster_x, caster_y : map coordinate of start of shadow
+            - casted_x, casted_y : map coordinate of end of shadow
+            - azimuth : sun orientation, unit=degrees
+            - zenith : overhead angle of the sun, unit=degrees
+
+    See Also
+    --------
+    update_caster_elevation
+
+    Notes
+    -----
+    The nomenclature is as follows:
+
+        .. code-block:: text
+
+          * sun    #*# satellite
+           \      /
+            \   /
+             \/
+             |\ <-- caster
+             | \
+             |  \  <-- sun trace     ^ Z
+             |   \                   |
+         ----┴----+  <-- casted      └-> {X,Y}
+    """
     if type(dh) in (pd.core.frame.DataFrame,):
         update_caster_view_angles_pd(dh, view_zn, view_az, geoTransform)
     #todo : make the same function for recordarray
@@ -591,16 +660,16 @@ def update_caster_view_angles_pd(dh, view_zn, view_az, geoTransform):
     i_im, j_im = map2pix(geoTransform,
                          dh['caster_X'].to_numpy(), dh['caster_Y'].to_numpy())
     zn_im = simple_nearest_neighbor(view_zn, i_im, j_im).astype(int)
-    if not 'view_zn' in dh.columns:
-        dh.insert(len(dh.keys()), 'view_zn', zn_im)
+    if not 'caster_zn' in dh.columns:
+        dh.insert(len(dh.keys()), 'caster_zn', zn_im)
     else:
-        dh['view_zn'] = zn_im
+        dh['caster_zn'] = zn_im
 
     az_im = simple_nearest_neighbor(view_az, i_im, j_im).astype(int)
-    if not 'view_az' in dh.columns:
-        dh.insert(len(dh.keys()), 'view_az', az_im)
+    if not 'caster_az' in dh.columns:
+        dh.insert(len(dh.keys()), 'caster_az', az_im)
     else:
-        dh['view_az'] = az_im
+        dh['caster_az'] = az_im
     return dh
 
 def update_glacier_id(dh, R, geoTransform):
@@ -642,8 +711,10 @@ def update_glacier_id_pd(dh, R, geoTransform):
     i_im, j_im = map2pix(geoTransform,
                          dh['casted_X'].to_numpy(), dh['casted_Y'].to_numpy())
     rgi_id = simple_nearest_neighbor(R, i_im, j_im).astype(int)
-    if not 'glacier_id' in dh.columns: dh['glacier_id'] = None
-    dh.loc['glacier_id'] = rgi_id
+    if not 'glacier_id' in dh.columns:
+        dh.insert(len(dh.keys()), 'glacier_id', rgi_id)
+    else:
+        dh['glacier_id'] = rgi_id
     return dh
 
 def get_casted_elevation_difference(dh):
@@ -825,9 +896,9 @@ def get_casted_elevation_difference_np(dh):
     return dxyt
 
 @loggg
-def clean_dxyt(dxyt):
+def clean_dxyt_via_common_glacier(dxyt):
     """ since dhdt is glacier centric, connections between shadow casts that are
-    siturated on different glaciers, are remove by this function
+    situated on different glaciers, are remove by this function
 
     Parameters
     ----------
@@ -846,10 +917,11 @@ def clean_dxyt(dxyt):
     -------
     dxyt : {numpy.array, numpy.recordarray}, size=(k,n)
     """
-    if np.all([header in dxyt.columns for header in
+    if not np.all([header in dxyt.columns for header in
                ('G_1', 'G_2')]):
-        # only keep data points that are on the same glacier
-        dxyt = dxyt[dxyt['G_1']==dxyt['G_2']]
+        return dxyt
+    # only keep data points that are on the same glacier
+    dxyt = dxyt[dxyt['G_1']==dxyt['G_2']]
     return dxyt
 
 def get_relative_hypsometric_network(dxyt, Z, geoTransform):

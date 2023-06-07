@@ -844,6 +844,18 @@ def merge_ids_simple(dh):
     dh.insert(len(dh.columns), 'id', id)
     return dh
 
+def split_ids_view_angles(dh):
+    # look at XXX
+    dh_grouped = dh.groupby('id')
+    id_counter = dh['id'].max() +1
+    # iterate over each group
+    for group_name, df_group in dh_grouped:
+        print('')
+
+
+        # split group and assign new id to this group
+    return
+
 # refine by matching, and include correlation score
 def match_shadow_casts(M1, M2, L1, L2, geoTransform1, geoTransform2,
                        xy1, xy2, scale_12, simple_sh,

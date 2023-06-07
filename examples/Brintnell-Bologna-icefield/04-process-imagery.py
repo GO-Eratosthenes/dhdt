@@ -24,7 +24,8 @@ from dhdt.preprocessing.shadow_geometry import shadow_image_to_suntrace_list
 from dhdt.processing.photohypsometric_image_refinement import \
     update_casted_location
 from dhdt.postprocessing.photohypsometric_tools import \
-    update_caster_elevation, write_df_to_conn_file, keep_refined_locations
+    update_caster_elevation, write_df_to_conn_file, keep_refined_locations, \
+    update_caster_view_angles
 from dhdt.presentation.image_io import output_cast_lines_from_conn_txt
 
 BBOX = [543001, 6868001, 570001, 6895001] # this is the way rasterio does it
@@ -96,7 +97,7 @@ def _create_conn_pd(suntraces, new_aff, org_aff, timestamp, s2_path):
     angles_az = interp(np.array([i, j]).T)
 
     dh = pd.DataFrame({'timestamp': np.tile(np.datetime64(timestamp), m),
-                       'row': np.tile(row, m),
+                       'orbit': np.tile(row, m),
                        'caster_X': suntraces[:,0], 'caster_Y': suntraces[:,1],
                        'casted_X': suntraces[:,2], 'casted_Y': suntraces[:,3],
                        'azimuth': angles_az, 'zenith': angles_zn})

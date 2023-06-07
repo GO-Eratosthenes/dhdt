@@ -8,11 +8,12 @@ import numpy as np
 from dhdt.generic.debugging import start_pipeline
 from dhdt.generic.mapping_io import read_geo_image
 from dhdt.generic.mapping_tools import map2pix, ref_trans, ref_update
-from dhdt.processing.coupling_tools import merge_ids_simple
+from dhdt.processing.coupling_tools import merge_ids_simple, \
+    split_ids_view_angles
 from dhdt.postprocessing.photohypsometric_tools import \
-    read_conn_to_df, clean_dh, get_casted_elevation_difference, \
+    read_conn_to_df, clean_locations_with_no_id, get_casted_elevation_difference, \
     get_hypsometric_elevation_change, update_casted_elevation, \
-    update_glacier_id, clean_dxyt, get_mass_balance_per_elev, \
+    update_glacier_id, clean_dxyt_via_common_glacier, get_mass_balance_per_elev, \
     write_df_to_conn_file, write_df_to_belev_file
 
 # initialization parameters
@@ -60,7 +61,7 @@ def main():
         dh = (dh
               .pipe(start_pipeline)
               .pipe(update_glacier_id, rgi_dat, new_aff)
-              .pipe(clean_dh)
+              .pipe(clean_locations_with_no_id)
               )
         # find glacier ids and bring them to the different conn-files
         ids, idx_inv = np.unique(dh['glacier_id'].to_numpy(), return_inverse=True)
@@ -87,6 +88,7 @@ def main():
         dxyt = (dh_rgi
                 .pipe(start_pipeline)
                 .pipe(merge_ids_simple)
+                .pipe(split_ids_view_angles)
                 .pipe(get_casted_elevation_difference)
                 .pipe(update_casted_elevation, dem_dat, new_aff)
                 )
@@ -94,7 +96,7 @@ def main():
         #processing
         dhdt = (dxyt
                 .pipe(start_pipeline)
-                .pipe(clean_dxyt)
+                .pipe(clean_dxyt_via_common_glacier)
                 .pipe(get_hypsometric_elevation_change, dxyt)
                 )
         del dxyt
