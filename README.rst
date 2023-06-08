@@ -1,4 +1,4 @@
-|GitHub Badge| |License Badge| |Python Build| 
+|GitHub Badge| |License Badge| |Python Build| |Documentation Status|
 
 .. |GitHub Badge| image:: https://img.shields.io/badge/github-repo-000.svg?logo=github&labelColor=gray&color=blue
    :target: https://github.com/GO-Eratosthenes/eratosthenes
@@ -11,6 +11,10 @@
 .. |Python Build| image:: https://github.com/GO-Eratosthenes/start-code/workflows/Build/badge.svg
    :target: https://github.com/GO-Eratosthenes/start-code/actions?query=workflow%3A%22build.yml%22
    :alt: Python Build
+   
+.. |Documentation Status| image:: https://readthedocs.org/projects/dhdt/badge/?version=latest
+   :target: https://dhdt.readthedocs.io/en/latest/?badge=latest
+   :alt: Documentation Status
 
 ############
 dhdt
