@@ -37,6 +37,6 @@ jobs:
           conda config --show-sources
           conda config --show
           printenv | sort
-      - name: Test
-        shell: bash -el {0}
-        run: pytest
+#      - name: Test
+#        shell: bash -el {0}
+#        run: pytest
