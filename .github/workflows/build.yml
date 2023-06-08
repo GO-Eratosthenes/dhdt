@@ -6,6 +6,7 @@ on:
       - 'dhdt/**'
       - 'tests/**'
       - 'setup.*'
+      - environment.yml
   pull_request:
     branches:
       - master
