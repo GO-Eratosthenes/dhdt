@@ -22,26 +22,30 @@ Extracting topography from mountain glaciers, through the use of shadow casted b
 Installation
 ************
 
-This package dependencies are most easily installed with `conda` from the `conda-forge` channel (see `Miniforge installers`_ for a minimal Conda installation). Downloade and access the package folder using `git`:
+Download and access the package folder using `git`:
 
 .. code-block:: console
 
   git clone https://github.com/GO-Eratosthenes/dhdt.git
   cd dhdt
 
+
+The dependencies are most easily installed with `conda` from the `conda-forge` channel (see `Miniforge installers`_ for a minimal Conda installation).
 Create and activate a virtual environment with all the required dependencies:
 
 .. code-block:: console
-  conda env create -f environment.yml
+
+  conda env create -n dhdt -f environment.yml
   conda activate dhdt
 
-Install `dhdt` using `pip` (add `-e` option to work in development mode):
+
+Install `dhdt` using `pip` (add the `-e` option to install in development mode):
 
 .. code-block:: console
+
   pip install .
 
-
-.. Miniforge installers : https://github.com/conda-forge/miniforge/releases
+.. _Miniforge installers : https://github.com/conda-forge/miniforge/releases
 
 Contributing
 ************
