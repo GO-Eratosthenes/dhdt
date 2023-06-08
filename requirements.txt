@@ -1,12 +1,13 @@
 affine
 cdsapi
+gdal
 geopandas
 matplotlib
 morphsnakes @ git+https://github.com/GO-Eratosthenes/morphsnakes@albedo-included
-netCDF4
+netcdf4
 numpy
-Pillow
 pandas
+pillow
 pygrib
 pyproj
 pystac
@@ -17,3 +18,5 @@ scikit-image
 scikit-learn
 scipy
 shapely>=2
+stactools
+stactools-sentinel2

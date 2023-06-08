@@ -22,21 +22,26 @@ Extracting topography from mountain glaciers, through the use of shadow casted b
 Installation
 ************
 
-This package requires the `GDAL <https://gdal.org>`_ library, which is most 
-easily installed through `conda` from the `conda-forge` channel:
+This package dependencies are most easily installed with `conda` from the `conda-forge` channel (see `Miniforge installers`_ for a minimal Conda installation). Downloade and access the package folder using `git`:
 
 .. code-block:: console
 
-   conda install gdal -c conda-forge
+  git clone https://github.com/GO-Eratosthenes/dhdt.git
+  cd dhdt
 
-This package can then be downloaded and installed using `git` and `pip`:
+Create and activate a virtual environment with all the required dependencies:
 
 .. code-block:: console
+  conda env create -f environment.yml
+  conda activate dhdt
 
-  git clone https://github.com/GO-Eratosthenes/start-code.git
-  cd start-code
+Install `dhdt` using `pip` (add `-e` option to work in development mode):
+
+.. code-block:: console
   pip install .
 
+
+.. Miniforge installers : https://github.com/conda-forge/miniforge/releases
 
 Contributing
 ************
