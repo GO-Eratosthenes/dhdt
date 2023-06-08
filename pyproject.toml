@@ -1,0 +1,97 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dhdt"
+version = "0.1.0"
+dependencies = [
+    "affine",
+    "cdsapi",
+#    "gdal",
+    "geopandas",
+    "matplotlib",
+    "morphsnakes @ git+https://github.com/GO-Eratosthenes/morphsnakes@albedo-included",
+    "netcdf4",
+    "numpy",
+    "pandas",
+    "pillow",
+    "pygrib",
+    "pyproj",
+    "pystac",
+    "pystac-client",
+    "rasterio",
+    "rioxarray",
+    "scikit-image",
+    "scikit-learn",
+    "scipy",
+    "shapely>=2",
+    "stactools",
+    "stactools-sentinel2",
+]
+description = "Extracting topography from mountain glaciers, through the use of shadow casted by surrounding mountains. Imagery from optical satellite systems are used, over all mountain ranges on Earth."
+readme = "README.rst"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Bas Altena", email = "b.altena@uu.nl"},
+    {name = "Francesco Nattino", email = "f.nattino@esciencecenter.nl"},
+    {name = "Ou Ku"},
+    {name = "Meiert W. Grootes"},
+    {name = "Emma Izquierdo-Verdiguier"},
+    {name = "Serkan Girgin"},
+    {name = "Raul Zurita-Milla"},
+]
+keywords = ["Python", "glacier elevation change", "optical remote sensing", "geodetic imaging", "feature tracking"]
+classifiers=[
+    'Development Status :: 2 - Pre-Alpha',
+    'Intended Audience :: Developers',
+    'License :: OSI Approved :: Apache Software License',
+    'Natural Language :: English',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+]
+
+[project.urls]
+repository = "https://github.com/"
+documentation = "https://dhdt.readthedocs.io"
+changelog = "https://github.com/GO-Eratosthenes/dhdt/blob/master/CHANGELOG.rst"
+#doi = "https://doi.org/10.5281/zenodo.???????"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=6.0",
+    "pytest-cov",
+    "pycodestyle",
+]
+dev = [
+    "cffconvert",
+    "isort",
+    "yapf",
+]
+docs = [
+    "sphinx",
+    "docutils==0.16",
+    "sphinx_rtd_theme==0.5.2",
+    "recommonmark",
+    "nbsphinx",
+    "sphinx-gallery",
+]
+extra = [
+    "jupyterlab"
+]
+
+[tool.setuptools]
+packages = ["dhdt"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "--cov --cov-report term"
+testpaths = [
+    "tests",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["dhdt"]

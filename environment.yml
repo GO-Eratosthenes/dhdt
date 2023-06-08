@@ -24,16 +24,16 @@ dependencies:
   - shapely>=2
   - stactools
   # test tools
-  - pytest
+  - pytest>=6
   - pytest-cov
   - pycodestyle
   # dev tools
   - cffconvert
   - isort
   - yapf
-  # other packages
+  # extra tools
   - jupyterlab
-  # pip only 
+  # pip only
   - pip
   - pip:
       - stactools-sentinel2
