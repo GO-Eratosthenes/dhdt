@@ -31,9 +31,10 @@ SHADOW_METHOD = "entropy"
 MATCH_CORRELATOR, MATCH_SUBPIX, MATCH_METRIC = "phas_only","moment","peak_entr"
 MATCH_WINDOW = 2**4
 
+ITEM_ID = os.getenv("ITEM_ID", None)
 
-DATA_DIR = os.path.join(os.getcwd(), "data") #"/project/eratosthenes/Data/"
-DUMP_DIR = os.path.join(os.getcwd(), "processing")
+DATA_DIR = os.getenv("DATA_DIR", os.path.join(os.getcwd(), 'data'))
+DUMP_DIR = os.path.join(DATA_DIR, "processing")
 DEM_PATH = os.path.join(DATA_DIR, "DEM", MGRS_TILE+'.tif')
 RGI_PATH = os.path.join(DATA_DIR, "RGI", MGRS_TILE+'.tif')
 STAC_L1C_PATH = os.path.join(DATA_DIR, "SEN2", "sentinel2-l1c-small")
@@ -212,7 +213,8 @@ def main():
     catalog_L1C = read_stac_catalog(STAC_L1C_PATH)
     catalog_L2A = read_stac_catalog(STAC_L2A_PATH)
 
-    for item in catalog_L1C.get_all_items():
+    items = [ITEM_ID] if ITEM_ID is not None else catalog_L1C.get_all_items()
+    for item in items:
         item_L1C, item_L2A = get_items_via_id_s2(catalog_L1C, catalog_L2A, item.id)
 
         # get year, month, day
