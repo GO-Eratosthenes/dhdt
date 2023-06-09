@@ -13,6 +13,7 @@ import morphsnakes as ms
 from scipy import ndimage
 from scipy.interpolate import RegularGridInterpolator
 
+from dhdt.generic.handler_stac import read_stac_catalog
 from dhdt.generic.mapping_io import read_geo_image
 from dhdt.generic.mapping_tools import get_mean_map_location, map2pix, \
     ref_trans, ref_update, make_same_size
@@ -33,8 +34,10 @@ MGRS_TILE = "09VWJ"
 RESOLUTION_OF_INTEREST = 10.
 ITER_COUNT = 30
 
-DATA_DIR = os.path.join(os.getcwd(), "data") #"/project/eratosthenes/Data/"
-DUMP_DIR = os.path.join(os.getcwd(), "processing")
+ITEM_ID = os.getenv("ITEM_ID", None)
+
+DATA_DIR = os.getenv("DATA_DIR", os.path.join(os.getcwd(), 'data'))
+DUMP_DIR = os.path.join("DATA_DIR", "processing")
 DEM_PATH = os.path.join(DATA_DIR, "DEM", MGRS_TILE+'.tif')
 RGI_PATH = os.path.join(DATA_DIR, "RGI", MGRS_TILE+'.tif')
 STAC_L1C_PATH = os.path.join(DATA_DIR, "SEN2", "sentinel2-l1c-small")
@@ -60,14 +63,6 @@ s2_df = list_central_wavelength_msi()
 s2_df = s2_df[s2_df['gsd']==RESOLUTION_OF_INTEREST]
 central_wavelength = s2_df['center_wavelength'].to_numpy().mean()
 
-def _get_im_dates():
-    im_dates = []
-    for root,directories,_ in os.walk(DUMP_DIR):
-        ymd = os.path.relpath(root, DUMP_DIR)
-        if ymd.count(os.sep)==2:
-            year,mon,day = ymd.split(os.sep)
-            im_dates.append('-'.join([year, mon.zfill(2), day.zfill(2)]))
-    return im_dates
 
 def _refine_shadow_polygon(shadow_dat, albedo_dat, shadow_art):
     shadow_snk = ms.morphological_chan_vese(shadow_dat, ITER_COUNT,
@@ -104,20 +99,20 @@ def _create_conn_pd(suntraces, new_aff, org_aff, timestamp, s2_path):
     return dh
 
 def main():
-    im_dates = _get_im_dates()
-    for im_date in im_dates:
+    catalog_L1C = read_stac_catalog(STAC_L1C_PATH)
+
+    if ITEM_ID is not None:
+        items = [catalog_L1C.get_item(ITEM_ID, recursive=True)]
+    else:
+        items = [item.id for item in catalog_L1C.get_all_items()]
+
+    for item in items:
         # loop through the imagery
-        yr,mn,dy = im_date.split('-')
-        int_date = os.sep.join([yr, str(int(mn)), str(int(dy))])
+        im_date = item.datetime.strftime('%Y-%m-%d')
+        int_date = os.sep.join([str(int(el)) for el in im_date.split('-')])
 
-        stac_dir = os.path.join(STAC_L1C_PATH, int_date)
-        stac_dir = os.path.join(stac_dir, next(os.walk(stac_dir))[1][0])
+        stac_dir = os.path.dirname(item.get_self_href())
         dump_dir = os.path.join(DUMP_DIR, int_date)
-
-#        if os.path.exists(os.path.join(dump_dir, 'conn.txt')):
-#            # create casting caster images
-#            output_cast_lines_from_conn_txt(dump_dir, new_aff, rgi_dat, step=2)
-#            continue
 
         # load data
         shadow_dat = read_geo_image(os.path.join(dump_dir, 'shadow.tif'))[0]
