@@ -23,4 +23,11 @@ for ITEM_ID in ${ITEM_IDS} ; do
 done
 ```
 
+### 4. Processing
 
+```shell
+# submit processing jobs
+for ITEM_ID in ${ITEM_IDS} ; do
+    sbatch --export=PYTHON_SCRIPT="./04-process-imagery.py",CONDA_ENV="dhdt",DATA_DIR="/project/eratosthenes/Data/",ITEM_ID="${ITEM_ID}" run-script-on-spider.bsh
+done
+```
