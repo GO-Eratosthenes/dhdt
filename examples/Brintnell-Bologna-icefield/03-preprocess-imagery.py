@@ -221,14 +221,6 @@ def main():
     for item in items:
         item_L1C, item_L2A = get_items_via_id_s2(catalog_L1C, catalog_L2A, item.id)
 
-        # get year, month, day
-        im_date = item.properties['datetime']
-        year, month, day = datetime2calender(np.datetime64(im_date[:-1]))
-        year, month, day = str(year), str(month), str(day)
-        # create folder structure
-        item_dir = os.path.join(DUMP_DIR, year, month, day)
-        #if os.path.exists(item_dir): continue
-
         # read imagery
         bands = load_bands(item_L1C, s2_df, new_aff)
         for id, band in bands.items():
