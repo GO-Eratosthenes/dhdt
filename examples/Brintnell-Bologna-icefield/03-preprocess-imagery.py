@@ -213,7 +213,11 @@ def main():
     catalog_L1C = read_stac_catalog(STAC_L1C_PATH)
     catalog_L2A = read_stac_catalog(STAC_L2A_PATH)
 
-    items = [ITEM_ID] if ITEM_ID is not None else catalog_L1C.get_all_items()
+    if ITEM_ID is not None:
+        items = [catalog_L1C.get_item(ITEM_ID, recursive=True)]
+    else:
+        items = [item.id for item in catalog_L1C.get_all_items()]
+
     for item in items:
         item_L1C, item_L2A = get_items_via_id_s2(catalog_L1C, catalog_L2A, item.id)
 
