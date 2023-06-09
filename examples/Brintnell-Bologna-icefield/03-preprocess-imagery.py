@@ -252,8 +252,8 @@ def main():
             dem_dat, no_moving_dat, view_zn, view_az, new_aff, slope_dat)
 
         im_date = item.properties['datetime']
-        _organize(new_aff, crs, im_date, shadow_ort=shadow_ort,
-                  albedo_ort=albedo_ort, shadow_art=shadow_art,
+        _organize(new_aff, crs, im_date, shadow_dat=shadow_ort,
+                  albedo_dat=albedo_ort, shadow_art=shadow_art,
                   shade_art=shade_art)
 
 if __name__ == "__main__":
