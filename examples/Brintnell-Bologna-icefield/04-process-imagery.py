@@ -37,7 +37,7 @@ ITER_COUNT = 30
 ITEM_ID = os.getenv("ITEM_ID", None)
 
 DATA_DIR = os.getenv("DATA_DIR", os.path.join(os.getcwd(), 'data'))
-DUMP_DIR = os.path.join("DATA_DIR", "processing")
+DUMP_DIR = os.path.join(DATA_DIR, "processing")
 DEM_PATH = os.path.join(DATA_DIR, "DEM", MGRS_TILE+'.tif')
 RGI_PATH = os.path.join(DATA_DIR, "RGI", MGRS_TILE+'.tif')
 STAC_L1C_PATH = os.path.join(DATA_DIR, "SEN2", "sentinel2-l1c-small")
