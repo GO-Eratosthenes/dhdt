@@ -183,7 +183,7 @@ def weighted_sigma_filtering(y,w,thres=3):
     sigma_filtering, mad_filtering
     """
     mean_y = np.average(y,weights=w)
-    std_y = math.sqrt(np.average((y-mean_y)**2, weights=w))
+    std_y = np.sqrt(np.average((y-mean_y)**2, weights=w))
 
     IN = (y > (mean_y - thres*std_y)) & \
         (y < mean_y + thres*std_y)

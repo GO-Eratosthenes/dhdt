@@ -44,7 +44,7 @@ def ordered_merge(t_0, t_1, x_0, x_1):
 
 # forward attitude functions
 def rot_mat(θ):
-    """ build a 2x2 rotation matrix
+    r""" build a 2x2 rotation matrix
 
     Parameters
     ----------

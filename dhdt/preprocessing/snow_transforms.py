@@ -1,7 +1,7 @@
 import numpy as np
 
 def snow_cover_fraction(Near, Short):
-    """transform near and short wave infrared arrays to get a snow-index, from
+    r"""transform near and short wave infrared arrays to get a snow-index, from
     [Pa02]_.
     
     Parameters
@@ -37,7 +37,7 @@ def snow_cover_fraction(Near, Short):
     return SCF
 
 def snow_fraction(Red, Short):
-    """transform red and short wave infrared arrays to get a snow-index, see
+    r"""transform red and short wave infrared arrays to get a snow-index, see
     also [PK05]_.
     
     Parameters
@@ -75,7 +75,7 @@ def snow_fraction(Red, Short):
 
 
 def normalized_difference_snow_index(Green, Short):
-    """transform red and short wave infrared arrays NDSII-index, see also
+    r"""transform red and short wave infrared arrays NDSII-index, see also
     [Do89]_.
     
     Parameters
@@ -113,7 +113,7 @@ def normalized_difference_snow_index(Green, Short):
     return NDSI
 
 def normalized_difference_snow_ice_index(Red, Short):
-    """transform red and short wave infrared arrays NDSII-index, see also [Xi01]
+    r"""transform red and short wave infrared arrays NDSII-index, see also [Xi01]
     
     Parameters
     ----------    
@@ -153,7 +153,7 @@ def normalized_difference_snow_ice_index(Red, Short):
     return NDSII
 
 def s3(Red, Near, Short):
-    """transform red, near and shortwave infrared arrays to s3, see [SY99]_.
+    r"""transform red, near and shortwave infrared arrays to s3, see [SY99]_.
     
     Parameters
     ----------    
@@ -200,7 +200,7 @@ def s3(Red, Near, Short):
     return S3
 
 def snow_water_index(Green, Near, Short):
-    """transform green, near and shortwave infrared arrays to snow water index,
+    r"""transform green, near and shortwave infrared arrays to snow water index,
     as described in [Di19]_.
     
     Parameters
