@@ -1,7 +1,7 @@
 from scipy.signal import convolve2d
 
 def spatial_temporal_evolution(C_12,C_23):
-    """ convolve displacement estimates in the spatial domain, see [AK17]_
+    r""" convolve displacement estimates in the spatial domain, see [AK17]_
     
     Parameters
     ----------
@@ -45,7 +45,7 @@ def spatial_temporal_evolution(C_12,C_23):
     return C_13
 
 def frequency_temporal_evolution(Q_12,Q_23):
-    """ convolve displacement estimates in the frequency domain, see [AK17]_.
+    r""" convolve displacement estimates in the frequency domain, see [AK17]_.
     
     Parameters
     ----------

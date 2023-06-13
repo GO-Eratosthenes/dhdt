@@ -103,13 +103,13 @@ def get_CO2_level(lat, date, m=3, nb=3):
     total_co2 = co2_base + annual_co2
     return total_co2
 
-def get_height_tropopause(lat):
+def get_height_tropopause(ϕ):
     """ The tropopause can be related to its latitude [Al73]_ and a least
     squares fit is given in [No99]_.
 
     Parameters
     ----------
-    lat : {float, numpy.ndarray}, unit=degrees, range=-90...+90
+    ϕ : {float, numpy.ndarray}, unit=degrees, range=-90...+90
         latitude of interest
 
     Returns
@@ -149,8 +149,8 @@ def get_height_tropopause(lat):
               sensing" ISPRS journal of photogrammetry and remote sensing,
               vol.54, pp.360-373, 1999.
     """
-    lat = np.deg2rad(lat)
-    h_t = 17786.1 - 9338.96*np.abs(lat) + 1271.91*(lat**2)  # eq. A9 in [2]
+    ϕ = np.deg2rad(ϕ)
+    h_t = 17786.1 - 9338.96*np.abs(ϕ) + 1271.91*(ϕ**2)  # eq. A9 in [No99]_
     return h_t
 
 def get_T_sealevel(lat, method='noerdlinger'):
@@ -384,12 +384,12 @@ def get_water_vapor_enhancement(t,p):
     f = alpha + beta*p + gamma*t**2                 # eq.23 in [1]
     return f
 
-def get_density_fraction(lat, h_0, alpha=0.0065, R=8314.36, M_t=28.825):
+def get_density_fraction(ϕ, h_0, alpha=0.0065, R=8314.36, M_t=28.825):
     """
 
     Parameters
     ----------
-    lat : unit=degrees
+    ϕ : unit=degrees
         latitude of point of interest
     h_0 : float, unit=meters
         initial altitude above geoid
@@ -420,29 +420,30 @@ def get_density_fraction(lat, h_0, alpha=0.0065, R=8314.36, M_t=28.825):
               sensing" ISPRS journal of photogrammetry and remote sensing,
               vol.54, pp.360-373, 1999.
     """
-    T_sl = get_T_sealevel(lat)
-    T_frac_0 = 1 - np.divide(h_0*alpha, T_sl)           # eq. A4 in [1]
+    T_sl = get_T_sealevel(ϕ)
+    T_frac_0 = 1 - np.divide(h_0*alpha, T_sl)           # eq. A4 in [No99]
 
     # get estimate of gravity
-    g = 9.784 * (1 - (2.6E-3 * np.cos(np.deg2rad(2 * lat))) - (2.8E-7 * h_0))
+    g = 9.784 * (1 - (2.6E-3 * np.cos(np.deg2rad(2 * ϕ))) - (2.8E-7 * h_0))
 
-    Gamma = np.divide(M_t*g, R*alpha) - 1               # eq. A6 in [1]
-    ρ_frac_t = T_frac_0**Gamma                        # eq. A5 in [1]
+    Gamma = np.divide(M_t*g, R*alpha) - 1               # eq. A6 in [No99]
+    ρ_frac_t = T_frac_0**Gamma                        # eq. A5 in [No99]
 
     # estimate parameters of the tropopause
-    h_t, T_t = get_height_tropopause(lat), h_t*alpha + T_sl
+    h_t = get_height_tropopause(ϕ)
+    T_t = h_t*alpha + T_sl
 
     ρ_frac_s = T_frac_0**Gamma * \
         np.exp(h_0-h_t) * np.divide(M_t*g, R*T_t)       # eq. A7 in [1]
     return ρ_frac_t, ρ_frac_s
 
-def get_simple_density_fraction(lat):
+def get_simple_density_fraction(ϕ):
     """ The density fraction is related to latitude through a least squares fit
-    as is given in [1].
+    as is given in [No99]_.
 
     Parameters
     ----------
-    lat : {float, numpy.array}, unit=degrees, range=-90...+90
+    ϕ : {float, numpy.array}, unit=degrees, range=-90...+90
         latitude of interest
 
     Returns
@@ -460,15 +461,15 @@ def get_simple_density_fraction(lat):
               sensing" ISPRS journal of photogrammetry and remote sensing,
               vol.54, pp.360-373, 1999.
     """
-    ρ_frac = 1.14412 - 0.185488*np.cos(np.deg2rad(lat))   # eq. A11 in [1]
+    ρ_frac = 1.14412 - 0.185488*np.cos(np.deg2rad(ϕ))   # eq. A11 in [No99]_
     return ρ_frac
 
-def refractive_index_broadband_vapour(sigma):
+def refractive_index_broadband_vapour(σ):
     """
 
     Parameters
     ----------
-    sigma : {float, numpy.array}, unit=µm-1
+    σ : {float, numpy.array}, unit=µm-1
         vacuum wavenumber, that is the reciprocal of the vacuum wavelength
 
     Returns
@@ -486,9 +487,9 @@ def refractive_index_broadband_vapour(sigma):
     """
     cf = 1.022
     w_0, w_1, w_2, w_3 = 295.235, 2.6422, -0.032380, 0.004028
-                                                            # eq.13 in [1]
-                                                            # eq.3 in [2]
-    n_ws = cf*(w_0 + w_1*(sigma**2)+ w_2*(sigma**4)+ w_3*(sigma**6))
+                                                            # eq.13 in [Ow67]
+                                                            # eq.3 in [Ci96]
+    n_ws = cf*(w_0 + w_1*np.power(σ,2)+ w_2*np.power(σ,4)+ w_3*np.power(σ,6))
     n_ws /= 1E8
 #    n_ws += 1
     return n_ws
@@ -636,11 +637,11 @@ def get_density_air(T,P,fH, moist=True, CO2=450, M_w=0.018015, R=8.314510,
     ----------
     .. [Ci96] Ciddor, "Refractive index of air: new equations for the visible
               and near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
-    .. [DaXX] Davis, "Equation for the determination of the density of moist air
-              (1981/91)" Metrologica, vol.29 pp.67-70.
+    .. [Da92] Davis, "Equation for the determination of the density of moist air
+              (1981/91)" Metrologica, vol.29 pp.67-70, 1992.
     """
     # molar mass of dry air containing XXX ppm of CO2
-    M_a = ((CO2-400)*12.011E-6 + 28.9635)*1E-3 # eq2 in [2]
+    M_a = ((CO2-400)*12.011E-6 + 28.9635)*1E-3 # eq2 in [Da92]_
 
     x_w = water_vapor_frac(P,T,fH)
     if np.any(fH==1):
@@ -652,7 +653,7 @@ def get_density_air(T,P,fH, moist=True, CO2=450, M_w=0.018015, R=8.314510,
               (1 - x_w*(1-np.divide(M_w, M_a)) )
     else:
         ρ = np.divide((1-x_w)*P*M_a, Z*R*T)*\
-              (1 - x_w*(1-np.divide(M_w, M_a)) ) # eq. 4 in [1]
+              (1 - x_w*(1-np.divide(M_w, M_a)) ) # eq. 4 in [Ci96]_
     return ρ
 
 def ciddor_eq5(ρ_a, ρ_w, n_axs, n_ws, ρ_axs, ρ_ws):
@@ -1056,8 +1057,7 @@ def get_refraction_angle(dh, x_bar, y_bar, spatialRef, central_wavelength,
         zn_new = refraction_angle_analytical(sub_dh['zenith'], n_0)
 
         if not 'zenith_refrac' in dh.columns: dh['zenith_refrac'] = None
-        col_idx = dh.columns.get_loc('zenith_refrac')
-        dh.loc[IN,col_idx] = zn_new
+        dh.loc[IN,lambda df: ['zenith_refrac']] = zn_new
     return dh
 
 def update_list_with_corr_zenith_pd(dh, file_dir, file_name='conn.txt'):
