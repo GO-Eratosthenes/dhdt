@@ -36,7 +36,7 @@ def get_conn_col_header():
     col_names = ['timestamp', 'caster_X', 'caster_Y', 'caster_Z',
                  'casted_X', 'casted_Y', 'casted_X_refine', 'casted_Y_refine',
                  'azimuth', 'zenith', 'zenith_refrac','id',
-                 'orbit', 'view_az', 'view_zn',
+                 'orbit', 'view_az', 'view_zn', 'glacier_id',
                  'dh', 'dt']
     col_dtype = np.dtype([('timestamp', '<M8[D]'),
                           ('caster_X', np.float64), ('caster_Y', np.float64),
@@ -48,7 +48,7 @@ def get_conn_col_header():
                           ('casted_Y_refine', np.float64),
                           ('azimuth', np.float64), ('zenith', np.float64),
                           ('zenith_refrac', np.float64), ('id', np.int32),
-                          ('orbit', np.int32),
+                          ('orbit', np.int32), ('glacier_id', np.int32),
                           ('dh', np.float64), ('dt', '<m8[D]')])
     return col_names, col_dtype
 
@@ -80,7 +80,7 @@ def write_df_to_conn_file(df, conn_dir, conn_file="conn.txt", append=False):
                 line += '{:+3.4f}'.format(df_sel.iloc[k,val])
             elif col_oi in ('caster_Z', 'casted_Z', 'dh'):
                 line += '{:+4.2f}'.format(df_sel.iloc[k,val])
-            elif col_oi in ('orbit', 'id'):
+            elif col_oi in ('orbit', 'id', 'glacier_id'):
                 line += "{:03d}".format(df_sel.iloc[k,val])
             else:
                 line += '{:+8.2f}'.format(df_sel.iloc[k,val])

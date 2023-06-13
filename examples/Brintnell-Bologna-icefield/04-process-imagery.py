@@ -13,6 +13,7 @@ import morphsnakes as ms
 from scipy import ndimage
 from scipy.interpolate import RegularGridInterpolator
 
+from dhdt.generic.debugging import start_pipeline
 from dhdt.generic.handler_stac import read_stac_catalog
 from dhdt.generic.mapping_io import read_geo_image
 from dhdt.generic.mapping_tools import get_mean_map_location, map2pix, \
@@ -26,8 +27,8 @@ from dhdt.processing.photohypsometric_image_refinement import \
     update_casted_location
 from dhdt.postprocessing.photohypsometric_tools import \
     update_caster_elevation, write_df_to_conn_file, keep_refined_locations, \
-    update_caster_view_angles
-from dhdt.presentation.image_io import output_cast_lines_from_conn_txt
+    update_glacier_id, clean_locations_with_no_id
+
 
 BBOX = [543001, 6868001, 570001, 6895001] # this is the way rasterio does it
 MGRS_TILE = "09VWJ"
@@ -130,8 +131,11 @@ def main():
         # refine shadow edge position
         print('refine')
         dh = (dh
+              .pipe(start_pipeline)
               .pipe(update_casted_location, shadow_dat, shadow_snk, new_aff)
               .pipe(keep_refined_locations)
+              .pipe(update_glacier_id, rgi_dat, new_aff)
+              .pipe(clean_locations_with_no_id)
               .pipe(update_caster_elevation, dem_dat, new_aff)
               .pipe(get_refraction_angle, x_bar, y_bar, crs,
                     central_wavelength, h)
