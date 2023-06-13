@@ -281,7 +281,7 @@ imaging pipeline, many functions are needed to support this building block. See
 for a schematic of such a pipeline also \autoref{fig:freq-scheme}.
 For example, functions in ``matching_tools`` and ``coupling_tools`` are generic
 functions to create for example a sampling setup. While ``netwerk_tools`` deals
-with large organization of imagery over time, similarly multi-temporal functions
+with large organisation of imagery over time, similarly multi-temporal functions
 can be found in ``matching_tools_geometric_temporal``. Lastly, most of the
 matching methods implemented have been extended to also cope with multi-spectral
 data such that stacking of cross-power correlation spectra [@altena2022improved]
@@ -317,7 +317,12 @@ Multiple displacement and velocity products over time create redundancy and make
 it possible to apply inversion. This results in harmonised and evenly sampled
 data. Such functions can be found in ``adjustment_geometric_temporal``.
 
-The spatial-temporal coupling of can be found in ``photohypsometric\_tools``
+The spatial-temporal coupling of can be found in ``photohypsometric\_tools``.
+Here scenes from different acquisition times and observation angles are combined
+together. For a better understanding of the wording used, a schematic is
+included in \autoref{fig:df-naming}.
+
+![Schematic of the different names used in columns of the pandas DataFrame.\label{fig:df-naming}](fig/df_naming.pdf){ width=100% }
 
 Further specific application domain functions, that relate to glaciology,
 hydrology, meteorology can be found in the other packages.
@@ -341,7 +346,7 @@ to create (geo-referenced) imagery of the (intermediate) results presented in
 the former directories. Since elevation data is needed for the photohypsometric
 pipeline, a suit of functions is present in the [``terrain_tools``](https://dhdt.readthedocs.io/en/latest/modules.html).
 Where mountain specific shading functions are incorporated.
-Other map making and data visualization functions specificly for surface
+Other map making and data visualisation functions specifically for surface
 kinematics can be found in [``displacement_tools``](https://dhdt.readthedocs.io/en/latest/modules.html)
 and [``glacier_tools``](https://dhdt.readthedocs.io/en/latest/modules.html).
 Think of displacement vectors and their associated precision or strain rate maps.
@@ -376,7 +381,7 @@ These functions are based upon the GSHHS dataset, see also [@wessel1996global].
 An almost global coverage of the surface topography is given by the
 CopernicusDEM. Functions for acquiring such data are situated in
 [``handler_copernicusdem``](https://dhdt.readthedocs.io/en/latest/modules.html#handle-copernicusdem).
-For localization of glaciers, the global dataset of the Randolph Glacier
+For localisation of glaciers, the global dataset of the Randolph Glacier
 Inventory is used, see also [@pfeffer2014randolph].
 In [``handler_randolph``](https://dhdt.readthedocs.io/en/latest/modules.html#handle-randolph-glacier-inventory)
 functions to discover the glacier region and download regional polygons are
@@ -393,7 +398,7 @@ system are given in [``handler_mgrs``](https://dhdt.readthedocs.io/en/latest/mod
 ## [testing](https://dhdt.readthedocs.io/en/latest/modules.html)
 Many functions within the `dhdt` library need internet access or registration in
 order to work. To bypass such inconvenience, the functions in this folder create
-artificial datasets, so debugging and testing is more convenient. The folder has
+artificial datasets, so debugging can be done offline. The testing folder has
 the following structure:
 
 ```
@@ -405,7 +410,8 @@ testing/
 
 Imagery with artificial displacements can be created with ``matching_tools``,
 while artificial terrain and terrain masks are situated in functions given by
-``terrain_tools``.
+``terrain_tools``. Metadata about the geo reference of the imagery, can be
+created via functions in ``mapping_tools``.
 
 # Functionality
 
@@ -437,7 +443,7 @@ displacements.
 
 More glacier specific software can be found in Open Global Glacier Model
 ([OGGM](https://www.oggm.org)) [@maussion2019open]. While this initiative
-started out as a modular glacier flowline model, it now entails a large
+started out as a modular glacier flow-line model, it now entails a large
 ecosystem with highly automated access to atmospheric and geospatial datasets.
 This modelling infrastructure has an approach based upon individual glaciers,
 which is also adopted in `dhdt`. Hence integration with this framework is
