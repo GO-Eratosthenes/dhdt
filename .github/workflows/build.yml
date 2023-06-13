@@ -5,8 +5,8 @@ on:
     paths:
       - 'dhdt/**'
       - 'tests/**'
-      - requirements.txt
       - 'setup.*'
+      - environment.yml
   pull_request:
     branches:
       - master
@@ -24,20 +24,19 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: setup-conda
-        uses: s-weigand/setup-conda@v1
+        uses: conda-incubator/setup-miniconda@v2
         with:
-          update-conda: true
+          activate-environment: dhdt
+          environment-file: environment.yml
           python-version: ${{ matrix.python-version }}
-          conda-channels: 'conda-forge'
-      - run: conda --version
-      - run: which python
-      - run: conda install gdal
-      - name: Install the package
-        env:
-          CONDA_PREFIX: /usr/share/miniconda
-        run: pip install -e .[test]
+          channels: 'conda-forge'
+      - shell: bash -el {0} 
+        run: |
+          conda info
+          conda list
+          conda config --show-sources
+          conda config --show
+          printenv | sort
 #      - name: Test
-#        env:
-#          CONDA_PREFIX: /usr/share/miniconda
-#        shell: bash -l {0}
-#        run: pytest -v
+#        shell: bash -el {0}
+#        run: pytest

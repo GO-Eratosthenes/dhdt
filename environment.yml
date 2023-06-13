@@ -1,0 +1,40 @@
+name: dhdt
+channels:
+  - conda-forge
+dependencies:
+  # dhdt dependencies
+  - affine
+  - cdsapi
+  - gdal
+  - geopandas
+  - matplotlib
+  - netcdf4
+  - numpy
+  - pandas
+  - pillow
+  - pygrib
+  - pyproj
+  - pystac
+  - pystac-client
+  - rasterio
+  - rioxarray
+  - scikit-image
+  - scikit-learn
+  - scipy
+  - shapely>=2
+  - stactools
+  # test tools
+  - pytest>=6
+  - pytest-cov
+  - pycodestyle
+  # dev tools
+  - cffconvert
+  - isort
+  - yapf
+  # extra tools
+  - jupyterlab
+  # pip only
+  - pip
+  - pip:
+      - stactools-sentinel2
+      - git+https://github.com/GO-Eratosthenes/morphsnakes@albedo-included
