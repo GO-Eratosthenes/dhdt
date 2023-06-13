@@ -36,7 +36,7 @@ def get_conn_col_header():
     col_names = ['timestamp', 'caster_X', 'caster_Y', 'caster_Z',
                  'casted_X', 'casted_Y', 'casted_X_refine', 'casted_Y_refine',
                  'azimuth', 'zenith', 'zenith_refrac','id',
-                 'row', 'view_az', 'view_zn',
+                 'orbit', 'view_az', 'view_zn',
                  'dh', 'dt']
     col_dtype = np.dtype([('timestamp', '<M8[D]'),
                           ('caster_X', np.float64), ('caster_Y', np.float64),
@@ -80,7 +80,7 @@ def write_df_to_conn_file(df, conn_dir, conn_file="conn.txt", append=False):
                 line += '{:+3.4f}'.format(df_sel.iloc[k,val])
             elif col_oi in ('caster_Z', 'casted_Z', 'dh'):
                 line += '{:+4.2f}'.format(df_sel.iloc[k,val])
-            elif col_oi in ('row', 'id'):
+            elif col_oi in ('orbit', 'id'):
                 line += "{:03d}".format(df_sel.iloc[k,val])
             else:
                 line += '{:+8.2f}'.format(df_sel.iloc[k,val])
@@ -285,7 +285,7 @@ def read_conn_files_to_stack(folder_list, conn_file="conn.txt",
 
 def read_conn_files_to_df(folder_list, conn_file="conn.txt",
                              folder_path=None, dist_thres=10.):
-    """ read shadow line text file(s) into pandas.DataFrame
+    r""" read shadow line text file(s) into pandas.DataFrame
 
     Parameters
     ----------
@@ -464,7 +464,7 @@ def keep_refined_locations(dh):
     return dh
 
 def update_caster_elevation(dh, Z, geoTransform):
-    """ include the elevation of the caster location (the start of the shadow
+    r""" include the elevation of the caster location (the start of the shadow
     trace) as a collumn. Which has the name 'caster_z'
 
     Parameters
