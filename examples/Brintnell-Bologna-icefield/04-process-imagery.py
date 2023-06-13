@@ -100,12 +100,12 @@ def _create_conn_pd(suntraces, new_aff, org_aff, timestamp, s2_path):
     return dh
 
 def main():
-    catalog_L1C = read_stac_catalog(STAC_L1C_PATH)
+    catalog = read_stac_catalog(STAC_L1C_PATH)
 
     if ITEM_ID is not None:
-        items = [catalog_L1C.get_item(ITEM_ID, recursive=True)]
+        items = [catalog.get_item(ITEM_ID, recursive=True)]
     else:
-        items = [item.id for item in catalog_L1C.get_all_items()]
+        items = catalog.get_all_items()
 
     for item in items:
         # loop through the imagery
