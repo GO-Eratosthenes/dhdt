@@ -396,15 +396,18 @@ def read_conn_files_to_df(folder_list, conn_file="conn.txt",
         dh_df = merge_ids(dh_df, dh, idx_uni)
     return dh_df
 
-def clean_locations_with_no_id(dh):
+def clean_locations_with_no_id(dh, column='id'):
     """ multi-temporal photohypsometric data can have common caster locations.
     An identification number can be given to them. If this is not done, these
-    data are redunant, and can be removed. This function does that.
+    data are redundant, and can be removed. This function does that.
 
     Parameters
     ----------
     dh : {numpy.ndarray, numpy.recordarray, pandas.DataFrame}
         array with photohypsometric information
+    column : string
+        name of the column containing id values (if dh is a numpy.ndarray, this
+        argument is ignored)
 
     Returns
     -------
@@ -416,23 +419,23 @@ def clean_locations_with_no_id(dh):
     read_conn_files_to_stack, read_conn_files_to_df
     """
     if type(dh) in (np.recarray,):
-        dh = clean_locations_with_no_id_rec(dh)
+        dh = clean_locations_with_no_id_rec(dh, column)
     elif type(dh) in (np.ndarray,):
         dh = clean_locations_with_no_id_np(dh)
     else:
-        dh = clean_dh_with_no_id_pd(dh)
+        dh = clean_dh_with_no_id_pd(dh, column)
     return dh
 
-def clean_locations_with_no_id_rec(dh):
-    return dh[dh['id']!=0]
+def clean_locations_with_no_id_rec(dh, column):
+    return dh[dh[column]!=0]
 
 def clean_locations_with_no_id_np(dh):
     return dh[dh[:,-1]!=0]
 
 @loggg
-def clean_dh_with_no_id_pd(dh):
-    if 'id' in dh.columns:
-        dh.drop(dh[dh['id'] == 0].index, inplace=True)
+def clean_dh_with_no_id_pd(dh, column):
+    if column in dh.columns:
+        dh.drop(dh[dh[column] == 0].index, inplace=True)
     return dh
 
 @loggg
@@ -711,10 +714,7 @@ def update_glacier_id_pd(dh, R, geoTransform):
     i_im, j_im = map2pix(geoTransform,
                          dh['casted_X'].to_numpy(), dh['casted_Y'].to_numpy())
     rgi_id = simple_nearest_neighbor(R, i_im, j_im).astype(int)
-    if not 'glacier_id' in dh.columns:
-        dh.insert(len(dh.keys()), 'glacier_id', rgi_id)
-    else:
-        dh['glacier_id'] = rgi_id
+    dh['glacier_id'] = rgi_id
     return dh
 
 def get_casted_elevation_difference(dh):

@@ -135,7 +135,7 @@ def main():
               .pipe(update_casted_location, shadow_dat, shadow_snk, new_aff)
               .pipe(keep_refined_locations)
               .pipe(update_glacier_id, rgi_dat, new_aff)
-              .pipe(clean_locations_with_no_id)
+              .pipe(clean_locations_with_no_id, 'glacier_id')
               .pipe(update_caster_elevation, dem_dat, new_aff)
               .pipe(get_refraction_angle, x_bar, y_bar, crs,
                     central_wavelength, h)
