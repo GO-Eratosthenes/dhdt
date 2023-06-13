@@ -35,3 +35,10 @@ done
 ```
 
 .. _cdsapi : https://github.com/ecmwf/cdsapi
+
+
+### 5. Postprocessing
+
+```shell
+sbatch --export=PYTHON_SCRIPT="./05-extract-elevation-change.py",CONDA_ENV="dhdt",DATA_DIR="/project/eratosthenes/Data/" run-script-on-spider.bsh
+```
