@@ -11,7 +11,7 @@ from dhdt.generic.debugging import loggg
 from dhdt.generic.mapping_tools import map2pix, pix2map
 from dhdt.generic.handler_im import simple_nearest_neighbor
 from dhdt.processing.coupling_tools import \
-    pair_posts, merge_ids, get_elevation_difference, angles2unit
+    pair_posts, merge_by_common_caster_id, get_elevation_difference, angles2unit
 from dhdt.processing.matching_tools import remove_posts_pairs_outside_image
 from dhdt.processing.network_tools import get_network_indices
 from dhdt.postprocessing.temporal_tools import get_temporal_incidence_matrix, \
@@ -33,13 +33,14 @@ def get_conn_col_header():
     col_frmt : tuple of strings
         specifies the format for export
     """
-    col_names = ['timestamp', 'caster_X', 'caster_Y', 'caster_Z',
+    col_names = ['timestamp', 'caster_X', 'caster_Y', 'caster_Z', 'caster_id',
                  'casted_X', 'casted_Y', 'casted_X_refine', 'casted_Y_refine',
-                 'azimuth', 'zenith', 'zenith_refrac','id',
-                 'orbit', 'view_az', 'view_zn',
+                 'azimuth', 'zenith', 'zenith_refrac',
+                 'orbit_id', 'view_az', 'view_zn',
                  'dh', 'dt']
     col_dtype = np.dtype([('timestamp', '<M8[D]'),
                           ('caster_X', np.float64), ('caster_Y', np.float64),
+                          ('caster_id', np.int32),
                           ('caster_az', np.float64), ('caster_zn', np.float64),
                           ('caster_Z', np.float64),
                           ('casted_X', np.float64), ('casted_Y', np.float64),
@@ -47,8 +48,8 @@ def get_conn_col_header():
                           ('casted_X_refine', np.float64),
                           ('casted_Y_refine', np.float64),
                           ('azimuth', np.float64), ('zenith', np.float64),
-                          ('zenith_refrac', np.float64), ('id', np.int32),
-                          ('orbit', np.int32),
+                          ('zenith_refrac', np.float64),
+                          ('orbit_id', np.int32),
                           ('dh', np.float64), ('dt', '<m8[D]')])
     return col_names, col_dtype
 
@@ -80,7 +81,7 @@ def write_df_to_conn_file(df, conn_dir, conn_file="conn.txt", append=False):
                 line += '{:+3.4f}'.format(df_sel.iloc[k,val])
             elif col_oi in ('caster_Z', 'casted_Z', 'dh'):
                 line += '{:+4.2f}'.format(df_sel.iloc[k,val])
-            elif col_oi in ('orbit', 'id'):
+            elif col_oi in ('orbit_id', 'caster_id'):
                 line += "{:03d}".format(df_sel.iloc[k,val])
             else:
                 line += '{:+8.2f}'.format(df_sel.iloc[k,val])
@@ -244,17 +245,17 @@ def read_conn_files_to_stack(folder_list, conn_file="conn.txt",
             continue
 
         # pair coordinates of the new list to older entries, through
-        # a unique counter, given by "id"
+        # a unique counter, given by "caster_id"
         idx_uni = pair_posts(np.stack((dh_stack['caster_X'],
                dh_stack['caster_Y'])).T, np.stack((dh['caster_X'],
                dh['caster_Y'])).T, thres=10)
 
         id_counter = 1
         if 'id' in dh_stack.dtype.names:
-            id_counter = np.max(dh_stack['id'])+1
+            id_counter = np.max(dh_stack['caster_id'])+1
             id_dh = np.zeros(dh.shape[0], dtype=int)
             # assign to older id's
-            NEW = dh_stack['id'][idx_uni[:,0]]==0
+            NEW = dh_stack['caster_id'][idx_uni[:,0]]==0
             id_dh[idx_uni[np.invert(NEW),1]] = \
                 dh_stack['id'][idx_uni[np.invert(NEW),0]]
 
@@ -264,7 +265,7 @@ def read_conn_files_to_stack(folder_list, conn_file="conn.txt",
             dh_stack['id'][idx_uni[NEW, 0]] = id_counter + \
                                       np.arange(0,np.sum(NEW)).astype(int)
             id_dh = np.rec.fromarrays([id_dh],
-                                      dtype=np.dtype([('id', int)]))
+                                      dtype=np.dtype([('caster_id', int)]))
             dh = merge_arrays((dh, id_dh), flatten=True, usemask=False)
         else:
             id_stack = np.zeros(dh_stack.shape[0], dtype=int)
@@ -274,9 +275,9 @@ def read_conn_files_to_stack(folder_list, conn_file="conn.txt",
             id_dh[idx_uni[:,1]] = \
                 id_counter+np.arange(0,idx_uni.shape[0]).astype(int)
             id_stack = np.rec.fromarrays([id_stack],
-                                         dtype=np.dtype([('id', int)]))
+                                         dtype=np.dtype([('caster_id', int)]))
             id_dh = np.rec.fromarrays([id_dh],
-                                      dtype=np.dtype([('id', int)]))
+                                      dtype=np.dtype([('caster_id', int)]))
             dh = merge_arrays((dh, id_dh), flatten=True, usemask=False)
             dh_stack = merge_arrays((dh_stack, id_stack),
                                     flatten=True, usemask=False)
@@ -297,7 +298,7 @@ def read_conn_files_to_df(folder_list, conn_file="conn.txt",
         root location where all processing folders of the imagery are situated
     dist_thres : float, unit=m
         when combining caster posts, what is the maximum distance to tolerate a
-        match, and create an id.
+        match, and create an 'caster_id'.
 
     Returns
     -------
@@ -389,14 +390,14 @@ def read_conn_files_to_df(folder_list, conn_file="conn.txt",
             continue
 
         # pair coordinates of the new list to older entries, through
-        # a unique counter, given by "id"
+        # a unique counter, given by "caster_id"
         idx_uni = pair_posts(dh_df[['caster_X','caster_Y']].to_numpy(),
                              dh[['caster_X', 'caster_Y']].to_numpy(),
                              thres=dist_thres)
-        dh_df = merge_ids(dh_df, dh, idx_uni)
+        dh_df = merge_by_common_caster_id(dh_df, dh, idx_uni)
     return dh_df
 
-def clean_locations_with_no_id(dh):
+def clean_locations_with_no_caster_id(dh):
     """ multi-temporal photohypsometric data can have common caster locations.
     An identification number can be given to them. If this is not done, these
     data are redunant, and can be removed. This function does that.
@@ -416,23 +417,23 @@ def clean_locations_with_no_id(dh):
     read_conn_files_to_stack, read_conn_files_to_df
     """
     if type(dh) in (np.recarray,):
-        dh = clean_locations_with_no_id_rec(dh)
+        dh = clean_locations_with_no_caster_id_rec(dh)
     elif type(dh) in (np.ndarray,):
-        dh = clean_locations_with_no_id_np(dh)
+        dh = clean_locations_with_no_caster_id_np(dh)
     else:
-        dh = clean_dh_with_no_id_pd(dh)
+        dh = clean_dh_with_no_caster_id_pd(dh)
     return dh
 
-def clean_locations_with_no_id_rec(dh):
-    return dh[dh['id']!=0]
+def clean_locations_with_no_caster_id_rec(dh):
+    return dh[dh['caster_id']!=0]
 
-def clean_locations_with_no_id_np(dh):
+def clean_locations_with_no_caster_id_np(dh):
     return dh[dh[:,-1]!=0]
 
 @loggg
-def clean_dh_with_no_id_pd(dh):
-    if 'id' in dh.columns:
-        dh.drop(dh[dh['id'] == 0].index, inplace=True)
+def clean_dh_with_no_caster_id_pd(dh):
+    if 'caster_id' in dh.columns:
+        dh.drop(dh[dh['caster_id'] == 0].index, inplace=True)
     return dh
 
 @loggg
@@ -775,7 +776,7 @@ def get_casted_elevation_difference(dh):
     return dxyt
 
 def get_casted_elevation_difference_pd(dh):
-    assert 'id' in dh.columns, 'please couple the dataframe to other timestamps'
+    assert 'caster_id' in dh.columns, 'please couple the dataframe to other timestamps'
     # is refraction present
     if 'zenith_refrac' not in dh.columns:
         warnings.warn('OBS: refractured zenith does not seem to be calculated')
@@ -801,9 +802,9 @@ def get_casted_elevation_difference_pd(dh):
 
     #todo: use iteritems?
     dxyt = None
-    ids = np.unique(dh['id']).astype(int)
+    ids = np.unique(dh['caster_id']).astype(int)
     for ioi in ids:
-        dh_ioi = dh[dh['id'] == ioi] # get
+        dh_ioi = dh[dh['caster_id'] == ioi] # get
 
         n = dh_ioi.shape[0]
         if n<2: continue
@@ -844,9 +845,9 @@ def get_casted_elevation_difference_rec(dh):
                np.float64, np.float64, '<M8[D]', np.float64]
     dxyt = np.rec.array(np.zeros((0,7)),
                         names=names, formats=formats)
-    ids = np.unique(dh['id']).astype(int)
+    ids = np.unique(dh['caster_id']).astype(int)
     for ioi in ids:
-        IN = dh['id'] == ioi # get id of interest
+        IN = dh['caster_id'] == ioi # get caster_id of interest
         dh_ioi = dh[IN]
 
         n = np.sum(IN).astype(int)
@@ -900,9 +901,10 @@ def get_casted_elevation_difference_np(dh):
     return dxyt
 
 @loggg
-def clean_dxyt_via_common_glacier(dxyt):
+def clean_dxyt_via_common_glacier_id(dxyt):
     """ since dhdt is glacier centric, connections between shadow casts that are
-    situated on different glaciers, are remove by this function
+    situated on different glaciers, are removed from the collection by this
+    function
 
     Parameters
     ----------

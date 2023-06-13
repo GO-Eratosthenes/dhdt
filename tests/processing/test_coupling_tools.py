@@ -7,7 +7,7 @@ from dhdt.generic.handler_im import bilinear_interpolation
 from dhdt.generic.mapping_io import read_geo_info, read_geo_image
 from dhdt.generic.mapping_tools import map2pix, pix2map
 from dhdt.postprocessing.photohypsometric_tools import \
-    read_conn_files_to_stack, clean_locations_with_no_id, \
+    read_conn_files_to_stack, clean_locations_with_no_caster_id, \
     get_casted_elevation_difference, get_hypsometric_elevation_change
 from dhdt.processing.coupling_tools import couple_pair, match_pair
 from dhdt.processing.network_tools import get_network_indices
@@ -103,7 +103,7 @@ def test_photohypsometric_coupling(N=10, Z_shape=(400,600), tolerance=20):
         dh = read_conn_files_to_stack(None, conn_file=conn_list,
                                       folder_path=dump_path)
 
-    dh = clean_locations_with_no_id(dh)
+    dh = clean_locations_with_no_caster_id(dh)
     dxyt = get_casted_elevation_difference(dh)
     dhdt = get_hypsometric_elevation_change(dxyt, Z, geoTransform)
 

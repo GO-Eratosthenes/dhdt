@@ -688,7 +688,7 @@ def pair_posts(xy_1, xy_2, thres=20.):
     idx_conn = np.array(idx_conn)
     return idx_conn
 
-def merge_ids(dh_mother, dh_child, idx_uni):
+def merge_by_common_caster_id(dh_mother, dh_child, idx_uni):
     """ merge two collections of shadow edge locations, through their mutual
     identification numbers
 
@@ -698,18 +698,18 @@ def merge_ids(dh_mother, dh_child, idx_uni):
         stack of coordinates and times, having at least the following collumns:
             - timestamp : unit=days, date stamp
             - caster_x,caster_y : unit=meter, map coordinate of start of shadow
+            - caster_id : identification of common caster
             - casted_x,casted_y : unit=meter, map coordinate of end of shadow
             - azimuth : unit=degrees, sun orientation
             - zenith : unit=degrees, overhead angle of the sun
-            - id : identification
     dh_child : {pandas.DataFrame, numpy.recordarray}
         stack of coordinates and times, having at least the following collumns:
             - timestamp : unit=days, date stamp
             - caster_x,caster_y : unit=meter, map coordinate of start of shadow
+            - caster_id : identification of common caster
             - casted_x,casted_y : unit=meter, map coordinate of end of shadow
             - azimuth : unit=degrees, sun orientation
             - zenith : unit=degrees, overhead angle of the sun
-            - id : identification
     idx_uni : numpy.array, size=(m,2)
         list of pairs connection both collections
 
@@ -719,12 +719,12 @@ def merge_ids(dh_mother, dh_child, idx_uni):
         stack of coordinates and times, having at least the following collumns:
             - timestamp : unit=days, date stamp
             - caster_x,caster_y : unit=meter, map coordinate of start of shadow
+            - caster_id : identification of common caster
             - casted_x,casted_y : unit=meter, map coordinate of end of shadow
             - azimuth : unit=degrees, sun orientation
             - zenith : unit=degrees, overhead angle of the sun
-            - id : identification
     """
-    # look at cases where nog match or empty data are given
+    # look at cases where no match or empty data are given
     if idx_uni.shape[0]==0:
         if dh_mother.shape[0]!=0:
             return dh_mother
@@ -734,13 +734,13 @@ def merge_ids(dh_mother, dh_child, idx_uni):
             return None
 
     if type(dh_mother) in (pd.core.frame.DataFrame, ):
-        dh_stack = merge_ids_pd(dh_mother, dh_child, idx_uni)
+        dh_stack = merge_by_common_caster_id_pd(dh_mother, dh_child, idx_uni)
     elif type(dh_mother) in (np.recarray, ):
-        dh_stack = merge_ids_rec(dh_mother, dh_child, idx_uni)
+        dh_stack = merge_by_common_caster_id_rec(dh_mother, dh_child, idx_uni)
     return dh_stack
 
-def merge_ids_rec(dh_mother, dh_child, idx_uni):
-    id_present = True if 'id' in dh_mother.dtype.names else False
+def merge_by_common_caster_id_rec(dh_mother, dh_child, idx_uni):
+    id_present = True if 'caster_id' in dh_mother.dtype.names else False
 
     id_counter = 1
     if id_present:
@@ -756,7 +756,7 @@ def merge_ids_rec(dh_mother, dh_child, idx_uni):
         id_child[idx_uni[NEW, 1]] = new_ids
         dh_mother['id'][idx_uni[NEW, 0]] = new_ids
         id_child = np.rec.fromarrays([id_child],
-                                  dtype=np.dtype([('id', int)]))
+                                  dtype=np.dtype([('caster_id', int)]))
         dh_child = merge_arrays((dh_child, id_child),
                                 flatten=True, usemask=False)
     else:
@@ -768,33 +768,33 @@ def merge_ids_rec(dh_mother, dh_child, idx_uni):
             id_counter + np.arange(0, idx_uni.shape[0]).astype(int)
 
         id_child = np.rec.fromarrays([id_child],
-                                     dtype=np.dtype([('id', int)]))
+                                     dtype=np.dtype([('caster_id', int)]))
         dh_child = merge_arrays((dh_child, id_child),
                                 flatten=True, usemask=False)
         id_mother = np.rec.fromarrays([id_mother],
-                                      dtype=np.dtype([('id', int)]))
+                                      dtype=np.dtype([('caster_id', int)]))
         dh_mother = merge_arrays((dh_mother, id_mother),
                                 flatten=True, usemask=False)
     dh_stack = stack_arrays((dh_mother, dh_child),
                             asrecarray=True, usemask=False)
     return dh_stack
 
-def merge_ids_pd(dh_mother, dh_child, idx_uni):
-    id_present = True if 'id' in dh_mother else False
+def merge_by_common_caster_id_pd(dh_mother, dh_child, idx_uni):
+    id_present = True if 'caster_id' in dh_mother else False
 
     id_counter = 1
     if id_present:
-        id_counter = np.max(dh_mother['id']) + 1
+        id_counter = np.max(dh_mother['caster_id']) + 1
         id_child = np.zeros(dh_child.shape[0], dtype=int)
 
         # assign to older id's
         NEW = dh_mother['id'].to_numpy()[idx_uni[:, 0]] == 0
         id_child[idx_uni[np.invert(NEW), 1]] = \
             dh_mother['id'].to_numpy()[idx_uni[np.invert(NEW), 0]]
-        dh_child.insert(len(dh_child.columns), 'id', id_child)
+        dh_child.insert(len(dh_child.columns), 'caster_id', id_child)
         # update mother
         df_header = list(dh_mother)
-        df_id = [df_header.index(i) for i in df_header if 'id' in i][0]
+        df_id = [df_header.index(i) for i in df_header if 'caster_id' in i][0]
         dh_mother.iloc[idx_uni[NEW, 0], [df_id]] = id_counter + \
                     np.arange(0, np.sum(NEW)).astype(int)
     else:
@@ -805,13 +805,13 @@ def merge_ids_pd(dh_mother, dh_child, idx_uni):
         id_child[idx_uni[:, 1]] = \
             id_counter + np.arange(0, idx_uni.shape[0]).astype(int)
 
-        dh_mother.insert(len(dh_mother.columns), 'id', id_mother)
-        dh_child.insert(len(dh_child.columns), 'id', id_child)
+        dh_mother.insert(len(dh_mother.columns), 'caster_id', id_mother)
+        dh_child.insert(len(dh_child.columns), 'caster_id', id_child)
 
     dh_stack = pd.concat([dh_mother, dh_child])
     return dh_stack
 
-def merge_ids_simple(dh):
+def merge_by_common_caster_id_simple(dh):
     """
     the locations provided for different timestamps can also be merged directly,
     this can be done when the imagery is co-registered, then the caster
@@ -832,7 +832,7 @@ def merge_ids_simple(dh):
     -------
     dh : pandas.DataFrame
         data stack, now with a new entry, being:
-        - id : identification
+        - caster_id : identification of common caster
     """
     def _unique_return_inverse_2D_viewbased(a):
         a = np.ascontiguousarray(a)
@@ -840,24 +840,45 @@ def merge_ids_simple(dh):
         return np.unique(a.view(void_dt).ravel(), return_inverse=1)[1]
     XY = np.stack((dh['caster_X'].to_numpy(),
                    dh['caster_Y'].to_numpy())).T
-    id = _unique_return_inverse_2D_viewbased(XY)
-    dh.insert(len(dh.columns), 'id', id)
+    caster_id = _unique_return_inverse_2D_viewbased(XY)
+    dh.insert(len(dh.columns), 'caster_id', caster_id)
     return dh
 
 def split_caster_id_on_orbit_id(dh):
+    """
+    the different look angles of a satellite orbit might corrupt the common
+    caster location. Hence, the caster_id might not be correct. This function
+    therefore splits such entiries based upon the orbit number.
+
+    Parameters
+    ----------
+    dh : pandas.DataFrame
+        stack of coordinates and times, having at least the following collumns:
+            - timestamp : unit=days, date stamp
+            - caster_x,caster_y : unit=meter, map coordinate of start of shadow
+            - casted_x,casted_y : unit=meter, map coordinate of end of shadow
+            - azimuth : unit=degrees, sun orientation
+            - zenith : unit=degrees, overhead angle of the sun
+            - caster_id : identification of common caster
+
+    Returns
+    -------
+    dh : pandas.DataFrame
+        data stack, now with an updated collumn of caster_id
+    """
     # look at orbit number
-    dh_grouped = dh.groupby('id')
-    id_counter = dh['id'].max() +1
-    id_loc = dh.columns.get_loc("id")
+    dh_grouped = dh.groupby('caster_id')
+    id_counter = dh['caster_id'].max() +1
+    id_loc = dh.columns.get_loc('caster_id')
     # iterate over each group
     for group_name, df_group in dh_grouped:
         if df_group.shape[0]<2:
             continue
-        if df_group['orbit'].unique().size==1: # only data from the same orbit
+        if df_group['orbit_id'].unique().size==1: # only data from the same orbit
             continue
 
         # split group and assign new caster_id to this group
-        dh_cast_orbit = df_group.groupby('orbit')
+        dh_cast_orbit = df_group.groupby('orbit_id')
         view_id = 0
         for orb_group, df_sub in dh_cast_orbit:
             view_id +=1
