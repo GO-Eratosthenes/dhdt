@@ -584,6 +584,8 @@ def update_casted_elevation(dxyt, Z, geoTransform):
 
 @loggg
 def update_casted_elevation_pd(dxyt, Z, geoTransform):
+    if dxyt.shape[0]==0:
+        return dxyt
     assert np.all([header in dxyt.columns for header in
                    ('X_1', 'Y_1', 'X_2', 'Y_2')])
     # get elevation of the caster locations
@@ -832,6 +834,8 @@ def get_casted_elevation_difference_pd(dh):
                                            dz_ioi],
                                           names=names, formats=formats)
         dxyt = pd.concat([dxyt, pd.DataFrame.from_records(dxyt_line)], axis=0)
+    if dxyt is None: # no connected elements in the dataframe
+        dxyt = pd.DataFrame()
     return dxyt
 
 def get_casted_elevation_difference_rec(dh):

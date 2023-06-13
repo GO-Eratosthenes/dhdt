@@ -844,17 +844,27 @@ def merge_ids_simple(dh):
     dh.insert(len(dh.columns), 'id', id)
     return dh
 
-def split_ids_view_angles(dh):
-    # look at XXX
+def split_caster_id_on_orbit_id(dh):
+    # look at orbit number
     dh_grouped = dh.groupby('id')
     id_counter = dh['id'].max() +1
+    id_loc = dh.columns.get_loc("id")
     # iterate over each group
     for group_name, df_group in dh_grouped:
-        print('')
+        if df_group.shape[0]<2:
+            continue
+        if df_group['orbit'].unique().size==1: # only data from the same orbit
+            continue
 
-
-        # split group and assign new id to this group
-    return
+        # split group and assign new caster_id to this group
+        dh_cast_orbit = df_group.groupby('orbit')
+        view_id = 0
+        for orb_group, df_sub in dh_cast_orbit:
+            view_id +=1
+            if view_id == 1: continue
+            dh.iloc[df_sub.index,id_loc] = id_counter
+            id_counter += 1
+    return dh
 
 # refine by matching, and include correlation score
 def match_shadow_casts(M1, M2, L1, L2, geoTransform1, geoTransform2,
