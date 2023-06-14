@@ -966,8 +966,8 @@ def match_shadow_casts(M1, M2, L1, L2, geoTransform1, geoTransform2,
         search_radius = np.copy(temp_radius)
 
     M1,M2,i1,j1,i2,j2,IN = pad_images_and_filter_coord_list(M1, M2,
-         geoTransform1, geoTransform2, np.vstack((xy1[:,0],xy2[:,0])).T,
-         np.vstack((xy1[:,1],xy2[:,1])).T, temp_radius, search_radius,
+         geoTransform1, geoTransform2, np.column_stack([xy1[:,0],xy2[:,0]]),
+         np.column_stack([xy1[:,1],xy2[:,1]]), temp_radius, search_radius,
          same=False)
     L1,L2 = pad_radius(L1, temp_radius), pad_radius(L2, search_radius)
     geoTransformPad2 = ref_trans(geoTransform2, -search_radius, -search_radius)
@@ -1112,6 +1112,14 @@ def get_elevation_difference(sun_1, sun_2, xy_1, xy_2, xy_t):
     -------
     dh : numpy.array, size=(k,1), unit=meters
         elevation difference between coordinates in "xy_1" & "xy_2"
+
+    Notes
+    -----
+    The difference is 2 in respect to 1:
+
+        .. code-block:: text
+                 H_1     H_2
+            -----+<------+--
     """
     assert len(set({sun_1.shape[0], sun_2.shape[0], xy_t.shape[0],
                     xy_1.shape[0],  xy_2.shape[0],}))==1, \

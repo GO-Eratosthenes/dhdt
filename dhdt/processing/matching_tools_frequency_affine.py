@@ -31,7 +31,7 @@ def rotated_coord_system(I_grd, J_grd, θ):
     (m, n) = I_grd.shape
     R = rot_mat(θ)
 
-    stack_grd = np.vstack((I_grd.ravel(), J_grd.ravel())).T
+    stack_grd = np.column_stack([I_grd.ravel(), J_grd.ravel()])
 
     # calculate new interpolation grid
     grd_new = np.matmul(R, stack_grd.T)
@@ -58,7 +58,7 @@ def sheared_coord_system(I_grd, J_grd, shear):
     (m, n) = I_grd.shape
     A = np.array([[1, (2*shear)/m], [0, 1]])  # transformation matrix
 
-    stack_grd = np.vstack((I_grd.ravel(), J_grd.ravel())).T
+    stack_grd = np.column_stack([I_grd.ravel(), J_grd.ravel()])
 
     # calculate new interpolation grid
     grd_new = np.matmul(A, stack_grd.T)
@@ -209,7 +209,7 @@ def central_im_transform(I, Aff):
     (grd_i,grd_j) = np.meshgrid(np.linspace(-1, 1, mI),
                                 np.linspace(-1, 1, nI), indexing='ij')
 
-    grd_idx = np.vstack( (grd_i.flatten(), grd_j.flatten()) ).T
+    grd_idx = np.column_stack([grd_i.flatten(), grd_j.flatten()])
     grd_idx_new = np.matmul(Aff, grd_idx.T)
     grd_new_i = np.resize(grd_idx_new[0,:], (mI,nI))
     grd_new_j = np.resize(grd_idx_new[1,:], (mI,nI))

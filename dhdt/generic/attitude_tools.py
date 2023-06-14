@@ -340,7 +340,7 @@ def ecef2ocs(xyz, uvw):
     X_o = np.divide(X_o, np.linalg.norm(X_o))
     Y_o = np.cross(Z_o, X_o)
     Y_o = np.divide(Y_o, np.linalg.norm(Y_o))
-    R = np.vstack((X_o, Y_o, Z_o)).T              # (1) in [Ye20]
+    R = np.column_stack([X_o, Y_o, Z_o])              # (1) in [Ye20]
     return R
 
 def deconvolve_jitter(f, dt):
