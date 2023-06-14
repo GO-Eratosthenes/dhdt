@@ -9,7 +9,8 @@ from dhdt.generic.mapping_tools import map2pix, pix2map
 from dhdt.postprocessing.photohypsometric_tools import \
     read_conn_files_to_stack, clean_locations_with_no_caster_id, \
     get_casted_elevation_difference, get_hypsometric_elevation_change
-from dhdt.processing.coupling_tools import couple_pair, match_pair
+from dhdt.processing.coupling_tools import couple_pair, match_pair, \
+    get_elevation_difference
 from dhdt.processing.network_tools import get_network_indices
 from dhdt.processing.matching_tools import get_coordinates_of_template_centers
 from dhdt.processing.matching_tools_organization import \
@@ -191,4 +192,13 @@ def _test_photohypsometric_refinement(N, Z_shape, tolerance=0.1):
             ax2.scatter(np.mod(j_2[cnt],1)+w, np.mod(i_2[cnt],1)+h, marker='+')
 
             print('.')
+    return
+
+def test_get_elevation_difference():
+    xy_t, xy_1, xy_2 = np.array([0, 0]), np.array([0, 3]), np.array([0, 4])
+    sun_1, sun_2 = np.rad2deg(np.arctan(3/4)), np.rad2deg(np.arctan(4/3))
+    dh = get_elevation_difference(sun_1, sun_2, xy_1, xy_2, xy_t)
+    assert np.isclose(dh, +1)
+    dh = get_elevation_difference(sun_2, sun_1, xy_2, xy_1, xy_t)
+    assert np.isclose(dh, -1)
     return

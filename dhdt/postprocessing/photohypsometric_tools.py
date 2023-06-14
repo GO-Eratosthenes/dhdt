@@ -533,7 +533,7 @@ def update_caster_elevation_pd(dh, Z, geoTransform):
     return dh
 
 def update_casted_elevation(dxyt, Z, geoTransform):
-    """ include the elevation of the casted location (the end of the shadow
+    r""" include the elevation of the casted location (the end of the shadow
     trace) as a collumn. Which has the name 'casted_z'
 
     Parameters

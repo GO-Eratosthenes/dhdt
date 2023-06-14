@@ -1085,7 +1085,7 @@ def angles2unit(azimuth):
 
 
 def _get_zenith_from_sun(sun):
-    if type(sun) in (float,): return np.deg2rad(sun)
+    if type(sun) in (float, np.float64,): return np.deg2rad(sun)
     if sun.ndim==1: # only zenith angles are given
         zn = np.squeeze(np.deg2rad(sun))
     elif (sun.ndim==2) and (sun.shape[1]>1): # both azimuth an zenith are given
@@ -1098,7 +1098,7 @@ def get_elevation_difference(sun_1, sun_2, xy_1, xy_2, xy_t):
     Parameters
     ----------
     sun_1 : numpy.array, size=(k,2), unit=degrees
-        sun vector in array of first instance
+        sun vector in array of first instance, giving first zenit then azimuth
     sun_2 : numpy.array, size=(k,2), unit=degrees
         sun vector in array of second instance
     xy_1 : numpy.array, size=(k,2), unit=meters
@@ -1121,11 +1121,12 @@ def get_elevation_difference(sun_1, sun_2, xy_1, xy_2, xy_t):
     zn_2 = _get_zenith_from_sun(sun_2)
 
     # get planar distance between
-    dist_1 = np.hypot(xy_1[:,0]-xy_t[:,0], xy_1[:,1]-xy_t[:,1])
-    dist_2 = np.hypot(xy_2[:,0]-xy_t[:,0], xy_2[:,1]-xy_t[:,1])
+    dist_1 = np.hypot(xy_1[...,0]-xy_t[...,0], xy_1[...,1]-xy_t[...,1])
+    dist_2 = np.hypot(xy_2[...,0]-xy_t[...,0], xy_2[...,1]-xy_t[...,1])
 
     # get elevation difference
-    dh = np.tan(zn_1)*dist_1 - np.tan(zn_2)*dist_2
+    dh = np.divide(dist_1, np.tan(zn_1)) - \
+         np.divide(dist_2, np.tan(zn_2))
     return dh
 
 def get_caster(sun_1, sun_2, xy_1, xy_2):
