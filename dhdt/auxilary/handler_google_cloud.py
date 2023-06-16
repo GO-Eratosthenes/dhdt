@@ -1,7 +1,5 @@
 import os
 
-import geopandas as gpd
-
 import pystac
 from stactools.core.copy import move_asset_file_to_item
 from stactools.core.io.xml import XmlElement
@@ -113,20 +111,19 @@ def _create_item_s2(safe_filename):
     return item
 
 
-def create_stac_catalog(catalog_path, geojson_path, catalog_description,
+def create_stac_catalog(catalog_path, catalog_description, safe_filenames,
                         template='${year}/${month}/${day}'):
     """
-    Create a STAC catalog from the scenes' metadata retrieved from the
-    Copernicus Open Access Hub API and saved locally in GeoJSON format. Assets
-    are linked to the corresponding files on the Sentinel-2 public dataset on
-    Google Cloud Storage.
+    Create a STAC catalog from the provided list of Sentinel-2 scenes,
+    as specified via the granule SAFE filenames. Assets are linked to the
+    corresponding files on the Sentinel-2 public dataset on Google Cloud
+    Storage.
     """
     _, catalog_id = os.path.split(catalog_path)
     catalog = pystac.Catalog(id=catalog_id, description=catalog_description)
 
-    scenes_df = gpd.read_file(geojson_path)
-    for _, scene in scenes_df.iterrows():
-        catalog.add_items(_create_item_s2(scene.filename))
+    for safe_filename in safe_filenames:
+        catalog.add_item(_create_item_s2(safe_filename))
 
     if template is not None:
         catalog.generate_subcatalogs(template)
@@ -135,7 +132,7 @@ def create_stac_catalog(catalog_path, geojson_path, catalog_description,
         catalog_path,
         catalog_type=pystac.CatalogType.SELF_CONTAINED
     )
-    return
+    return catalog
 
 
 def download_assets(catalog_path, asset_keys):
@@ -167,4 +164,3 @@ def download_assets(catalog_path, asset_keys):
             asset.href = pystac.utils.make_relative_href(asset_href,
                                                          item.get_self_href())
         item.save_object()
-    return
