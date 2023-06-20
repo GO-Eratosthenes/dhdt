@@ -1,5 +1,7 @@
 import numpy as np
 
+from dhdt.preprocessing.image_transforms import mat_to_gray
+
 def get_temporal_incidence_matrix(T_1, T_2, T_step, open_network=True):
     """
 
@@ -76,6 +78,8 @@ def get_temporal_weighting(T_1, T_2, covariance=False, corr_coef=.5):
     covariance : bool, default=True
         co-variances are given when at least one of the instances have the same
         date
+    corr_coef : float
+        the correlation coefficient to place in the off-diagonal elements
 
     Returns
     -------
@@ -95,7 +99,8 @@ def get_temporal_weighting(T_1, T_2, covariance=False, corr_coef=.5):
     m = T_1.size
     W = np.zeros((m,m), dtype=float)
     dT = T_2 - T_1
-    np.fill_diagonal(W, np.divide(1, dT, where=dT!=0))
+    dT = mat_to_gray(dT, vmin=0.1) # normalize weights to 0.1 ... 1.0
+    np.fill_diagonal(W, dT)
 
     if covariance:
         instances = np.unique(np.stack((T_1, T_2)))

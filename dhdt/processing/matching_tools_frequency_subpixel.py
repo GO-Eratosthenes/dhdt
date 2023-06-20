@@ -308,7 +308,7 @@ def phase_slope_1d(t, rad=.1):
     idx_sub = np.arange(np.ceil((0.5-rad)*len(t)), \
                     np.ceil((0.5+rad)*len(t))+1).astype(int)
     y_ang = np.unwrap(np.angle(t[idx_sub]),axis=0)
-    A = np.vstack([np.transpose(idx_sub-1), np.ones((len(idx_sub)))]).T
+    A = np.column_stack([np.transpose(idx_sub-1), np.ones((len(idx_sub)))])
     x_hat = np.linalg.lstsq(A, y_ang, rcond=None)[0]
     return x_hat
 

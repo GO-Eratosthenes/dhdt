@@ -166,5 +166,5 @@ def get_intersection(xy_1, xy_2, xy_3, xy_4):
     y = np.divide( numer_1 * dy_34 - dy_12 * numer_2, denom,
                    where=denom!=0, out=np.zeros_like(denom))
 
-    xy = np.stack((x,y)).T
+    xy = np.column_stack([x,y])
     return xy
