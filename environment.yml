@@ -21,6 +21,7 @@ dependencies:
   - scikit-image
   - scikit-learn
   - scipy
+  - sentinelsat
   - shapely>=2
   - stactools
   # test tools

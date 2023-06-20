@@ -1,0 +1,32 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --partition=normal
+#SBATCH --time=01:00:00
+
+###############################################################################################
+#
+# In order to run the Python script "myscript.py" on Spider, submit the current script as:
+#
+# $ sbatch --export=PYTHON_SCRIPT="./myscript.py",CONDA_ENV="dhdt" run-script-on-spider.bsh
+#
+# Environment variables added as arguments to "export" will be accessible within "myscript.py" 
+#
+###############################################################################################
+
+# Make sure the variable PYTHON_SCRIPT is set
+if [ -z ${PYTHON_SCRIPT} ] || [ ! -f ${PYTHON_SCRIPT} ] ; then 
+    echo "File ${PYTHON_SCRIPT} not found!"
+    exit    
+fi
+
+# Activate environment (default is "dhdt")
+source ~/.bashrc
+CONDA_ENV=${CONDA_ENV:="dhdt"}
+conda activate ${CONDA_ENV}
+
+# Run! 
+python ${PYTHON_SCRIPT}
+
+

@@ -14,7 +14,7 @@ from dhdt.auxilary.handler_copernicusdem import make_copDEM_mgrs_tile
 # Brintnell-Bologna icefield (Northwest Territories)
 MGRS_TILE = "09VWJ"
 
-DATA_DIR = "/project/eratosthenes/Data/"
+DATA_DIR = os.getenv("DATA_DIR", os.path.join(os.getcwd(), 'data'))
 
 
 def main():

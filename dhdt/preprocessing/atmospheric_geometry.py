@@ -1033,7 +1033,8 @@ def get_refraction_angle(dh, x_bar, y_bar, spatialRef, central_wavelength,
                   ('timestamp','zenith', 'caster_X', 'caster_Y', 'caster_Z')])
 
     lat, lon, z, Temp, Pres, fracHum, t_era = get_era5_atmos_profile(
-        dh['timestamp'].unique(), x_bar, y_bar, spatialRef, z=h)
+        dh['timestamp'].unique().to_numpy(), x_bar, y_bar, spatialRef, z=h
+    )
 
     # calculate refraction for individual dates
     for timestamp in dh['timestamp'].unique():

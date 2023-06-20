@@ -31,9 +31,10 @@ SHADOW_METHOD = "entropy"
 MATCH_CORRELATOR, MATCH_SUBPIX, MATCH_METRIC = "phas_only","moment","peak_entr"
 MATCH_WINDOW = 2**4
 
+ITEM_ID = os.getenv("ITEM_ID", None)
 
-DATA_DIR = os.path.join(os.getcwd(), "data") #"/project/eratosthenes/Data/"
-DUMP_DIR = os.path.join(os.getcwd(), "processing")
+DATA_DIR = os.getenv("DATA_DIR", os.path.join(os.getcwd(), 'data'))
+DUMP_DIR = os.path.join(DATA_DIR, "processing")
 DEM_PATH = os.path.join(DATA_DIR, "DEM", MGRS_TILE+'.tif')
 RGI_PATH = os.path.join(DATA_DIR, "RGI", MGRS_TILE+'.tif')
 STAC_L1C_PATH = os.path.join(DATA_DIR, "SEN2", "sentinel2-l1c-small")
@@ -212,16 +213,13 @@ def main():
     catalog_L1C = read_stac_catalog(STAC_L1C_PATH)
     catalog_L2A = read_stac_catalog(STAC_L2A_PATH)
 
-    for item in catalog_L1C.get_all_items():
-        item_L1C, item_L2A = get_items_via_id_s2(catalog_L1C, catalog_L2A, item.id)
+    if ITEM_ID is not None:
+        items = [catalog_L1C.get_item(ITEM_ID, recursive=True)]
+    else:
+        items = catalog_L1C.get_all_items()
 
-        # get year, month, day
-        im_date = item.properties['datetime']
-        year, month, day = datetime2calender(np.datetime64(im_date[:-1]))
-        year, month, day = str(year), str(month), str(day)
-        # create folder structure
-        item_dir = os.path.join(DUMP_DIR, year, month, day)
-        #if os.path.exists(item_dir): continue
+    for item in items:
+        item_L1C, item_L2A = get_items_via_id_s2(catalog_L1C, catalog_L2A, item.id)
 
         # read imagery
         bands = load_bands(item_L1C, s2_df, new_aff)
@@ -246,8 +244,8 @@ def main():
             dem_dat, no_moving_dat, view_zn, view_az, new_aff, slope_dat)
 
         im_date = item.properties['datetime']
-        _organize(new_aff, crs, im_date, shadow_ort=shadow_ort,
-                  albedo_ort=albedo_ort, shadow_art=shadow_art,
+        _organize(new_aff, crs, im_date, shadow_dat=shadow_ort,
+                  albedo_dat=albedo_ort, shadow_art=shadow_art,
                   shade_art=shade_art)
 
 if __name__ == "__main__":
