@@ -38,7 +38,7 @@ def get_conn_col_header():
     col_names = ['timestamp', 'caster_X', 'caster_Y', 'caster_Z', 'caster_id',
                  'casted_X', 'casted_Y', 'casted_X_refine', 'casted_Y_refine',
                  'azimuth', 'zenith', 'zenith_refrac',
-                 'orbit_id', 'view_az', 'view_zn',
+                 'orbit_id', 'view_az', 'view_zn', 'glacier_id',
                  'dh', 'dt']
     col_dtype = np.dtype([('timestamp', '<M8[D]'),
                           ('caster_X', np.float64), ('caster_Y', np.float64),
@@ -52,6 +52,7 @@ def get_conn_col_header():
                           ('azimuth', np.float64), ('zenith', np.float64),
                           ('zenith_refrac', np.float64),
                           ('orbit_id', np.int32),
+                          ('glacier_id', np.int32),
                           ('dh', np.float64), ('dt', '<m8[D]')])
     return col_names, col_dtype
 
@@ -83,7 +84,7 @@ def write_df_to_conn_file(df, conn_dir, conn_file="conn.txt", append=False):
                 line += '{:+3.4f}'.format(df_sel.iloc[k,val])
             elif col_oi in ('caster_Z', 'casted_Z', 'dh'):
                 line += '{:+4.2f}'.format(df_sel.iloc[k,val])
-            elif col_oi in ('orbit_id', 'caster_id'):
+            elif col_oi in ('orbit_id', 'caster_id', 'glacier_id'):
                 line += "{:03d}".format(df_sel.iloc[k,val])
             else:
                 line += '{:+8.2f}'.format(df_sel.iloc[k,val])
@@ -403,7 +404,7 @@ def read_conn_files_to_df(folder_list, conn_file="conn.txt",
 def clean_locations_with_no_caster_id(dh):
     """ multi-temporal photohypsometric data can have common caster locations.
     An identification number can be given to them. If this is not done, these
-    data are redunant, and can be removed. This function does that.
+    data are redundant, and can be removed. This function does that.
 
     Parameters
     ----------
@@ -717,10 +718,7 @@ def update_glacier_id_pd(dh, R, geoTransform):
     i_im, j_im = map2pix(geoTransform,
                          dh['casted_X'].to_numpy(), dh['casted_Y'].to_numpy())
     rgi_id = simple_nearest_neighbor(R, i_im, j_im).astype(int)
-    if not 'glacier_id' in dh.columns:
-        dh.insert(len(dh.keys()), 'glacier_id', rgi_id)
-    else:
-        dh['glacier_id'] = rgi_id
+    dh['glacier_id'] = rgi_id
     return dh
 
 def get_casted_elevation_difference(dh):
