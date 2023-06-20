@@ -25,7 +25,7 @@ COPERNICUS_HUB_USERNAME = os.getenv('COPERNICUS_HUB_USERNAME')
 COPERNICUS_HUB_PASSWORD = os.getenv('COPERNICUS_HUB_PASSWORD')
 
 L1C_ASSET_KEYS = [
-    "blue", "green", "red nir", "product_metadata", "granule_metadata",
+    "blue", "green", "red", "nir", "product_metadata", "granule_metadata",
     "inspire_metadata", "datastrip_metadata", "sensor_metadata_B02",
     "sensor_metadata_B03", "sensor_metadata_B04", "sensor_metadata_B08",
 ]
@@ -53,6 +53,8 @@ def _get_matching_L2A_granules(scenes_L1C, scenes_L2A):
 def main():
     granules_l1c = []
     granules_l2a = []
+    print(STAC_L1C_PATH)
+    print(STAC_L2A_PATH)
     for year in YOIS:
         # create selection criteria such as timespan and other specifics
         toi = (datetime.date(year, 10, 1), datetime.date(year+1, 4, 1))
@@ -83,7 +85,9 @@ def main():
 
         granules_l1c.extend(scenes_L1C["filename"].to_list())
         granules_l2a.extend(_get_matching_L2A_granules(scenes_L1C, scenes_L2A))
-
+        
+    print(granules_l1c)
+    print(granules_l2a)
     # download from Google Cloud Storage
     create_stac_catalog(STAC_L1C_PATH, STAC_DESCRIPTION, granules_l1c)
     create_stac_catalog(STAC_L2A_PATH, STAC_DESCRIPTION, granules_l2a)
