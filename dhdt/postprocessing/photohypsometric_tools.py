@@ -1100,11 +1100,15 @@ def get_hypsometric_elevation_change_pd(dxyt, Z=None, geoTransform=None):
     dZ = np.squeeze(Z_1) - np.squeeze(Z_2)
     dz_12 = dxyt['dH_12'] - dZ
 
-    OK, dz_comp = _compensate_via_prior(dxyt['dH_12'], dZ)
-
     desc = [('T_1', '<M8[D]'), ('T_2', '<M8[D]'), ('Z_12', np.float64),
             ('dZ_12', np.float64)]
-    arrs = [dxyt['T_1'], dxyt['T_2'], Z_12, dz_12]
+
+    debug = True
+    if debug:
+        OK, dz_comp = _compensate_via_prior(dxyt['dH_12'], dZ)
+        arrs = [dxyt['T_1'][OK], dxyt['T_2'][OK], Z_12[OK], dz_comp[OK]]
+    else:
+        arrs = [dxyt['T_1'], dxyt['T_2'], Z_12, dz_12]
 
     if 'G_1' in dxyt.columns:
         arrs.append(dxyt['G_1'].to_numpy()), desc.append(('G_1', np.int16))
