@@ -22,9 +22,10 @@ from dhdt.postprocessing.photohypsometric_tools import \
 BBOX = [543001, 6868001, 570001, 6895001] # this is the way rasterio does it
 MGRS_TILE = "09VWJ"
 
-DATA_DIR = os.getenv("DATA_DIR", os.path.join(os.getcwd(), 'data'))
-CONN_DIR = os.path.join(DATA_DIR, "processing")
-DUMP_DIR = os.path.join(DATA_DIR, "glaciers")
+ROOT_DIR = os.getenv("ROOT_DIR", os.getcwd())
+DATA_DIR = os.path.join(ROOT_DIR, "data")
+CONN_DIR = os.path.join(ROOT_DIR, "processing")
+DUMP_DIR = os.path.join(ROOT_DIR, "glaciers")
 RGI_PATH = os.path.join(DATA_DIR, "RGI", MGRS_TILE+'.tif')
 DEM_PATH = os.path.join(DATA_DIR, "DEM", MGRS_TILE+'.tif')
 
