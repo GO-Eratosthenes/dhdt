@@ -13,10 +13,10 @@ from dhdt.generic.mapping_tools import map2pix, ref_trans, ref_update
 from dhdt.processing.coupling_tools import merge_by_common_caster_id_simple, \
     split_caster_id_on_orbit_id
 from dhdt.postprocessing.photohypsometric_tools import \
-    read_conn_to_df, clean_locations_with_no_caster_id, get_casted_elevation_difference, \
-    get_hypsometric_elevation_change, update_casted_elevation, \
-    update_glacier_id, clean_dxyt_via_common_glacier_id, get_mass_balance_per_elev, \
-    write_df_to_conn_file, write_df_to_belev_file
+    read_conn_to_df, clean_locations_with_no_caster_id, \
+    get_casted_elevation_difference, get_hypsometric_elevation_change, \
+    update_casted_elevation, clean_dxyt_via_common_glacier_id, \
+    get_mass_balance_per_elev, write_df_to_belev_file
 
 # initialization parameters
 BBOX = [543001, 6868001, 570001, 6895001] # this is the way rasterio does it
@@ -43,37 +43,13 @@ dem_dat = dem_dat[bbox_i[0]:bbox_i[1],bbox_j[0]:bbox_j[1]]
 new_aff = ref_update(new_aff, rgi_dat.shape[0], rgi_dat.shape[1])
 
 
-DEBUG = True
-
 def main():
     # create structure
     os.makedirs(DUMP_DIR, exist_ok=True)
 
-    if not DEBUG:
-        # loop through all different glaciers
-        im_paths = _get_stac_dates()
-        for im_date in im_paths:
-            # load data
-            dh = read_conn_to_df(os.path.join(CONN_DIR, im_date))
-
-            # preprocessing
-            dh = (dh
-                  .pipe(start_pipeline)
-                  .pipe(update_glacier_id, rgi_dat, new_aff)
-                  .pipe(clean_locations_with_no_caster_id)
-                  )
-            # find glacier ids and bring them to the different conn-files
-            ids, idx_inv = np.unique(dh['glacier_id'].to_numpy(), return_inverse=True)
-            for id,rgi in enumerate(ids):
-                if id==0: continue
-                dh_sel = dh[idx_inv == id]
-
-                conn_file = 'conn-'+str(rgi)+'.txt'
-                if os.path.isfile(os.path.join(DUMP_DIR, conn_file)):
-                    write_df_to_conn_file(dh_sel, DUMP_DIR, conn_file=conn_file,
-                                          append=True)
-                else:
-                    write_df_to_conn_file(dh_sel, DUMP_DIR, conn_file=conn_file)
+    # load data
+    conn_files = glob.glob(os.path.join(CONN_DIR, '*/*/*/conn.txt'))
+    dh = pd.concat([read_conn_to_df(file) for file in conn_files])
 
     # pair posts (caster locations)
     rgi_ids = np.unique(rgi_dat)
@@ -84,6 +60,7 @@ def main():
         dxyt = (dh_rgi
                 .pipe(start_pipeline)
                 .pipe(merge_by_common_caster_id_simple)
+                .pipe(clean_locations_with_no_caster_id)
                 .pipe(split_caster_id_on_orbit_id)
                 .pipe(get_casted_elevation_difference)
                 .pipe(update_casted_elevation, dem_dat, new_aff)
@@ -100,6 +77,7 @@ def main():
 
         belev = get_mass_balance_per_elev(dhdt)
         write_df_to_belev_file(belev, DUMP_DIR, rgi_num=rgi, rgi_region=2)
+
 
 if __name__ == "__main__":
     main()
