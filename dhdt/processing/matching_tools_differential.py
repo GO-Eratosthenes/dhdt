@@ -340,7 +340,7 @@ def affine_optical_flow(I1, I2, model='affine', iteration=10,
     (grd_i,grd_j) = np.meshgrid(np.linspace(-(mI-1)/2, +(mI-1)/2, mI),
                                 np.linspace(-(nI-1)/2, +(nI-1)/2, nI),
                                 indexing='ij')
-    stk_ij = np.vstack( (grd_i.flatten(), grd_j.flatten()) ).T
+    stk_ij = np.column_stack([grd_i.flatten(), grd_j.flatten()])
 
     # initialize iteration
     p = np.zeros((1,6), dtype=float)

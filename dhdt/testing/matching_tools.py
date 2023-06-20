@@ -167,7 +167,7 @@ def create_sheared_image_pair(d=2**7,sh_i=0.00, sh_j=0.00, max_range=1):
                                   np.linspace(-1, 1, nI),
                                   indexing='ij')
 
-    stk_1 = np.vstack( (grd_i1.flatten(), grd_j1.flatten()) ).T
+    stk_1 = np.column_stack([grd_i1.flatten(), grd_j1.flatten()])
 
     grd_2 = np.matmul(A, stk_1.T)
     # calculate new interpolation grid
@@ -245,7 +245,7 @@ def create_scaled_image_pair(d=2**7,sc_x=1.00, sc_y=1.00, max_range=1):
 
     (grd_i1,grd_j1) = np.meshgrid(np.linspace(-1, 1, mI), np.linspace(-1, 1, nI))
 
-    stk_1 = np.vstack( (grd_i1.flatten(), grd_j1.flatten()) ).T
+    stk_1 = np.column_stack([grd_i1.flatten(), grd_j1.flatten()])
 
     grd_2 = np.matmul(A, stk_1.T)
     # calculate new interpolation grid

@@ -347,7 +347,7 @@ def rescale_image(I, sc, method='cubic'):
     m,n = I.shape[:2]
     (grd_i1,grd_j1) = np.meshgrid(np.linspace(-1, 1, m), np.linspace(-1, 1, n))
 
-    stk_1 = np.vstack( (grd_i1.flatten(), grd_j1.flatten()) ).T
+    stk_1 = np.column_stack([grd_i1.flatten(), grd_j1.flatten()])
 
     grd_2 = np.matmul(T, stk_1.T)
     # calculate new interpolation grid
