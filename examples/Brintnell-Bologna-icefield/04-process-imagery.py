@@ -27,7 +27,7 @@ from dhdt.processing.photohypsometric_image_refinement import \
     update_casted_location
 from dhdt.postprocessing.photohypsometric_tools import \
     update_caster_elevation, write_df_to_conn_file, keep_refined_locations, \
-    update_glacier_id, clean_locations_with_no_id
+    update_glacier_id
 
 
 BBOX = [543001, 6868001, 570001, 6895001] # this is the way rasterio does it
@@ -135,11 +135,14 @@ def main():
               .pipe(update_casted_location, shadow_dat, shadow_snk, new_aff)
               .pipe(keep_refined_locations)
               .pipe(update_glacier_id, rgi_dat, new_aff)
-              .pipe(clean_locations_with_no_id, 'glacier_id')
               .pipe(update_caster_elevation, dem_dat, new_aff)
               .pipe(get_refraction_angle, x_bar, y_bar, crs,
                     central_wavelength, h)
               )
+
+        # clean points with no glacier ID
+        dh = dh[dh['glacier_id'] != 0]
+
 
         # construct connectivity files
         write_df_to_conn_file(dh, dump_dir)
