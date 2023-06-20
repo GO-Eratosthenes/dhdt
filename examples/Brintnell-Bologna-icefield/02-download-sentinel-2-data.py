@@ -55,7 +55,7 @@ def main():
     granules_l2a = []
     for year in YOIS:
         # create selection criteria such as timespan and other specifics
-        toi = (datetime.date(year, 10, 1), datetime.date(year, 4, 1))
+        toi = (datetime.date(year, 10, 1), datetime.date(year+1, 4, 1))
 
         api = SentinelAPI(
             user=COPERNICUS_HUB_USERNAME,
