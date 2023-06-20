@@ -9,6 +9,8 @@ from scipy import ndimage
 
 from dhdt.generic.debugging import loggg
 from dhdt.generic.mapping_tools import map2pix, pix2map
+from dhdt.generic.geometry_tools import point_distance_irt_line
+from dhdt.generic.filtering_statistical import mad_filtering
 from dhdt.generic.handler_im import simple_nearest_neighbor
 from dhdt.processing.coupling_tools import \
     pair_posts, merge_by_common_caster_id, get_elevation_difference, angles2unit
@@ -246,9 +248,10 @@ def read_conn_files_to_stack(folder_list, conn_file="conn.txt",
 
         # pair coordinates of the new list to older entries, through
         # a unique counter, given by "caster_id"
-        idx_uni = pair_posts(np.stack((dh_stack['caster_X'],
-               dh_stack['caster_Y'])).T, np.stack((dh['caster_X'],
-               dh['caster_Y'])).T, thres=10)
+        idx_uni = pair_posts(np.column_stack([dh_stack['caster_X'],
+                                              dh_stack['caster_Y']]),
+                             np.column_stack([dh['caster_X'], dh['caster_Y']]),
+                             thres=10)
 
         id_counter = 1
         if 'id' in dh_stack.dtype.names:
@@ -1075,28 +1078,29 @@ def get_hypsometric_elevation_change_np(dxyt, Z=None, geoTransform=None):
 def get_hypsometric_elevation_change_pd(dxyt, Z=None, geoTransform=None):
 
     simple=True
-    if 'Z_1' not in dxyt.columns:
-        i_1,j_1 = map2pix(geoTransform,
-                          dxyt['X_1'].to_numpy(), dxyt['Y_1'].to_numpy())
-        Z_1 = ndimage.map_coordinates(Z, [i_1, j_1], order=1, mode='mirror')
-    else:
-        Z_1 = dxyt['Z_1'].to_numpy()
-    if 'Z_2' not in dxyt.columns:
-        i_2,j_2 = map2pix(geoTransform,
-                          dxyt['X_2'].to_numpy(), dxyt['Y_2'].to_numpy())
-        Z_2 = ndimage.map_coordinates(Z, [i_2, j_2], order=1, mode='mirror')
-    else:
-        Z_2 = dxyt['Z_2'].to_numpy()
+    def _get_elevation(dxyt, Z, num):
+        soi = ('Z_' + str(num), 'X_' + str(num), 'Y_' + str(num))
+        if soi[0] not in dxyt.columns:
+            i, j = map2pix(geoTransform,
+                           dxyt[soi[1]].to_numpy(), dxyt[soi[2]].to_numpy())
+            Z_ij = ndimage.map_coordinates(Z, [i, j], order=1, mode='mirror')
+        else:
+            Z_ij = dxyt[soi[0]].to_numpy()
+        return Z_ij
 
-    if simple:
-        Z_12 = (Z_1+Z_2)/2
-    else:
-        # calculate mid point elevation
-        Z_12 = ndimage.map_coordinates(Z, [(i_1 + i_2) / 2, (j_1 + j_2) / 2],
-                                       order=1, mode='mirror')
+    Z_1, Z_2 = _get_elevation(dxyt, Z, 1), _get_elevation(dxyt, Z, 2)
+
+#    if simple:
+    Z_12 = (Z_1+Z_2)/2
+#    else:
+#        # calculate mid point elevation
+#        Z_12 = ndimage.map_coordinates(Z, [(i_1 + i_2) / 2, (j_1 + j_2) / 2],
+#                                       order=1, mode='mirror')
 
     dZ = np.squeeze(Z_1) - np.squeeze(Z_2)
     dz_12 = dxyt['dH_12'] - dZ
+
+    OK, dz_comp = _compensate_via_prior(dxyt['dH_12'], dZ)
 
     desc = [('T_1', '<M8[D]'), ('T_2', '<M8[D]'), ('Z_12', np.float64),
             ('dZ_12', np.float64)]
@@ -1110,6 +1114,19 @@ def get_hypsometric_elevation_change_pd(dxyt, Z=None, geoTransform=None):
     dhdt = np.rec.fromarrays(arrs, dtype=np.dtype(desc))
     dhdt = pd.DataFrame.from_records(dhdt)
     return dhdt
+
+def _compensate_via_prior(X,Y):
+    from skimage.measure import LineModelND, ransac
+    data = np.column_stack([X, Y])
+    ransac_model, inliers = ransac(data, LineModelND,
+                                   min_samples=2, residual_threshold=30,
+                                   max_trials=1000)
+    p, q = np.array(ransac_model.params[0]), \
+           np.array(ransac_model.params[1])
+    pq_perp = point_distance_irt_line(p, q, data)
+
+    inliers = mad_filtering(pq_perp)
+    return inliers, pq_perp
 
 def get_mass_balance_per_elev(dhdt, spac=100.):
     L = (dhdt['Z_12'].to_numpy() // spac).astype(int)
@@ -1146,9 +1163,12 @@ def get_mass_balance_per_elev(dhdt, spac=100.):
         A = get_temporal_incidence_matrix(T_1, T_2, T_step, open_network=True)
         W = get_temporal_weighting(T_1, T_2, covariance=True)
 
-        x_hat = np.linalg.lstsq(np.dot(W,A),
-                                np.dot(df_sub['dZ_12'].to_numpy(), W),
-                                rcond=None)[0]
+        try:
+            x_hat = np.linalg.lstsq(np.dot(W,A),
+                                    np.dot(df_sub['dZ_12'].to_numpy(), W),
+                                    rcond=None)[0]
+        except:
+            print('.')
         belev[idx,:] = x_hat
 
     elev = labels * spac
