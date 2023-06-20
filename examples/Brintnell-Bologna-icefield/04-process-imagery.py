@@ -93,7 +93,7 @@ def _create_conn_pd(suntraces, new_aff, org_aff, timestamp, s2_path):
     angles_az = interp(np.array([i, j]).T)
 
     dh = pd.DataFrame({'timestamp': np.tile(np.datetime64(timestamp), m),
-                       'orbit': np.tile(row, m),
+                       'orbit_id': np.tile(row, m),
                        'caster_X': suntraces[:,0], 'caster_Y': suntraces[:,1],
                        'casted_X': suntraces[:,2], 'casted_Y': suntraces[:,3],
                        'azimuth': angles_az, 'zenith': angles_zn})
