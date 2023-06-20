@@ -12,8 +12,8 @@ from dhdt.auxilary.handler_google_cloud import \
 MGRS_TILE = "09VWJ"
 YOIS = [2016, 2022]
 DATA_DIR = os.getenv("DATA_DIR", os.path.join(os.getcwd(), "data"))
-STAC_L1C_PATH = os.path.join(DATA_DIR, "SENTINEL2", "sentinel2-l1c")
-STAC_L2A_PATH = os.path.join(DATA_DIR, "SENTINEL2", "sentinel2-l2a")
+STAC_L1C_PATH = os.path.join(DATA_DIR, "SEN2", "sentinel2-l1c-small")
+STAC_L2A_PATH = os.path.join(DATA_DIR, "SEN2", "sentinel2-l2a-small")
 STAC_DESCRIPTION = (
     "Sentinel-2 data catalog containing MGRS tiles that include the ",
     "Brintnell-Bologna icefield (Rugged Range, Canada) as retrieved ",

@@ -11,6 +11,14 @@ sbatch --export=PYTHON_SCRIPT="./01-download-auxiliary-datasets.py",CONDA_ENV="d
 
 ### 2. Download Sentinel-2 data
 
+This step requires access to the Copernicus Open Access Hub (registration [here][coah]). Credentials can be passed to the script using the `COPERNICUS_HUB_USERNAME` and `COPERNICUS_HUB_PASSWORD` environment variables:
+
+```shell
+sbatch --export=PYTHON_SCRIPT="./02-download-sentinel-2-data.py",CONDA_ENV="dhdt",DATA_DIR="/project/eratosthenes/Data/",COPERNICUS_HUB_USERNAME="<USERNAME>",COPERNICUS_HUB_PASSWORD="<PASSWORD>" run-script-on-spider.bsh
+```
+
+.. _[coah] : https://scihub.copernicus.eu/userguide/SelfRegistration
+
 ### 3. Preprocessing
 
 ```shell
