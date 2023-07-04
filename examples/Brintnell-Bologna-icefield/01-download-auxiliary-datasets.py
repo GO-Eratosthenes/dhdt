@@ -1,5 +1,6 @@
 """
-Download and set up the auxiliary datasets for a provided area of interest:
+Download and set up the auxiliary datasets for a provided area of interest.
+The following acronyms are used:
 - Military Grid Reference System (MGRS) tiling schema.
 - Randolph Glacier Inventory (RGI).
 - Digital Elevation Model (DEM).

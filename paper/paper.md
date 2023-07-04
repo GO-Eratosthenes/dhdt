@@ -38,10 +38,10 @@ information about their geometry and surface characteristics. Such information
 can be used for contemporary climate reconstruction and improve future
 projection of fresh water availability or their contribution to sea-level.
 
-The archive of satellite missions with geometric mapping capabilities is very
-limited in space and time. While optical missions with a single telescope are
-more abundant. Hence, methodologies that are able to get at least some
-information out are worth exploring.
+The archive of satellite missions with geometric three dimensional mapping
+capabilities is very limited in space and time. While optical missions with a
+single telescope are more abundant. Hence, methodologies that are able to get
+at least some elevation information out are worth exploring.
 
 `dhdt` is Python library that has the functionality to automatically extract
 glacier elevation change from large collections of satellite imagery. The
@@ -58,7 +58,7 @@ remote sensing data is able to provide additional observations of the
 (sub)-surface.
 
 Such remote sensing observations can be for longer time periods, where the
-length changes from glacier outlines, can sometimes date back up a century or
+length changes from glacier outlines, can sometimes date back upto a century or
 more. While at decadal timescales the use of elevation models can help to
 constrain a time-spans, as it delivers an estimate of volume changes (a.k.a.
 geodetic mass balance) [@hugonnet2021accelerated]. While, velocity fields can
@@ -73,9 +73,10 @@ exploiting real world data. Here we have dubbed this technique photohypsometry,
 but other terms like shape-from-shadowing [@daum1998threed] and heliometric
 stereo [@abrams2012heliometric] have also been used for this methodology.
 This methodology has gotten some interest in the cryospheric research community
-[@rada2022high; ], though up to now it has stayed at the level of a proof of concept.
+[@rada2022high; @dematteis2022measuring], though up to now it has stayed at the
+level of a proof of concept.
 
-Here, we present a Pyhton library that includes a complete and highly automated
+Here, we present a Python library that includes a complete and highly automated
 processing pipeline. The procedures of such a photohypsometic pipeline are
 illustrated in \autoref{fig:pipeline}.
 
@@ -100,20 +101,18 @@ dhdt
 ```
 
 When a specific function is based upon a given methodology, the literature that
-is at its root is given in the doc-string. Hence the references in this work are
-by far not comprehensive.
-
+is at its root is given in the doc-string. Hence the references in this article
+are by far not comprehensive, but detailed references can be found in the
+corresponding functions.
 
 ## [input](https://dhdt.readthedocs.io/en/latest/modules.html#input)
 
 A suit of high resolution[^2] optical satellite systems are currently in space,
-of which many have adopted an open access policy. Hence, a large selection of
-these satellite data is supported by the `dhdt` library. Though an emphasis is
-given to the Senintel-2 system ([``read_sentinel2``](https://dhdt.readthedocs.io/en/latest/modules.html#read-sentinel-2-meta-data)),
-which is in operation since XXXX.
+of which many have adopted an open data policy. Hence, a large selection of
+these satellite products are supported by the `dhdt` library. Though an emphasis
+is given to the Sentinel-2 system ([``read_sentinel2``](https://dhdt.readthedocs.io/en/latest/modules.html#read-sentinel-2-meta-data)), which is in operation since 2015.
 
-Though support is also given to the Landsat ([``read_landsat8``](https://dhdt.readthedocs.io/en/latest/modules.html#read-landsat8-meta-data)),
-SPOT legacy () and ASTER ([``read_aster``](https://dhdt.readthedocs.io/en/latest/modules.html#read-terra-aster-data)),
+Though support is also given to the Landsat ([``read_landsat8``](https://dhdt.readthedocs.io/en/latest/modules.html#read-landsat8-meta-data)), ASTER ([``read_aster``](https://dhdt.readthedocs.io/en/latest/modules.html#read-terra-aster-data)),
 as well as, commercial satellite systems ([``read_planetscope``](https://dhdt.readthedocs.io/en/latest/modules.html#read-planetscope-data),
 [``read_rapideye``](https://dhdt.readthedocs.io/en/latest/modules.html#read-rapideye-data))
 and demonstration missions like VENuS [``read_venus``](https://dhdt.readthedocs.io/en/latest/modules.html#read-venus-data)).
@@ -142,8 +141,8 @@ input/
 Prior to the coupling of imagery and the extraction of elevation change data,
 the satellite data needs to be made ready. Typically, shadows are not the main
 interest for such imagery, hence the functions in this sub-directory are
-taylored towards enhancing the shadow imagery and getting the proper geometric
-information needed. The structure of the folder is as follows,
+tailored towards enhancing the illumination component and getting the proper
+geometric information needed. The structure of the folder is as follows,
 
 ```
 preprocessing/
@@ -193,18 +192,15 @@ is typically not present in the meta data of the satellite, and only the
 geometric line of sight is given, see also \autoref{fig:red-shadow}. However,
 correct sun angles are essential, especially for scenes with low sun angles
 (such situations occur especially often at high latitudes, where many glaciers
-are situated). Therfore, ``atmospheric_geometry`` has functions to correct for
+are situated). Therefore, ``atmospheric_geometry`` has functions to correct for
 such angles given specific wavelengths and atmospheric compositions.
 
 ## [processing](https://dhdt.readthedocs.io/en/latest/modules.html#processing)
 
 An important building block of `dhdt` is image correspondence, this is an
 ill-posed problem. Hence, a suit of methodologies are implemented in this
-library.
-
-Image correspondence
-
-Generic .
+library to estimate the displacement of imaging patterns of different nature.
+The file structure is as follows,
 
 ```
 processing/
@@ -242,7 +238,7 @@ are transformed into the frequency domain, which is computational efficient.
 The second subdivision are methods formulated in the spatial domain, which are
 mostly based upon convolution. The last subdivision is also formulated in the
 spatial domain, but is based upon differential methods. These optical flow
-methods work best, when displacements are within sub-pixel level.
+methods work best, when displacements are within sub-pixel range.
 
 [^3]: also known as, pattern matching, feature tracking, image velocimetry
 
@@ -263,9 +259,9 @@ While the quality of match can be deduced from the cross-power spectrum
 
 Image correspondence via the spatial domain is very similar, see also
 \autoref{fig:spat-match}. Though here a smaller image subset is used and is
-slided over the other image subset. Again specific image operators can be used
-to put emphasis on certain image structures, but these functions are already
-present in the [preprocessing](#preprocessing) folder. While
+translated over the other image subset. Again specific image operators can be
+used to put emphasis on certain image structures, but these functions are
+already present in the [preprocessing](#preprocessing) folder. While
 different correspondence metrics can be found in [``matching_tools_spatial_correlators``](https://dhdt.readthedocs.io/en/latest/modules.html#spatial-correlators).
 This results in a two dimensional correlation function, where its peak can be
 localised by different methods ([``matching_tools_spatial_subpixel``](https://dhdt.readthedocs.io/en/latest/modules.html#module-dhdt.processing.matching_tools_spatial_subpixel)),
@@ -310,15 +306,15 @@ postprocessing
 
 The products generated from image matching are typically noisy. The error
 distribution has elements of normally distributed noise, but a large part of the
-sample can also have outliers. Typically sampling of the neighbourhood is used
-to clean such data, and these function can be found in [``displacement_filters``](https://dhdt.readthedocs.io/en/latest/modules.html#displacement-filters)
+sample can also have outliers. Typically sampling of the spatial neighbourhood
+is used to clean such data, and these function can be found in [``displacement_filters``](https://dhdt.readthedocs.io/en/latest/modules.html#displacement-filters)
 and more generic in ``group\_statistics.py``.
 Multiple displacement and velocity products over time create redundancy and make
 it possible to apply inversion. This results in harmonised and evenly sampled
 data. Such functions can be found in ``adjustment_geometric_temporal``.
 
-The spatial-temporal coupling of can be found in ``photohypsometric\_tools``.
-Here scenes from different acquisition times and observation angles are combined
+The spatial-temporal coupling of shadowboundary products can be found in ``photohypsometric\_tools``.
+Here scenes from different acquisition times and sun angles are combined
 together. For a better understanding of the wording used, a schematic is
 included in \autoref{fig:df-naming}.
 
@@ -344,26 +340,26 @@ presentation
 Generic functions are present in [``image_io``](https://dhdt.readthedocs.io/en/latest/modules.html).
 to create (geo-referenced) imagery of the (intermediate) results presented in
 the former directories. Since elevation data is needed for the photohypsometric
-pipeline, a suit of functions is present in the [``terrain_tools``](https://dhdt.readthedocs.io/en/latest/modules.html).
-Where mountain specific shading functions are incorporated.
+pipeline, a suit of functions is present in the [``terrain_tools``](https://dhdt.readthedocs.io/en/latest/modules.html). In this module mountain specific shading functions are incorporated.
 Other map making and data visualisation functions specifically for surface
 kinematics can be found in [``displacement_tools``](https://dhdt.readthedocs.io/en/latest/modules.html)
 and [``glacier_tools``](https://dhdt.readthedocs.io/en/latest/modules.html).
-Think of displacement vectors and their associated precision or strain rate maps.
+One should think of displacement vectors and their associated precision or strain rate maps.
 While fucntions within ['velocity_tools'](https://dhdt.readthedocs.io/en/latest/modules.html))
 are focussed on animations, of moving particles and flow paths.
 
 ## [generic](https://dhdt.readthedocs.io/en/latest/modules.html#generic)
-
-Many spatial functions are used in several .
-Especially terrain tools based on the elevation model used.
+Different satellite systems have their specific metadata and file structure.
+The functions in this folder ease the conversion and transformation of such data
+towards common data types. Since such functions are used in several processing
+steps, these functions are situated in this common folder.
 
 ![Example of shadow refinement (red) starting from an initial shadowing (purple) that is based on an elevation model.](fig/red-snake.pdf){ width=100% }
 
 ## [auxiliary](https://dhdt.readthedocs.io/en/latest/modules.html#auxiliary)
-The main data source for satellite based geometric information extraction are
-imagery. However, in order to translate such displacements to domain specific
-information, a suit of auxiliary data is needed. Hence function in this folder
+The main data source for satellite based geometric information extraction is
+image based. However, in order to translate such displacements to domain specific
+information, a suit of auxiliary data is needed. Hence functions in this folder
 help to fulfil this task, it has the following structure:
 
 ```
@@ -375,8 +371,8 @@ auxiliary/
 └── handler_randolph.py
 ```
 
-Discrimination where land and sea are situated in the satellite imagery, is
-provided by functions in [``handler_coastal``](https://dhdt.readthedocs.io/en/latest/modules.html#handle-land-and-sea-regions).
+Discrimination where land and sea is situated in the satellite imagery, is
+provided via functions in [``handler_coastal``](https://dhdt.readthedocs.io/en/latest/modules.html#handle-land-and-sea-regions).
 These functions are based upon the GSHHS dataset, see also [@wessel1996global].
 An almost global coverage of the surface topography is given by the
 CopernicusDEM. Functions for acquiring such data are situated in
@@ -391,9 +387,9 @@ needs to be known. Hence, atmospheric variables such as temperature and humidity
 need to be extracted for any given place and past time stamp. These variables
 can be extracted from ERA-5 via the Copernicus Climate Data Store. Functions
 to download such variables of interest are given in[``handler_era5``](https://dhdt.readthedocs.io/en/latest/modules.html#module-dhdt.auxilary.handler_era5).
-The wide swath of Sentinel-2 is subdivided into smaller overlapping tiles.
-This tiling system is based upon the MGRS system, functions to work with this
-system are given in [``handler_mgrs``](https://dhdt.readthedocs.io/en/latest/modules).
+The wide field of view of the Sentinel-2 satellite is subdivided into smaller
+overlapping tiles of 110 by 110 kilometers. This tiling system is based upon
+the MGRS system, functions to work with this system are given in [``handler_mgrs``](https://dhdt.readthedocs.io/en/latest/modules).
 
 ## [testing](https://dhdt.readthedocs.io/en/latest/modules.html)
 Many functions within the `dhdt` library need internet access or registration in
@@ -466,7 +462,7 @@ Since elevation models have specific systematic errors within [@hugonnet2022unce
 Apart from elevation products from optical remote sensing instruments, is it
 possible to estimate the geodetic mass balance from scattered laser altimetry
 data [@kaab2008glacier]. Such systems are relatively limited in space, but their
-detailed footprint in the order of tens of meters and their repeated
+detailed footprint is in the order of tens of meters and their repeated
 overflights make the generated products spatially sparse but consistent.
 Currently, ICESAT-2 is operational and tools for data processing can be found in
 the [@scheick2023icepyx] repository.
