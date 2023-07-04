@@ -11,6 +11,7 @@ import pandas as pd
 from numpy.lib.recfunctions import stack_arrays, merge_arrays
 
 from sklearn.neighbors import NearestNeighbors
+from scipy.spatial.distance import cdist
 from scipy import ndimage
 
 from dhdt.generic.unit_check import correct_geoTransform
