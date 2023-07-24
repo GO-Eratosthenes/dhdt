@@ -1,4 +1,4 @@
-|GitHub Badge| |License Badge| |Python Build| |Documentation Status|
+|GitHub Badge| |License Badge| |Python Build| |Documentation Status| |OpenSSF Best Practices|
 
 .. |GitHub Badge| image:: https://img.shields.io/badge/github-repo-000.svg?logo=github&labelColor=gray&color=blue
    :target: https://github.com/GO-Eratosthenes/eratosthenes
@@ -15,6 +15,10 @@
 .. |Documentation Status| image:: https://readthedocs.org/projects/dhdt/badge/?version=latest
    :target: https://dhdt.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
+
+.. |OpenSSF Best Practices| image:: https://bestpractices.coreinfrastructure.org/projects/7641/badge
+   :target: https://bestpractices.coreinfrastructure.org/projects/7641
+   :alt: OpenSSF Best Practices
 
 ############
 dhdt
