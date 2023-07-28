@@ -95,5 +95,5 @@ def vif(I1, I2, k=11):
 def psnr(I1, I2):
     mse = np.mean((I1 - I2)**2)
     mse_isq = np.sqrt(mse)
-    peak_snr = 20 * np.log10(np.divide(255.0, mse_isq, where=mse_isq!=0)
+    peak_snr = 20 * np.log10(np.divide(255.0, mse_isq, where=mse_isq!=0))
     return peak_snr
