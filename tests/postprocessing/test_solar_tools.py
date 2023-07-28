@@ -4,6 +4,7 @@ from dhdt.generic.unit_conversion import deg2compass
 from dhdt.postprocessing.solar_tools import \
     sun_angles_to_vector, vector_to_sun_angles, az_to_sun_vector
 
+
 def test_sun_angles_to_vector():
     az = np.random.uniform(low=0., high=360., size=(1,))[0]
     zn = np.random.uniform(low=0., high=90., size=(1,))[0]
@@ -13,8 +14,9 @@ def test_sun_angles_to_vector():
         # reverse format
         az_r, zn_r = vector_to_sun_angles(s, indexing=idx)
         az_r = deg2compass(az_r)
-        assert np.isclose(0, np.abs(az-az_r))
-        assert np.isclose(0, np.abs(zn-zn_r))
+        assert np.isclose(0, np.abs(az - az_r))
+        assert np.isclose(0, np.abs(zn - zn_r))
+
 
 def test_az_to_sun_vector():
     az = np.random.uniform(low=0., high=360., size=(1,))[0]
@@ -25,4 +27,4 @@ def test_az_to_sun_vector():
         # reverse format
         az_r = vector_to_sun_angles(s, indexing=idx)[0]
         az_r = deg2compass(az_r)
-        assert np.isclose(0, np.abs(az-az_r))
+        assert np.isclose(0, np.abs(az - az_r))

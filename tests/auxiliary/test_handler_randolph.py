@@ -10,7 +10,6 @@ import rioxarray as rioxr
 from dhdt.auxiliary.handler_randolph import \
     create_rgi_raster, create_rgi_tile_s2
 
-
 TESTDATA_DIR = 'testdata/RGI'
 RGI_SHAPES = f'{TESTDATA_DIR}/shapes.geojson'
 EPSG_CODE = 32605
@@ -23,7 +22,7 @@ def _set_up_data_for_rgi_raster():
 
     crs = pyproj.CRS.from_epsg(EPSG_CODE)
 
-    gdal_transform = (461000, 20., 0.,  6624200., 0., -20.)
+    gdal_transform = (461000, 20., 0., 6624200., 0., -20.)
     geoTransform = (*gdal_transform, *RASTER_SHAPE)
     return shapes, crs, geoTransform
 
