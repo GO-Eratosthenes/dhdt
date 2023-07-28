@@ -186,6 +186,9 @@ def get_era5_atmos_profile(date, x, y, spatialRef, z=None, era5_dir=None):
         projection system describtion
     z : numpy.ndarray, unit=meter
         altitudes of interest
+    era5_dir : str
+        directory for ERA5 data
+
 
     Returns
     -------
