@@ -38,8 +38,8 @@ DATA_DIR = os.path.join(ROOT_DIR, "data")
 DUMP_DIR = os.path.join(ROOT_DIR, "processing")
 DEM_PATH = os.path.join(DATA_DIR, "DEM", MGRS_TILE+'.tif')
 RGI_PATH = os.path.join(DATA_DIR, "RGI", MGRS_TILE+'.tif')
-STAC_L1C_PATH = os.path.join(DATA_DIR, "SEN2", "sentinel2-l1c-small")
-STAC_L2A_PATH = os.path.join(DATA_DIR, "SEN2", "sentinel2-l2a-small")
+STAC_L1C_PATH = os.path.join(DATA_DIR, "SEN2", "sentinel2-l1c")
+STAC_L2A_PATH = os.path.join(DATA_DIR, "SEN2", "sentinel2-l2a")
 
 s2_df = list_central_wavelength_msi()
 s2_df = s2_df[s2_df['gsd']==RESOLUTION_OF_INTEREST]
