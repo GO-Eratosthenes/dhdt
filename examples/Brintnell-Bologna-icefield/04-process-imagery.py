@@ -43,7 +43,8 @@ DATA_DIR = os.path.join(ROOT_DIR, 'data')
 DUMP_DIR = os.path.join(ROOT_DIR, "processing")
 DEM_PATH = os.path.join(DATA_DIR, "DEM", MGRS_TILE+'.tif')
 RGI_PATH = os.path.join(DATA_DIR, "RGI", MGRS_TILE+'.tif')
-STAC_L1C_PATH = os.path.join(DATA_DIR, "SEN2", "sentinel2-l1c-small")
+STAC_L1C_PATH = os.path.join(DATA_DIR, "SEN2", "sentinel2-l1c")
+ERA5_DIR = os.path.join(DATA_DIR, "ERA5")
 
 # import and create general assets
 dem_dat,crs,org_aff,_ = read_geo_image(DEM_PATH)
@@ -139,7 +140,7 @@ def main():
               .pipe(update_glacier_id, rgi_dat, new_aff)
               .pipe(update_caster_elevation, dem_dat, new_aff)
               .pipe(get_refraction_angle, x_bar, y_bar, crs,
-                    central_wavelength, h)
+                    central_wavelength, h, era5_dir=ERA5_DIR)
               )
 
         # clean points with no glacier ID
