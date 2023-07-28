@@ -11,7 +11,7 @@ This step requires access to the Copernicus Open Access Hub (registration [here]
 sbatch --export=PYTHON_SCRIPT="./01-download-sentinel-2-data.py",CONDA_ENV="dhdt",ROOT_DIR="/project/eratosthenes/Data/",COPERNICUS_HUB_USERNAME="<USERNAME>",COPERNICUS_HUB_PASSWORD="<PASSWORD>" run-script-on-spider.bsh
 ```
 
-.. _[coah] : https://scihub.copernicus.eu/userguide/SelfRegistration
+[coah] : https://scihub.copernicus.eu/userguide/SelfRegistration
 
 
 ### 2. Download auxiliary datasets
@@ -22,7 +22,7 @@ This step requires using ERA5 data, which we access from the Copernicus Climate 
 sbatch --export=PYTHON_SCRIPT="./02-download-auxiliary-datasets.py",CONDA_ENV="dhdt",ROOT_DIR="/project/eratosthenes/Data/" run-script-on-spider.bsh
 ```
 
-.. _cdsapi : https://github.com/ecmwf/cdsapi
+[cdsapi] : https://github.com/ecmwf/cdsapi
 
 ### 3. Preprocessing
 
