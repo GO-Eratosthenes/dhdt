@@ -16,10 +16,10 @@ sbatch --export=PYTHON_SCRIPT="./01-download-sentinel-2-data.py",CONDA_ENV="dhdt
 
 ### 2. Download auxiliary datasets
 
-This step requires using ERA5 data, which we access from the Copernicus Climate Data Store (CDS). We set up the account and credentials in the `~/.cdsapirc` file as described [here][cdsapi].
+This step requires using ERA5 data, which we access from the Copernicus Climate Data Store (CDS). We set up the account and credentials in the `~/.cdsapirc` file as described [here][cdsapi]. Due to the time required by the CDS API, we extend the default time of the script `run-script-on-spider.bsh` (1 hour).
 
 ```shell
-sbatch --export=PYTHON_SCRIPT="./02-download-auxiliary-datasets.py",CONDA_ENV="dhdt",ROOT_DIR="/project/eratosthenes/Data/" run-script-on-spider.bsh
+sbatch --time=10:00:00 --export=PYTHON_SCRIPT="./02-download-auxiliary-datasets.py",CONDA_ENV="dhdt",ROOT_DIR="/project/eratosthenes/Data/" run-script-on-spider.bsh
 ```
 
 [cdsapi]: https://github.com/ecmwf/cdsapi
@@ -28,7 +28,7 @@ sbatch --export=PYTHON_SCRIPT="./02-download-auxiliary-datasets.py",CONDA_ENV="d
 
 ```shell
 # get list of item ids
-ITEM_IDS=`ls /project/eratosthenes/Data/data/SEN2/sentinel2-l1c-small/*/*/*/ | grep "MSIL1C"`
+ITEM_IDS=`ls /project/eratosthenes/Data/data/SEN2/sentinel2-l1c/*/*/*/ | grep "MSIL1C"`
 
 # submit preprocessing jobs
 for ITEM_ID in ${ITEM_IDS} ; do 
