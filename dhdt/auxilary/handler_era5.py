@@ -235,8 +235,8 @@ def get_era5_atmos_profile(date, x, y, spatialRef, z=None, era5_dir=None):
     pres_levels = get_era5_pressure_levels()
 
     hour = 11
-    #year,month,day = datetime2calender(date)
-    if isinstance(date, np.int64):
+
+    if isinstance(date, np.datetime64):
         date = np.array([date])
 
     # convert from mapping coordinates to lat, lon
