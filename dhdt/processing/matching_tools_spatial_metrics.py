@@ -5,6 +5,7 @@ from skimage.morphology import extrema
 from ..generic.unit_check import are_two_arrays_equal
 from ..preprocessing.image_transforms import high_pass_im
 
+
 def list_matching_metrics():
     """ list the abbreviations of the different implemented correlation metrics
 
@@ -23,10 +24,12 @@ def list_matching_metrics():
     --------
     get_correlation_metric
     """
-    metrics_list = ['peak_ratio', 'peak_rms', 'peak_ener', 'peak_nois',
-                    'peak_conf', 'peak_entr', 'peak_abs', 'peak_marg',
-                    'peak_win', 'peak_num']
+    metrics_list = [
+        'peak_ratio', 'peak_rms', 'peak_ener', 'peak_nois', 'peak_conf',
+        'peak_entr', 'peak_abs', 'peak_marg', 'peak_win', 'peak_num'
+    ]
     return metrics_list
+
 
 def get_correlation_metric(C, metric='peak_abs'):
     """ redistribution function, to get a metric from a matching score surface
@@ -51,7 +54,7 @@ def get_correlation_metric(C, metric='peak_abs'):
     """
     # admin
     assert type(C) == np.ndarray, ('please provide an array')
-    if C.size==0: return None
+    if C.size == 0: return None
 
     # redistribute correlation surface to the different functions
     if metric in ['peak_ratio']:
@@ -72,9 +75,10 @@ def get_correlation_metric(C, metric='peak_abs'):
         score = peak_winner_margin(C)
     elif metric in ['peak_num']:
         score = num_of_peaks(C)
-    else: # 'peak_abs'
+    else:  # 'peak_abs'
         score = np.argmax(C)
     return score
+
 
 def primary_peak_ratio(C):
     """ metric for uniqueness of the correlation estimate
@@ -113,9 +117,9 @@ def primary_peak_ratio(C):
     assert type(C) == np.ndarray, ('please provide an array')
 
     idx, val = get_peak_indices(C, num_estimates=2)
-    ppr = np.divide(val[0], val[1],
-                    out=np.ones(1), where=val[1]!=0)
+    ppr = np.divide(val[0], val[1], out=np.ones(1), where=val[1] != 0)
     return ppr
+
 
 def primary_peak_margin(C):
     """ metric for dominance of the correlation estimate in relation to other
@@ -150,6 +154,7 @@ def primary_peak_margin(C):
     ppm = val[0] - val[1]
     return ppm
 
+
 def peak_winner_margin(C):
     """ metric for dominance of the correlation estimate in relation to other
     candidates and their surrounding scores. See also [SS98]_.
@@ -177,8 +182,9 @@ def peak_winner_margin(C):
     """
     assert type(C) == np.ndarray, ('please provide an array')
 
-    pwm = primary_peak_margin(C)/np.sum(C)
+    pwm = primary_peak_margin(C) / np.sum(C)
     return pwm
+
 
 def num_of_peaks(C, filtering=True):
     """ metric for the uniqueness of a match
@@ -212,12 +218,13 @@ def num_of_peaks(C, filtering=True):
     """
     assert type(C) == np.ndarray, ('please provide an array')
 
-    if filtering==True: # low pass filtering
+    if filtering == True:  # low pass filtering
         C -= high_pass_im(C, radius=3)
 
     peak_C = extrema.local_maxima(C)
     nop = np.sum(peak_C)
     return nop
+
 
 def peak_rms_ratio(C):
     """ metric for uniqueness of the correlation estimate
@@ -249,12 +256,13 @@ def peak_rms_ratio(C):
     assert type(C) == np.ndarray, ('please provide an array')
 
     max_corr = np.amax(C)
-    hlf_corr = np.divide( max_corr, 2)
-    noise = C<=hlf_corr
-    C_rms = np.sqrt((1/np.sum(noise))  * np.sum(C[noise]**2))
+    hlf_corr = np.divide(max_corr, 2)
+    noise = C <= hlf_corr
+    C_rms = np.sqrt((1 / np.sum(noise)) * np.sum(C[noise]**2))
 
-    prmsr = np.divide( max_corr**2, C_rms)
+    prmsr = np.divide(max_corr**2, C_rms)
     return prmsr
+
 
 def peak_corr_energy(C):
     """ metric for uniqueness of the correlation estimate,
@@ -287,6 +295,7 @@ def peak_corr_energy(C):
     E_c = np.sum(np.abs(C.flatten())**2)
     pce = np.divide(max_corr**2, E_c)
     return pce
+
 
 def peak_to_noise(C):
     """ metric for uniqueness of the correlation estimate
@@ -321,12 +330,11 @@ def peak_to_noise(C):
 
     C = C.flatten()
     max_idx, max_corr = np.argmax(C), np.amax(C)
-    mean_corr = np.mean(np.concatenate((C[:max_idx],
-                                        C[max_idx+1:])))
+    mean_corr = np.mean(np.concatenate((C[:max_idx], C[max_idx + 1:])))
     mean_corr = np.abs(mean_corr)
-    snr = np.divide(max_corr, mean_corr,
-                   out=np.ones(1), where=mean_corr!=0)
+    snr = np.divide(max_corr, mean_corr, out=np.ones(1), where=mean_corr != 0)
     return snr
+
 
 def peak_confidence(C, radius=1):
     """ metric for steepness of a correlation peak
@@ -371,6 +379,7 @@ def peak_confidence(C, radius=1):
     q = np.divide(C_max - C_mean, C_mean - C_min)
     return q
 
+
 def entropy_corr(C):
     """ metric for uniqueness of the correlation estimate
 
@@ -408,16 +417,17 @@ def entropy_corr(C):
     """
     assert type(C) == np.ndarray, ('please provide an array')
 
-    sturges = 1.6 * (np.log2(C.size) + 1) # [1] uses 30, but [2] is more adaptive
-    values, base = np.histogram(C.flatten(),
-                                bins=int(np.ceil(sturges)))
+    sturges = 1.6 * (np.log2(C.size) + 1
+                     )  # [1] uses 30, but [2] is more adaptive
+    values, base = np.histogram(C.flatten(), bins=int(np.ceil(sturges)))
 
     # normalize
     p = np.divide(values, C.size)
     # entropy calculation
-    disorder = - np.sum(np.multiply(p, np.log(p, out=np.zeros_like(p),
-                                              where=p!=0)))
+    disorder = -np.sum(
+        np.multiply(p, np.log(p, out=np.zeros_like(p), where=p != 0)))
     return disorder
+
 
 def hessian_spread(C, intI, intJ):
     """
@@ -467,14 +477,16 @@ def hessian_spread(C, intI, intJ):
     """
     assert type(C) == np.ndarray, ('please provide an array')
 
-    if (intI==0) or (intI+1==C.shape[0]) or (intJ==0) or (intJ+1==C.shape[1]):
+    if (intI == 0) or (intI + 1 == C.shape[0]) or (intJ
+                                                   == 0) or (intJ + 1
+                                                             == C.shape[1]):
         C = np.pad(C, 1, mode='linear_ramp')
         intI += 1
         intJ += 1
 
     # local laplacian
-    dC_ii = -(C[intI-1,intJ] + C[intI+1,intJ] - 2*C[intI,intJ])
-    dC_jj = -(C[intI,intJ-1] + C[intI,intJ+1] - 2*C[intI,intJ])
+    dC_ii = -(C[intI - 1, intJ] + C[intI + 1, intJ] - 2 * C[intI, intJ])
+    dC_jj = -(C[intI, intJ - 1] + C[intI, intJ + 1] - 2 * C[intI, intJ])
     dC_ij = (C[intI+1,intJ+1] + C[intI-1,intJ-1]) -\
             (C[intI+1,intJ-1] -C[intI-1,intJ+1])
 
@@ -482,20 +494,26 @@ def hessian_spread(C, intI, intJ):
     dC_jj /= 4
     dC_ij /= 8
 
-    C_noise = np.maximum(1-C[intI,intJ], 0.)
+    C_noise = np.maximum(1 - C[intI, intJ], 0.)
 
-    ψ = dC_ij**2 - dC_ii*dC_jj
+    ψ = dC_ij**2 - dC_ii * dC_jj
     denom = ψ**2
-    cov_ii = np.divide(-C_noise * ψ * dC_ii +
-                       C_noise**2 * (dC_ii**2 + dC_ij**2),
-                       denom, out=np.zeros_like(denom), where=denom!=0)
-    cov_jj = np.divide(-C_noise * ψ * dC_jj +
-                       C_noise**2 * (dC_jj**2 + dC_ij**2),
-                       denom, out=np.zeros_like(denom), where=denom!=0)
-    cov_ij = np.divide((C_noise * ψ -
-                       C_noise**2 * (dC_ii + dC_jj)) * dC_ij,
-                       denom, out=np.zeros_like(denom), where=denom!=0)
+    cov_ii = np.divide(-C_noise * ψ * dC_ii + C_noise**2 *
+                       (dC_ii**2 + dC_ij**2),
+                       denom,
+                       out=np.zeros_like(denom),
+                       where=denom != 0)
+    cov_jj = np.divide(-C_noise * ψ * dC_jj + C_noise**2 *
+                       (dC_jj**2 + dC_ij**2),
+                       denom,
+                       out=np.zeros_like(denom),
+                       where=denom != 0)
+    cov_ij = np.divide((C_noise * ψ - C_noise**2 * (dC_ii + dC_jj)) * dC_ij,
+                       denom,
+                       out=np.zeros_like(denom),
+                       where=denom != 0)
     return cov_ii, cov_jj, cov_ij
+
 
 def gauss_spread(C, intI, intJ, dI, dJ, est='dist'):
     """ estimate an oriented gaussian function through the vicinity of the
@@ -579,20 +597,19 @@ def gauss_spread(C, intI, intJ, dI, dJ, est='dist'):
     frac = np.sum(P_sub[IN])
     if frac != 0: P_sub /= frac
 
-    if np.sum(IN) <=4:  # not enough data points
+    if np.sum(IN) <= 4:  # not enough data points
         return 0, 0, 0, np.zeros((4)), 0
 
-    A = np.vstack((I[IN] ** 2,
-                   2 * I[IN] * J[IN],
-                   J[IN] ** 2,
-                   np.ones((1, np.sum(IN)))
-                   )).transpose()
+    A = np.vstack(
+        (I[IN]**2, 2 * I[IN] * J[IN], J[IN]**2, np.ones(
+            (1, np.sum(IN))))).transpose()
     y = P_sub[IN]
 
     # least squares estimation
     if est == 'dist':
         dub = float(dub)
-        W = np.abs(dub ** 2 - np.sqrt(A[:, 0] + A[:, 2])) / dub ** 2  # distance from top
+        W = np.abs(dub**2 -
+                   np.sqrt(A[:, 0] + A[:, 2])) / dub**2  # distance from top
         Aw = A * np.sqrt(W[:, np.newaxis])
         yw = y * np.sqrt(W)
         try:
@@ -607,18 +624,19 @@ def gauss_spread(C, intI, intJ, dI, dJ, est='dist'):
 
     # convert to parameters
     denom = np.sqrt(np.abs(hess[0] * hess[2]))
-    ρ = np.divide(0.5 * hess[1] , denom, where=denom!=0)
+    ρ = np.divide(0.5 * hess[1], denom, where=denom != 0)
     cov_ii = -2 * (1 - ρ) * hess[0]
-    if cov_ii!=0: cov_ii = np.divide(1, cov_ii)
+    if cov_ii != 0: cov_ii = np.divide(1, cov_ii)
     cov_jj = -2 * (1 - ρ) * hess[2]
-    if cov_jj!=0: cov_jj = np.divide(1, cov_jj)
+    if cov_jj != 0: cov_jj = np.divide(1, cov_jj)
 
     # deviations can be negative
     if np.iscomplex(ρ) or np.iscomplex(cov_ii) or np.iscomplex(cov_jj):
         return 0, 0, 0
     return cov_ii, cov_jj, ρ, hess, frac
 
-def intensity_disparity(I1,I2):
+
+def intensity_disparity(I1, I2):
     """
 
     Parameters
@@ -647,7 +665,7 @@ def intensity_disparity(I1,I2):
 
     dI = I1 - I2
     # higher intensities have a larger contribution
-    pI = np.sqrt(np.multiply( I1, I2))
+    pI = np.sqrt(np.multiply(I1, I2))
     mu_dI = np.average(dI, weights=pI)
     sigma_dI = np.average((dI - mu_dI)**2, weights=pI)
     return sigma_dI

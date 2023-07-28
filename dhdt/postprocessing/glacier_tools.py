@@ -8,6 +8,7 @@ from dhdt.preprocessing.shadow_filters import L0_smoothing
 from dhdt.postprocessing.group_statistics import get_midpoint_altitude, \
     get_stats_from_labelled_array, get_stats_from_labelled_arrays
 
+
 def update_glacier_mask(Z, R, iter=50, curv_max=2.):
     """
     refine glacier outline, via snakes
@@ -29,9 +30,9 @@ def update_glacier_mask(Z, R, iter=50, curv_max=2.):
         grid with refined glacier labels
 
     """
-    if type(Z) in (np.ma.core.MaskedArray,):
+    if type(Z) in (np.ma.core.MaskedArray, ):
         Z = Z.data
-    if type(R) in (np.ma.core.MaskedArray,):
+    if type(R) in (np.ma.core.MaskedArray, ):
         maskedArray = True
         R = R.data
     else:
@@ -41,35 +42,38 @@ def update_glacier_mask(Z, R, iter=50, curv_max=2.):
     # remove block effect, but enhance edges
     C_sm = L0_smoothing(ndimage.gaussian_filter(C, sigma=3.), beta_max=1E-1)
     # refine glacier outline
-    R_new = ms.morphological_chan_vese(C_sm, iter, smoothing=0, lambda1=5,
+    R_new = ms.morphological_chan_vese(C_sm,
+                                       iter,
+                                       smoothing=0,
+                                       lambda1=5,
                                        init_level_set=R)
 
     # for multi-polygons remove the smaller ones
     for r_id in np.unique(R_new):
         if r_id == 0: continue
-        L, num_poly = ndimage.label(R_new==r_id)
+        L, num_poly = ndimage.label(R_new == r_id)
         if num_poly == 1: continue
         idx_poly = np.arange(1, num_poly + 1)
-        siz_poly = ndimage.sum_labels(np.ones_like(L), L,
-                                      index=idx_poly)
+        siz_poly = ndimage.sum_labels(np.ones_like(L), L, index=idx_poly)
         max_poly = idx_poly[np.argmax(siz_poly)]
         OUT = np.logical_and(L != 0, L != max_poly)
         np.putmask(R_new, OUT, 0)
 
     if maskedArray:
-        R_new = np.ma.array(R_new, mask=R_new==0)
+        R_new = np.ma.array(R_new, mask=R_new == 0)
     return R_new
+
 
 def _create_ela_grid(R, r_id, ela):
     lookup = np.empty((np.max(r_id) + 1), dtype=int)
     lookup[r_id] = np.arange(len(r_id))
-    if type(R) in (np.ma.core.MaskedArray,):
+    if type(R) in (np.ma.core.MaskedArray, ):
         np.putmask(R.data, R.mask, 0)
         indices = np.take(lookup, R.data)
     else:
         indices = lookup[R]
     ELA = ela[indices]
-    np.putmask(ELA, indices==0, np.nan)
+    np.putmask(ELA, indices == 0, np.nan)
     return ELA
 
 
@@ -112,14 +116,17 @@ def volume2icemass(V, Z=None, RGI=None, ela=None, distinction='Kaeaeb'):
               change to mass change", The cryosphere, vol.7 pp.877–887, 2013.
     """
 
-    if distinction in ('Kaeaeb', 'Kääb',):
+    if distinction in (
+            'Kaeaeb',
+            'Kääb',
+    ):
         ρ_abl, ρ_acc = 300, 900
         if ela is None:
             rid, ela = get_midpoint_altitude(RGI, Z)
         # create ELA array
         ELA = _create_ela_grid(RGI, rid, ela)
-        ρ = np.choose((Z>ELA).astype(int), [ρ_acc, ρ_abl])
-    else: # do uniform density estimate
+        ρ = np.choose((Z > ELA).astype(int), [ρ_acc, ρ_abl])
+    else:  # do uniform density estimate
         ρ = 850
 
     M = np.multiply(ρ, V)
@@ -131,13 +138,17 @@ def mass_change2specific_glaciers(dM, RGI):
     f = lambda x: np.quantile(x, 0.5)
     labels, mb, count = get_stats_from_labelled_array(RGI, dM, f)
 
-    IN = ~np.isnan(mb[...,0])
+    IN = ~np.isnan(mb[..., 0])
     labels, mb, count = labels[IN], mb[IN], count[IN]
     return labels, mb, count
 
 
-def mass_changes2specific_glacier_hypsometries(dM, Z, RGI, interval=100,
-                                               Z_start=None, Z_stop=None):
+def mass_changes2specific_glacier_hypsometries(dM,
+                                               Z,
+                                               RGI,
+                                               interval=100,
+                                               Z_start=None,
+                                               Z_stop=None):
     """
 
     Parameters
@@ -171,19 +182,19 @@ def mass_changes2specific_glacier_hypsometries(dM, Z, RGI, interval=100,
         Z = np.minimum(Z, Z_stop)
 
     Z_bin = (Z // interval).astype(int)
-    f = lambda x: np.quantile(x, 0.5) if x.size>0 else np.nan
+    f = lambda x: np.quantile(x, 0.5) if x.size > 0 else np.nan
     Mb, rgi, z_bin, Count = get_stats_from_labelled_arrays(RGI, Z_bin, dM, f)
 
     # sort array, so biggest glacier is first
     new_idx = np.flip(np.argsort(np.sum(Count, axis=1)))
     rgi = rgi[new_idx]
-    Mb, Count = Mb[new_idx,:], Count[new_idx,:]
-
+    Mb, Count = Mb[new_idx, :], Count[new_idx, :]
 
     header = z_bin.astype(float) * interval
     # np.putmask(Mb, Count==0, np.nan)
     # plt.plot(np.tile(header, (Mb.shape[0],1)).T, Mb.T);
     return Mb, rgi, header
+
 
 def hypsometric_void_interpolation(z, dz, Z, deg=3):
     """
@@ -209,8 +220,8 @@ def hypsometric_void_interpolation(z, dz, Z, deg=3):
     .. [Mc19] McNabb et al. "Sensitivity of glacier volume estimation to DEM
               void interpolation", The cryosphere, vol.13 pp.895-910, 2019.
     """
-    if type(Z) in (np.ma.core.MaskedArray,):
+    if type(Z) in (np.ma.core.MaskedArray, ):
         Z = Z.data
-    f = np.poly1d(np.polyfit(z,dz, deg=deg))
+    f = np.poly1d(np.polyfit(z, dz, deg=deg))
     dZ = f(Z)
     return dZ

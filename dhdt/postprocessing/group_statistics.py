@@ -5,6 +5,7 @@ from scipy import ndimage
 
 from dhdt.generic.terrain_tools import terrain_slope
 
+
 def get_midpoint_altitude(RGI, Z, roi=None):
     """ the mid-point altitude is a for the ELA [RB09]_.
 
@@ -40,11 +41,12 @@ def get_midpoint_altitude(RGI, Z, roi=None):
 
     f = lambda x: np.quantile(x, 0.5)
     if roi is None:
-        labels, altitude,_ = get_stats_from_labelled_array(RGI, Z, f)
+        labels, altitude, _ = get_stats_from_labelled_array(RGI, Z, f)
         labels = labels.astype(int)
     else:
-        labels, altitude = np.array([roi]), f(Z[RGI==roi])
+        labels, altitude = np.array([roi]), f(Z[RGI == roi])
     return labels, altitude
+
 
 def get_hypsometric_index(RGI, Z):
     """ get the hypsometric index of glaciers based on [Ji09]_.
@@ -80,14 +82,16 @@ def get_hypsometric_index(RGI, Z):
               vol.50(53) pp.133-143, 2009.
     """
 
-    f = [lambda x: np.nanmax(x),
-         lambda x: np.nanmedian(x),
-         lambda x: np.nanmin(x)]
+    f = [
+        lambda x: np.nanmax(x), lambda x: np.nanmedian(x),
+        lambda x: np.nanmin(x)
+    ]
 
     labels, stats, _ = get_stats_from_labelled_array(RGI, Z, f)
-    denom = stats[:,1]-stats[:,2]
-    HI = np.divide(stats[:,0]-stats[:,1], denom, where=denom!=0)
+    denom = stats[:, 1] - stats[:, 2]
+    HI = np.divide(stats[:, 0] - stats[:, 1], denom, where=denom != 0)
     return labels, HI
+
 
 def get_kurowsky_altitude(RGI, Z):
     """ get the 'Kurowski’s Schneegrenze' of glaciers based on [Ku91]_.
@@ -112,12 +116,12 @@ def get_kurowsky_altitude(RGI, Z):
               berücksichtigung der Finsteraarhorn-gruppe" Pencks geographische
               abhandlungen vol.5 pp.119–160, 1891.
     """
-    f = [lambda x: np.nanmax(x),
-         lambda x: np.nanmin(x)]
+    f = [lambda x: np.nanmax(x), lambda x: np.nanmin(x)]
 
     labels, stats, _ = get_stats_from_labelled_array(RGI, Z, f)
-    K = np.divide(stats[:,0]+stats[:,1], 2)
+    K = np.divide(stats[:, 0] + stats[:, 1], 2)
     return labels, K
+
 
 def get_normalized_hypsometry(RGI, Z, dZ, bins=20):
     """
@@ -155,9 +159,10 @@ def get_normalized_hypsometry(RGI, Z, dZ, bins=20):
 
     hypsometry = None
     for rgiid in np.unique(RGI):
-        z_r, dz_r = Z[RGI==rgiid], dZ[RGI==rgiid]
-        z_n = np.floor(np.divide(z_r -np.min(z_r), np.ptp(z_r)) * (bins-1))
-        labels, indices, counts = np.unique(z_n, return_counts=True,
+        z_r, dz_r = Z[RGI == rgiid], dZ[RGI == rgiid]
+        z_n = np.floor(np.divide(z_r - np.min(z_r), np.ptp(z_r)) * (bins - 1))
+        labels, indices, counts = np.unique(z_n,
+                                            return_counts=True,
                                             return_inverse=True)
         arr_split = np.split(dz_r[indices.argsort()], counts.cumsum()[:-1])
 
@@ -203,13 +208,13 @@ def get_general_hypsometry(Z, dZ, interval=100.):
         ('please provide arrays of the same size')
 
     L = (Z // interval).astype(int)
-    f =  lambda x: np.nanmedian(x) if x.size!=0 else np.nan
+    f = lambda x: np.nanmedian(x) if x.size != 0 else np.nan
     label, hypsometry, counts = get_stats_from_labelled_array(L, dZ, f)
     label = np.multiply(label.astype(float), interval)
     return label, hypsometry, counts
 
 
-def get_stats_from_labelled_array(L,I,func):
+def get_stats_from_labelled_array(L, I, func):
     """ get properties of a labelled array
 
     Parameters
@@ -241,7 +246,7 @@ def get_stats_from_labelled_array(L,I,func):
     False: 74
     True: 172
     """
-    if type(L) in (np.ma.core.MaskedArray,):
+    if type(L) in (np.ma.core.MaskedArray, ):
         OUT = np.logical_or(L.mask, I.mask)
     else:
         OUT = np.logical_or(np.isnan(L), np.isnan(I))
@@ -254,13 +259,14 @@ def get_stats_from_labelled_array(L,I,func):
 
     if isinstance(func, list):
         result = np.empty((len(arr_split), len(func)))
-        for idx,f in enumerate(func):
-            result[...,idx] = np.array(list(map(f, arr_split)))
+        for idx, f in enumerate(func):
+            result[..., idx] = np.array(list(map(f, arr_split)))
     else:
         result = np.array(list(map(func, arr_split)))
     return labels, result, counts
 
-def get_stats_from_labelled_arrays(L1,L2,I,func):
+
+def get_stats_from_labelled_arrays(L1, L2, I, func):
     """ get properties of an array via a double labelling
 
     Parameters
@@ -282,9 +288,10 @@ def get_stats_from_labelled_arrays(L1,L2,I,func):
         array with the sample size, used to estimate the property given in L
 
     """
+
     def _get_mask_dat(A):
-        Msk = A.mask if type(A) in (np.ma.core.MaskedArray,) else np.isnan(A)
-        Dat = A.data if type(A) in (np.ma.core.MaskedArray,) else A
+        Msk = A.mask if type(A) in (np.ma.core.MaskedArray, ) else np.isnan(A)
+        Dat = A.data if type(A) in (np.ma.core.MaskedArray, ) else A
         return Dat, Msk
 
     L1, M1 = _get_mask_dat(L1)
@@ -295,7 +302,8 @@ def get_stats_from_labelled_arrays(L1,L2,I,func):
     del OUT, M1, M2, M
 
     labels_1, indices, counts = np.unique(L1,
-        return_counts=True, return_inverse=True)
+                                          return_counts=True,
+                                          return_inverse=True)
     labels_2 = np.unique(L2)
 
     arr_I_split = np.split(I[indices.argsort()], counts.cumsum()[:-1])
@@ -306,7 +314,8 @@ def get_stats_from_labelled_arrays(L1,L2,I,func):
     for idx, I_L1 in enumerate(arr_I_split):
         L2_split = arr_L_split[idx]
         labels, indices, counts = np.unique(L2_split,
-                return_counts=True, return_inverse=True)
+                                            return_counts=True,
+                                            return_inverse=True)
         I_L2 = np.split(I_L1[indices.argsort()], counts.cumsum()[:-1])
         result = np.array(list(map(func, I_L2)))
         L[idx, np.searchsorted(labels_2, labels)] = result

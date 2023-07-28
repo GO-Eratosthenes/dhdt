@@ -2,6 +2,7 @@ import numpy as np
 
 from datetime import datetime, timedelta
 
+
 # time conversions
 def datetime2doy(dt):
     """ Convert array of datetime64 to a day of year.
@@ -18,12 +19,13 @@ def datetime2doy(dt):
     doy : integer, {x ∈ ℕ}
         day of year
     """
-    year = dt.astype('datetime64[Y]').astype(int)+1970
-    doy = (dt.astype('datetime64[D]') -
-          dt.astype('datetime64[Y]') + 1).astype('float64')
+    year = dt.astype('datetime64[Y]').astype(int) + 1970
+    doy = (dt.astype('datetime64[D]') - dt.astype('datetime64[Y]') +
+           1).astype('float64')
     return year, doy
 
-def doy2dmy(doy,year):
+
+def doy2dmy(doy, year):
     """ given day of years, calculate the day and month
 
     Parameters
@@ -39,7 +41,7 @@ def doy2dmy(doy,year):
     """
 
     if year.size < doy.size:
-        year = year*np.ones_like(doy)
+        year = year * np.ones_like(doy)
 
     # sometimes the doy is longer than 365, than put this to the year counter
     xtra_years = np.floor(doy / 365).astype(int)
@@ -47,14 +49,16 @@ def doy2dmy(doy,year):
 
     doy = doy % 365
 
-    dates = (year-1970).astype('datetime64[Y]') + doy.astype('timedelta64[D]')
+    dates = (year -
+             1970).astype('datetime64[Y]') + doy.astype('timedelta64[D]')
     month = dates.astype('datetime64[M]').astype(int) % 12 + 1
     day = dates - dates.astype('datetime64[M]') + 1
     day = day.astype(int)
-    if day.size==1:
+    if day.size == 1:
         return day[0], month[0], year[0]
     else:
         return day, month, year
+
 
 def datetime2calender(dt):
     """ Convert array of datetime64 to a calendar year, month, day.
@@ -77,6 +81,7 @@ def datetime2calender(dt):
     day = ((D - M) + 1).astype('timedelta64[D]').astype(int)
     return year, month, day
 
+
 def datenum2datetime(t):
     """ some write a date as a number "YYYYMMDD" conver this to numpy.datetime
 
@@ -95,11 +100,14 @@ def datenum2datetime(t):
     datetime2datenum
     """
     if type(t) in (np.ndarray, ):
-        dt = np.array([np.datetime64(str(e)[:4]+'-'+str(e)[4:6]+'-'+str(e)[-2:])
-              for e in t.astype(str)])
+        dt = np.array([
+            np.datetime64(str(e)[:4] + '-' + str(e)[4:6] + '-' + str(e)[-2:])
+            for e in t.astype(str)
+        ])
     else:
         dt = np.datetime64(str(t)[:4] + '-' + str(t)[4:6] + '-' + str(t)[-2:])
     return dt
+
 
 def datetime2datenum(dt):
     """ convert numpy.datetime to a date as a number "YYYYMMDD"
@@ -119,50 +127,62 @@ def datetime2datenum(dt):
     datenum2datetime
     """
     if type(dt) in (np.ndarray, ):
-        t = np.array([int(e.astype(str)[:4] +
-                          e.astype(str)[5:7]+
-                          e.astype(str)[-2:])
-              for e in dt.astype(str)], dtype=np.int64)
+        t = np.array([
+            int(e.astype(str)[:4] + e.astype(str)[5:7] + e.astype(str)[-2:])
+            for e in dt.astype(str)
+        ],
+                     dtype=np.int64)
     else:
-        dt = int(dt.astype(str)[:4]+dt.astype(str)[5:7]+dt.astype(str)[-2:])
+        dt = int(
+            dt.astype(str)[:4] + dt.astype(str)[5:7] + dt.astype(str)[-2:])
     return t
+
 
 # atmospheric scales and formats
 def kelvin2celsius(T):
     t = T - 273.15
     return t
 
+
 def celsius2kelvin(t):
     T = t + 273.15
     return T
+
 
 def hpa2pascal(P):
     mbar2pascal(P)
     return P
 
+
 def mbar2pascal(P):
     mb = P * 100
     return mb
+
 
 def pascal2mbar(P):
     mb = P / 100
     return mb
 
+
 def hpa2pascal(hpa):
     P = mbar2pascal(hpa)
     return P
+
 
 def pascal2hpa(P):
     hpa = pascal2mbar(P)
     return hpa
 
+
 def mbar2torr(P):
-    t = P*0.750061683
+    t = P * 0.750061683
     return t
 
+
 def torr2mbar(t):
-    mb = t/0.750061683
+    mb = t / 0.750061683
     return mb
+
 
 # geometric and angular scales and formats
 def deg2dms(ang):
@@ -182,12 +202,13 @@ def deg2dms(ang):
     sec : {float,np.array}, range=0...60
         angular seconds
     """
-    min,sec = np.divmod(ang*3600, 60)
-    deg,min = np.divmod(min, 60)
-    deg,min = deg.astype(int), min.astype(int)
-    return deg,min,sec
+    min, sec = np.divmod(ang * 3600, 60)
+    deg, min = np.divmod(min, 60)
+    deg, min = deg.astype(int), min.astype(int)
+    return deg, min, sec
 
-def dms2deg(deg,min,sec):
+
+def dms2deg(deg, min, sec):
     """ convert degree minutes seconds format to decimal degrees
 
     Parameters
@@ -204,8 +225,10 @@ def dms2deg(deg,min,sec):
     ang : {float,np.array}, unit=decimal degrees
         angle(s) of interest
     """
-    ang = deg.astype(float) + (min.astype(float)/60) + (sec.astype(float)/3600)
+    ang = deg.astype(float) + (min.astype(float) / 60) + (sec.astype(float) /
+                                                          3600)
     return ang
+
 
 def deg2gon(ang):
     """ convert from gon to degrees
@@ -222,8 +245,9 @@ def deg2gon(ang):
     --------
     gon2deg, deg2compass
     """
-    ang *= 400/360
+    ang *= 400 / 360
     return ang
+
 
 def gon2deg(ang):
     """ convert from gon to degrees
@@ -240,8 +264,9 @@ def gon2deg(ang):
     --------
     deg2gon, deg2compass
     """
-    ang *= 360/400
+    ang *= 360 / 400
     return ang
+
 
 def deg2compass(θ):
     """ adjust angle to be in bounds of a positive argument angle,like a compass
@@ -272,6 +297,7 @@ def deg2compass(θ):
     """
     return θ % 360
 
+
 def deg2arg(θ):
     """ adjust angle to be in bounds of an argument angle
 
@@ -299,4 +325,4 @@ def deg2arg(θ):
                  |
                  +----> East & x
     """
-    return ((θ + 180) % 360) -180
+    return ((θ + 180) % 360) - 180

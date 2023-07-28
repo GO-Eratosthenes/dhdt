@@ -9,6 +9,7 @@ from stactools.sentinel2.constants import GRANULE_METADATA_ASSET_KEY
 GCS_ROOT_URL = "https://storage.googleapis.com"
 SENTINEL2_BUCKET = "gcp-public-data-sentinel-2"
 
+
 def _get_granule_href_s2(safe_filename):
     """ Construct HREF with full GCS URL from the SAFE file name.
 
@@ -23,15 +24,12 @@ def _get_granule_href_s2(safe_filename):
         full address in the google cloud storage
     """
     bucket_url = f"{GCS_ROOT_URL}/{SENTINEL2_BUCKET}"
-    root_url = (
-        bucket_url if "_MSIL1C_" in safe_filename else f"{bucket_url}/L2"
-    )
+    root_url = (bucket_url
+                if "_MSIL1C_" in safe_filename else f"{bucket_url}/L2")
     tile_id = safe_filename[39:44]
-    return (
-        f"{root_url}/"
-        f"tiles/{tile_id[:2]}/{tile_id[2]}/{tile_id[3:]}/"
-        f"{safe_filename}"
-    )
+    return (f"{root_url}/"
+            f"tiles/{tile_id[:2]}/{tile_id[2]}/{tile_id[3:]}/"
+            f"{safe_filename}")
 
 
 def _get_sensor_array_key_asset_pair_s2(href):
@@ -54,9 +52,8 @@ def _get_sensor_array_key_asset_pair_s2(href):
     """
     stem, ext = os.path.splitext(href)
     band_key = stem.split("_")[-1]
-    media_type = (
-        pystac.MediaType.XML if ext == ".gml" else pystac.MediaType.JPEG2000
-    )
+    media_type = (pystac.MediaType.XML
+                  if ext == ".gml" else pystac.MediaType.JPEG2000)
     asset = pystac.Asset(href=href, media_type=media_type, roles=["metadata"])
     return f"sensor_metadata_{band_key}", asset
 
@@ -79,9 +76,8 @@ def _create_sensor_array_assets_s2(granule_href, granule_metadata_href):
     """
     sensor_array_assets = {}
     root = XmlElement.from_file(granule_metadata_href)
-    elements = (
-        root.findall("n1:Quality_Indicators_Info/Pixel_Level_QI/MASK_FILENAME")
-    )
+    elements = (root.findall(
+        "n1:Quality_Indicators_Info/Pixel_Level_QI/MASK_FILENAME"))
     for element in elements:
         if element.get_attr("type") == "MSK_DETFOO":
             asset_href = os.path.join(granule_href, element.text)
@@ -111,7 +107,9 @@ def _create_item_s2(safe_filename):
     return item
 
 
-def create_stac_catalog(catalog_path, catalog_description, safe_filenames,
+def create_stac_catalog(catalog_path,
+                        catalog_description,
+                        safe_filenames,
                         template='${year}/${month}/${day}'):
     """
     Create a STAC catalog from the provided list of Sentinel-2 scenes,
@@ -128,10 +126,8 @@ def create_stac_catalog(catalog_path, catalog_description, safe_filenames,
     if template is not None:
         catalog.generate_subcatalogs(template)
 
-    catalog.normalize_and_save(
-        catalog_path,
-        catalog_type=pystac.CatalogType.SELF_CONTAINED
-    )
+    catalog.normalize_and_save(catalog_path,
+                               catalog_type=pystac.CatalogType.SELF_CONTAINED)
     return catalog
 
 
@@ -161,6 +157,6 @@ def download_assets(catalog_path, asset_keys):
                 asset_abs_href,
                 copy=True,
             )
-            asset.href = pystac.utils.make_relative_href(asset_href,
-                                                         item.get_self_href())
+            asset.href = pystac.utils.make_relative_href(
+                asset_href, item.get_self_href())
         item.save_object()

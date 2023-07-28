@@ -49,40 +49,41 @@ def perdecomp(img):
     if (0 in img.shape): return img, np.zeros_like(img)
 
     img = img.astype(float)
-    if img.ndim==2:
+    if img.ndim == 2:
         (m, n) = img.shape
         per = np.zeros((m, n), dtype=float)
 
-        per[+0,:] = +img[0,:] -img[-1,:]
+        per[+0, :] = +img[0, :] - img[-1, :]
         per[-1, :] = -per[0, :]
 
-        per[:,+0] = per[:,+0] +img[:,+0] -img[:,-1]
-        per[:,-1] = per[:,-1] -img[:,+0] +img[:,-1]
-    
-    elif img.ndim==3:
+        per[:, +0] = per[:, +0] + img[:, +0] - img[:, -1]
+        per[:, -1] = per[:, -1] - img[:, +0] + img[:, -1]
+
+    elif img.ndim == 3:
         (m, n, b) = img.shape
         per = np.zeros((m, n, b), dtype=float)
-        
-        per[+0,:,:] = +img[0,:,:] -img[-1,:,:]
-        per[-1,:,:] = -per[0,:,:]
-        
-        per[:,+0,:] = per[:,+0,:] +img[:,+0,:] -img[:,-1,:]
-        per[:,-1,:] = per[:,-1,:] -img[:,+0,:] +img[:,-1,:]
-    
-    fy = np.cos( 2*np.pi*( np.arange(0,m) )/m )
-    fx = np.cos( 2*np.pi*( np.arange(0,n) )/n )
 
-    Fx = np.repeat(fx[np.newaxis,:],m,axis=0)
-    Fy = np.repeat(fy[:,np.newaxis],n,axis=1)
-    Fx[0,0] = 0
-    if img.ndim==3:
-        Fx = np.repeat(Fx[:,:,np.newaxis], b, axis=2)
-        Fy = np.repeat(Fy[:,:,np.newaxis], b, axis=2)
-        cor = np.real( np.fft.ifftn( np.fft.fft2(per) *.5/ (2-Fx-Fy)))
+        per[+0, :, :] = +img[0, :, :] - img[-1, :, :]
+        per[-1, :, :] = -per[0, :, :]
+
+        per[:, +0, :] = per[:, +0, :] + img[:, +0, :] - img[:, -1, :]
+        per[:, -1, :] = per[:, -1, :] - img[:, +0, :] + img[:, -1, :]
+
+    fy = np.cos(2 * np.pi * (np.arange(0, m)) / m)
+    fx = np.cos(2 * np.pi * (np.arange(0, n)) / n)
+
+    Fx = np.repeat(fx[np.newaxis, :], m, axis=0)
+    Fy = np.repeat(fy[:, np.newaxis], n, axis=1)
+    Fx[0, 0] = 0
+    if img.ndim == 3:
+        Fx = np.repeat(Fx[:, :, np.newaxis], b, axis=2)
+        Fy = np.repeat(Fy[:, :, np.newaxis], b, axis=2)
+        cor = np.real(np.fft.ifftn(np.fft.fft2(per) * .5 / (2 - Fx - Fy)))
     else:
-        cor = np.real( np.fft.ifft2( np.fft.fft2(per) *.5/ (2-Fx-Fy)))
-    per = img-cor
+        cor = np.real(np.fft.ifft2(np.fft.fft2(per) * .5 / (2 - Fx - Fy)))
+    per = img - cor
     return per, cor
+
 
 def make_template_float(I):
     """ templates for frequency matching should be float and ideally have
@@ -100,9 +101,10 @@ def make_template_float(I):
     """
     if I.dtype.type in (np.uint8, np.uint16):
         I = mat_to_gray(I)  # transform to float in range 0...1
-        I = perdecomp(I)[0] # spectral pre-processing
+        I = perdecomp(I)[0]  # spectral pre-processing
         I = np.atleast_2d(np.squeeze(I))
     return I
+
 
 def normalize_power_spectrum(Q):
     """transform spectrum to complex vectors with unit length 
@@ -127,10 +129,11 @@ def normalize_power_spectrum(Q):
     >>> Q = spec1 * np.conjugate(spec2) # fourier based image matching
     >>> Qn = normalize_spectrum(Q)
   
-    """    
-    assert type(Q)==np.ndarray, ("please provide an array")
-    Qn = np.divide(Q, abs(Q), out=np.zeros_like(Q), where=Q!=0)
+    """
+    assert type(Q) == np.ndarray, ("please provide an array")
+    Qn = np.divide(Q, abs(Q), out=np.zeros_like(Q), where=Q != 0)
     return Qn
+
 
 def local_coherence(Q, ds=1):
     """ estimate the local coherence of a spectrum
@@ -176,8 +179,8 @@ def local_coherence(Q, ds=1):
     C = np.zeros_like(Q)
     (isteps, jsteps) = np.meshgrid(np.linspace(-ds, +ds, 2 * ds + 1, dtype=int), \
                                    np.linspace(-ds, +ds, 2 * ds + 1, dtype=int))
-    IN = np.ones(diam ** 2, dtype=bool)
-    IN[diam ** 2 // 2] = False
+    IN = np.ones(diam**2, dtype=bool)
+    IN[diam**2 // 2] = False
     isteps, jsteps = isteps.flatten()[IN], jsteps.flatten()[IN]
 
     for idx, istep in enumerate(isteps):
@@ -188,7 +191,11 @@ def local_coherence(Q, ds=1):
     C = np.abs(C) / np.sum(IN)
     return C
 
-def make_fourier_grid(Q, indexing='ij', system='radians', shift=True,
+
+def make_fourier_grid(Q,
+                      indexing='ij',
+                      system='radians',
+                      shift=True,
                       axis='center'):
     """
     The four quadrants of the coordinate system of the discrete Fourier 
@@ -245,40 +252,42 @@ def make_fourier_grid(Q, indexing='ij', system='radians', shift=True,
                      |                       |
                      | i                     |
                      v                       |
-   """     
+   """
     assert type(Q) in (np.ma.core.MaskedArray, np.ndarray), \
         ("please provide an array")
-    (m,n) = Q.shape
-    if indexing=='ij':
-        if axis in ('center',):
-            (I_grd, J_grd) = np.meshgrid(np.arange(0,m), np.arange(0,n),
+    (m, n) = Q.shape
+    if indexing == 'ij':
+        if axis in ('center', ):
+            (I_grd, J_grd) = np.meshgrid(np.arange(0, m),
+                                         np.arange(0, n),
                                          indexing='ij')
         else:
-            (I_grd,J_grd) = np.meshgrid(np.arange(0,m)-(m//2),
-                                        np.arange(0,n)-(n//2),
-                                        indexing='ij')
-        F_1, F_2 = I_grd/m, J_grd/n
+            (I_grd, J_grd) = np.meshgrid(np.arange(0, m) - (m // 2),
+                                         np.arange(0, n) - (n // 2),
+                                         indexing='ij')
+        F_1, F_2 = I_grd / m, J_grd / n
     else:
-        fy, fx = np.linspace(0,m,m), np.linspace(0,n,n)
-        if axis in ('center',):
-            fy, fx = fy-(m//2), fx-(n//2)
-        fy, fx = np.flip(fy)/m, fx/n
+        fy, fx = np.linspace(0, m, m), np.linspace(0, n, n)
+        if axis in ('center', ):
+            fy, fx = fy - (m // 2), fx - (n // 2)
+        fy, fx = np.flip(fy) / m, fx / n
 
-        F_1 = np.repeat(fx[np.newaxis,:],m,axis=0)
-        F_2 = np.repeat(fy[:,np.newaxis],n,axis=1)
+        F_1 = np.repeat(fx[np.newaxis, :], m, axis=0)
+        F_2 = np.repeat(fy[:, np.newaxis], n, axis=1)
 
-    if system=='radians': # what is the range of the axis
-        F_1 *= 2*np.pi
-        F_2 *= 2*np.pi
-    elif system=='pixel':
+    if system == 'radians':  # what is the range of the axis
+        F_1 *= 2 * np.pi
+        F_2 *= 2 * np.pi
+    elif system == 'pixel':
         F_1 *= n
         F_1 *= m
-    elif system=='unit':
+    elif system == 'unit':
         F_1 *= 2
         F_2 *= 2
     if shift:
         F_1, F_2 = np.fft.fftshift(F_1), np.fft.fftshift(F_2)
     return F_1, F_2
+
 
 def construct_phase_plane(I, di, dj, indexing='ij'):
     """given a displacement, create what its phase plane in Fourier space
@@ -317,18 +326,19 @@ def construct_phase_plane(I, di, dj, indexing='ij'):
           based      v           based       |
 
     """
-    (m,n) = I.shape
+    (m, n) = I.shape
 
     (I_grd,J_grd) = np.meshgrid(np.arange(0,n)-(n//2),
                                 np.arange(0,m)-(m//2), \
                                 indexing='ij')
-    I_grd,J_grd = I_grd/m, J_grd/n
+    I_grd, J_grd = I_grd / m, J_grd / n
 
-    Q_unwrap = ((I_grd*di) + (J_grd*dj) ) * (2*np.pi)   # in radians
-    Q = np.cos(-Q_unwrap) + 1j*np.sin(-Q_unwrap)
+    Q_unwrap = ((I_grd * di) + (J_grd * dj)) * (2 * np.pi)  # in radians
+    Q = np.cos(-Q_unwrap) + 1j * np.sin(-Q_unwrap)
 
     Q = np.fft.fftshift(Q)
     return Q
+
 
 def cross_spectrum_to_coordinate_list(data, W=np.array([])):
     """ if data is given in array for, then transform it to a coordinate list
@@ -345,29 +355,33 @@ def cross_spectrum_to_coordinate_list(data, W=np.array([])):
     data_list : np.array, size=(m*n,3), dtype=float
         coordinate list with angles, in normalized ranges, i.e: -1 ... +1
     """
-    assert type(data)==np.ndarray, ("please provide an array")
-    assert type(W)==np.ndarray, ("please provide an array")
+    assert type(data) == np.ndarray, ("please provide an array")
+    assert type(W) == np.ndarray, ("please provide an array")
 
-    if data.shape[0]==data.shape[1]:
-        (m,n) = data.shape
-        F1,F2 = make_fourier_grid(np.zeros((m,n)),
-                                  indexing='ij', system='unit')
+    if data.shape[0] == data.shape[1]:
+        (m, n) = data.shape
+        F1, F2 = make_fourier_grid(np.zeros((m, n)),
+                                   indexing='ij',
+                                   system='unit')
 
         # transform from complex to -1...+1
-        Q = np.fft.fftshift(np.angle(data) / np.pi) #(2*np.pi))
+        Q = np.fft.fftshift(np.angle(data) / np.pi)  #(2*np.pi))
 
-        data_list = np.vstack((F1.flatten(),
-                               F2.flatten(),
-                               Q.flatten() )).T
-        if W.size>0: # remove masked data
-            data_list = data_list[W.flatten()==1,:]
-    elif W.size!= 0:
-        data_list = data[W.flatten()==1,:]
+        data_list = np.vstack((F1.flatten(), F2.flatten(), Q.flatten())).T
+        if W.size > 0:  # remove masked data
+            data_list = data_list[W.flatten() == 1, :]
+    elif W.size != 0:
+        data_list = data[W.flatten() == 1, :]
     else:
         data_list = data
     return data_list
 
-def construct_phase_values(IJ, di, dj, indexing='ij', system='radians'): #todo implement indexing
+
+def construct_phase_values(IJ,
+                           di,
+                           dj,
+                           indexing='ij',
+                           system='radians'):  #todo implement indexing
     """given a displacement, create what its phase plane in Fourier space
 
     Parameters
@@ -394,16 +408,17 @@ def construct_phase_values(IJ, di, dj, indexing='ij', system='radians'): #todo i
         array with phase angles
     """
 
-    if system=='radians': # -pi ... +pi
+    if system == 'radians':  # -pi ... +pi
         scaling = 1
-    elif system=='unit': # -1 ... +1
+    elif system == 'unit':  # -1 ... +1
         scaling = np.pi
-    else: # normalized -0.5 ... +0.5
-        scaling = 2*np.pi
+    else:  # normalized -0.5 ... +0.5
+        scaling = 2 * np.pi
 
-    Q_unwrap = ((IJ[:,0]*di) + (IJ[:,1]*dj) )*scaling
-    Q = np.cos(-Q_unwrap) + 1j*np.sin(-Q_unwrap)
+    Q_unwrap = ((IJ[:, 0] * di) + (IJ[:, 1] * dj)) * scaling
+    Q = np.cos(-Q_unwrap) + 1j * np.sin(-Q_unwrap)
     return Q
+
 
 def gradient_fourier(I):
     """ spectral derivative estimation
@@ -420,19 +435,21 @@ def gradient_fourier(I):
     """
     m, n = I.shape[0:2]
 
-    x_1 = np.linspace(0, 2*np.pi, m, endpoint=False)
+    x_1 = np.linspace(0, 2 * np.pi, m, endpoint=False)
     dx = x_1[1] - x_1[0]
 
-    k_1, k_2 = 2*np.pi*np.fft.fftfreq(m, dx), 2*np.pi*np.fft.fftfreq(n, dx)
+    k_1, k_2 = 2 * np.pi * np.fft.fftfreq(m, dx), 2 * np.pi * np.fft.fftfreq(
+        n, dx)
     K_1, K_2 = np.meshgrid(k_1, k_2, indexing='ij')
 
     # make sure Gibbs phenomena are reduced
     I_g = perdecomp(I)[0]
     W_1, W_2 = hanning_window(K_1), hanning_window(K_2)
 
-    dIdx_1 = np.fft.ifftn(W_1*K_1*1j * np.fft.fftn(I)).real
-    dIdx_2 = np.fft.ifftn(W_2*K_2*1j * np.fft.fftn(I)).real
+    dIdx_1 = np.fft.ifftn(W_1 * K_1 * 1j * np.fft.fftn(I)).real
+    dIdx_2 = np.fft.ifftn(W_2 * K_2 * 1j * np.fft.fftn(I)).real
     return dIdx_1, dIdx_2
+
 
 # frequency matching filters
 def raised_cosine(I, beta=0.35):
@@ -477,21 +494,22 @@ def raised_cosine(I, beta=0.35):
     
     >>> Q = (rc1*spec1) * np.conjugate((rc2*spec2)) # Fourier based image matching
     >>> Qn = normalize_spectrum(Q)    
-    """ 
-    assert type(I)==np.ndarray, ("please provide an array")
+    """
+    assert type(I) == np.ndarray, ("please provide an array")
     (m, n) = I.shape
-   
-    Fx,Fy = make_fourier_grid(I, indexing='xy', system='normalized')
-    R = np.hypot(Fx, Fy) # radius
-    # filter formulation 
-    Hamm = np.cos( (np.pi/(2*beta)) * (R - (.5-beta)))**2
-    selec = np.logical_and((.5 - beta) <= R , R<=.5)
-    
+
+    Fx, Fy = make_fourier_grid(I, indexing='xy', system='normalized')
+    R = np.hypot(Fx, Fy)  # radius
+    # filter formulation
+    Hamm = np.cos((np.pi / (2 * beta)) * (R - (.5 - beta)))**2
+    selec = np.logical_and((.5 - beta) <= R, R <= .5)
+
     # compose filter
-    W = np.zeros((m,n))
+    W = np.zeros((m, n))
     W[(.5 - beta) > R] = 1
     W[selec] = Hamm[selec]
-    return W 
+    return W
+
 
 def hamming_window(I):
     """ create two-dimensional Hamming filter
@@ -512,11 +530,12 @@ def hamming_window(I):
     hamming_window
         
     """
-    assert type(I)==np.ndarray, ("please provide an array")
+    assert type(I) == np.ndarray, ("please provide an array")
     (m, n) = I.shape
     W = np.sqrt(np.outer(np.hamming(m), np.hamming(n)))
     W = np.fft.fftshift(W)
-    return W 
+    return W
+
 
 def hanning_window(I):
     """ create two-dimensional Hanning filter, also known as Cosine Bell
@@ -537,11 +556,12 @@ def hanning_window(I):
     hamming_window
         
     """
-    assert type(I)==np.ndarray, ("please provide an array")
+    assert type(I) == np.ndarray, ("please provide an array")
     (m, n) = I.shape
     W = np.sqrt(np.outer(np.hanning(m), np.hanning(n)))
     W = np.fft.fftshift(W)
-    return W 
+    return W
+
 
 def blackman_window(I):
     """ create two-dimensional Blackman filter
@@ -562,11 +582,12 @@ def blackman_window(I):
     hanning_window
         
     """
-    assert type(I)==np.ndarray, ("please provide an array")
+    assert type(I) == np.ndarray, ("please provide an array")
     (m, n) = I.shape
     W = np.sqrt(np.outer(np.blackman(m), np.blackman(n)))
     W = np.fft.fftshift(W)
-    return W 
+    return W
+
 
 def kaiser_window(I, beta=14.):
     """ create two dimensional Kaiser filter
@@ -592,11 +613,12 @@ def kaiser_window(I, beta=14.):
     hanning_window
         
     """
-    assert type(I)==np.ndarray, ("please provide an array")
+    assert type(I) == np.ndarray, ("please provide an array")
     (m, n) = I.shape
     W = np.sqrt(np.outer(np.kaiser(m, beta), np.kaiser(n, beta)))
     W = np.fft.fftshift(W)
-    return W 
+    return W
+
 
 def low_pass_rectancle(I, r=0.50):
     """ create hard two dimensional low-pass filter
@@ -624,12 +646,13 @@ def low_pass_rectancle(I, r=0.50):
               electronics, communications and computer sciences, vol.86(8)
               pp.1925-1934, 2003.
     """
-    assert type(I)==np.ndarray, ("please provide an array")
-    Fx,Fy = make_fourier_grid(I, indexing='xy', system='normalized')
+    assert type(I) == np.ndarray, ("please provide an array")
+    Fx, Fy = make_fourier_grid(I, indexing='xy', system='normalized')
 
-    # filter formulation 
-    W = np.logical_and(np.abs(Fx)<=r, np.abs(Fy)<=r) 
-    return W 
+    # filter formulation
+    W = np.logical_and(np.abs(Fx) <= r, np.abs(Fy) <= r)
+    return W
+
 
 def low_pass_pyramid(I, r=0.50):
     """ create low-pass two-dimensional filter with pyramid shape, see also
@@ -658,12 +681,13 @@ def low_pass_pyramid(I, r=0.50):
               electronics, communications and computer sciences, vol.86(8)
               pp.1925-1934, 2003.
     """
-    assert type(I)==np.ndarray, ("please provide an array")
+    assert type(I) == np.ndarray, ("please provide an array")
     R = low_pass_rectancle(I, r)
     W = signal.convolve2d(R.astype(float), R.astype(float), \
                           mode='same', boundary='wrap')
-    W = np.fft.fftshift(W/np.max(W))
+    W = np.fft.fftshift(W / np.max(W))
     return W
+
 
 def low_pass_bell(I, r=0.50):
     """ create low-pass two-dimensional filter with a bell shape, see also
@@ -692,13 +716,14 @@ def low_pass_bell(I, r=0.50):
               electronics, communications and computer sciences, vol.86(8)
               pp.1925-1934, 2003.
     """
-    assert type(I)==np.ndarray, ("please provide an array")
+    assert type(I) == np.ndarray, ("please provide an array")
     R1 = low_pass_rectancle(I, r)
     R2 = low_pass_pyramid(I, r)
     W = signal.convolve2d(R1.astype(float), R2.astype(float), \
                           mode='same', boundary='wrap')
-    W = np.fft.fftshift(W/np.max(W))
+    W = np.fft.fftshift(W / np.max(W))
     return W
+
 
 def low_pass_circle(I, r=0.50):
     """ create hard two-dimensional low-pass filter
@@ -718,17 +743,19 @@ def low_pass_circle(I, r=0.50):
     See Also
     --------
     raised_cosine, cosine_bell, high_pass_circle       
-    """   
+    """
     assert type(I) in (np.ma.core.MaskedArray, np.ndarray), \
         ("please provide an array")
-    if type(I) in (np.ma.core.MaskedArray,):
+    if type(I) in (np.ma.core.MaskedArray, ):
         I = np.ma.getdata(I)
 
-    Fx, Fy = make_fourier_grid(I, indexing='xy',
-                               system='normalized', shift=False)
-    R = np.hypot(Fx,Fy) # radius
-    # filter formulation 
-    W = R<=r
+    Fx, Fy = make_fourier_grid(I,
+                               indexing='xy',
+                               system='normalized',
+                               shift=False)
+    R = np.hypot(Fx, Fy)  # radius
+    # filter formulation
+    W = R <= r
     return W
 
 
@@ -753,13 +780,14 @@ def low_pass_ellipse(I, r1=0.50, r2=0.50):
     --------
     raised_cosine, cosine_bell, high_pass_circle, low_pass_circle
     """
-    sc = r1/r2
+    sc = r1 / r2
     assert type(I) == np.ndarray, ("please provide an array")
     Fx, Fy = make_fourier_grid(I, indexing='xy', system='normalized')
-    R = np.hypot(sc*Fx, Fy)  # radius
+    R = np.hypot(sc * Fx, Fy)  # radius
     # filter formulation
     W = R <= r1
     return W
+
 
 def high_pass_circle(I, r=0.50):
     """ create hard high-pass filter
@@ -780,12 +808,13 @@ def high_pass_circle(I, r=0.50):
     --------
     raised_cosine, cosine_bell, low_pass_circle      
     """
-    assert type(I)==np.ndarray, ("please provide an array")
-    Fx,Fy = make_fourier_grid(I, indexing='xy', system='normalized')
-    R = np.hypot(Fx, Fy) # radius
-    # filter formulation 
-    W = R>=r
+    assert type(I) == np.ndarray, ("please provide an array")
+    Fx, Fy = make_fourier_grid(I, indexing='xy', system='normalized')
+    R = np.hypot(Fx, Fy)  # radius
+    # filter formulation
+    W = R >= r
     return W
+
 
 def cosine_bell(I):
     """ cosine bell filter
@@ -804,16 +833,17 @@ def cosine_bell(I):
     --------
     raised_cosine     
     """
-    assert type(I)==np.ndarray, ("please provide an array")
-    Fx,Fy = make_fourier_grid(I, indexing='xy', system='normalized')
-    R = np.hypot(Fx, Fy) # radius
-    
-    # filter formulation 
-    W = .5*np.cos(2*R*np.pi) + .5
-    W[R>.5] = 0
+    assert type(I) == np.ndarray, ("please provide an array")
+    Fx, Fy = make_fourier_grid(I, indexing='xy', system='normalized')
+    R = np.hypot(Fx, Fy)  # radius
+
+    # filter formulation
+    W = .5 * np.cos(2 * R * np.pi) + .5
+    W[R > .5] = 0
     return W
 
-def cross_shading_filter(Q, az_1, az_2): #todo
+
+def cross_shading_filter(Q, az_1, az_2):  #todo
     """
 
     Parameters
@@ -846,22 +876,22 @@ def cross_shading_filter(Q, az_1, az_2): #todo
                          np.minimum(np.sin(az_1), np.sin(az_2))
         c_up, s_up = np.maximum(np.cos(az_1), np.cos(az_2)), \
                      np.maximum(np.sin(az_1), np.sin(az_2))
-        OUT = np.logical_and(np.logical_and(np.less(c_down, c_θ),
-                                            np.less(c_θ, c_up)),
-                             np.logical_and(np.less(s_down, s_θ),
-                                            np.less(s_θ, s_up))
-                             )  # (4.42) in [1], pp.51
+        OUT = np.logical_and(
+            np.logical_and(np.less(c_down, c_θ), np.less(c_θ, c_up)),
+            np.logical_and(np.less(s_down, s_θ),
+                           np.less(s_θ, s_up)))  # (4.42) in [1], pp.51
         return OUT
 
     W = np.ones_like(Q, dtype=float)
-    down, up = az_2 - (3*np.pi/2), az_1 - (np.pi/2)
+    down, up = az_2 - (3 * np.pi / 2), az_1 - (np.pi / 2)
     OUT1 = _get_angular_sel(θ, down, up)
     np.putmask(W, OUT1, 0)
 
-    down, up = az_2 - (np.pi/2), az_1 + (np.pi/2)
+    down, up = az_2 - (np.pi / 2), az_1 + (np.pi / 2)
     OUT2 = _get_angular_sel(θ, down, up)
     np.putmask(W, OUT2, 0)
     return W
+
 
 # cross-spectral and frequency signal metrics for filtering
 def thresh_masking(S, m=1e-4, s=10):
@@ -894,21 +924,10 @@ def thresh_masking(S, m=1e-4, s=10):
               coregistration, and subpixel correlation of satellite images,
               application to ground deformation measurements", IEEE Transactions
               on geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.
-    """    
-    assert type(S)==np.ndarray, ("please provide an array")
-    S_bar = np.abs(S)
-    th = np.max(S_bar)*m
-    
-    # compose filter
-    M = S_bar>th
-    if s > 0:
-        M = ndimage.median_filter(M, size=(s,s))
-    return M
-
-def perc_masking(S, m=.95, s=10):
+    """
     assert type(S) == np.ndarray, ("please provide an array")
     S_bar = np.abs(S)
-    th = np.percentile(S_bar, m*100)
+    th = np.max(S_bar) * m
 
     # compose filter
     M = S_bar > th
@@ -916,11 +935,25 @@ def perc_masking(S, m=.95, s=10):
         M = ndimage.median_filter(M, size=(s, s))
     return M
 
-def coherence_masking(S, m=.7, s=0):
-    M = local_coherence(normalize_power_spectrum(S)) > m
-    if s>0:
+
+def perc_masking(S, m=.95, s=10):
+    assert type(S) == np.ndarray, ("please provide an array")
+    S_bar = np.abs(S)
+    th = np.percentile(S_bar, m * 100)
+
+    # compose filter
+    M = S_bar > th
+    if s > 0:
         M = ndimage.median_filter(M, size=(s, s))
     return M
+
+
+def coherence_masking(S, m=.7, s=0):
+    M = local_coherence(normalize_power_spectrum(S)) > m
+    if s > 0:
+        M = ndimage.median_filter(M, size=(s, s))
+    return M
+
 
 def adaptive_masking(S, m=.9):
     """ mark significant intensities in spectrum, following [Le07]_.
@@ -947,18 +980,19 @@ def adaptive_masking(S, m=.9):
               coregistration, and subpixel correlation of satellite images,
               application to ground deformation measurements", IEEE Transactions
               on geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.
-    """ 
-    assert type(S)==np.ndarray, ("please provide an array")
-    np.seterr(divide = 'ignore') 
+    """
+    assert type(S) == np.ndarray, ("please provide an array")
+    np.seterr(divide='ignore')
     LS = np.log10(np.abs(S))
     LS[np.isinf(LS)] = np.nan
-    np.seterr(divide = 'warn') 
-    
-    NLS = LS - np.nanmax(LS.flatten())
-    mean_NLS = m*np.nanmean(NLS.flatten())
+    np.seterr(divide='warn')
 
-    M = NLS>mean_NLS
+    NLS = LS - np.nanmax(LS.flatten())
+    mean_NLS = m * np.nanmean(NLS.flatten())
+
+    M = NLS > mean_NLS
     return M
+
 
 def gaussian_mask(S):
     """ mask significant intensities in spectrum, following [Ec08]_.
@@ -995,9 +1029,10 @@ def gaussian_mask(S):
     >>> W = gaussian_mask(Q)
     >>> C = np.fft.ifft2(W*Q)
     """
-    assert type(S)==np.ndarray, ("please provide an array")
-    (m,n) = S.shape
-    Fx,Fy = make_fourier_grid(S, indexing='xy', system='normalized')
-    
-    M = np.exp(-.5*((Fy*np.pi)/m)**2) * np.exp(-.5*((Fx*np.pi)/n)**2)
+    assert type(S) == np.ndarray, ("please provide an array")
+    (m, n) = S.shape
+    Fx, Fy = make_fourier_grid(S, indexing='xy', system='normalized')
+
+    M = np.exp(-.5 * ((Fy * np.pi) / m)**2) * np.exp(-.5 *
+                                                     ((Fx * np.pi) / n)**2)
     return M

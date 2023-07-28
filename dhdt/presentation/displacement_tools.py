@@ -7,8 +7,18 @@ from matplotlib.patches import Ellipse
 from .image_io import output_image
 from ..generic.mapping_tools import covar2err_ellipse
 
-def plot_displacement_vectors(X, Y, U, V, U_err, V_err, ρ_err, ax=None,
-                              scaling=(10, 100), sampling=10, dots=True,
+
+def plot_displacement_vectors(X,
+                              Y,
+                              U,
+                              V,
+                              U_err,
+                              V_err,
+                              ρ_err,
+                              ax=None,
+                              scaling=(10, 100),
+                              sampling=10,
+                              dots=True,
                               M=None):
     """
     plot displacement vectors with error ellipses
@@ -38,43 +48,54 @@ def plot_displacement_vectors(X, Y, U, V, U_err, V_err, ρ_err, ax=None,
     if ax is None:
         fig, ax = plt.subplots()
 
-    grd_1,grd_2 = np.zeros_like(X), np.zeros_like(X)
-    grd_1[::sampling,...], grd_2[...,::sampling] = 1, 1
+    grd_1, grd_2 = np.zeros_like(X), np.zeros_like(X)
+    grd_1[::sampling, ...], grd_2[..., ::sampling] = 1, 1
     sparse_grd = np.logical_and(grd_1, grd_2)
 
     idxs = np.where(np.logical_and(sparse_grd, np.invert(M)))
 
     if dots:
-        plt.scatter(X[idxs],Y[idxs],s=2,c='k', alpha=.5)
+        plt.scatter(X[idxs], Y[idxs], s=2, c='k', alpha=.5)
 
     for cnt in range(idxs[0].size):
         # get displacement vectors
-        X_beg = X[idxs[0][cnt],idxs[1][cnt]]
+        X_beg = X[idxs[0][cnt], idxs[1][cnt]]
         X_end = X[idxs[0][cnt],idxs[1][cnt]] + \
                 np.multiply(U[idxs[0][cnt],idxs[1][cnt]], scaling[0])
-        Y_beg = Y[idxs[0][cnt],idxs[1][cnt]]
+        Y_beg = Y[idxs[0][cnt], idxs[1][cnt]]
         Y_end = Y[idxs[0][cnt],idxs[1][cnt]] + \
                 np.multiply(V[idxs[0][cnt],idxs[1][cnt]], scaling[0])
-        plt.plot(np.stack((X_beg, X_end)), np.stack((Y_beg, Y_end)),
-                 '-k', alpha=.5)
+        plt.plot(np.stack((X_beg, X_end)),
+                 np.stack((Y_beg, Y_end)),
+                 '-k',
+                 alpha=.5)
 
         # orientation of the ellipse
-        lam_1,lam_2,θ = covar2err_ellipse(U_err[idxs[0][cnt],idxs[1][cnt]],
-                                              V_err[idxs[0][cnt],idxs[1][cnt]],
-                                              ρ_err[idxs[0][cnt],idxs[1][cnt]]
-                                              )
-        ell = Ellipse((X_end, Y_end), width=lam_1*scaling[1],
-                      height=lam_2*scaling[1], angle=θ,
-                      facecolor='none', edgecolor='black')
+        lam_1, lam_2, θ = covar2err_ellipse(U_err[idxs[0][cnt], idxs[1][cnt]],
+                                            V_err[idxs[0][cnt], idxs[1][cnt]],
+                                            ρ_err[idxs[0][cnt], idxs[1][cnt]])
+        ell = Ellipse((X_end, Y_end),
+                      width=lam_1 * scaling[1],
+                      height=lam_2 * scaling[1],
+                      angle=θ,
+                      facecolor='none',
+                      edgecolor='black')
         ax.add_patch(ell)
     return ax
+
 
 # plot_strain_rate_crosses
 # ax.annotate("", xy=(0.5, 0.5), xytext=(0, 0),
 # ...             arrowprops=dict(arrowstyle="->", edgecolor='red'))
 
-def disco_displacement(V_abs, fpath, fname, Msk=None,
-                       cmap='twilight',counts=32, factor=10):
+
+def disco_displacement(V_abs,
+                       fpath,
+                       fname,
+                       Msk=None,
+                       cmap='twilight',
+                       counts=32,
+                       factor=10):
     """ create a velocity sequence in disco style
 
     Parameters
@@ -128,13 +149,12 @@ def disco_displacement(V_abs, fpath, fname, Msk=None,
     if not os.path.exists(fpath):
         os.makedirs(fpath)
 
-    v_mod = factor/np.max(V_abs)
+    v_mod = factor / np.max(V_abs)
 
     for count in range(counts):
-        v_bias = (count/counts)*v_mod
+        v_bias = (count / counts) * v_mod
         fringe = (np.divide(1, 1 + V_abs) + v_bias) % v_mod
-        outputname = os.path.join(fpath,
-                                  fname+str(count).zfill(3)+'.jpg')
+        outputname = os.path.join(fpath, fname + str(count).zfill(3) + '.jpg')
         if Msk is not None:
             np.place(fringe, ~Msk, np.nan)
 

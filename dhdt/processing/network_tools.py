@@ -4,6 +4,7 @@ from sklearn.neighbors import NearestNeighbors
 
 from ..input.read_sentinel2 import read_mean_sun_angles_s2
 
+
 def get_network_indices(n):
     """ Generate a list with all matchable combinations
 
@@ -25,7 +26,7 @@ def get_network_indices(n):
     if type(n) in (int, np.int64, np.int32, np.int16):
         grids = np.indices((n, n))
     else:
-        grids = np.meshgrid(n,n)
+        grids = np.meshgrid(n, n)
     grid_1 = np.triu(grids[0] + 1, +1).flatten()
     grid_1 = grid_1[grid_1 != 0] - 1
     grid_2 = np.triu(grids[1] + 1, +1).flatten()
@@ -33,7 +34,12 @@ def get_network_indices(n):
     grid_idxs = np.vstack((grid_1, grid_2))
     return grid_idxs
 
-def get_network_indices_constrained(idx,d,d_max,n_max, double_direction=True):
+
+def get_network_indices_constrained(idx,
+                                    d,
+                                    d_max,
+                                    n_max,
+                                    double_direction=True):
     """ Generate a list with all matchable combinations within a certain range
 
     Parameters
@@ -61,18 +67,19 @@ def get_network_indices_constrained(idx,d,d_max,n_max, double_direction=True):
     """
     n_max = min(len(idx) - 1, n_max)
 
-    if d.ndim==1: d = d.reshape(-1, 1)
-    nbrs = NearestNeighbors(n_neighbors=n_max+1, algorithm='auto').fit(d)
+    if d.ndim == 1: d = d.reshape(-1, 1)
+    nbrs = NearestNeighbors(n_neighbors=n_max + 1, algorithm='auto').fit(d)
     distances, indices = nbrs.kneighbors(d)
 
-    IN = distances[:, 1:]<=d_max
+    IN = distances[:, 1:] <= d_max
 
     grid2 = indices[:, 1:]
-    grid1,_ = np.indices((len(idx), n_max))
+    grid1, _ = np.indices((len(idx), n_max))
     grid_idxs = np.vstack((grid1[IN], grid2[IN]))
     if not double_direction:
-         grid_idxs = np.unique(np.sort(grid_idxs, axis=0), axis=1)
+        grid_idxs = np.unique(np.sort(grid_idxs, axis=0), axis=1)
     return grid_idxs
+
 
 def get_network_by_sunangle_s2(datPath, sceneList, n):
     """ construct a network, connecting elements with closest sun angle with
@@ -107,9 +114,10 @@ def get_network_by_sunangle_s2(datPath, sceneList, n):
         (sunZn, sunAz) = read_mean_sun_angles_s2(sen2Path)
         L[i, :] = [sunZn, sunAz]
     d_max = np.inf
-    grid_idxs = get_network_indices_constrained(np.arange(len(sceneList)),
-                                                L, d_max, n)
+    grid_idxs = get_network_indices_constrained(np.arange(len(sceneList)), L,
+                                                d_max, n)
     return grid_idxs
+
 
 def get_adjacency_matrix_from_network(GridIdxs, number_of_nodes):
     """ transforms an edge list into an adjacency matrix, this is a general

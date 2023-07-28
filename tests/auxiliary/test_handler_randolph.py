@@ -7,7 +7,7 @@ import pyproj
 import pytest
 import rioxarray as rioxr
 
-from dhdt.auxilary.handler_randolph import \
+from dhdt.auxiliary.handler_randolph import \
     create_rgi_raster, create_rgi_tile_s2
 
 

@@ -9,6 +9,7 @@ from dhdt.generic.mapping_tools import create_offset_grid, vel2pix
 from dhdt.processing.matching_tools import pad_radius
 from dhdt.preprocessing.shadow_geometry import estimate_surface_normals
 
+
 def slope_along_perp(Z, Az, spac=10):
     """ get the slope of the terrain along a specific direction
 
@@ -30,13 +31,14 @@ def slope_along_perp(Z, Az, spac=10):
     """
     dy, dx = np.gradient(Z, spac)
 
-    Slp_para = dx*np.cos(np.rad2deg(Az)) + dy*np.sin(np.rad2deg(Az))
-    Slp_perp = dx*np.sin(np.rad2deg(Az)) - dy*np.cos(np.rad2deg(Az))
+    Slp_para = dx * np.cos(np.rad2deg(Az)) + dy * np.sin(np.rad2deg(Az))
+    Slp_perp = dx * np.sin(np.rad2deg(Az)) - dy * np.cos(np.rad2deg(Az))
 
     # transfer to slopes in degrees
     Slp_para = np.degrees(np.arctan(Slp_para))
     Slp_perp = np.degrees(np.arctan(Slp_perp))
     return Slp_perp, Slp_para
+
 
 def get_ortho_offset(Z, dx, dy, obs_az, obs_zn, geoTransform):
     """ get terrain displacement due to miss-registration
@@ -102,14 +104,15 @@ def get_ortho_offset(Z, dx, dy, obs_az, obs_zn, geoTransform):
     Z_dij = ndimage.map_coordinates(Z, [I_grd, J_grd], order=1, mode='mirror')
 
     # estimate elevation change due to miss-registration
-    dZ = Z-Z_dij
+    dZ = Z - Z_dij
 
     # estimate orthorectification compensation
-    ortho_ρ = np.tan(np.deg2rad(obs_zn))*dZ
+    ortho_ρ = np.tan(np.deg2rad(obs_zn)) * dZ
 
-    dI = -np.cos(np.deg2rad(obs_az[0,0]))*ortho_ρ
-    dJ = +np.sin(np.deg2rad(obs_az))*ortho_ρ
+    dI = -np.cos(np.deg2rad(obs_az[0, 0])) * ortho_ρ
+    dJ = +np.sin(np.deg2rad(obs_az)) * ortho_ρ
     return dI, dJ
+
 
 def compensate_ortho_offset(I, Z, dx, dy, obs_az, obs_zn, geoTransform):
     """
@@ -143,19 +146,24 @@ def compensate_ortho_offset(I, Z, dx, dy, obs_az, obs_zn, geoTransform):
                                           geoTransform)
 
     mI, nI = Z.shape[0], Z.shape[1]
-    I_grd, J_grd = np.meshgrid(np.linspace(0, mI-1, mI),
-                               np.linspace(0, nI-1, nI), indexing='ij')
+    I_grd, J_grd = np.meshgrid(np.linspace(0, mI - 1, mI),
+                               np.linspace(0, nI - 1, nI),
+                               indexing='ij')
 
-    I_warp = ndimage.map_coordinates(I, [I_grd+dI_ortho, J_grd+dJ_ortho],
-                                     order=1, mode='mirror')
-    del I # sometime the files are very big, so memory is emptied
+    I_warp = ndimage.map_coordinates(I, [I_grd + dI_ortho, J_grd + dJ_ortho],
+                                     order=1,
+                                     mode='mirror')
+    del I  # sometime the files are very big, so memory is emptied
     # remove registration mismatch
     dI_coreg, dJ_coreg = vel2pix(geoTransform, dx, dy)
-    I_cor = ndimage.map_coordinates(I_warp, [I_grd+dI_coreg, J_grd+dJ_coreg],
-                                    order=1, mode='mirror')
+    I_cor = ndimage.map_coordinates(I_warp,
+                                    [I_grd + dI_coreg, J_grd + dJ_coreg],
+                                    order=1,
+                                    mode='mirror')
     return I_cor
 
-def get_template_aspect_slope(Z,i_samp,j_samp,t_size,spac=10.):
+
+def get_template_aspect_slope(Z, i_samp, j_samp, t_size, spac=10.):
     """
 
     Parameters
@@ -202,10 +210,10 @@ def get_template_aspect_slope(Z,i_samp,j_samp,t_size,spac=10.):
     i_samp += t_rad
     j_samp += t_rad
 
-    if (t_size % 2)==0:
-        offset = 0 # even template dimension
+    if (t_size % 2) == 0:
+        offset = 0  # even template dimension
     else:
-        offset = 1 # uneven template dimension
+        offset = 1  # uneven template dimension
 
     # create template
     kernel = make_2D_Gaussian((t_size, t_size), fwhm=t_size)
@@ -215,14 +223,14 @@ def get_template_aspect_slope(Z,i_samp,j_samp,t_size,spac=10.):
 
     # get aspect and slope from elevation
     Normal = estimate_surface_normals(Z_sm, spac)
-    Normal_samp = Normal[i_samp,j_samp,:]
+    Normal_samp = Normal[i_samp, j_samp, :]
 
-    Slope = np.rad2deg(np.arccos(Normal_samp[...,-1]))
-    Aspect = np.rad2deg(np.arctan2(Normal_samp[...,0],
-                                   Normal_samp[...,1]))
+    Slope = np.rad2deg(np.arccos(Normal_samp[..., -1]))
+    Aspect = np.rad2deg(np.arctan2(Normal_samp[..., 0], Normal_samp[..., 1]))
     return Slope, Aspect
 
-def get_template_acquisition_angles(Az,Zn,Det,i_samp,j_samp,t_size):
+
+def get_template_acquisition_angles(Az, Zn, Det, i_samp, j_samp, t_size):
     """
 
     Parameters
@@ -259,22 +267,22 @@ def get_template_acquisition_angles(Az,Zn,Det,i_samp,j_samp,t_size):
     """
     # take care of border cases
     t_rad = t_size // 2
-    Az,Zn = pad_radius(Az,t_rad), pad_radius(Zn,t_rad)
-    Det = pad_radius(Det,t_rad)
+    Az, Zn = pad_radius(Az, t_rad), pad_radius(Zn, t_rad)
+    Det = pad_radius(Det, t_rad)
     i_samp += t_rad
     j_samp += t_rad
 
-    if (t_size % 2)==0:
-        offset = 0 # even template dimension
+    if (t_size % 2) == 0:
+        offset = 0  # even template dimension
     else:
-        offset = 1 # uneven template dimension
+        offset = 1  # uneven template dimension
     # create template
-    kernel = make_2D_Gaussian((t_size,t_size), fwhm=t_size)
+    kernel = make_2D_Gaussian((t_size, t_size), fwhm=t_size)
     kernel /= np.sum(kernel)
 
     Azimuth = np.zeros_like(i_samp, dtype=np.float64)
     Zenith = np.zeros_like(i_samp, dtype=np.float64)
-    for idx_ij,val_i in enumerate(i_samp.flatten()):
+    for idx_ij, val_i in enumerate(i_samp.flatten()):
         idx_i, idx_j = np.unravel_index(idx_ij, i_samp.shape, order='C')
         i_min = i_samp[idx_i, idx_j] - (t_size // 2) + 0
         j_min = j_samp[idx_i, idx_j] - (t_size // 2) + 0
@@ -285,12 +293,12 @@ def get_template_acquisition_angles(Az,Zn,Det,i_samp,j_samp,t_size):
         z_sub = Zn[i_min:i_max, j_min:j_max]
         a_sub = Az[i_min:i_max, j_min:j_max]
 
-        zenith_bar = np.sum(z_sub*kernel)
+        zenith_bar = np.sum(z_sub * kernel)
         # get majority of detector id, since aspect angles are different
         det_mode = np.bincount(d_sub.flatten()).argmax()
-        IN = d_sub==det_mode
-        azimuth_bar = np.sum(a_sub[IN]/np.sum(IN))
+        IN = d_sub == det_mode
+        azimuth_bar = np.sum(a_sub[IN] / np.sum(IN))
 
-        Azimuth[idx_i,idx_j] = azimuth_bar
-        Zenith[idx_i,idx_j] = zenith_bar
+        Azimuth[idx_i, idx_j] = azimuth_bar
+        Zenith[idx_i, idx_j] = zenith_bar
     return Azimuth, Zenith

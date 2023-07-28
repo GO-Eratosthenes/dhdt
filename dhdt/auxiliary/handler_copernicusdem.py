@@ -17,8 +17,7 @@ from rioxarray.merge import merge_arrays
 from dhdt.generic.handler_www import get_file_from_www
 from dhdt.generic.mapping_tools import get_bbox
 from dhdt.generic.handler_sentinel2 import get_generic_s2_raster
-from dhdt.auxilary.handler_mgrs import get_geom_for_tile_code
-
+from dhdt.auxiliary.handler_mgrs import get_geom_for_tile_code
 
 DEM_DIR_DEFAULT = os.path.join('.', 'data', 'DEM')
 
@@ -49,14 +48,14 @@ def get_itersecting_DEM_tile_URLs(geometry, resolution=30):
     - DEM : digital elevation model
     """
     minx, miny, maxx, maxy = geometry.bounds
-    lat_grid_min = int(miny//1)
-    lat_grid_max = int(maxy//1)
-    lon_grid_min = int(minx//1)
-    lon_grid_max = int(maxx//1)
+    lat_grid_min = int(miny // 1)
+    lat_grid_max = int(maxy // 1)
+    lon_grid_min = int(minx // 1)
+    lon_grid_max = int(maxx // 1)
     url_list = [
         get_DEM_tile_URL(lat_grid, lon_grid, resolution=resolution)
-        for lat_grid in range(lat_grid_min, lat_grid_max+1)
-        for lon_grid in range(lon_grid_min, lon_grid_max+1)
+        for lat_grid in range(lat_grid_min, lat_grid_max + 1)
+        for lon_grid in range(lon_grid_min, lon_grid_max + 1)
     ]
     return url_list
 
@@ -89,17 +88,18 @@ def get_DEM_tile_URL(lat, lon, resolution=30):
     lat_str = '{:s}{:02d}'.format('N' if lat > 0 else 'S', abs(lat))
     lon_str = '{:s}{:03d}'.format('E' if lon > 0 else 'W', abs(lon))
     dem_root_url = (
-        f'https://copernicus-dem-{resolution}m.s3.eu-central-1.amazonaws.com'
-    )
+        f'https://copernicus-dem-{resolution}m.s3.eu-central-1.amazonaws.com')
     res_arc_secs = {30: 10, 90: 30}[resolution]  # use resolution in arc secs
     stem = f'Copernicus_DSM_COG_{res_arc_secs}_{lat_str}_00_{lon_str}_00_DEM'
     return '/'.join([dem_root_url, stem, f'{stem}.tif'])
 
 
-def make_copDEM_mgrs_tile(
-        tile_code, resolution=10, input_resolution=30, dem_dir=None,
-        tile_path=None, out_dir=None
-):
+def make_copDEM_mgrs_tile(tile_code,
+                          resolution=10,
+                          input_resolution=30,
+                          dem_dir=None,
+                          tile_path=None,
+                          out_dir=None):
     """
     Download Copernicus DEM data and retile it according to the MGRS scheme,
     using the suitable UTM CRS.
@@ -138,18 +138,18 @@ def make_copDEM_mgrs_tile(
     dem_dir = DEM_DIR_DEFAULT if dem_dir is None else dem_dir
     out_dir = dem_dir if out_dir is None else out_dir
 
-    geoTransform, crs = get_generic_s2_raster(
-        tile_code, spac=resolution, tile_path=tile_path
-    )
+    geoTransform, crs = get_generic_s2_raster(tile_code,
+                                              spac=resolution,
+                                              tile_path=tile_path)
 
-    cop_dem = get_copDEM_in_raster(
-        geoTransform, crs, input_resolution, dem_dir
-    )
+    cop_dem = get_copDEM_in_raster(geoTransform, crs, input_resolution,
+                                   dem_dir)
 
-    cop_dem_out = os.path.join(out_dir,  tile_code + '.tif')
-    cop_dem.rio.to_raster(
-        cop_dem_out, tiled=True, compress='LZW', dtype=cop_dem.dtype
-    )
+    cop_dem_out = os.path.join(out_dir, tile_code + '.tif')
+    cop_dem.rio.to_raster(cop_dem_out,
+                          tiled=True,
+                          compress='LZW',
+                          dtype=cop_dem.dtype)
     return cop_dem_out
 
 
@@ -177,17 +177,17 @@ def get_copDEM_in_raster(geoTransform, crs, input_resolution=30, dem_dir=None):
 
     # reproject to lat, lon
     crs_wgs84 = pyproj.CRS.from_epsg(4326)  # lat lon
-    transformer = pyproj.Transformer.from_crs(
-        crs_from=crs, crs_to=crs_wgs84, always_xy=True
-    )
+    transformer = pyproj.Transformer.from_crs(crs_from=crs,
+                                              crs_to=crs_wgs84,
+                                              always_xy=True)
     polygon_wgs84 = shapely.ops.transform(transformer.transform, polygon)
 
-    dem_tiles = get_itersecting_DEM_tile_URLs(
-        polygon_wgs84, resolution=input_resolution
-    )
-    cop_dem = download_and_mosaic(
-        dem_tiles, crs, geoTransform, dem_dir=dem_dir
-    )
+    dem_tiles = get_itersecting_DEM_tile_URLs(polygon_wgs84,
+                                              resolution=input_resolution)
+    cop_dem = download_and_mosaic(dem_tiles,
+                                  crs,
+                                  geoTransform,
+                                  dem_dir=dem_dir)
     # Z_cop = np.squeeze(cop_dem.values)
     # Msk = Z_cop>3.4E38
     # Z_cop = np.ma.array(Z_cop, mask=Msk)
@@ -229,10 +229,12 @@ def get_copDEM_s2_tile_intersect_list(tile_code, tile_path=None):
     return get_itersecting_DEM_tile_URLs(geom)
 
 
-def download_and_mosaic(
-        dem_tile_urls, crs, geoTransform, shape=None, dem_dir=None,
-        overwrite=False
-):
+def download_and_mosaic(dem_tile_urls,
+                        crs,
+                        geoTransform,
+                        shape=None,
+                        dem_dir=None,
+                        overwrite=False):
     """
     Download Copernicus DEM tiles and create mosaic according to satellite
     imagery tiling scheme.
@@ -266,8 +268,9 @@ def download_and_mosaic(
 
     dem_tile_paths = []
     for dem_tile_url in dem_tile_urls:
-        dem_tile = get_file_from_www(
-            dem_tile_url, dump_dir=dem_dir, overwrite=overwrite)
+        dem_tile = get_file_from_www(dem_tile_url,
+                                     dump_dir=dem_dir,
+                                     overwrite=overwrite)
         dem_tile_paths.append(os.path.join(dem_dir, dem_tile))
 
     dem = mosaic_tiles(dem_tile_paths, crs, geoTransform, shape)

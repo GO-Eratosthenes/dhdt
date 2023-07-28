@@ -5,6 +5,7 @@ from ..preprocessing.image_transforms import mat_to_gray
 
 from .matching_tools_frequency_filters import make_fourier_grid
 
+
 def estimate_albedo(I, unit='angles', normalize=True):
     """ estimate illuminant direction, albedo, and shape from shading with
     constant albedo
@@ -40,21 +41,26 @@ def estimate_albedo(I, unit='angles', normalize=True):
     mu_x, mu_y = np.mean(I_x_norm.flatten()), np.mean(I_y_norm.flatten())
 
     # estimate parameters: global albedo, as well as, local slant and tilt
-    gamma = np.sqrt( ( 6 * (np.pi**2) * mu_2) -
-                     (48 * (mu_1**2)))
-    albedo = np.divide(gamma, np.pi, where=gamma!=0)
+    gamma = np.sqrt((6 * (np.pi**2) * mu_2) - (48 * (mu_1**2)))
+    albedo = np.divide(gamma, np.pi, where=gamma != 0)
 
     tilt = np.arctan2(mu_y, mu_x)
-    slant = np.arccos(np.divide(4*mu_1, gamma, where=mu_1!=0))
+    slant = np.arccos(np.divide(4 * mu_1, gamma, where=mu_1 != 0))
 
-    if unit in ('angles', 'degrees',):
+    if unit in (
+            'angles',
+            'degrees',
+    ):
         tilt, slant = np.rad2deg(tilt), np.rad2deg(slant)
         return albedo, tilt, slant
     else:
-        sun = np.array([np.cos(tilt) * np.sin(slant),
-                        np.sin(tilt) * np.sin(slant),
-                        np.cos(slant)])
+        sun = np.array([
+            np.cos(tilt) * np.sin(slant),
+            np.sin(tilt) * np.sin(slant),
+            np.cos(slant)
+        ])
         return albedo, sun
+
 
 def linear_fourier_surface_estimation(I, tilt, slant):
     """
@@ -85,16 +91,20 @@ def linear_fourier_surface_estimation(I, tilt, slant):
               computer Vision vol.4(2) pp.153-162, 1990.
     """
     tilt, slant = np.deg2rad(tilt), np.deg2rad(slant)
-    w_x,w_y = make_fourier_grid(I, indexing='ij', system='radians', shift=False,
-                      axis='corner')
+    w_x, w_y = make_fourier_grid(I,
+                                 indexing='ij',
+                                 system='radians',
+                                 shift=False,
+                                 axis='corner')
 
     s_1, s_2 = np.cos(tilt)*np.sin(slant), \
                np.sin(tilt)*np.sin(slant)           # eq.5 in [1]
 
     I_F = np.fft.fft2(I)
-    Z_F = np.divide(I_F, -1j*w_x*s_1 -1j*w_y*s_2)   # eq.10 in [1]
+    Z_F = np.divide(I_F, -1j * w_x * s_1 - 1j * w_y * s_2)  # eq.10 in [1]
     Z = np.abs(np.fft.ifft2(Z_F))
     return Z
+
 
 def global_surface_estimation(I, sun, albedo, kappa=1E3, iter=2.5E3):
     """
@@ -118,12 +128,15 @@ def global_surface_estimation(I, sun, albedo, kappa=1E3, iter=2.5E3):
         grid with elevation values
 
     """
-    p,q = np.zeros_like(I), np.zeros_like(I)    # first order derivatives
-    w = .25* np.ones((3,3))
+    p, q = np.zeros_like(I), np.zeros_like(I)  # first order derivatives
+    w = .25 * np.ones((3, 3))
     w.flat[::2] = 0
 
-    w_x,w_y = make_fourier_grid(I, indexing='ij', system='radians', shift=False,
-                      axis='corner')
+    w_x, w_y = make_fourier_grid(I,
+                                 indexing='ij',
+                                 system='radians',
+                                 shift=False,
+                                 axis='corner')
     w_mag = np.hypot(w_x, w_y)
 
     for k in range(iter):
@@ -132,28 +145,30 @@ def global_surface_estimation(I, sun, albedo, kappa=1E3, iter=2.5E3):
         pq = 1 + p**2 + q**2
         sqroot_pq = np.sqrt(pq)
         # reflectance map
-        R = np.divide(albedo * (-sun[0]*p -sun[1]*q + sun[2]), sqroot_pq )
+        R = np.divide(albedo * (-sun[0] * p - sun[1] * q + sun[2]), sqroot_pq)
 
-        dRdp = np.divide(-albedo*sun[0], sqroot_pq)
-        dRdq = np.divide(-albedo*sun[1], sqroot_pq)
+        dRdp = np.divide(-albedo * sun[0], sqroot_pq)
+        dRdq = np.divide(-albedo * sun[1], sqroot_pq)
 
-        dRb = np.multiply(-sun[0]*albedo*p - sun[1]*albedo*q + sun[2]*albedo,
-                          -1*p*np.power(pq, -3/2))
+        dRb = np.multiply(
+            -sun[0] * albedo * p - sun[1] * albedo * q + sun[2] * albedo,
+            -1 * p * np.power(pq, -3 / 2))
         dRdp += dRb
         dRdq += dRb
 
         # update
-        p = p2 + np.divide(1, 4*kappa)*(I-R)*dRdp
-        q = q2 + np.divide(1, 4*kappa)*(I-R)*dRdq
+        p = p2 + np.divide(1, 4 * kappa) * (I - R) * dRdp
+        q = q2 + np.divide(1, 4 * kappa) * (I - R) * dRdq
 
         # make integratable, via Fourier domain
         p_F, q_F = np.fft.fft2(p), np.fft.fft2(q)
 
-        C = -1j*(w_x*p_F + w_y*q_F) / w_mag
-        p,q = np.fft.ifft2(1j*w_x*C), np.fft.ifft2(1j*w_y*C)
+        C = -1j * (w_x * p_F + w_y * q_F) / w_mag
+        p, q = np.fft.ifft2(1j * w_x * C), np.fft.ifft2(1j * w_y * C)
 
     Z = np.abs(np.fft.ifft2(C))
     return Z
+
 
 def linear_reflectance_surface_estimation(I, tilt, slant, iter=2.5E2):
     """
@@ -187,7 +202,7 @@ def linear_reflectance_surface_estimation(I, tilt, slant, iter=2.5E2):
     fx, fy = get_grad_filters(ftype='kroon', tsize=3, order=1, indexing='xy')
 
     tilt, slant = np.deg2rad(tilt), np.deg2rad(slant)
-    E_x, E_y =  np.cos(tilt)*np.tan(slant), np.sin(tilt)*np.tan(slant)
+    E_x, E_y = np.cos(tilt) * np.tan(slant), np.sin(tilt) * np.tan(slant)
     sqroot_E = np.sqrt(1 + E_x**2 + E_y**2)
 
     Z = np.zeros_like(I)
@@ -195,9 +210,9 @@ def linear_reflectance_surface_estimation(I, tilt, slant, iter=2.5E2):
         pq = 1 + p**2 + q**2
         sqroot_pq = np.sqrt(pq)
         # reflectance map
-        R = np.divide(p*np.cos(tilt)*np.sin(slant) +
-                      q*np.sin(tilt)*np.sin(slant) +
-                      np.cos(slant), sqroot_sq)
+        R = np.divide(
+            p * np.cos(tilt) * np.sin(slant) +
+            q * np.sin(tilt) * np.sin(slant) + np.cos(slant), sqroot_sq)
         R = np.max(R, 0)
         f = I - R
         df_dZ = np.divide(np.multiply( p+q , E_x*p + E_y*q + 1),
@@ -205,6 +220,6 @@ def linear_reflectance_surface_estimation(I, tilt, slant, iter=2.5E2):
                 - np.divide(E_x + E_y, (sqroot_pq * sqroot_E))
 
         # update elevation, and derivatives
-        Z -= -np.divide(f, df_dZ, where=df_dZ!=0)
+        Z -= -np.divide(f, df_dZ, where=df_dZ != 0)
         p, q = conv_2Dfilter(Z, fx), conv_2Dfilter(Z, fy)
     return Z

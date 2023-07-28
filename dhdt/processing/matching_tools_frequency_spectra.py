@@ -3,7 +3,9 @@ import numpy as np
 from .matching_tools import get_peak_indices
 from .matching_tools_frequency_filters import perdecomp
 
-def directional_spectrum(I, num_estimates=1): #todo: bring into correct framework
+
+def directional_spectrum(I,
+                         num_estimates=1):  #todo: bring into correct framework
     """ look at the directional spectra, to get dominant frequency
 
     Parameters
@@ -33,9 +35,9 @@ def directional_spectrum(I, num_estimates=1): #todo: bring into correct framewor
     spec = np.log10(np.abs(np.fft.fftshift(spec)))
 
     # find peaks
-    idx,val = get_peak_indices(spec, num_estimates=num_estimates)
+    idx, val = get_peak_indices(spec, num_estimates=num_estimates)
 
-    di, dj = idx[:,0], idx[:,1]
+    di, dj = idx[:, 0], idx[:, 1]
     di -= spec.shape[0] // 2
     dj -= spec.shape[1] // 2
     return di, dj, val

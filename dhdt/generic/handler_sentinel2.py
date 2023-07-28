@@ -7,7 +7,7 @@ import pandas as pd
 import pyproj
 import shapely.ops
 
-from dhdt.auxilary.handler_mgrs import get_geom_for_tile_code
+from dhdt.auxiliary.handler_mgrs import get_geom_for_tile_code
 from dhdt.generic.unit_check import check_mgrs_code
 from dhdt.generic.handler_xml import get_root_of_table
 from dhdt.generic.handler_dat import get_list_files
@@ -103,8 +103,8 @@ def get_s2_dict(s2_df):
 
     """
     assert isinstance(s2_df, pd.DataFrame), ('please provide a dataframe')
-    assert 'filepath' in s2_df, ('please first run "get_s2_image_locations"'+
-                                ' to find the proper file locations')
+    assert 'filepath' in s2_df, ('please first run "get_s2_image_locations"' +
+                                 ' to find the proper file locations')
 
     # search for folder with .SAFE
     im_path = os.path.dirname(s2_df.filepath[0])
@@ -115,9 +115,10 @@ def get_s2_dict(s2_df):
         else:
             s2_dict = list_platform_metadata_s2b()
         s2_dict = _get_safe_structure_s2(im_path, s2_dict=s2_dict)
-    elif len(get_list_files(im_path, '.json'))!=0:
+    elif len(get_list_files(im_path, '.json')) != 0:
         s2_dict = _get_stac_structure_s2(im_path)
     return s2_dict
+
 
 def _get_safe_foldername(im_path):
     safe_folder = None
@@ -126,6 +127,7 @@ def _get_safe_foldername(im_path):
             safe_folder = x
             break
     return safe_folder
+
 
 def _get_safe_path(im_path):
     safe_path = ''
@@ -136,11 +138,12 @@ def _get_safe_path(im_path):
             break
     return safe_path
 
+
 def _get_safe_structure_s2(im_path, s2_dict=None):
     safe_path = _get_safe_path(im_path)
-    ds_folder = list(filter(lambda x: x.startswith('DS'),
-                            os.listdir(os.path.join(safe_path,
-                                                    'DATASTRIP'))))[0]
+    ds_folder = list(
+        filter(lambda x: x.startswith('DS'),
+               os.listdir(os.path.join(safe_path, 'DATASTRIP'))))[0]
     tl_path = os.sep.join(im_path.split(os.sep)[:-1])
     ds_path = os.path.join(safe_path, 'DATASTRIP', ds_folder)
     assert os.path.isfile(os.path.join(ds_path, 'MTD_DS.xml')), \
@@ -150,15 +153,18 @@ def _get_safe_structure_s2(im_path, s2_dict=None):
 
     safe_folder = _get_safe_foldername(im_path)
     s2_time, s2_orbit, s2_tile = meta_s2string(safe_folder)
-    s2_dict.update({'full_path': safe_path,
-                    'MTD_DS_path': ds_path,
-                    'MTD_TL_path': tl_path,
-                    'IMG_DATA_path': os.path.join(tl_path, 'IMG_DATA'),
-                    'QI_DATA_path': os.path.join(tl_path, 'QI_DATA'),
-                    'date': s2_time,
-                    'tile_code': s2_tile[1:],
-                    'relative_orbit': int(s2_orbit[1:])})
+    s2_dict.update({
+        'full_path': safe_path,
+        'MTD_DS_path': ds_path,
+        'MTD_TL_path': tl_path,
+        'IMG_DATA_path': os.path.join(tl_path, 'IMG_DATA'),
+        'QI_DATA_path': os.path.join(tl_path, 'QI_DATA'),
+        'date': s2_time,
+        'tile_code': s2_tile[1:],
+        'relative_orbit': int(s2_orbit[1:])
+    })
     return s2_dict
+
 
 def _get_stac_structure_s2(im_path, s2_dict=None):
     # make sure metadata files are present
@@ -170,25 +176,28 @@ def _get_stac_structure_s2(im_path, s2_dict=None):
     if s2_dict is None:
         json_file = get_list_files(im_path, '.json')[0]
         # Planet has a generic json-file
-        if json_file.find('metadata')!=0:
+        if json_file.find('metadata') != 0:
             if json_file[:3] in 'S2A':
                 s2_dict = list_platform_metadata_s2a()
             else:
                 s2_dict = list_platform_metadata_s2b()
             s2_time, s2_orbit, s2_tile = meta_s2string(json_file)
-        else: # look into the MTD_TL?x
+        else:  # look into the MTD_TL?x
             im_list = get_list_files(im_path, '.jp2') + \
                       get_list_files(im_path, '.tif')
             s2_time, s2_orbit, s2_tile = meta_s2string(im_list[0])
-    s2_dict.update({'full_path': im_path,
-                    'MTD_DS_path': im_path,
-                    'MTD_TL_path': im_path,
-                    'IMG_DATA_path': im_path,
-                    'date': s2_time,
-                    'tile_code': s2_tile[1:]})
+    s2_dict.update({
+        'full_path': im_path,
+        'MTD_DS_path': im_path,
+        'MTD_TL_path': im_path,
+        'IMG_DATA_path': im_path,
+        'date': s2_time,
+        'tile_code': s2_tile[1:]
+    })
     if s2_orbit is not None:
         s2_dict.update({'relative_orbit': int(s2_orbit[1:])})
     return s2_dict
+
 
 def list_platform_metadata_s2a():
     s2a_dict = {
@@ -199,11 +208,13 @@ def list_platform_metadata_s2a():
         'constellation': 'sentinel',
         'launch_date': '+2015-06-23',
         'orbit': 'sso',
-        'mass': 1129.541, # [kg]
-        'inclination': 98.5621, # https://www.n2yo.com/satellite/?s=40697
+        'mass': 1129.541,  # [kg]
+        'inclination': 98.5621,  # https://www.n2yo.com/satellite/?s=40697
         'revolutions_per_day': 14.30824258387262,
-        'J': np.array([[558, 30, -30],[30, 819, 30],[-30, 30, 1055]])}
+        'J': np.array([[558, 30, -30], [30, 819, 30], [-30, 30, 1055]])
+    }
     return s2a_dict
+
 
 def list_platform_metadata_s2b():
     s2b_dict = {
@@ -216,8 +227,10 @@ def list_platform_metadata_s2b():
         'orbit': 'sso',
         'inclination': 98.5664,
         'revolutions_per_day': 14.30818491298178,
-        'J': np.array([[558, 30, -30],[30, 819, 30],[-30, 30, 1055]])}
+        'J': np.array([[558, 30, -30], [30, 819, 30], [-30, 30, 1055]])
+    }
     return s2b_dict
+
 
 def get_generic_s2_raster(tile_code, spac=10, tile_path=None):
     """
@@ -251,7 +264,11 @@ def get_generic_s2_raster(tile_code, spac=10, tile_path=None):
     - MGRS : US military grid reference system
     - s2 : Sentinel-2
     """
-    assert spac in (10, 20, 60,), 'please provide correct pixel resolution'
+    assert spac in (
+        10,
+        20,
+        60,
+    ), 'please provide correct pixel resolution'
 
     tile_code = check_mgrs_code(tile_code)
     geom = get_geom_for_tile_code(tile_code, tile_path=tile_path)
@@ -262,22 +279,24 @@ def get_generic_s2_raster(tile_code, spac=10, tile_path=None):
     crs_utm = pyproj.CRS.from_epsg(epsg)
 
     # reproject and round off
-    transformer = pyproj.Transformer.from_crs(
-        crs_from=crs, crs_to=crs_utm, always_xy=True
-    )
+    transformer = pyproj.Transformer.from_crs(crs_from=crs,
+                                              crs_to=crs_utm,
+                                              always_xy=True)
     geom_utm = shapely.ops.transform(transformer.transform, geom)
     # geom can still be a multipolygon for tiles crossing the antimeridian
     geom_merged = shapely.unary_union(geom_utm, grid_size=0.001)
     xx, yy = geom_merged.exterior.coords.xy
-    x, y = np.round(np.array(xx)/spac)*spac, np.round(np.array(yy)/spac)*spac
+    x, y = np.round(np.array(xx) / spac) * spac, np.round(
+        np.array(yy) / spac) * spac
 
     spac = float(spac)
-    nx = int(np.round(np.ptp(x)/spac))
-    ny = int(np.round(np.ptp(y)/spac))
+    nx = int(np.round(np.ptp(x) / spac))
+    ny = int(np.round(np.ptp(y) / spac))
     geoTransform = (np.min(x), +spac, 0., np.max(y), 0., -spac, ny, nx)
     return geoTransform, crs_utm
 
-def get_s2_image_locations(fname,s2_df):
+
+def get_s2_image_locations(fname, s2_df):
     """
     The Sentinel-2 imagery are placed within a folder structure, where one
     folder has an ever changing name. Fortunately this function finds the path
@@ -324,16 +343,15 @@ def get_s2_image_locations(fname,s2_df):
     im_paths, band_id = [], []
     for im_loc in root.iter('IMAGE_FILE'):
         full_path = os.path.join(root_dir, im_loc.text)
-        boi = im_loc.text[-3:] # band of interest
+        boi = im_loc.text[-3:]  # band of interest
         if not os.path.isdir(os.path.dirname(full_path)):
             full_path = None
-            for _,_,files in os.walk(root_dir):
+            for _, _, files in os.walk(root_dir):
                 for file in files:
-                    if file.find(boi)==-1: continue
+                    if file.find(boi) == -1: continue
                     if file.endswith(tuple(['.jp2', '.tif'])):
-                        full_path = os.path.join(root_dir,
-                                                 file.split('.')[0])
-            if full_path is None: # file does not seem to be present
+                        full_path = os.path.join(root_dir, file.split('.')[0])
+            if full_path is None:  # file does not seem to be present
                 continue
 
         im_paths.append(full_path)
@@ -343,6 +361,7 @@ def get_s2_image_locations(fname,s2_df):
     s2_df_new = pd.concat([s2_df, band_path], axis=1, join="inner")
     return s2_df_new, datastrip_id
 
+
 def get_s2_granule_id(fname, s2_df):
     assert os.path.isfile(fname), ('metafile does not seem to be present')
     root = get_root_of_table(fname)
@@ -350,6 +369,7 @@ def get_s2_granule_id(fname, s2_df):
     for im_loc in root.iter('IMAGE_FILE'):
         granule_id = im_loc.text.split(os.sep)[1]
     return granule_id
+
 
 def meta_s2string(s2_str):
     """ get meta information of the Sentinel-2 file name
@@ -381,12 +401,12 @@ def meta_s2string(s2_str):
     """
     assert isinstance(s2_str, str), ("please provide a string")
 
-    if s2_str[0:2]=='S2': # some have info about orbit and sensor
+    if s2_str[0:2] == 'S2':  # some have info about orbit and sensor
         s2_split = s2_str.split('_')
         s2_time = s2_split[2][0:8]
         s2_orbit = s2_split[4]
         s2_tile = s2_split[5]
-    elif s2_str[0:1]=='T': # others have no info about orbit, sensor, etc.
+    elif s2_str[0:1] == 'T':  # others have no info about orbit, sensor, etc.
         s2_split = s2_str.split('_')
         s2_time = s2_split[1][0:8]
         s2_tile = s2_split[0]
@@ -398,21 +418,27 @@ def meta_s2string(s2_str):
     s2_time = '+' + s2_time[0:4] + '-' + s2_time[4:6] + '-' + s2_time[6:8]
     return s2_time, s2_orbit, s2_tile
 
+
 def get_s2_folders(im_path):
     assert os.path.isdir(im_path), 'please specify a folder'
-    s2_list = [x for x in os.listdir(im_path)
-               if (os.path.isdir(os.path.join(im_path,x))) & (x[0:2]=='S2')]
+    s2_list = [
+        x for x in os.listdir(im_path)
+        if (os.path.isdir(os.path.join(im_path, x))) & (x[0:2] == 'S2')
+    ]
     return s2_list
+
 
 def get_tiles_from_s2_list(s2_list):
     tile_list = [x.split('_')[5] for x in s2_list]
     tile_list = list(set(tile_list))
     return tile_list
 
+
 def get_utm_from_s2_tiles(tile_list):
     utm_list = [int(x[1:3]) for x in tile_list]
     utm_list = list(set(utm_list))
     return utm_list
+
 
 def get_utmzone_from_tile_code(tile_code):
     """
@@ -446,6 +472,7 @@ def get_utmzone_from_tile_code(tile_code):
     """
     tile_code = check_mgrs_code(tile_code)
     return int(tile_code[:2])
+
 
 def get_epsg_from_mgrs_tile(tile_code):
     """
@@ -486,6 +513,7 @@ def get_epsg_from_mgrs_tile(tile_code):
     # N to X are in the Northern hemisphere
     if tile_code[2] < 'N': epsg_code += 100
     return epsg_code
+
 
 def get_crs_from_mgrs_tile(tile_code):
     """

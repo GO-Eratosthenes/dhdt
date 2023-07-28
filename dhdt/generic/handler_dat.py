@@ -1,6 +1,7 @@
 import os
 import re
 
+
 def get_list_files(dat_path, ending):
     """ generate a list with files, with a given ending/extension
 

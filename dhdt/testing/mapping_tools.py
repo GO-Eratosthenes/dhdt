@@ -1,5 +1,6 @@
 from osgeo import osr
 
+
 def create_local_crs():
     """ create spatial refence of local horizontal datum
 
@@ -19,6 +20,7 @@ def create_local_crs():
     print('OBS: taking local coordinate system')
     return crs
 
+
 def create_artificial_geoTransform(I, spac=10.):
     """ create an dummy tuple, based on the size of an array and a pixel spacing
 
@@ -35,6 +37,6 @@ def create_artificial_geoTransform(I, spac=10.):
         affine transformation coefficients, and image size.
     """
     if isinstance(spac, int): spac = float(spac)
-    m,n = I.shape[:2]
+    m, n = I.shape[:2]
     geoTransform = (0., +spac, 0., 0., 0., -spac, m, n)
     return geoTransform

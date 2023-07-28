@@ -1,7 +1,8 @@
 import numpy as np
 
-from dhdt.auxilary.handler_era5 import get_era5_monthly_surface_wind
+from dhdt.auxiliary.handler_era5 import get_era5_monthly_surface_wind
 from dhdt.generic.mapping_tools import get_mean_map_lat_lon, get_pixel_spacing
+
 
 def calculate_coriolis(ϕ):
     """
@@ -12,6 +13,7 @@ def calculate_coriolis(ϕ):
         latitude
     """
     return 2 * 7.2921e-5 * np.sin(np.deg2rad(ϕ))
+
 
 def water_vapour_scale_height(T_0, alpha=0.0065, R_v=461, L=2.5E6):
     """
@@ -36,12 +38,22 @@ def water_vapour_scale_height(T_0, alpha=0.0065, R_v=461, L=2.5E6):
     --------
     oro_precip
     """
-    H_w = np.divide(-R_v * T_0**2, L*alpha)
+    H_w = np.divide(-R_v * T_0**2, L * alpha)
     return H_w
 
-def oro_precip(Z, geoTransform, spatialRef, u_wind, v_wind,
-               conv_time=1000, fall_time=1000, nm=1E-2, T_0=0,
-               lapse_rate=-5.8E-3, lapse_rate_m=-6.5E-3, ref_ρ=7.4E-3):
+
+def oro_precip(Z,
+               geoTransform,
+               spatialRef,
+               u_wind,
+               v_wind,
+               conv_time=1000,
+               fall_time=1000,
+               nm=1E-2,
+               T_0=0,
+               lapse_rate=-5.8E-3,
+               lapse_rate_m=-6.5E-3,
+               ref_ρ=7.4E-3):
     """ estimate the orographic precipitation pattern from an elevation model,
     based upon [SB04]_ and application implementation by [Sc08]_.
 
@@ -94,7 +106,7 @@ def oro_precip(Z, geoTransform, spatialRef, u_wind, v_wind,
     """
 
     # sensitivity uplift factor, unit=kg m**3
-    C_w = np.divide(ref_ρ*lapse_rate_m, lapse_rate)
+    C_w = np.divide(ref_ρ * lapse_rate_m, lapse_rate)
 
     # vertical height scale of water in the atmosphere, unit=m
     H_w = water_vapour_scale_height(T_0)
@@ -104,10 +116,10 @@ def oro_precip(Z, geoTransform, spatialRef, u_wind, v_wind,
     f_cor = calculate_coriolis(ϕ)
 
     # pad raster
-    m,n = Z.shape[0:2]
+    m, n = Z.shape[0:2]
     m_pow2, n_pow2 = 2**np.ceil(np.log2(m)), 2**np.ceil(np.log2(n))
-    dm, dn = (m_pow2-m).astype(int), (n_pow2-n).astype(int)
-    mn_pad = ((dm//2, dm-dm//2), (dn//2, dn-dn//2))
+    dm, dn = (m_pow2 - m).astype(int), (n_pow2 - n).astype(int)
+    mn_pad = ((dm // 2, dm - dm // 2), (dn // 2, dn - dn // 2))
     Z = np.pad(Z, mn_pad, 'constant')
     Z_f = np.fft.fftn(Z)
 
@@ -115,52 +127,55 @@ def oro_precip(Z, geoTransform, spatialRef, u_wind, v_wind,
     k_x = np.fft.fftfreq(m_pow2.astype(int), dx)
     k_y = np.fft.fftfreq(n_pow2.astype(int), dy)
 
-    K_X,K_Y = np.meshgrid(k_y,k_x)
-    K_X *= 2*np.pi
-    K_Y *= 2*np.pi
-    sigma = K_X * u_wind + K_Y * v_wind # vertical wave number, unit=m
+    K_X, K_Y = np.meshgrid(k_y, k_x)
+    K_X *= 2 * np.pi
+    K_Y *= 2 * np.pi
+    sigma = K_X * u_wind + K_Y * v_wind  # vertical wave number, unit=m
 
     mf_num = nm**2 - sigma**2
     mf_den = sigma**2 - f_cor**2
 
     # numerical stability, dividing by zero is not recommended
-    np.putmask(mf_num, mf_num<0, 0.)
+    np.putmask(mf_num, mf_num < 0, 0.)
     ɛ = np.finfo(float).eps
-    np.putmask(mf_den, (mf_den < +ɛ) & (mf_den>=0), +ɛ)
-    np.putmask(mf_den, (mf_den > -ɛ) & (mf_den<0), -ɛ)
+    np.putmask(mf_den, (mf_den < +ɛ) & (mf_den >= 0), +ɛ)
+    np.putmask(mf_den, (mf_den > -ɛ) & (mf_den < 0), -ɛ)
 
     dir = np.ones_like(Z)
-    np.putmask(dir, sigma<0, -1)
+    np.putmask(dir, sigma < 0, -1)
 
     # vertical wavenumber, eq.3 in [Sc08]
-    m = dir * np.sqrt(np.abs(np.divide(mf_num,mf_den) *
-                              np.hypot(K_X, K_Y)))
+    m = dir * np.sqrt(np.abs(np.divide(mf_num, mf_den) * np.hypot(K_X, K_Y)))
 
     # --- transfer function
     P_hat = ((C_w * 1j * sigma * Z_f) /
-             ((1 - (H_w * m * 1j)) *
-             (1 + (sigma * conv_time * 1j)) *
-             (1 + (sigma * fall_time *1j))))
+             ((1 - (H_w * m * 1j)) * (1 + (sigma * conv_time * 1j)) *
+              (1 + (sigma * fall_time * 1j))))
 
     P = np.fft.ifftn(P_hat)
     P = np.real(P[mn_pad[0][0]:-mn_pad[0][1], mn_pad[1][0]:-mn_pad[1][1]])
-    P *= 3600   # convert to mm hr-1
-    np.putmask(P, P<0, 0)
+    P *= 3600  # convert to mm hr-1
+    np.putmask(P, P < 0, 0)
     return P
+
 
 def annual_precip(Z, geoTransform, spatialRef, year=2018):
     ϕ_bar, λ_bar = get_mean_map_lat_lon(geoTransform, spatialRef)
     ϕ, λ, U, V, Rh, T = get_era5_monthly_surface_wind(ϕ_bar, λ_bar, year)
 
     # get nearest node
-    idx_near = np.argmin(np.sqrt((ϕ - ϕ_bar)**2+(λ-λ_bar)**2))
+    idx_near = np.argmin(np.sqrt((ϕ - ϕ_bar)**2 + (λ - λ_bar)**2))
     j_near, k_near = np.unravel_index(idx_near, U.shape[:2])
     # take lapse rate into account
     # use relative humidity as factor
 
-    breakpoint #todo
+    breakpoint  #todo
     for idx in range(U.shape[2]):
-        P_mon = oro_precip(Z, geoTransform, spatialRef, U[idx,j_near,k_near],
-                           V[idx,j_near,k_near], T_0=T[idx,j_near,k_near])
+        P_mon = oro_precip(Z,
+                           geoTransform,
+                           spatialRef,
+                           U[idx, j_near, k_near],
+                           V[idx, j_near, k_near],
+                           T_0=T[idx, j_near, k_near])
 
     return

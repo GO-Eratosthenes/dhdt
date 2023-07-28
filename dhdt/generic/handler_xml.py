@@ -21,6 +21,7 @@ def get_array_from_xml(treeStruc):
             Tn = np.concatenate((Tn, [Trow]), 0)
     return Tn
 
+
 def get_root_of_table(path, fname=None):
     if fname is None:
         full_name = path

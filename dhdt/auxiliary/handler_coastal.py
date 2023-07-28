@@ -12,6 +12,7 @@ from dhdt.generic.handler_landsat import \
     get_bbox_from_path_row
 from dhdt.generic.handler_www import get_zip_file
 
+
 def get_gshhg_url(url_type='ftp'):
     if url_type in ('ftp'):
         gshhg_url = 'ftp://ftp.soest.hawaii.edu/gshhg/gshhg-shp-2.3.7.zip'
@@ -20,7 +21,10 @@ def get_gshhg_url(url_type='ftp'):
                     'gshhg-shp-2.3.7.zip'
     return gshhg_url
 
-def get_coastal_dataset(geom_dir, geom_name=None, minimal_level=1,
+
+def get_coastal_dataset(geom_dir,
+                        geom_name=None,
+                        minimal_level=1,
                         resolution='f'):
     """ get geospatial data of the coast, see also [WS96] & [wwwGSHHG].
 
@@ -53,7 +57,13 @@ def get_coastal_dataset(geom_dir, geom_name=None, minimal_level=1,
     """
     assert isinstance(minimal_level, int), 'please provide an integer'
     assert 0 < minimal_level < 5, 'please provide correct detail'
-    assert resolution in ('f','h','i','l','c',), 'please provide correct letter'
+    assert resolution in (
+        'f',
+        'h',
+        'i',
+        'l',
+        'c',
+    ), 'please provide correct letter'
     if not os.path.isdir(geom_dir): os.makedirs(geom_dir)
     if geom_name is None:
         geom_name = 'GSHHS_' + resolution + '_L' + str(minimal_level) + \
@@ -69,7 +79,8 @@ def get_coastal_dataset(geom_dir, geom_name=None, minimal_level=1,
     for level in range(minimal_level):
         soi = 'GSHHS_shp' + os.sep + resolution + os.sep + \
               'GSHHS_' + resolution + '_L' + str(level+1) + '.shp'
-        sfull = os.path.join(geom_dir,soi) # full path of shapefile of interest
+        sfull = os.path.join(geom_dir,
+                             soi)  # full path of shapefile of interest
         if level == 0:
             gshhs = geopandas.read_file(sfull)
         else:
@@ -86,23 +97,27 @@ def get_coastal_dataset(geom_dir, geom_name=None, minimal_level=1,
         os.remove(os.path.join(geom_dir, f))
     return ffull
 
-def get_coastal_polygon_of_tile(tile_code, tile_system='MGRS', out_dir=None,
-                                geom_dir=None, geom_name=None):
+
+def get_coastal_polygon_of_tile(tile_code,
+                                tile_system='MGRS',
+                                out_dir=None,
+                                geom_dir=None,
+                                geom_name=None):
     if geom_dir is None:
         rot_dir = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3])
         geom_dir = os.path.join(rot_dir, 'data')
-    if geom_name is None: geom_name='GSHHS_f_L1.geojson'
-    if out_dir is None: out_dir=os.getcwd()
+    if geom_name is None: geom_name = 'GSHHS_f_L1.geojson'
+    if out_dir is None: out_dir = os.getcwd()
     if not os.path.isdir(out_dir): os.makedirs(out_dir)
 
-    if tile_system=='MGRS':
+    if tile_system == 'MGRS':
         tile_code = check_mgrs_code(tile_code)
-        toi = get_geom_for_tile_code(tile_code) # tile of interest
+        toi = get_geom_for_tile_code(tile_code)  # tile of interest
         utm_epsg = get_epsg_from_mgrs_tile(tile_code)
-    else: # WRS2
+    else:  # WRS2
         #todo
-        path,row = [],[]
-        toi = get_bbox_from_path_row(path,row)
+        path, row = [], []
+        toi = get_bbox_from_path_row(path, row)
 
     # get UTM extent, since not the whole world needs to be included
     utm_zone = get_utmzone_from_tile_code(tile_code)
@@ -114,6 +129,7 @@ def get_coastal_polygon_of_tile(tile_code, tile_system='MGRS', out_dir=None,
     bound.to_file(os.path.join(out_dir, fname_json_utm), driver='GeoJSON')
     print('written ' + fname_json_utm)
     return
+
 
 def clip_coastal_polygon(geom, utm_zone, geom_dir, geom_name):
     """ clip global coastal dataset to extent of a given geometry
@@ -135,15 +151,17 @@ def clip_coastal_polygon(geom, utm_zone, geom_dir, geom_name):
     """
     utm_epsg = 32600
     utm_epsg += int(np.abs(utm_zone))
-    if np.sign(utm_zone)==-1:
+    if np.sign(utm_zone) == -1:
         utm_epsg += 100
 
     geom_path = os.path.join(geom_dir, geom_name)
     assert os.path.isfile(geom_path), 'make sure data is present'
 
     gshhs = geopandas.read_file(geom_path)
-    geom = geopandas.GeoDataFrame(index=[0], crs='epsg:4326',
-                                  geometry=geopandas.GeoSeries.from_wkt([geom]))
+    geom = geopandas.GeoDataFrame(index=[0],
+                                  crs='epsg:4326',
+                                  geometry=geopandas.GeoSeries.from_wkt([geom
+                                                                         ]))
     bound = gshhs.clip(geom)
     bound = bound.to_crs(epsg=utm_epsg)
     return bound

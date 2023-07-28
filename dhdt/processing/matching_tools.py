@@ -69,10 +69,10 @@ def get_integer_peak_location(C, metric=None):
     from .matching_tools_organization import \
         estimate_match_metric
 
-    assert type(C)==np.ndarray, ("please provide an array")
+    assert type(C) == np.ndarray, ("please provide an array")
     max_corr = np.argmax(C)
 
-    ij = np.unravel_index(max_corr, C.shape, order='F') # 'C'
+    ij = np.unravel_index(max_corr, C.shape, order='F')  # 'C'
     di, dj = ij[::-1]
     di -= C.shape[0] // 2
     dj -= C.shape[1] // 2
@@ -82,6 +82,7 @@ def get_integer_peak_location(C, metric=None):
     else:
         score = estimate_match_metric(C, di=di, dj=dj, metric=metric)
     return di, dj, score, max_corr
+
 
 def get_peak_indices(C, num_estimates=1):
     """ get the locations in an array where peaks are present
@@ -119,20 +120,22 @@ def get_peak_indices(C, num_estimates=1):
     from skimage.morphology import extrema
 
     peak_C = extrema.local_maxima(C)
-    ids = np.array(np.where(peak_C)) # this seems to go in rows
+    ids = np.array(np.where(peak_C))  # this seems to go in rows
     scores = C[peak_C]
 
     # rank scores from max to minimum
     sort_idx = np.flip(np.argsort(scores))
-    scores, ids = scores[sort_idx], ids[:,sort_idx]
+    scores, ids = scores[sort_idx], ids[:, sort_idx]
 
     idx = np.zeros((num_estimates, C.ndim), dtype=int)
     val = np.zeros(num_estimates)
 
-    maximal_num = np.minimum( len(scores), num_estimates)
-    idx[:maximal_num,:] = ids[:,:maximal_num].T # swap axis, because of np.where
+    maximal_num = np.minimum(len(scores), num_estimates)
+    idx[:maximal_num, :] = ids[:, :
+                               maximal_num].T  # swap axis, because of np.where
     val[:maximal_num] = scores[:maximal_num]
     return idx, val
+
 
 # supporting functions
 def get_template(I, idx_1, idx_2, radius):
@@ -155,18 +158,27 @@ def get_template(I, idx_1, idx_2, radius):
     I_sub : np.array, size=(k,k)
         array with Gaussian peak in the center
     """
-    sub_idx = np.mgrid[idx_1 - radius : idx_1 + radius +1,
-                       idx_2 - radius : idx_2 + radius +1]
+    sub_idx = np.mgrid[idx_1 - radius:idx_1 + radius + 1,
+                       idx_2 - radius:idx_2 + radius + 1]
 
-    sub_ids = np.ravel_multi_index(np.vstack((sub_idx[0].flatten(),
-                                              sub_idx[1].flatten())),
-                                   I.shape, mode='clip')
+    sub_ids = np.ravel_multi_index(np.vstack(
+        (sub_idx[0].flatten(), sub_idx[1].flatten())),
+                                   I.shape,
+                                   mode='clip')
     I_sub = np.take(I, sub_ids, mode='clip')
-    I_sub = np.reshape(I_sub, (2*radius+1, 2*radius+1))
+    I_sub = np.reshape(I_sub, (2 * radius + 1, 2 * radius + 1))
     return I_sub
 
-def pad_images_and_filter_coord_list(M1, M2, geoTransform1, geoTransform2,
-                                     X_grd, Y_grd, ds1, ds2, same=True):
+
+def pad_images_and_filter_coord_list(M1,
+                                     M2,
+                                     geoTransform1,
+                                     geoTransform2,
+                                     X_grd,
+                                     Y_grd,
+                                     ds1,
+                                     ds2,
+                                     same=True):
     """ pad imagery, depending on the template size, also transform and shift
     the associated coordinate grids/lists
 
@@ -220,31 +232,32 @@ def pad_images_and_filter_coord_list(M1, M2, geoTransform1, geoTransform2,
         ("please provide an array")
     assert isinstance(geoTransform1, tuple), ('geoTransform should be a tuple')
     assert isinstance(geoTransform2, tuple), ('geoTransform should be a tuple')
-    assert(X_grd.shape == Y_grd.shape) # should be of the same size
-    assert type(ds1)==int, ("please provide an integer")
-    assert type(ds2)==int, ("please provide an integer")
+    assert (X_grd.shape == Y_grd.shape)  # should be of the same size
+    assert type(ds1) == int, ("please provide an integer")
+    assert type(ds2) == int, ("please provide an integer")
 
-    if same: # matching done at the same location
+    if same:  # matching done at the same location
         X1_grd, X2_grd, Y1_grd, Y2_grd = X_grd, X_grd, Y_grd, Y_grd
 
-    else: # a moveable entity is tracked
-        X1_grd, X2_grd = X_grd[:,0], X_grd[:,1]
-        Y1_grd, Y2_grd = Y_grd[:,0], Y_grd[:,1]
+    else:  # a moveable entity is tracked
+        X1_grd, X2_grd = X_grd[:, 0], X_grd[:, 1]
+        Y1_grd, Y2_grd = Y_grd[:, 0], Y_grd[:, 1]
 
     # map transformation to pixel domain
-    I1_grd,J1_grd = map2pix(geoTransform1, X1_grd, Y1_grd)
-#    I1_grd = np.round(I1_grd).astype(np.int64)
-#    J1_grd = np.round(J1_grd).astype(np.int64)
+    I1_grd, J1_grd = map2pix(geoTransform1, X1_grd, Y1_grd)
+    #    I1_grd = np.round(I1_grd).astype(np.int64)
+    #    J1_grd = np.round(J1_grd).astype(np.int64)
 
-    i1,j1 = I1_grd.flatten(), J1_grd.flatten()
+    i1, j1 = I1_grd.flatten(), J1_grd.flatten()
 
-    I2_grd,J2_grd = map2pix(geoTransform2, X2_grd, Y2_grd)
-#    I2_grd = np.round(I2_grd).astype(np.int64)
-#    J2_grd = np.round(J2_grd).astype(np.int64)
+    I2_grd, J2_grd = map2pix(geoTransform2, X2_grd, Y2_grd)
+    #    I2_grd = np.round(I2_grd).astype(np.int64)
+    #    J2_grd = np.round(J2_grd).astype(np.int64)
 
-    i2,j2 = I2_grd.flatten(), J2_grd.flatten()
+    i2, j2 = I2_grd.flatten(), J2_grd.flatten()
 
-    i1,j1,i2,j2,IN = remove_posts_pairs_outside_image(M1,i1,j1, M2,i2,j2)
+    i1, j1, i2, j2, IN = remove_posts_pairs_outside_image(
+        M1, i1, j1, M2, i2, j2)
 
     # extend image size, so search regions at the border can be used as well
     M1_new = pad_radius(M1, ds1)
@@ -256,6 +269,7 @@ def pad_images_and_filter_coord_list(M1, M2, geoTransform1, geoTransform2,
     j2 += ds2
 
     return M1_new, M2_new, i1, j1, i2, j2, IN
+
 
 def pad_radius(I, radius, cval=0):
     """ add extra boundary to array, so templates can be easier extracted
@@ -278,34 +292,39 @@ def pad_radius(I, radius, cval=0):
         ("please provide an array")
     if not type(radius) is tuple: radius = (radius, radius)
 
-    if I.ndim==3:
+    if I.ndim == 3:
         if type(I) in (np.ma.core.MaskedArray, ):
-            I_xtra = np.ma.array(np.pad(I,
-                            ((radius[0],radius[1]), (radius[0],radius[1]), (0,0)),
-                            'constant', constant_values=cval),
+            I_xtra = np.ma.array(np.pad(I, ((radius[0], radius[1]),
+                                            (radius[0], radius[1]), (0, 0)),
+                                        'constant',
+                                        constant_values=cval),
                                  mask=np.pad(np.ma.getmaskarray(I),
-                                             ((radius[0],radius[1]),
-                                              (radius[0],radius[1]),
-                                              (0,0)),
-                                              'constant', constant_values=True))
+                                             ((radius[0], radius[1]),
+                                              (radius[0], radius[1]), (0, 0)),
+                                             'constant',
+                                             constant_values=True))
             return I_xtra
-        I_xtra = np.pad(I,
-                        ((radius[0],radius[1]), (radius[0],radius[1]), (0,0)),
-                        'constant', constant_values=cval)
+        I_xtra = np.pad(I, ((radius[0], radius[1]), (radius[0], radius[1]),
+                            (0, 0)),
+                        'constant',
+                        constant_values=cval)
         return I_xtra
     if type(I) in (np.ma.core.MaskedArray, ):
-        I_xtra = np.ma.array(np.pad(I,
-                        ((radius[0],radius[1]), (radius[0],radius[1])),
-                        'constant', constant_values=cval),
+        I_xtra = np.ma.array(np.pad(I, ((radius[0], radius[1]),
+                                        (radius[0], radius[1])),
+                                    'constant',
+                                    constant_values=cval),
                              mask=np.pad(np.ma.getmaskarray(I),
-                                         ((radius[0],radius[1]),
-                                          (radius[0],radius[1])),
-                                          'constant', constant_values=True))
+                                         ((radius[0], radius[1]),
+                                          (radius[0], radius[1])),
+                                         'constant',
+                                         constant_values=True))
         return I_xtra
-    I_xtra = np.pad(I,
-                    ((radius[0],radius[1]), (radius[0],radius[1])),
-                    'constant', constant_values=cval)
+    I_xtra = np.pad(I, ((radius[0], radius[1]), (radius[0], radius[1])),
+                    'constant',
+                    constant_values=cval)
     return I_xtra
+
 
 def prepare_grids(im_stack, ds, cval=0):
     """prepare stack by padding, dependent on the matching template
@@ -335,56 +354,58 @@ def prepare_grids(im_stack, ds, cval=0):
     """
     assert type(im_stack) in (np.ma.core.MaskedArray, np.ndarray), \
         ("please provide an array")
-    assert type(ds)==int, ("please provide an integer")
-    if im_stack.ndim==2: im_stack = np.atleast_3d(im_stack)
+    assert type(ds) == int, ("please provide an integer")
+    if im_stack.ndim == 2: im_stack = np.atleast_3d(im_stack)
 
     # padding is needed to let all imagery be of the correct template size
-    i_pad = int(np.ceil(im_stack.shape[0]/ds)*ds - im_stack.shape[0])
-    j_pad = int(np.ceil(im_stack.shape[1]/ds)*ds - im_stack.shape[1])
+    i_pad = int(np.ceil(im_stack.shape[0] / ds) * ds - im_stack.shape[0])
+    j_pad = int(np.ceil(im_stack.shape[1] / ds) * ds - im_stack.shape[1])
 
-    im_stack = np.pad(im_stack,
-                      ((0, i_pad), (0, j_pad), (0, 0)),
-                      'constant', constant_values=(cval, cval))
+    im_stack = np.pad(im_stack, ((0, i_pad), (0, j_pad), (0, 0)),
+                      'constant',
+                      constant_values=(cval, cval))
     im_stack = np.squeeze(im_stack)
 
     # ul
-    i_samp = np.arange(0,im_stack.shape[0]-ds,ds)
-    j_samp = np.arange(0,im_stack.shape[1]-ds,ds)
-    J_grd, I_grd = np.meshgrid(j_samp,i_samp)
+    i_samp = np.arange(0, im_stack.shape[0] - ds, ds)
+    j_samp = np.arange(0, im_stack.shape[1] - ds, ds)
+    J_grd, I_grd = np.meshgrid(j_samp, i_samp)
     return im_stack, I_grd, J_grd
 
-def make_templates_same_size(I1,I2):
+
+def make_templates_same_size(I1, I2):
     assert type(I1) in (np.ma.core.MaskedArray, np.ndarray), \
         ("please provide an array")
     assert type(I2) in (np.ma.core.MaskedArray, np.ndarray), \
         ("please provide an array")
 
-    mt,nt = I1.shape[0],I1.shape[1] # dimenstion of the template
-    ms,ns = I2.shape[0],I2.shape[1] # dimension of the search space
+    mt, nt = I1.shape[0], I1.shape[1]  # dimenstion of the template
+    ms, ns = I2.shape[0], I2.shape[1]  # dimension of the search space
 
-    assert ms>=mt # search domain should be of equal size or bigger
-    assert ns>=nt
+    assert ms >= mt  # search domain should be of equal size or bigger
+    assert ns >= nt
 
-    if I1.ndim>I2.ndim:
+    if I1.ndim > I2.ndim:
         I2 = np.atleast_3d(I2)
-    elif I1.ndim<I2.ndim:
+    elif I1.ndim < I2.ndim:
         I1 = np.atleast_3d(I1)
 
-    md, nd = (ms-mt)//2, (ns-nt)//2
-    if md==0 | nd==0: # I2[+0:-0, ... does not seem to work
+    md, nd = (ms - mt) // 2, (ns - nt) // 2
+    if md == 0 | nd == 0:  # I2[+0:-0, ... does not seem to work
         I2sub = I2
     else:
-        if I1.ndim==3:
-            if I1.shape[2]==I2.shape[2]:
+        if I1.ndim == 3:
+            if I1.shape[2] == I2.shape[2]:
                 I2sub = I2[+md:-md, +nd:-nd, :]
-            elif I1.shape[2]>I2.shape[2]:
-                I2sub = np.repeat(I2[+md:-md,+nd:-nd], I1.shape[2], axis=2)
-            elif I1.shape[2]<I2.shape[2]:
+            elif I1.shape[2] > I2.shape[2]:
+                I2sub = np.repeat(I2[+md:-md, +nd:-nd], I1.shape[2], axis=2)
+            elif I1.shape[2] < I2.shape[2]:
                 I2sub = I2[+md:-md, +nd:-nd, :]
                 I1 = np.repeat(I1, I2.shape[2], axis=2)
         else:
             I2sub = I2[+md:-md, +nd:-nd]
     return I1, I2sub
+
 
 def remove_posts_outside_image(I, i, j):
     """
@@ -405,11 +426,13 @@ def remove_posts_outside_image(I, i, j):
     --------
     remove_posts_pairs_outside_image
     """
-    assert I.ndim>=2, ('please provide an 2D array')
+    assert I.ndim >= 2, ('please provide an 2D array')
 
-    IN = np.logical_and.reduce((i>=0, i<(I.shape[0]-1), j>=0, j<(I.shape[1]-1)))
+    IN = np.logical_and.reduce((i >= 0, i < (I.shape[0] - 1), j >= 0, j
+                                < (I.shape[1] - 1)))
     i, j = i[IN], j[IN]
     return i, j, IN
+
 
 def remove_posts_pairs_outside_image(I1, i1, j1, I2, i2, j2):
     """
@@ -437,12 +460,12 @@ def remove_posts_pairs_outside_image(I1, i1, j1, I2, i2, j2):
     assert I1.ndim >= 2, ('please provide I1 as an 2D array')
     assert I2.ndim >= 2, ('please provide I2 as an 2D array')
 
-    IN = np.logical_and.reduce((i1>=0, i1<(I1.shape[0]-1),
-                                j1>=0, j1<(I1.shape[1]-1),
-                                i2>=0, i2<(I2.shape[0]-1),
-                                j2>=0, j2<(I2.shape[1]-1)))
+    IN = np.logical_and.reduce(
+        (i1 >= 0, i1 < (I1.shape[0] - 1), j1 >= 0, j1 < (I1.shape[1] - 1), i2
+         >= 0, i2 < (I2.shape[0] - 1), j2 >= 0, j2 < (I2.shape[1] - 1)))
     i1, j1, i2, j2 = i1[IN], j1[IN], i2[IN], j2[IN]
     return i1, j1, i2, j2, IN
+
 
 def test_bounds_reposition(d, temp_size, search_size):
     """
@@ -450,7 +473,7 @@ def test_bounds_reposition(d, temp_size, search_size):
     --------
     reposition_templates_from_center
     """
-    space_bound = (search_size-temp_size) // 2
+    space_bound = (search_size - temp_size) // 2
     if abs(d) > space_bound:
         warnings.warn("part of the template will be out of the image" +
                       "with this displacement estimate")
@@ -458,26 +481,29 @@ def test_bounds_reposition(d, temp_size, search_size):
         d = reposition_dir * np.minimum(abs(d), space_bound)
     return d
 
-def reposition_templates_from_center(I1,I2,di,dj):
-    mt,nt = I1.shape[0],I1.shape[1] # dimenstion of the template
-    ms,ns = I2.shape[0],I2.shape[1] # dimension of the search space
 
-    di,dj = int(di),int(dj)
-    di,dj = test_bounds_reposition(di,mt,ms), test_bounds_reposition(dj,nt,ns)
+def reposition_templates_from_center(I1, I2, di, dj):
+    mt, nt = I1.shape[0], I1.shape[1]  # dimenstion of the template
+    ms, ns = I2.shape[0], I2.shape[1]  # dimension of the search space
 
-    assert ms>=mt # search domain should be of equal size or bigger
-    assert ns>=nt
-    assert I1.ndim==I2.ndim # should be the same dimension
+    di, dj = int(di), int(dj)
+    di, dj = test_bounds_reposition(di, mt,
+                                    ms), test_bounds_reposition(dj, nt, ns)
 
-    mc,nc = ms//2, ns//2 # center location
+    assert ms >= mt  # search domain should be of equal size or bigger
+    assert ns >= nt
+    assert I1.ndim == I2.ndim  # should be the same dimension
 
-    if I1.ndim==3:
+    mc, nc = ms // 2, ns // 2  # center location
+
+    if I1.ndim == 3:
         I2sub = I2[mc-(mt//2)-di : mc+(mt//2)-di, \
                    nc-(nt//2)-dj : nc+(nt//2)-dj, :]
     else:
         I2sub = I2[mc-(mt//2)-di : mc+(mt//2)-di, \
                    nc-(nt//2)-dj : nc+(nt//2)-dj]
     return I1, I2sub
+
 
 def get_coordinates_of_template_centers(Grid, temp_size):
     """ create grid of template centers
@@ -525,17 +551,18 @@ def get_coordinates_of_template_centers(Grid, temp_size):
 
     assert type(Grid) in (np.ma.core.MaskedArray, np.ndarray, tuple), \
         ("please provide an array or tuple")
-    assert type(temp_size)==int, ("please provide an integer")
+    assert type(temp_size) == int, ("please provide an integer")
 
     if isinstance(Grid, tuple):
-        (m,n) = Grid[-2:]
+        (m, n) = Grid[-2:]
     else:
-        (m,n) = Grid.shape[:2]
+        (m, n) = Grid.shape[:2]
 
     radius = np.floor(temp_size / 2).astype('int')
-    I_idx,J_idx = np.mgrid[radius:(m-radius):temp_size,
-                  radius:(n-radius):temp_size]
+    I_idx, J_idx = np.mgrid[radius:(m - radius):temp_size,
+                            radius:(n - radius):temp_size]
     return I_idx, J_idx
+
 
 def get_value_at_template_centers(Grid, temp_size):
     """ When tiling an array into small templates, this function gives the
@@ -559,23 +586,25 @@ def get_value_at_template_centers(Grid, temp_size):
     """
     assert type(Grid) in (np.ma.core.MaskedArray, np.ndarray), \
         ("please provide an array")
-    assert type(temp_size)==int, ("please provide an integer")
+    assert type(temp_size) == int, ("please provide an integer")
 
     Iidx, Jidx = get_coordinates_of_template_centers(Grid, temp_size)
     if (Grid.ndim == 3):
-        m,n = Iidx.shape
+        m, n = Iidx.shape
         b = Grid.shape[2]
         Iidx, Jidx = np.tile(np.atleast_3d(Iidx), (1,1,b)), \
                      np.tile(np.atleast_3d(Jidx), (1,1,b))
-        Kidx = np.ones((m,n,b))
-        Kidx = np.einsum('k,ijk->ijk',np.linspace(0,b-1,b),Kidx).astype(int)
+        Kidx = np.ones((m, n, b))
+        Kidx = np.einsum('k,ijk->ijk', np.linspace(0, b - 1, b),
+                         Kidx).astype(int)
         grid_centers_values = Grid[Iidx, Jidx, Kidx]
     else:
         grid_centers_values = Grid[Iidx, Jidx]
 
     return grid_centers_values
 
-def get_data_and_mask(I,M=None):
+
+def get_data_and_mask(I, M=None):
     """ sometimes data is given in masked array form (numpy.ma), then this is
     separated into regular numpy.arrays
 
@@ -594,16 +623,16 @@ def get_data_and_mask(I,M=None):
         masking array, where True means data, and False neglecting elements
     """
     # make compatible with masked array
-    if type(I)==np.ma.core.MaskedArray:
+    if type(I) == np.ma.core.MaskedArray:
         if M is None:
             M = np.invert(np.ma.getmaskarray(I))
         else:
-            if type(M)==np.ma.core.MaskedArray: M = np.ma.getdata(M)
+            if type(M) == np.ma.core.MaskedArray: M = np.ma.getdata(M)
             M = np.logical_and(M, np.invert(np.ma.getmaskarray(I)))
         I = np.ma.getdata(I)
     else:
         if M is None: M = np.ones_like(I)
-        if M.size==0: M = np.ones_like(I)
-        if type(M)==np.ma.core.MaskedArray: M = np.ma.getdata(M)
+        if M.size == 0: M = np.ones_like(I)
+        if type(M) == np.ma.core.MaskedArray: M = np.ma.getdata(M)
         M = M.astype(dtype=bool)
     return I, M

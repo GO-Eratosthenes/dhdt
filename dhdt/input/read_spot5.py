@@ -1,5 +1,6 @@
 import pandas as pd
 
+
 def list_platform_metadata_s5():
     s5_dict = {
         'COSPAR': '2002-021A',
@@ -9,8 +10,10 @@ def list_platform_metadata_s5():
         'constellation': 'SPOT',
         'launch': '2002-05-04',
         'orbit': 'sso',
-        'equatorial_crossing_time': '10:30'}
+        'equatorial_crossing_time': '10:30'
+    }
     return s5_dict
+
 
 def list_central_wavelength_hrg():
     """ create dataframe with metadata about SPOT5
@@ -42,24 +45,44 @@ def list_central_wavelength_hrg():
     B08         833        106          10  near infrared       7
 
     """
-    center_wavelength = {"B01": 550, "B02": 650, "B03": 840, "B04": 1670,
-                  }
-    full_width_half_max = {"B01": 90, "B02": 70, "B03": 110, "B04": 170,
-                 }
-    bandid = {"B01": 0, "B02": 1, "B03": 2, "B04": 3,
-                  }
+    center_wavelength = {
+        "B01": 550,
+        "B02": 650,
+        "B03": 840,
+        "B04": 1670,
+    }
+    full_width_half_max = {
+        "B01": 90,
+        "B02": 70,
+        "B03": 110,
+        "B04": 170,
+    }
+    bandid = {
+        "B01": 0,
+        "B02": 1,
+        "B03": 2,
+        "B04": 3,
+    }
     gsd = {"B01": 10, "B02": 10, "B03": 10, "B04": 20}
-    field_of_view = {"B01": 4.0, "B02": 4.0, "B03": 4.0, "B04": 4.0,}
-    common_name = {"B01": 'green', "B02" : 'red',
-                   "B03" : 'nir',  "B04" : 'swir16',
-            }
+    field_of_view = {
+        "B01": 4.0,
+        "B02": 4.0,
+        "B03": 4.0,
+        "B04": 4.0,
+    }
+    common_name = {
+        "B01": 'green',
+        "B02": 'red',
+        "B03": 'nir',
+        "B04": 'swir16',
+    }
     d = {
-         "center_wavelength": pd.Series(center_wavelength),
-         "full_width_half_max": pd.Series(full_width_half_max),
-         "gsd": pd.Series(gsd),
-         "field_of_view": pd.Series(field_of_view),
-         "common_name": pd.Series(common_name),
-         "bandid": pd.Series(bandid)
-         }
+        "center_wavelength": pd.Series(center_wavelength),
+        "full_width_half_max": pd.Series(full_width_half_max),
+        "gsd": pd.Series(gsd),
+        "field_of_view": pd.Series(field_of_view),
+        "common_name": pd.Series(common_name),
+        "bandid": pd.Series(bandid)
+    }
     df = pd.DataFrame(d)
     return df

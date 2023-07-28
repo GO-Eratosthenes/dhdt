@@ -5,6 +5,7 @@ import pandas as pd
 
 from dhdt.generic.handler_xml import get_root_of_table
 
+
 def _get_file_meta(theia, vn_df, dat_dir, mtype='Image'):
     assert (mtype in ('Image', 'Mask', 'View', 'Solar')), \
         'please provide a correct metadata type'
@@ -21,7 +22,7 @@ def _get_file_meta(theia, vn_df, dat_dir, mtype='Image'):
 
     im_listing = None
     for child in theia:
-        if child.tag in (xtype+'_List',):
+        if child.tag in (xtype + '_List', ):
             im_listing = child
     assert (im_listing is not None), ('metadata not in xml file')
 
@@ -34,25 +35,26 @@ def _get_file_meta(theia, vn_df, dat_dir, mtype='Image'):
 
     file_list = None
     for child in im_list:
-        if child.tag in (xtype+'_File_List',):
+        if child.tag in (xtype + '_File_List', ):
             file_list = child
     assert (file_list is not None), ('metadata not in xml file')
 
     im_paths, band_id = [], []
     for im_loc in file_list:
-        full_path = os.path.join(dat_dir,
-                                 os.path.split(im_loc.text)[1])
+        full_path = os.path.join(dat_dir, os.path.split(im_loc.text)[1])
         im_paths.append(full_path)
         if mtype in ('View', 'Solar'):
-            band_id.append('B'+im_loc.get('band_number'))
+            band_id.append('B' + im_loc.get('band_number'))
         else:
             band_id.append(im_loc.get('band_id'))
 
-    band_path = pd.Series(data=im_paths, index=band_id,
-                          name=mtype.lower()+"path")
+    band_path = pd.Series(data=im_paths,
+                          index=band_id,
+                          name=mtype.lower() + "path")
     vn_df_new = pd.concat([vn_df, band_path], axis=1, join="outer")
     IN = vn_df_new.index.isin(vn_df.index)
     return vn_df_new[IN]
+
 
 def get_vn_image_locations(fname, vn_df):
     """
@@ -71,8 +73,8 @@ def get_vn_image_locations(fname, vn_df):
     vn_df : pandas.dataframe
         dataframe series with relative folder and file locations of the bands
     """
-    if os.path.isdir(fname): # only directory is given, search for metadata
-        fname = glob.glob(os.path.join(fname,'*MTD*.xml'))[0]
+    if os.path.isdir(fname):  # only directory is given, search for metadata
+        fname = glob.glob(os.path.join(fname, '*MTD*.xml'))[0]
     assert os.path.isfile(fname), 'metafile does not seem to be present'
 
     root = get_root_of_table(fname)
@@ -81,13 +83,13 @@ def get_vn_image_locations(fname, vn_df):
     for child in root:
         if child.tag == 'Product_Organisation':
             prod_org = child
-    assert(prod_org is not None), ('metadata not in xml file')
+    assert (prod_org is not None), ('metadata not in xml file')
 
     theia = None
     for child in prod_org:
         if child.tag == 'Muscate_Product':
             theia = child
-    assert(theia is not None), ('metadata not in xml file')
+    assert (theia is not None), ('metadata not in xml file')
 
     dat_dir = os.path.split(fname)[0]
     vn_df_new = _get_file_meta(theia, vn_df, dat_dir, mtype='Image')
@@ -96,7 +98,8 @@ def get_vn_image_locations(fname, vn_df):
     vn_df_new = _get_file_meta(theia, vn_df_new, dat_dir, mtype='Solar')
     return vn_df_new
 
-def get_vn_mean_view_angles(fname,vn_df):
+
+def get_vn_mean_view_angles(fname, vn_df):
     """
     VENµS imagery are placed within a folder structure, this function finds the
     paths to the metadata
@@ -114,8 +117,8 @@ def get_vn_mean_view_angles(fname,vn_df):
         dataframe series with relative folder and mean view of each detector.
         given by "zenith_mean" and "azimuth_mean"
     """
-    if os.path.isdir(fname): # only directory is given, search for metadata
-        fname = glob.glob(os.path.join(fname,'*MTD*.xml'))[0]
+    if os.path.isdir(fname):  # only directory is given, search for metadata
+        fname = glob.glob(os.path.join(fname, '*MTD*.xml'))[0]
     assert os.path.isfile(fname), 'metafile does not seem to be present'
 
     root = get_root_of_table(fname)
@@ -124,7 +127,7 @@ def get_vn_mean_view_angles(fname,vn_df):
     for child in root:
         if child.tag.endswith('Geometric_Informations'):
             geom_info = child
-    assert(geom_info is not None), ('metadata not in xml file')
+    assert (geom_info is not None), ('metadata not in xml file')
 
     mean_list = None
     for child in geom_info:
@@ -145,7 +148,10 @@ def get_vn_mean_view_angles(fname,vn_df):
         det_id.append(int(view_child.get('detector_id')))
 
     # one-to-many mapping
-    view_df = pd.DataFrame({"azimuth_mean": az, "zentih_mean": zn},
+    view_df = pd.DataFrame({
+        "azimuth_mean": az,
+        "zentih_mean": zn
+    },
                            index=det_id)
     vn_df_new = vn_df.merge(view_df,
                             left_on=vn_df['detector_id'],

@@ -5,20 +5,23 @@ from scipy.ndimage import convolve
 from .handler_im import get_grad_filters, conv_2Dfilter
 from .filtering_statistical import make_2D_Laplacian
 
+
 def terrain_curvature(Z):
     l = make_2D_Laplacian(alpha=.5)
-    C = convolve(Z,-l)
+    C = convolve(Z, -l)
     return C
 
-def ridge_shape(Z): #todo: check if correct
-    # can be peak, hole, valley or saddle
-    dx2,_ = get_grad_filters(ftype='kroon', tsize=3, order=2)
-    dZ_dx2 = convolve(Z,-dx2)
-    dy2 = np.rot90(dx2)
-    dZ_dy2 = convolve(Z,-dy2)
 
-    Az = np.degrees(np.arctan2(dZ_dx2,dZ_dy2))
+def ridge_shape(Z):  #todo: check if correct
+    # can be peak, hole, valley or saddle
+    dx2, _ = get_grad_filters(ftype='kroon', tsize=3, order=2)
+    dZ_dx2 = convolve(Z, -dx2)
+    dy2 = np.rot90(dx2)
+    dZ_dy2 = convolve(Z, -dy2)
+
+    Az = np.degrees(np.arctan2(dZ_dx2, dZ_dy2))
     return Az
+
 
 def terrain_slope(Z, spac=10.):
     """ use simple local estimation, to calculate slope along mapping axis.
@@ -53,6 +56,7 @@ def terrain_slope(Z, spac=10.):
                  np.pad(Z_dy, 1, mode='linear_ramp')
     return Z_dx, Z_dy
 
+
 def terrain_aspect_slope(Z, spac=10.):
     """ use simple local estimation, to calculate terrain direction and steepest
     slope. Following [Ho81]_.
@@ -85,6 +89,7 @@ def terrain_aspect_slope(Z, spac=10.):
     Asp = np.arctan2(Z_dy, Z_dx)
     Slp = np.hypot(Z_dy, Z_dx)
     return Asp, Slp
+
 
 def get_slope_corrected_area(Z, spac=10.):
     """ take the slope of the surface into account when the area is calculated

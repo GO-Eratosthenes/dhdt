@@ -6,7 +6,7 @@ from shapely.geometry import Polygon, MultiPolygon
 from shapely import wkt
 
 import dhdt.generic.unit_check
-from dhdt.auxilary import handler_mgrs
+from dhdt.auxiliary import handler_mgrs
 
 # A subset of original MGRS, sampling every 1500 entries
 TESTDATA_KML = 'testdata/MGRS/mgrs_tiles_tiny.kml'

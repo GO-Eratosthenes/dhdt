@@ -6,7 +6,7 @@ import datetime
 
 from sentinelsat import SentinelAPI
 
-from dhdt.auxilary.handler_google_cloud import \
+from dhdt.auxiliary.handler_google_cloud import \
     create_stac_catalog, download_assets
 
 MGRS_TILE = "09VWJ"
