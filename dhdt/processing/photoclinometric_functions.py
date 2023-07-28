@@ -29,19 +29,19 @@ def estimate_albedo(I, unit='angles', normalize=True):
     """
     if normalize:
         I = mat_to_gray(I)
-    mu_1, mu_2 = np.mean(I.flatten()), np.mean(I.flatten()**2)
+    mu_1, mu_2 = np.mean(I.flatten()), np.mean(I.flatten() ** 2)
 
     fx, fy = get_grad_filters(ftype='kroon', tsize=3, order=1, indexing='xy')
     I_dx, I_dy = conv_2Dfilter(I, fx), conv_2Dfilter(I, fy)
 
     I_xy = np.hypot(I_dx, I_dy)
-    I_x_norm, I_y_norm = np.divide(I_dx, I_xy, where=I_xy!=0), \
-                         np.divide(I_y, I_xy, where=I_xy!=0)
+    I_x_norm, I_y_norm = np.divide(I_dx, I_xy, where=I_xy != 0), \
+                         np.divide(I_y, I_xy, where=I_xy != 0)
 
     mu_x, mu_y = np.mean(I_x_norm.flatten()), np.mean(I_y_norm.flatten())
 
     # estimate parameters: global albedo, as well as, local slant and tilt
-    gamma = np.sqrt((6 * (np.pi**2) * mu_2) - (48 * (mu_1**2)))
+    gamma = np.sqrt((6 * (np.pi ** 2) * mu_2) - (48 * (mu_1 ** 2)))
     albedo = np.divide(gamma, np.pi, where=gamma != 0)
 
     tilt = np.arctan2(mu_y, mu_x)
@@ -97,8 +97,8 @@ def linear_fourier_surface_estimation(I, tilt, slant):
                                  shift=False,
                                  axis='corner')
 
-    s_1, s_2 = np.cos(tilt)*np.sin(slant), \
-               np.sin(tilt)*np.sin(slant)           # eq.5 in [1]
+    s_1, s_2 = np.cos(tilt) * np.sin(slant), \
+               np.sin(tilt) * np.sin(slant)  # eq.5 in [1]
 
     I_F = np.fft.fft2(I)
     Z_F = np.divide(I_F, -1j * w_x * s_1 - 1j * w_y * s_2)  # eq.10 in [1]
@@ -142,7 +142,7 @@ def global_surface_estimation(I, sun, albedo, kappa=1E3, iter=2.5E3):
     for k in range(iter):
         # second order derivatives
         p2, q2 = conv_2Dfilter(p, w), conv_2Dfilter(q, w)
-        pq = 1 + p**2 + q**2
+        pq = 1 + p ** 2 + q ** 2
         sqroot_pq = np.sqrt(pq)
         # reflectance map
         R = np.divide(albedo * (-sun[0] * p - sun[1] * q + sun[2]), sqroot_pq)
@@ -203,11 +203,11 @@ def linear_reflectance_surface_estimation(I, tilt, slant, iter=2.5E2):
 
     tilt, slant = np.deg2rad(tilt), np.deg2rad(slant)
     E_x, E_y = np.cos(tilt) * np.tan(slant), np.sin(tilt) * np.tan(slant)
-    sqroot_E = np.sqrt(1 + E_x**2 + E_y**2)
+    sqroot_E = np.sqrt(1 + E_x ** 2 + E_y ** 2)
 
     Z = np.zeros_like(I)
     for k in range(iter):
-        pq = 1 + p**2 + q**2
+        pq = 1 + p ** 2 + q ** 2
         sqroot_pq = np.sqrt(pq)
         # reflectance map
         R = np.divide(
@@ -215,8 +215,8 @@ def linear_reflectance_surface_estimation(I, tilt, slant, iter=2.5E2):
             q * np.sin(tilt) * np.sin(slant) + np.cos(slant), sqroot_sq)
         R = np.max(R, 0)
         f = I - R
-        df_dZ = np.divide(np.multiply( p+q , E_x*p + E_y*q + 1),
-                          np.multiply(np.sqrt(pq**3), sqroot_E)) \
+        df_dZ = np.divide(np.multiply(p + q, E_x * p + E_y * q + 1),
+                          np.multiply(np.sqrt(pq ** 3), sqroot_E)) \
                 - np.divide(E_x + E_y, (sqroot_pq * sqroot_E))
 
         # update elevation, and derivatives

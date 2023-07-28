@@ -53,7 +53,7 @@ def create_artificial_terrain(m, n, step_size=.01, multi_res=(2, 4)):
 
     def _fade(t):
         "6t^5 - 15t^4 + 10t^3"
-        return 6 * t**5 - 15 * t**4 + 10 * t**3
+        return 6 * t ** 5 - 15 * t ** 4 + 10 * t ** 3
 
     def _gradient(h, x, y):
         "grad converts h to the right gradient vector and return the dot product with (x,y)"

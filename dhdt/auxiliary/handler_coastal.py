@@ -17,8 +17,9 @@ def get_gshhg_url(url_type='ftp'):
     if url_type in ('ftp'):
         gshhg_url = 'ftp://ftp.soest.hawaii.edu/gshhg/gshhg-shp-2.3.7.zip'
     else:
-        gshhg_url = 'http://www.soest.hawaii.edu/pwessel/gshhg/'+\
-                    'gshhg-shp-2.3.7.zip'
+        gshhg_url = (
+            'http://www.soest.hawaii.edu/pwessel/gshhg/gshhg-shp-2.3.7.zip'
+        )
     return gshhg_url
 
 
@@ -78,7 +79,7 @@ def get_coastal_dataset(geom_dir,
 
     for level in range(minimal_level):
         soi = 'GSHHS_shp' + os.sep + resolution + os.sep + \
-              'GSHHS_' + resolution + '_L' + str(level+1) + '.shp'
+              'GSHHS_' + resolution + '_L' + str(level + 1) + '.shp'
         sfull = os.path.join(geom_dir,
                              soi)  # full path of shapefile of interest
         if level == 0:
@@ -115,7 +116,7 @@ def get_coastal_polygon_of_tile(tile_code,
         toi = get_geom_for_tile_code(tile_code)  # tile of interest
         utm_epsg = get_epsg_from_mgrs_tile(tile_code)
     else:  # WRS2
-        #todo
+        # todo
         path, row = [], []
         toi = get_bbox_from_path_row(path, row)
 
@@ -124,8 +125,11 @@ def get_coastal_polygon_of_tile(tile_code,
     bound = clip_coastal_polygon(toi, utm_zone, geom_dir, geom_name)
 
     # create the output layer
-    fname_json_utm = geom_name.split('.')[0]+'_utm'+str(utm_zone).zfill(2) + \
-                    '.geojson'
+    fname_json_utm = \
+        geom_name.split('.')[0] + \
+        '_utm' + \
+        str(utm_zone).zfill(2) + \
+        '.geojson'
     bound.to_file(os.path.join(out_dir, fname_json_utm), driver='GeoJSON')
     print('written ' + fname_json_utm)
     return

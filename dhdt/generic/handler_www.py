@@ -243,7 +243,6 @@ def bulk_download_and_mosaic(url_list,
                              bbox,
                              crs,
                              new_res=10):
-
     for i in range(len(url_list)):
         gran_url = url_list[i]
         gran_url_new = change_url_resolution(gran_url, new_res)
@@ -344,7 +343,7 @@ def reduce_duplicate_urls(url_list):
     """
     tiles = ()
     for i in url_list:
-        tiles += (i.split('/')[-2], )
+        tiles += (i.split('/')[-2],)
     uni_set = set(tiles)
     ids = []
     for i in range(len(uni_set)):

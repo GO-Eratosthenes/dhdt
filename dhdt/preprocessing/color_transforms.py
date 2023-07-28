@@ -202,7 +202,7 @@ def rgb2ycbcr(Red, Green, Blue):
 
     L = np.array([(+0.257, +0.504, +0.098), (-0.148, -0.291, +0.439),
                   (+0.439, -0.368, -0.071)])
-    C = np.array([16, 128, 128]) / 2**8
+    C = np.array([16, 128, 128]) / 2 ** 8
 
     RGB = np.dstack((Red, Green, Blue))
     YCC = np.einsum('ij,klj->kli', L, RGB)
@@ -268,7 +268,7 @@ def rgb2hsi(Red, Green, Blue):
     return Hue, Sat, Int
 
 
-def hsi2rgb(Hue, Sat, Int):  #todo: docstring
+def hsi2rgb(Hue, Sat, Int):  # todo: docstring
     are_three_arrays_equal(Hue, Sat, Int)
 
     Red, Green, Blue = np.zeros_like(Hue), np.zeros_like(Hue), np.zeros_like(
@@ -344,9 +344,9 @@ def erdas2hsi(Blue, Green, Red):
     Sat = np.copy(Blue)
     Sat[Int == 0] = 0
     Sat[Int <= .5] = (max_Stack[Int <= .5] - min_Stack[Int <= .5]) / (
-        max_Stack[Int <= .5] + min_Stack[Int <= .5])
+            max_Stack[Int <= .5] + min_Stack[Int <= .5])
     Sat[Int > .5] = (max_Stack[Int > .5] - min_Stack[Int > .5]) / (
-        2 - max_Stack[Int > .5] + min_Stack[Int > .5])
+            2 - max_Stack[Int > .5] + min_Stack[Int > .5])
 
     Hue = np.copy(Blue)
     Hue[Blue == max_Stack] = (1 / 6) * (6 + Green[Blue == max_Stack] -
@@ -469,14 +469,14 @@ def xyz2lab(X, Y, Z, th=0.008856):
 
     YYn = Y / Yn
 
-    L_1 = 116 * YYn**(1 / 3.)
+    L_1 = 116 * YYn ** (1 / 3.)
     L_2 = 903.3 * YYn
 
     L = L_1
     L[YYn <= th] = L_2[YYn <= th]
 
     def f(tau, th):
-        fx = X**(1 / 3.)
+        fx = X ** (1 / 3.)
         fx[X <= th] = 7.787 * X[X < th] + 16 / 116
         return fx
 

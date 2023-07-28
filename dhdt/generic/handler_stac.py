@@ -123,7 +123,7 @@ def load_input_metadata_s2(item, s2_df, geoTransform):
 
     # map to domain of interest
     im_x, im_y = pix_centers(geoTransform, make_grid=True)
-    #todo
+    # todo
     full_href = item.assets['granule_metadata'].get_absolute_href()
     qi_path = os.path.dirname(full_href)
 

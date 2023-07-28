@@ -53,7 +53,7 @@ def flow_anim(V_x,
 
         # are they moving outside the frame or mask
         idx_seed = (n * np.round(i) + np.round(j)).astype(int)
-        #idx_seed = np.ravel_multi_index(np.stack((np.round(i),
+        # idx_seed = np.ravel_multi_index(np.stack((np.round(i),
         #                                          np.round(j))).astype(int),
         #                                (m, n))
         # does not work with out of bound index
@@ -133,7 +133,6 @@ def streamplot2shapefile(X,
                          out_path,
                          out_file='streamplot.shp',
                          density=[1, 1]):
-
     stream_stack = streamplot2list(X, Y, U, V, density=density)
     # write shapefile
     polylines2shapefile(stream_stack, spatialRef, out_path, out_file)

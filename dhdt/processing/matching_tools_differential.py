@@ -6,7 +6,8 @@ import numpy as np
 from scipy import ndimage, interpolate
 
 from ..generic.unit_check import are_two_arrays_equal
-from ..preprocessing.image_transforms import mat_to_gray, histogram_equalization
+from ..preprocessing.image_transforms import mat_to_gray, \
+    histogram_equalization
 from ..processing.matching_tools import get_peak_indices
 from ..generic.filtering_statistical import make_2D_Gaussian
 from ..generic.handler_im import get_grad_filters, \
@@ -75,8 +76,8 @@ def create_differential_data(I1, I2):
         I_di = ndimage.convolve(I1, di) / 4
         I_dj = ndimage.convolve(I1, dj) / 4
 
-        #I_di = ndimage.convolve(I1, di) /2 # take grid spacing into account
-        #I_dj = ndimage.convolve(I1, dj) /2
+        # I_di = ndimage.convolve(I1, di) /2 # take grid spacing into account
+        # I_dj = ndimage.convolve(I1, dj) /2
         # temporal derivative
         I1_dt = ndimage.convolve(I1, -kernel_t)
 
@@ -210,11 +211,11 @@ def simple_optical_flow(I1,
 
         # get templates
         Ix = fx[iIm - radius:iIm + radius + 1,
-                jIm - radius:jIm + radius + 1].flatten()
+             jIm - radius:jIm + radius + 1].flatten()
         Iy = fy[iIm - radius:iIm + radius + 1,
-                jIm - radius:jIm + radius + 1].flatten()
+             jIm - radius:jIm + radius + 1].flatten()
         It = ft[iIm - radius:iIm + radius + 1,
-                jIm - radius:jIm + radius + 1].flatten()
+             jIm - radius:jIm + radius + 1].flatten()
 
         # look if variation is present
         if np.std(It) != 0:
@@ -305,12 +306,12 @@ def affine_optical_flow(I1,
               international conference on computer vision systems, 2015.
     """
     assert isinstance(model, str), ('please provide a model; ', '{'
-                                    'simple'
-                                    ','
-                                    'affine'
-                                    ','
-                                    'similarity'
-                                    '}')
+                                                                'simple'
+                                                                ','
+                                                                'affine'
+                                                                ','
+                                                                'similarity'
+                                                                '}')
     assert ~np.any(np.isnan(I2)), (
         "arrays with missing data are not yet supported")
     are_two_arrays_equal(I1, I2)
@@ -414,14 +415,14 @@ def affine_optical_flow(I1,
                        'constant')  # add extra zero-components
             y = np.pad(y, ((4, 0), (0, 0)), 'constant')
 
-        #todo
-        #if episolar.shape[0] != 0:
+        # todo
+        # if episolar.shape[0] != 0:
         #    y =
         #    A = np.vstack((A, episolar.T))
 
         if y.size >= 6:  # structure should not become ill-posed
             try:
-                (dp, _, _, s) = np.linalg.lstsq(A, y, rcond=None)  #[0]
+                (dp, _, _, s) = np.linalg.lstsq(A, y, rcond=None)  # [0]
             except ValueError:
                 pass
         else:
@@ -430,7 +431,7 @@ def affine_optical_flow(I1,
         p_stack[i, :] = p
 
     Aff = np.array([[1, 0, 0], [0, 1, 0]]) + \
-        p_stack[-1,:].reshape(3,2).T
+          p_stack[-1, :].reshape(3, 2).T
     # np.argmin(res)
     u, v = Aff[0, -1], Aff[1, -1]
     A = np.linalg.inv(Aff[:, 0:2]).T
@@ -535,11 +536,11 @@ def _point_sample(φ, ρ, idx, param_resol, max_amp, u, v):
     democracy = np.zeros((param_resol, param_resol), dtype=np.float32)
     for counter in idx:
         diff = ρ[counter] - \
-               (u*+np.sin(φ[counter]) +
-                v*+np.cos(φ[counter]))
+               (u * +np.sin(φ[counter]) +
+                v * +np.cos(φ[counter]))
         # Gaussian weighting
         vote = np.exp(-np.abs(diff * param_resol) / max_amp)
-        #todo: outer product, to speed-up
+        # todo: outer product, to speed-up
         np.putmask(vote, np.isnan(vote), 0)
         democracy += vote
     return democracy
@@ -555,7 +556,7 @@ def _histogram_sample(φ, ρ, param_resol, max_amp, u, v):
     for i, j in np.ndindex(H.shape):
         if H[i, j] == 0: continue
         diff = ρ_h[j] - \
-               (u*+np.sin(φ_h[i]) + v*+np.cos(φ_h[i]))
+               (u * +np.sin(φ_h[i]) + v * +np.cos(φ_h[i]))
         vote = np.exp(-np.abs(diff * param_resol) / max_amp)
         np.putmask(vote, np.isnan(vote), 0)
         democracy += H[i, j] * vote
@@ -650,8 +651,8 @@ def hough_sinus(φ,
         rho_H, φ_H = np.zeros(num_estimates), np.zeros(num_estimates)
         for cnt, sc in enumerate(score):
             if sc != 0:
-                rho_H[cnt] = np.sqrt(u[ind[cnt, 0]][ind[cnt, 1]]**2 +
-                                     v[ind[cnt, 0]][ind[cnt, 1]]**2)
+                rho_H[cnt] = np.sqrt(u[ind[cnt, 0]][ind[cnt, 1]] ** 2 +
+                                     v[ind[cnt, 0]][ind[cnt, 1]] ** 2)
                 φ_H[cnt] = np.arctan2(u[ind[cnt, 0]][ind[cnt, 1]],
                                       v[ind[cnt, 0]][ind[cnt, 1]])
         return φ_H, rho_H, score
@@ -714,5 +715,4 @@ def differential_stacking(I_st, id_1, id_2, dt):
                 (diff_stack, np.array([ρ.flatten(), θ.flatten()]).T))
     return diff_stack
 
-
-#todo episolar_optical_flow
+# todo episolar_optical_flow

@@ -32,7 +32,7 @@ def create_crs_from_utm_zone(utm_code):
         crs.SetUTM(utm_zone, True)
     else:
         crs.SetProjCS("UTM " + str(utm_zone) + \
-              " (WGS84) in southern hemisphere.")
+                      " (WGS84) in southern hemisphere.")
         crs.SetUTM(utm_zone, False)
     return crs
 
@@ -51,9 +51,9 @@ def ll2utm(ll_fname, utm_fname, crs, aoi='RGIId'):
     aoi : string
         atribute to include. The default is 'RGIId'
     """
-    #making the shapefile as an object.
+    # making the shapefile as an object.
     inputShp = ogr.Open(ll_fname)
-    #getting layer information of shapefile.
+    # getting layer information of shapefile.
     inLayer = inputShp.GetLayer()
     # get info for coordinate transformation
     inSpatialRef = inLayer.GetSpatialRef()
@@ -142,9 +142,9 @@ def shape2raster(shp_fname,
         im_fname += '.tif'
     assert os.path.isfile(shp_fname), ('make sure the shapefiles exist')
 
-    #making the shapefile as an object.
-    rgiShp = ogr.Open(shp_fname)  #getting layer information of shapefile.
-    rgiLayer = rgiShp.GetLayer()  #get required raster band.
+    # making the shapefile as an object.
+    rgiShp = ogr.Open(shp_fname)  # getting layer information of shapefile.
+    rgiLayer = rgiShp.GetLayer()  # get required raster band.
 
     driver = gdal.GetDriverByName('GTiff')
 
@@ -152,7 +152,7 @@ def shape2raster(shp_fname,
     raster.SetGeoTransform(geoTransform[:6])
     raster.SetProjection(spatialRef)
 
-    #main conversion method
+    # main conversion method
     gdal.RasterizeLayer(raster, [1],
                         rgiLayer,
                         None,
@@ -188,7 +188,7 @@ def reproject_shapefile(path, in_file, targetprj):
     """
     out_file = in_file[:-4] + '_utm.shp'
 
-    #getting layer information of shapefile.
+    # getting layer information of shapefile.
     inShp = ogr.Open(os.path.join(path, in_file))
     inLayer = inShp.GetLayer()
     inSpatialRef = inLayer.GetSpatialRef()
@@ -256,7 +256,7 @@ def get_utm_zone(ϕ, λ):
     """
     ϕ_zones = [
         chr(i) for i in list(range(67, 73)) + list(range(74, 79)) +
-        list(range(80, 89))
+                        list(range(80, 89))
     ]  # tile letters
     ϕ_cen = np.append(np.arange(-80, 72 + 1, 8), 84)
     λ_cen = np.arange(-180, 180 + 1, 6)
@@ -297,7 +297,7 @@ def utm_zone_limits(utm_zone):
     """
     ϕ_zones = [
         chr(i) for i in list(range(67, 73)) + list(range(74, 79)) +
-        list(range(80, 89))
+                        list(range(80, 89))
     ]  # tile letters
 
     ϕ_min = np.append(np.arange(-80, 64 + 1, 8), 72)

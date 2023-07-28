@@ -116,7 +116,7 @@ def d8_flow(Class,
             V_x,
             V_y,
             iter=20,
-            analysis=True):  #todo: create colored polygon outputs
+            analysis=True):  # todo: create colored polygon outputs
     """ re-organize labelled dataset by steering towards convergent zones
 
     Parameters
@@ -223,7 +223,7 @@ def d8_catchment(V_x, V_y, geoTransform, x, y, disperse=True, flat=True):
         # get boundary
         Bnd = get_mask_boundary(C)
         Bnd[:, 0], Bnd[:,
-                       -1], Bnd[0, :], Bnd[-1, :] = False, False, False, False
+                   -1], Bnd[0, :], Bnd[-1, :] = False, False, False, False
         sel_idx = idx[Bnd]  # pixel locations of interest
 
         # get neighborhood of boundary
@@ -233,7 +233,7 @@ def d8_catchment(V_x, V_y, geoTransform, x, y, disperse=True, flat=True):
 
         # look if it flows to this cell
         in_C = ngh_d8 == ngh_2_you
-        if flat:  #, or is flat
+        if flat:  # , or is flat
             in_C = np.logical_or(in_C, ngh_d8 == 8)
         if disperse:
             ngh_2_you = np.repeat(np.atleast_2d(get_d8_flow_towards(dir=-1)),
@@ -259,7 +259,7 @@ def d8_catchment(V_x, V_y, geoTransform, x, y, disperse=True, flat=True):
     return C
 
 
-#todo: stopping criteria
+# todo: stopping criteria
 def d8_streamflow(V_x, V_y, geoTransform, x, y):
     C = np.zeros_like(V_x, dtype=bool)
 

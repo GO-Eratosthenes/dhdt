@@ -12,8 +12,8 @@ def directional_line(tsize, θ):
     else:
         grd = np.meshgrid(np.linspace(-tsize[0] / 2, +tsize[0] / 2, tsize[0]),
                           np.linspace(-tsize[1] / 2, +tsize[1] / 2, tsize[1]))
-    grd_th = np.sin(np.rad2deg(θ))*grd[1] + \
-             np.cos(np.rad2deg(θ))*grd[0]
+    grd_th = np.sin(np.rad2deg(θ)) * grd[1] + \
+             np.cos(np.rad2deg(θ)) * grd[0]
     L = np.exp(-np.abs(grd_th))
     return L
 
@@ -30,7 +30,7 @@ def directional_spread(buffer):
     return central_pix
 
 
-def crevasse_cartography(θ, Score=None, scaling=1):  #todo: LIC
+def crevasse_cartography(θ, Score=None, scaling=1):  # todo: LIC
     S = np.zeros_like(θ, dtype=float)
     i, j = make_seeds(S, n=np.ceil(S.size / 100))
     S[i.astype(int), j.astype(int)] = 1.

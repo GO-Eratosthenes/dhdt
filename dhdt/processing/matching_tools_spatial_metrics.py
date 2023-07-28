@@ -258,9 +258,9 @@ def peak_rms_ratio(C):
     max_corr = np.amax(C)
     hlf_corr = np.divide(max_corr, 2)
     noise = C <= hlf_corr
-    C_rms = np.sqrt((1 / np.sum(noise)) * np.sum(C[noise]**2))
+    C_rms = np.sqrt((1 / np.sum(noise)) * np.sum(C[noise] ** 2))
 
-    prmsr = np.divide(max_corr**2, C_rms)
+    prmsr = np.divide(max_corr ** 2, C_rms)
     return prmsr
 
 
@@ -292,8 +292,8 @@ def peak_corr_energy(C):
     assert type(C) == np.ndarray, ('please provide an array')
 
     max_corr = np.amax(C)
-    E_c = np.sum(np.abs(C.flatten())**2)
-    pce = np.divide(max_corr**2, E_c)
+    E_c = np.sum(np.abs(C.flatten()) ** 2)
+    pce = np.divide(max_corr ** 2, E_c)
     return pce
 
 
@@ -487,8 +487,8 @@ def hessian_spread(C, intI, intJ):
     # local laplacian
     dC_ii = -(C[intI - 1, intJ] + C[intI + 1, intJ] - 2 * C[intI, intJ])
     dC_jj = -(C[intI, intJ - 1] + C[intI, intJ + 1] - 2 * C[intI, intJ])
-    dC_ij = (C[intI+1,intJ+1] + C[intI-1,intJ-1]) -\
-            (C[intI+1,intJ-1] -C[intI-1,intJ+1])
+    dC_ij = (C[intI + 1, intJ + 1] + C[intI - 1, intJ - 1]) - \
+            (C[intI + 1, intJ - 1] - C[intI - 1, intJ + 1])
 
     dC_ii /= 4
     dC_jj /= 4
@@ -496,19 +496,19 @@ def hessian_spread(C, intI, intJ):
 
     C_noise = np.maximum(1 - C[intI, intJ], 0.)
 
-    ψ = dC_ij**2 - dC_ii * dC_jj
-    denom = ψ**2
-    cov_ii = np.divide(-C_noise * ψ * dC_ii + C_noise**2 *
-                       (dC_ii**2 + dC_ij**2),
+    ψ = dC_ij ** 2 - dC_ii * dC_jj
+    denom = ψ ** 2
+    cov_ii = np.divide(-C_noise * ψ * dC_ii + C_noise ** 2 *
+                       (dC_ii ** 2 + dC_ij ** 2),
                        denom,
                        out=np.zeros_like(denom),
                        where=denom != 0)
-    cov_jj = np.divide(-C_noise * ψ * dC_jj + C_noise**2 *
-                       (dC_jj**2 + dC_ij**2),
+    cov_jj = np.divide(-C_noise * ψ * dC_jj + C_noise ** 2 *
+                       (dC_jj ** 2 + dC_ij ** 2),
                        denom,
                        out=np.zeros_like(denom),
                        where=denom != 0)
-    cov_ij = np.divide((C_noise * ψ - C_noise**2 * (dC_ii + dC_jj)) * dC_ij,
+    cov_ij = np.divide((C_noise * ψ - C_noise ** 2 * (dC_ii + dC_jj)) * dC_ij,
                        denom,
                        out=np.zeros_like(denom),
                        where=denom != 0)
@@ -601,15 +601,15 @@ def gauss_spread(C, intI, intJ, dI, dJ, est='dist'):
         return 0, 0, 0, np.zeros((4)), 0
 
     A = np.vstack(
-        (I[IN]**2, 2 * I[IN] * J[IN], J[IN]**2, np.ones(
+        (I[IN] ** 2, 2 * I[IN] * J[IN], J[IN] ** 2, np.ones(
             (1, np.sum(IN))))).transpose()
     y = P_sub[IN]
 
     # least squares estimation
     if est == 'dist':
         dub = float(dub)
-        W = np.abs(dub**2 -
-                   np.sqrt(A[:, 0] + A[:, 2])) / dub**2  # distance from top
+        W = np.abs(dub ** 2 -
+                   np.sqrt(A[:, 0] + A[:, 2])) / dub ** 2  # distance from top
         Aw = A * np.sqrt(W[:, np.newaxis])
         yw = y * np.sqrt(W)
         try:
@@ -667,5 +667,5 @@ def intensity_disparity(I1, I2):
     # higher intensities have a larger contribution
     pI = np.sqrt(np.multiply(I1, I2))
     mu_dI = np.average(dI, weights=pI)
-    sigma_dI = np.average((dI - mu_dI)**2, weights=pI)
+    sigma_dI = np.average((dI - mu_dI) ** 2, weights=pI)
     return sigma_dI

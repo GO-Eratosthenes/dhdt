@@ -17,7 +17,7 @@ def list_platform_metadata_vn():
         'COSPAR': '2017-044B',
         'NORAD': 42901,
         'full_name':
-        'Vegetation and Environment monitoring on a New Micro-Satellite',
+            'Vegetation and Environment monitoring on a New Micro-Satellite',
         'instruments': {'VSSC'},  # VENµS SuperSpectral Camera
         'constellation': 'VENµS',
         'launch': '2017-08-02',
@@ -181,26 +181,25 @@ def list_central_wavelength_vssc():
     }
     d = {
         "center_wavelength":
-        pd.Series(center_wavelength, dtype=np.dtype('float')),
+            pd.Series(center_wavelength, dtype=np.dtype('float')),
         "full_width_half_max":
-        pd.Series(full_width_half_max, dtype=np.dtype('float')),
+            pd.Series(full_width_half_max, dtype=np.dtype('float')),
         "gsd":
-        pd.Series(gsd, dtype=np.dtype('float')),
+            pd.Series(gsd, dtype=np.dtype('float')),
         "common_name":
-        pd.Series(common_name, dtype=np.dtype('str')),
+            pd.Series(common_name, dtype=np.dtype('str')),
         "band_id":
-        pd.Series(band_id, dtype=np.dtype('str')),
+            pd.Series(band_id, dtype=np.dtype('str')),
         "detector_id":
-        pd.Series(detector_id, dtype=np.dtype('int64')),
+            pd.Series(detector_id, dtype=np.dtype('int64')),
         "acquisition_order":
-        pd.Series(acquisition_order, dtype=np.dtype('int64')),
+            pd.Series(acquisition_order, dtype=np.dtype('int64')),
     }
     df = pd.DataFrame(d)
     return df
 
 
 def read_band_vn(path, band=None):
-
     if isinstance(band, str):
         fname = os.path.join(path, '*SRE_' + band + '.tif')
     elif isinstance(band, int):

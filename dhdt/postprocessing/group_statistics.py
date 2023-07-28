@@ -246,7 +246,7 @@ def get_stats_from_labelled_array(L, I, func):
     False: 74
     True: 172
     """
-    if type(L) in (np.ma.core.MaskedArray, ):
+    if type(L) in (np.ma.core.MaskedArray,):
         OUT = np.logical_or(L.mask, I.mask)
     else:
         OUT = np.logical_or(np.isnan(L), np.isnan(I))
@@ -290,8 +290,8 @@ def get_stats_from_labelled_arrays(L1, L2, I, func):
     """
 
     def _get_mask_dat(A):
-        Msk = A.mask if type(A) in (np.ma.core.MaskedArray, ) else np.isnan(A)
-        Dat = A.data if type(A) in (np.ma.core.MaskedArray, ) else A
+        Msk = A.mask if type(A) in (np.ma.core.MaskedArray,) else np.isnan(A)
+        Dat = A.data if type(A) in (np.ma.core.MaskedArray,) else A
         return Dat, Msk
 
     L1, M1 = _get_mask_dat(L1)

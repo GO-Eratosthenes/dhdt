@@ -50,9 +50,10 @@ def ajne_test(dXY, α=0.05):
     m = np.stack((m1, m2)).ravel().min()
     if n < 50:  # use [Aj68]_
         A = np.pi * np.sqrt(n) / 2 / (n - 2 * m)
-        p_val = np.divide(np.sqrt(2 * np.pi), A * np.exp(-np.pi**2 / 8 / A**2))
+        p_val = np.divide(np.sqrt(2 * np.pi),
+                          A * np.exp(-np.pi ** 2 / 8 / A ** 2))
     else:  # use [Ho55]_
-        p_val = 2**(1 - n) * (n - 2 * m) * _nchoosek(n, m)
+        p_val = 2 ** (1 - n) * (n - 2 * m) * _nchoosek(n, m)
     return p_val
 
 
@@ -64,7 +65,7 @@ def moore_test(dXY):
     n = ψ.size
 
     C, S = np.sum(t * np.cos(ψ)), np.sum(t * np.sin(ψ))
-    D = np.sqrt(C**2 + S**2)
+    D = np.sqrt(C ** 2 + S ** 2)
     D_star = np.divide(D, np.power(n, 3 / 2))
 
     return D_star
@@ -89,7 +90,7 @@ def spearman_test(dXY):
     """
     r, s = np.argsort(dXY[:, 0]), np.argsort(dXY[:, 1])
     n = dXY.shape[0]
-    r_2 = np.divide(1 - 6 * np.sum((r - s)**2), n * (n**2 - 1))
+    r_2 = np.divide(1 - 6 * np.sum((r - s) ** 2), n * (n ** 2 - 1))
     # student t-test
 
     return verdict, p_value

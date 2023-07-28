@@ -132,7 +132,7 @@ def get_peak_indices(C, num_estimates=1):
 
     maximal_num = np.minimum(len(scores), num_estimates)
     idx[:maximal_num, :] = ids[:, :
-                               maximal_num].T  # swap axis, because of np.where
+                                  maximal_num].T  # swap axis, because of np.where
     val[:maximal_num] = scores[:maximal_num]
     return idx, val
 
@@ -159,12 +159,12 @@ def get_template(I, idx_1, idx_2, radius):
         array with Gaussian peak in the center
     """
     sub_idx = np.mgrid[idx_1 - radius:idx_1 + radius + 1,
-                       idx_2 - radius:idx_2 + radius + 1]
+              idx_2 - radius:idx_2 + radius + 1]
 
     sub_ids = np.ravel_multi_index(np.vstack(
         (sub_idx[0].flatten(), sub_idx[1].flatten())),
-                                   I.shape,
-                                   mode='clip')
+        I.shape,
+        mode='clip')
     I_sub = np.take(I, sub_ids, mode='clip')
     I_sub = np.reshape(I_sub, (2 * radius + 1, 2 * radius + 1))
     return I_sub
@@ -293,7 +293,7 @@ def pad_radius(I, radius, cval=0):
     if not type(radius) is tuple: radius = (radius, radius)
 
     if I.ndim == 3:
-        if type(I) in (np.ma.core.MaskedArray, ):
+        if type(I) in (np.ma.core.MaskedArray,):
             I_xtra = np.ma.array(np.pad(I, ((radius[0], radius[1]),
                                             (radius[0], radius[1]), (0, 0)),
                                         'constant',
@@ -309,7 +309,7 @@ def pad_radius(I, radius, cval=0):
                         'constant',
                         constant_values=cval)
         return I_xtra
-    if type(I) in (np.ma.core.MaskedArray, ):
+    if type(I) in (np.ma.core.MaskedArray,):
         I_xtra = np.ma.array(np.pad(I, ((radius[0], radius[1]),
                                         (radius[0], radius[1])),
                                     'constant',
@@ -497,11 +497,11 @@ def reposition_templates_from_center(I1, I2, di, dj):
     mc, nc = ms // 2, ns // 2  # center location
 
     if I1.ndim == 3:
-        I2sub = I2[mc-(mt//2)-di : mc+(mt//2)-di, \
-                   nc-(nt//2)-dj : nc+(nt//2)-dj, :]
+        I2sub = I2[mc - (mt // 2) - di: mc + (mt // 2) - di, \
+                nc - (nt // 2) - dj: nc + (nt // 2) - dj, :]
     else:
-        I2sub = I2[mc-(mt//2)-di : mc+(mt//2)-di, \
-                   nc-(nt//2)-dj : nc+(nt//2)-dj]
+        I2sub = I2[mc - (mt // 2) - di: mc + (mt // 2) - di, \
+                nc - (nt // 2) - dj: nc + (nt // 2) - dj]
     return I1, I2sub
 
 
@@ -560,7 +560,7 @@ def get_coordinates_of_template_centers(Grid, temp_size):
 
     radius = np.floor(temp_size / 2).astype('int')
     I_idx, J_idx = np.mgrid[radius:(m - radius):temp_size,
-                            radius:(n - radius):temp_size]
+                   radius:(n - radius):temp_size]
     return I_idx, J_idx
 
 
@@ -592,8 +592,8 @@ def get_value_at_template_centers(Grid, temp_size):
     if (Grid.ndim == 3):
         m, n = Iidx.shape
         b = Grid.shape[2]
-        Iidx, Jidx = np.tile(np.atleast_3d(Iidx), (1,1,b)), \
-                     np.tile(np.atleast_3d(Jidx), (1,1,b))
+        Iidx, Jidx = np.tile(np.atleast_3d(Iidx), (1, 1, b)), \
+                     np.tile(np.atleast_3d(Jidx), (1, 1, b))
         Kidx = np.ones((m, n, b))
         Kidx = np.einsum('k,ijk->ijk', np.linspace(0, b - 1, b),
                          Kidx).astype(int)

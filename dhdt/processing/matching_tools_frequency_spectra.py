@@ -5,7 +5,7 @@ from .matching_tools_frequency_filters import perdecomp
 
 
 def directional_spectrum(I,
-                         num_estimates=1):  #todo: bring into correct framework
+                         num_estimates=1):  # todo: bring into correct framework
     """ look at the directional spectra, to get dominant frequency
 
     Parameters

@@ -151,12 +151,12 @@ def independent_component_analysis(Blue, Green, Red, Near, min_samp=1e4):
     K, W, S, X_mean = fastica(X, return_X_mean=True)
 
     # reconstruct components
-    first = W[0,0]*(Blue-X_mean[0]) +W[0,1]*(Green-X_mean[1]) \
-            +W[0,2]*(Red-X_mean[2]) +W[0,3]*(Near-X_mean[3])
-    secnd = W[1,0]*(Blue-X_mean[0]) +W[1,1]*(Green-X_mean[1]) \
-            +W[1,2]*(Red-X_mean[2]) +W[1,3]*(Near-X_mean[3])
-    third = W[2,0]*(Blue-X_mean[0]) +W[2,1]*(Green-X_mean[1]) \
-            +W[2,2]*(Red-X_mean[2]) +W[2,3]*(Near-X_mean[3])
-    forth = W[3,0]*(Blue-X_mean[0]) +W[3,1]*(Green-X_mean[1]) \
-            +W[3,2]*(Red-X_mean[2])+W[3,3]*(Near-X_mean[3])
+    first = W[0, 0] * (Blue - X_mean[0]) + W[0, 1] * (Green - X_mean[1]) \
+            + W[0, 2] * (Red - X_mean[2]) + W[0, 3] * (Near - X_mean[3])
+    secnd = W[1, 0] * (Blue - X_mean[0]) + W[1, 1] * (Green - X_mean[1]) \
+            + W[1, 2] * (Red - X_mean[2]) + W[1, 3] * (Near - X_mean[3])
+    third = W[2, 0] * (Blue - X_mean[0]) + W[2, 1] * (Green - X_mean[1]) \
+            + W[2, 2] * (Red - X_mean[2]) + W[2, 3] * (Near - X_mean[3])
+    forth = W[3, 0] * (Blue - X_mean[0]) + W[3, 1] * (Green - X_mean[1]) \
+            + W[3, 2] * (Red - X_mean[2]) + W[3, 3] * (Near - X_mean[3])
     return first, secnd, third, forth

@@ -32,22 +32,22 @@ def get_shadow_bands(satellite_name):
 
     # compare if certain segments are present in a string
 
-    if len([n for n in ['sentinel','2'] if n in satellite_name])==2 or \
-            len([n for n in ['msi'] if n in satellite_name])==1:
+    if len([n for n in ['sentinel', '2'] if n in satellite_name]) == 2 or \
+            len([n for n in ['msi'] if n in satellite_name]) == 1:
         band_num = [2, 3, 4, 8]
-    elif len([n for n in ['landsat','8'] if n in satellite_name])==2 or \
-            len([n for n in ['oli'] if n in satellite_name])==1:
+    elif len([n for n in ['landsat', '8'] if n in satellite_name]) == 2 or \
+            len([n for n in ['oli'] if n in satellite_name]) == 1:
         band_num = [2, 3, 4, 5, 8]
-    elif len([n for n in ['landsat','7'] if n in satellite_name])==2 or \
-            len([n for n in ['etm+'] if n in satellite_name])==1:
+    elif len([n for n in ['landsat', '7'] if n in satellite_name]) == 2 or \
+            len([n for n in ['etm+'] if n in satellite_name]) == 1:
         band_num = [1, 2, 3, 4, 8]
-    elif len([n for n in ['landsat','5'] if n in satellite_name])==2 or \
-            len([n for n in ['tm','mss'] if n in satellite_name])==1:
+    elif len([n for n in ['landsat', '5'] if n in satellite_name]) == 2 or \
+            len([n for n in ['tm', 'mss'] if n in satellite_name]) == 1:
         band_num = [1, 2, 3, 4]
     elif len([n for n in ['rapid', 'eye'] if n in satellite_name]) == 2:
         band_num = [1, 2, 3, 5]
-    elif len([n for n in ['planet'] if n in satellite_name])==1  or \
-            len([n for n in ['dove'] if n in satellite_name])==1:
+    elif len([n for n in ['planet'] if n in satellite_name]) == 1 or \
+            len([n for n in ['dove'] if n in satellite_name]) == 1:
         band_num = [1, 2, 3, 5]
     elif len([n for n in ['aster'] if n in satellite_name]) == 1:
         band_num = [1, 1, 2, 3]

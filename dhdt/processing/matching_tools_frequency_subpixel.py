@@ -74,15 +74,16 @@ def phase_jac(Q,
             W = np.ones_like(Q, dtype=float)
 
     if rank == 2:  # default
-        dXY = 1 - np.multiply(np.real(Q), +np.cos(F1*m[0]+F2*m[1])) \
-            - np.multiply(np.imag(Q), -np.sin(F1*m[0]+F2*m[1]))
+        dXY = 1 - np.multiply(np.real(Q), +np.cos(F1 * m[0] + F2 * m[1])) \
+              - np.multiply(np.imag(Q), -np.sin(F1 * m[0] + F2 * m[1]))
     else:
         C_hat = construct_phase_plane(Q, m[0], m[1], indexing='ij')
         QC = Q - C_hat  # convert complex vector difference to metric
-        dXY = np.abs(np.multiply(W, QC)**rank)
+        dXY = np.abs(np.multiply(W, QC) ** rank)
 
-    dQdm = np.array([np.multiply(2*W.flatten()*F1.flatten(),dXY.flatten()), \
-                     np.multiply(2*W.flatten()*F2.flatten(),dXY.flatten())]).T
+    dQdm = np.array(
+        [np.multiply(2 * W.flatten() * F1.flatten(), dXY.flatten()), \
+         np.multiply(2 * W.flatten() * F2.flatten(), dXY.flatten())]).T
     return dQdm
 
 
@@ -134,8 +135,8 @@ def phase_secant(data, W=np.array([]), x_0=np.zeros((2))):  # wip
 
     data = cross_spectrum_to_coordinate_list(data, W)
     J = phase_jac(data, x_0)
-    x_hat,_ = secant(data[:,:-1], data[:,-1], J, x_0, \
-                     n_iters=10)
+    x_hat, _ = secant(data[:, :-1], data[:, -1], J, x_0, \
+                      n_iters=10)
     di, dj = 2 * x_hat[0], 2 * x_hat[1]
     return di, dj
 
@@ -196,7 +197,7 @@ def phase_gradient_descend(data,
     return di, dj
 
 
-def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3):  #wip
+def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3):  # wip
     """get phase plane of cross-spectrum through two point step size iteration
 
     find slope of the phase plane through
@@ -238,10 +239,10 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3):  #wip
               on geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.
     """
     m = np.squeeze(m)
-    s = 1.  #1.25#.5#1.#.5#2.
+    s = 1.  # 1.25#.5#1.#.5#2.
 
     Q = normalize_power_spectrum(Q)
-    #W = W/np.sum(W) # normalize weights
+    # W = W/np.sum(W) # normalize weights
 
     Fx, Fy = make_fourier_grid(Q)
 
@@ -252,7 +253,7 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3):  #wip
     J_min = phase_jac(Q, m_min, W=W)
     g_min = np.sum(J_min, axis=0)
 
-    #print('di:{:+.4f}'.format(m[0])+' dj:{:+.4f}'.format(m[1]))
+    # print('di:{:+.4f}'.format(m[0])+' dj:{:+.4f}'.format(m[1]))
     for i in range(l):
         k = 1
         while True:
@@ -263,7 +264,7 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3):  #wip
             # difference
             dm, dg = m - m_min, g - g_min
 
-            #alpha = np.dot(dm,dg)/np.dot(dg,dg)
+            # alpha = np.dot(dm,dg)/np.dot(dg,dg)
             alpha = np.dot(dm, dm) / (s * np.dot(dm, dg))
 
             if (np.all(np.abs(m - m_min) <= p)) or (k >= j):
@@ -272,29 +273,28 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3):  #wip
             # update
             m_min, g_min = np.copy(m), np.copy(g)
 
-            #if i ==0:
+            # if i ==0:
             m -= alpha * dg
-            #else:
+            # else:
             #    m -= alpha*dg
             print('di:{:+.4f}'.format(m[0]) + ' dj:{:+.4f}'.format(m[1]))
             k += 1
 
         # optimize weighting matrix
-        #φ = np.abs(QC*np.conjugate(QC))/2
+        # φ = np.abs(QC*np.conjugate(QC))/2
         C = 1j * -np.sin(Fx * m[1] + Fy * m[0])
         C += np.cos(Fx * m[1] + Fy * m[0])
-        QC = (Q - C)**2  # np.abs(Q-C)#np.abs(Q-C)
+        QC = (Q - C) ** 2  # np.abs(Q-C)#np.abs(Q-C)
         dXY = np.abs(np.multiply(W, QC))
-        W = W * (1 - (dXY / 4))**n
+        W = W * (1 - (dXY / 4)) ** n
 
-
-#        φ = np.multiply(2*W,\
-#                          (1 - np.multiply(np.real(Q),
-#                                           +np.cos(Fx*m[1] + Fy*m[0])) - \
-#                           np.multiply(np.imag(Q),
-#                                       -np.sin(Fx*m[1] + Fy*m[0]))))
-#W = np.multiply(W, (1-(φ/4))**n)
-#    snr = 1 - (np.sum(φ)/(4*np.sum(W)))
+    #        φ = np.multiply(2*W,\
+    #                          (1 - np.multiply(np.real(Q),
+    #                                           +np.cos(Fx*m[1] + Fy*m[0])) - \
+    #                           np.multiply(np.imag(Q),
+    #                                       -np.sin(Fx*m[1] + Fy*m[0]))))
+    # W = np.multiply(W, (1-(φ/4))**n)
+    #    snr = 1 - (np.sum(φ)/(4*np.sum(W)))
     snr = 0
     m = -1 * m
     return m[0], m[1], snr
@@ -321,8 +321,8 @@ def phase_slope_1d(t, rad=.1):
     """
     assert type(t) == np.ndarray, ("please provide an array")
 
-    idx_sub = np.arange(np.ceil((0.5-rad)*len(t)), \
-                    np.ceil((0.5+rad)*len(t))+1).astype(int)
+    idx_sub = np.arange(np.ceil((0.5 - rad) * len(t)), \
+                        np.ceil((0.5 + rad) * len(t)) + 1).astype(int)
     y_ang = np.unwrap(np.angle(t[idx_sub]), axis=0)
     A = np.column_stack([np.transpose(idx_sub - 1), np.ones((len(idx_sub)))])
     x_hat = np.linalg.lstsq(A, y_ang, rcond=None)[0]
@@ -439,7 +439,7 @@ def phase_difference_1d(Q, W=np.array([]), axis=0):
         Q = np.transpose(Q)
     m, n = Q.shape
 
-    #estimate period
+    # estimate period
     Q_dj = np.roll(Q, (0, 1))
 
     Q_diff = np.multiply(np.conj(Q), Q_dj)
@@ -556,7 +556,7 @@ def phase_lsq(data, W=np.array([])):
     # pseudoinverse:
     Mp = np.linalg.inv(M.transpose().dot(M)).dot(M.transpose())
 
-    #Least-squares Solution
+    # Least-squares Solution
     plane_normal = Mp.dot(V)
 
     di = 2 * plane_normal[0]
@@ -620,7 +620,7 @@ def phase_pca(data, W=np.array([])):
 # High-breakdown robust multivariate methods
 
 
-def phase_weighted_pca(Q, W):  #todo
+def phase_weighted_pca(Q, W):  # todo
     """get phase plane of cross-spectrum through principle component analysis
 
     find slope of the phase plane through
@@ -856,7 +856,7 @@ def ransac(data,
 
     # in case data is not pair of input and output, male it like it
     if not isinstance(data, (tuple, list)):
-        data = (data, )
+        data = (data,)
     num_samples = len(data[0])
 
     if not (0 < min_samples < num_samples):
@@ -904,16 +904,16 @@ def ransac(data,
         for potential_param in np.arange(success):
             potential_model = model_class()
             potential_model.params = sample_model.params[potential_param][
-                0:min_samples]
+                                     0:min_samples]
 
             potential_model_residuals = np.abs(
                 potential_model.residuals(*data))
 
             # consensus set / inliers
             potential_model_inliers = potential_model_residuals < \
-                residual_threshold
+                                      residual_threshold
             potential_model_residuals_sum = np.sum(
-                potential_model_residuals**2)
+                potential_model_residuals ** 2)
 
             # choose as new best model if number of inliers is maximal
             potential_inlier_num = np.sum(potential_model_inliers)
@@ -922,8 +922,8 @@ def ransac(data,
                     potential_inlier_num > best_inlier_num
                     # same number of inliers but less "error" in terms of residuals
                     or
-                (potential_inlier_num == best_inlier_num and
-                 potential_model_residuals_sum < best_inlier_residuals_sum)):
+                    (potential_inlier_num == best_inlier_num and
+                     potential_model_residuals_sum < best_inlier_residuals_sum)):
                 best_model = potential_model
                 best_inlier_num = potential_inlier_num
                 best_inlier_residuals_sum = potential_model_residuals_sum
@@ -1045,17 +1045,17 @@ class SawtoothModel(BaseModel):
         if data.shape[0] >= 2:  # well determined
             if params_bound != 0:
                 # create multitudes of cycles
-                param_cycle = np.mgrid[-params_bound:+params_bound+1, \
-                                       -params_bound:+params_bound+1]
+                param_cycle = np.mgrid[-params_bound:+params_bound + 1, \
+                              -params_bound:+params_bound + 1]
                 cycle_0 = param_cycle[:, :,
-                                      0].flatten()  # 2*np.pi() if in radians
+                          0].flatten()  # 2*np.pi() if in radians
                 cycle_1 = param_cycle[:, :, 1].flatten()  # but -.5 ... +.5
                 x_stack = np.zeros((cycle_0.size, 2))
 
                 for val, idx in enumerate(cycle_0):
-                    y = np.array([data[0,-1] + cycle_0[idx], \
-                                  data[1,-1] + cycle_1[idx]])
-                    x_hat = np.linalg.lstsq(data[:,0:2], \
+                    y = np.array([data[0, -1] + cycle_0[idx], \
+                                  data[1, -1] + cycle_1[idx]])
+                    x_hat = np.linalg.lstsq(data[:, 0:2], \
                                             y, \
                                             rcond=None)[0]
                     x_stack[idx, 0] = x_hat[0]
@@ -1180,7 +1180,7 @@ def phase_ransac(data, max_displacement=1, precision_threshold=.05):
 
     ransac_model, inliers = ransac(
         data,
-        SawtoothModel,  #PlaneModel,
+        SawtoothModel,  # PlaneModel,
         min_samples=int(2),
         residual_threshold=precision_threshold,
         max_trials=int(1e3),
@@ -1211,12 +1211,12 @@ def phase_hough(data,
         data = np.vstack((Fx.flatten(), Fy.flatten(), Q.flatten())).T
 
     # create voting space
-    (dj,di) = np.meshgrid(np.arange(-max_displacement, \
-                                    +max_displacement + param_spacing, \
-                                    param_spacing),
-                          np.arange(-max_displacement, \
-                                    +max_displacement + param_spacing, \
-                                    param_spacing))
+    (dj, di) = np.meshgrid(np.arange(-max_displacement, \
+                                     +max_displacement + param_spacing, \
+                                     param_spacing),
+                           np.arange(-max_displacement, \
+                                     +max_displacement + param_spacing, \
+                                     param_spacing))
 
     # create population that can vote
     sample_size = data.shape[0]
@@ -1231,14 +1231,16 @@ def phase_hough(data,
         idx = np.flip(np.argsort(data[:, -1]))
         idx = idx[0:np.round(sample_size * sample_fraction).astype(np.int32)]
 
-    #vote = np.zeros_like(di, dtype=np.int32)
+    # vote = np.zeros_like(di, dtype=np.int32)
     vote = np.zeros_like(di, dtype=np.float32)
     for counter in idx:
-        angle_diff = data[counter,-1] - \
-            (np.remainder((data[counter,0]*dj + data[counter,1]*di)+.5,1)-.5)
+        angle_diff = data[counter, -1] - \
+                     (np.remainder(
+                         (data[counter, 0] * dj + data[counter, 1] * di) + .5,
+                         1) - .5)
 
         vote += 1 / (1 + (angle_diff /
-                          (.1 * np.std(angle_diff)))**2)  # cauchy weighting
+                          (.1 * np.std(angle_diff))) ** 2)  # cauchy weighting
         # hard threshold
         # vote += (np.abs(angle_diff) <= .1).astype(np.int32)
 
@@ -1301,8 +1303,8 @@ def phase_radon(Q, coord_system='ij'):
     θ = np.linspace(0., 180., max(m, n), endpoint=False)
     R = radon(np.angle(Q), θ)  # sinogram
 
-    #plt.imshow(R[:half,:]), plt.show()
-    #plt.imshow(np.flipud(R[half:,:])), plt.show()
+    # plt.imshow(R[:half,:]), plt.show()
+    # plt.imshow(np.flipud(R[half:,:])), plt.show()
 
     R_fold = np.abs(np.multiply(R[:half, :], R[half:, :]))
     radon_score = np.sum(R_fold, axis=0)
@@ -1329,8 +1331,7 @@ def phase_radon(Q, coord_system='ij'):
     else:  # do polar coordinates
         return θ, rho
 
-
-#def phase_binairy_stripe():
+# def phase_binairy_stripe():
 #    Notes
 #    -----
 #    [1] Zuo et al. "Registration method for infrared images under conditions

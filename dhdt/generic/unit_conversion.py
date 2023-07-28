@@ -99,7 +99,7 @@ def datenum2datetime(t):
     --------
     datetime2datenum
     """
-    if type(t) in (np.ndarray, ):
+    if type(t) in (np.ndarray,):
         dt = np.array([
             np.datetime64(str(e)[:4] + '-' + str(e)[4:6] + '-' + str(e)[-2:])
             for e in t.astype(str)
@@ -126,12 +126,12 @@ def datetime2datenum(dt):
     --------
     datenum2datetime
     """
-    if type(dt) in (np.ndarray, ):
+    if type(dt) in (np.ndarray,):
         t = np.array([
             int(e.astype(str)[:4] + e.astype(str)[5:7] + e.astype(str)[-2:])
             for e in dt.astype(str)
         ],
-                     dtype=np.int64)
+            dtype=np.int64)
     else:
         dt = int(
             dt.astype(str)[:4] + dt.astype(str)[5:7] + dt.astype(str)[-2:])

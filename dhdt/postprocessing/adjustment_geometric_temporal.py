@@ -65,8 +65,8 @@ def project_along_flow(dX_raw, dY_raw, dX_prio, dY_prio, e_perp):
     assert (dX_prio.size == dY_prio.size)
     assert (dX_raw.size == dX_prio.size)
 
-    d_proj = ((dX_raw*e_perp[0])-(dY_raw*e_perp[1])) /\
-        ((dX_prio*e_perp[0])-(dY_prio*e_perp[1]))
+    d_proj = ((dX_raw * e_perp[0]) - (dY_raw * e_perp[1])) / \
+             ((dX_prio * e_perp[0]) - (dY_prio * e_perp[1]))
 
     dX_proj = d_proj * dX_raw
     dY_proj = d_proj * dY_raw
@@ -107,8 +107,8 @@ def rotate_variance(θ, qii, qjj, ρ):
     for iy, ix in np.ndindex(θ.shape):
         if ~np.isnan(θ[iy, ix]) and ~np.isnan(ρ[iy, ix]):
             # construct co-variance matrix
-            qij = ρ[iy,ix]*\
-                  np.sqrt(np.abs(qii[iy,ix]))*np.sqrt(np.abs(qjj[iy,ix]))
+            qij = ρ[iy, ix] * \
+                  np.sqrt(np.abs(qii[iy, ix])) * np.sqrt(np.abs(qjj[iy, ix]))
 
             V = np.array([[qjj[iy, ix], qij], [qij, qii[iy, ix]]])
             R = rot_mat(θ[iy, ix])

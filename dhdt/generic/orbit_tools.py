@@ -20,7 +20,7 @@ def wgs84_param():
 
 def earth_eccentricity():
     major_axis, flattening = wgs84_param()
-    eccentricity = (2 * flattening) - (flattening**2)
+    eccentricity = (2 * flattening) - (flattening ** 2)
     return eccentricity
 
 
@@ -32,7 +32,7 @@ def earth_axes():
 
 
 def semi_latus_rectum(a, e):
-    p = np.multiply(a, 1 - e**2)
+    p = np.multiply(a, 1 - e ** 2)
     return p
 
 
@@ -71,7 +71,7 @@ def mean_motion(mu, a):
     -------
 
     """
-    n = np.sqrt(np.divide(mu, a**3))
+    n = np.sqrt(np.divide(mu, a ** 3))
     return n
 
 
@@ -114,12 +114,12 @@ def angular_momentum(xyz, uvw):
 
 
 def transform_rpy_xyz2ocs(xyz, uvw, roll, pitch, yaw, xyz_time, ang_time):
-    x,y,z = np.interp(ang_time, xyz_time, xyz[...,0]), \
-            np.interp(ang_time, xyz_time, xyz[...,1]), \
-            np.interp(ang_time, xyz_time, xyz[...,2])
-    u,v,w = np.interp(ang_time, xyz_time, uvw[...,0]), \
-            np.interp(ang_time, xyz_time, uvw[...,1]), \
-            np.interp(ang_time, xyz_time, uvw[...,2])
+    x, y, z = np.interp(ang_time, xyz_time, xyz[..., 0]), \
+              np.interp(ang_time, xyz_time, xyz[..., 1]), \
+              np.interp(ang_time, xyz_time, xyz[..., 2])
+    u, v, w = np.interp(ang_time, xyz_time, uvw[..., 0]), \
+              np.interp(ang_time, xyz_time, uvw[..., 1]), \
+              np.interp(ang_time, xyz_time, uvw[..., 2])
     xyz, uvw = np.stack((x, y, z), axis=1), np.stack((u, v, w), axis=1)
 
     m, n = xyz.shape
@@ -209,8 +209,8 @@ def calculate_correct_mapping(Zn_grd,
         X_grd, Y_grd = pix_centers(grdTransform, make_grid=True)
         (m, n) = X_grd.shape
         ll_grd = map2ll(np.stack((X_grd.ravel(), Y_grd.ravel()), axis=1), crs)
-        Lat_grd,Lon_grd = ll_grd[:,0].reshape((m,n)), \
-                          ll_grd[:,1].reshape((m,n))
+        Lat_grd, Lon_grd = ll_grd[:, 0].reshape((m, n)), \
+                           ll_grd[:, 1].reshape((m, n))
         del ll_grd
     else:
         Lon_grd, Lat_grd = pix_centers(grdTransform, make_grid=True)
@@ -229,8 +229,8 @@ def calculate_correct_mapping(Zn_grd,
 
     # vectorize band and detector indicators
     Bnd, Det = np.tile(bnd, (m, n, 1))[IN], np.tile(det, (m, n, 1))[IN]
-    X, Y = np.tile(np.atleast_3d(X_grd), (1,1,depth))[IN], \
-           np.tile(np.atleast_3d(Y_grd), (1,1,depth))[IN]
+    X, Y = np.tile(np.atleast_3d(X_grd), (1, 1, depth))[IN], \
+           np.tile(np.atleast_3d(Y_grd), (1, 1, depth))[IN]
     time_para, combos = time_fitting(Ltime, Az, Zn, Bnd, Det, X, Y,
                                      grdTransform)
 
@@ -240,7 +240,7 @@ def calculate_correct_mapping(Zn_grd,
 def remap_observation_angles(Ltime, lat, lon, radius, inclination, period,
                              time_para, combos, X_grd, Y_grd, det_stack,
                              bnd_list, geoTransform, crs):
-    if type(bnd_list) in (pd.core.frame.DataFrame, ):
+    if type(bnd_list) in (pd.core.frame.DataFrame,):
         bnd_list = np.asarray(bnd_list['bandid'])
         bnd_list -= 1  # numbering of python starts at 0
     lat, lon = lat_lon_angle_check(lat, lon)
@@ -248,25 +248,25 @@ def remap_observation_angles(Ltime, lat, lon, radius, inclination, period,
     geoTransform = correct_geoTransform(geoTransform)
 
     m, n = X_grd.shape
-    #bnd_list = np.asarray(sat_df['bandid'])
+    # bnd_list = np.asarray(sat_df['bandid'])
 
     omega_0, lon_0 = _omega_lon_calculation(np.deg2rad(lat), np.deg2rad(lon),
                                             inclination)
 
     # reconstruct observation angles and sensing time
     b = bnd_list.size
-    if type(det_stack) in (np.ma.core.MaskedArray, ):
-        T, Zn, Az = np.ma.zeros((m,n,b)), np.ma.zeros((m,n,b)), \
-                    np.ma.zeros((m,n,b))
+    if type(det_stack) in (np.ma.core.MaskedArray,):
+        T, Zn, Az = np.ma.zeros((m, n, b)), np.ma.zeros((m, n, b)), \
+                    np.ma.zeros((m, n, b))
     else:
-        T, Zn, Az = np.zeros((m,n,b)), np.zeros((m,n,b)), \
-                    np.zeros((m,n,b))
+        T, Zn, Az = np.zeros((m, n, b)), np.zeros((m, n, b)), \
+                    np.zeros((m, n, b))
     for idx, bnd in enumerate(bnd_list):
         doi = combos[:, 0] == bnd
-        if type(det_stack) in (np.ma.core.MaskedArray, ):
-            dT, Zen, Azi = -9999.*np.ma.ones((m,n)), \
-                           -9999.*np.ma.ones((m,n)),\
-                           -9999.*np.ma.ones((m,n))
+        if type(det_stack) in (np.ma.core.MaskedArray,):
+            dT, Zen, Azi = -9999. * np.ma.ones((m, n)), \
+                           -9999. * np.ma.ones((m, n)), \
+                           -9999. * np.ma.ones((m, n))
         else:
             dT, Zen, Azi = np.zeros((m, n)), np.zeros((m, n)), np.zeros((m, n))
 
@@ -280,7 +280,7 @@ def remap_observation_angles(Ltime, lat, lon, radius, inclination, period,
                 np.logical_and(combos[:, 0] == bnd, combos[:, 1] == sca))[0][0]
             coeffs = time_para[coef_id, :]
             dt = coeffs[
-                0] + coeffs[1] * dX + coeffs[2] * dY + coeffs[3] * dX * dY
+                     0] + coeffs[1] * dX + coeffs[2] * dY + coeffs[3] * dX * dY
             dT[IN] = dt
             del dX, dY, coeffs, coef_id
             # acquisition angles
@@ -297,8 +297,8 @@ def remap_observation_angles(Ltime, lat, lon, radius, inclination, period,
             del Px, Gx
         # put estimates in stack
 
-        if type(det_stack) in (np.ma.core.MaskedArray, ):
-            dT, Zen, Azi = np.ma.array(dT, mask=dT==-9999.), \
+        if type(det_stack) in (np.ma.core.MaskedArray,):
+            dT, Zen, Azi = np.ma.array(dT, mask=dT == -9999.), \
                            np.ma.array(Zen, mask=Zen == -9999.), \
                            np.ma.array(Azi, mask=Azi == -9999.)
         T[..., idx], Zn[..., idx], Az[..., idx] = dT, Zen, Azi
@@ -390,8 +390,9 @@ def line_of_sight(Lat, Lon, Zn, Az, eccentricity=None, major_axis=None):
         ground location in Cartesian coordinates
     """
     Lat, Lon = lat_lon_angle_check(Lat, Lon)
-    assert len(set({Lat.shape[0], Lon.shape[0], Zn.shape[0], Az.shape[0]}))==1,\
-         ('please provide arrays of the same size')
+    assert len(
+        set({Lat.shape[0], Lon.shape[0], Zn.shape[0], Az.shape[0]})) == 1, \
+        ('please provide arrays of the same size')
 
     if (major_axis is None) or (eccentricity is None):
         major_axis = wgs84_param()[0]
@@ -447,7 +448,7 @@ def ground_vec(Lat, Lon, eccentricity=None, major_axis=None):
     are_two_arrays_equal(Lat, Lon)
     if (major_axis is None) or (eccentricity is None):
         major_axis, flattening = wgs84_param()
-        eccentricity = (2 * flattening) - (flattening**2)
+        eccentricity = (2 * flattening) - (flattening ** 2)
 
     Lat, Lon = np.deg2rad(Lat.flatten()), np.deg2rad(Lon.flatten())
     Radius = np.divide(major_axis,
@@ -467,7 +468,7 @@ def _make_timing_system(IN, dX, dY, Ltime):
     L = np.sum(lt, axis=1)
 
     dx, dy, n = np.sum(DX), np.sum(DY), np.sum(IN)
-    dx2, dxy, dy2 = np.sum(DX**2), np.sum(DX * DY), np.sum(DY**2)
+    dx2, dxy, dy2 = np.sum(DX ** 2), np.sum(DX * DY), np.sum(DY ** 2)
     dx2y, dxy2, dx2y2 = np.sum(DX * DX * DY), np.sum(DX * DY * DY), np.sum(
         DX * DX * DY * DY)
 
@@ -553,12 +554,12 @@ def orbital_fitting(Sat,
         if 'altitude' in sat_dict:
             radius = major_axis + np.mean(sat_dict['altitude'])
         else:
-            radius = np.cbrt(np.divide(period, 2*np.pi)**2 * \
+            radius = np.cbrt(np.divide(period, 2 * np.pi) ** 2 * \
                              standard_gravity())
 
     if (lat is None) or (lon is None):
-        V_dist = np.sqrt(radius**2 + np.einsum('...i,...i', Sat, Gx)**2 -
-                         np.linalg.norm(Gx, axis=1)**2)
+        V_dist = np.sqrt(radius ** 2 + np.einsum('...i,...i', Sat, Gx) ** 2 -
+                         np.linalg.norm(Gx, axis=1) ** 2)
         Px = Gx + np.einsum('i,ij->ij', V_dist, Sat)
         if 'gps_xyz' in sat_dict:  # use GPS trajectory
             poi = np.argmin(
@@ -576,7 +577,7 @@ def orbital_fitting(Sat,
         del Px, V_dist
 
     numobs = Sat.shape[0]
-    Ltime = np.zeros((numobs, ))
+    Ltime = np.zeros((numobs,))
 
     rmstime, orbrss = 15.0, 1000.0
     counter = 0
@@ -612,12 +613,12 @@ def orbital_fitting(Sat,
         if counter != 0:
             X_0 = np.einsum('ij,i...->j...', np.linalg.inv(A_0), L_0)
         else:
-            X_0 = np.zeros((4, ))
+            X_0 = np.zeros((4,))
 
         # back substitute for time corrections
         dtime = L_1 - np.einsum('i...,i...->...', N_1, X_0)
         Ltime -= dtime
-        rmstime = np.sum(dtime**2)
+        rmstime = np.sum(dtime ** 2)
         del dtime, N_1, L_1
 
         # update orbit parameters
@@ -660,7 +661,7 @@ def _gc_calculation(ltime, period, inclination, omega_0, lon_0):
     cta = omega_0 - np.divide(2 * np.pi * ltime, period)
     gclat = np.arcsin(np.sin(cta) * np.sin(inclination))
     gclon = lon_0 + np.arcsin(np.tan(gclat) / -np.tan(inclination)) - \
-        2*np.pi*ltime / (24*60*60)
+            2 * np.pi * ltime / (24 * 60 * 60)
     return cta, gclat, gclon
 
 

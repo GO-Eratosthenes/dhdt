@@ -92,9 +92,9 @@ def phase_fitness(Q, di, dj, norm=2):
     C = construct_phase_values(data[:, 0:2], di, dj)
 
     # calculation
-    QC = (data[:, -1] - C)**norm
+    QC = (data[:, -1] - C) ** norm
     dXY = np.abs(QC)
-    fitness = (1 - np.divide(np.sum(dXY), 2 * norm * dXY.size))**norm
+    fitness = (1 - np.divide(np.sum(dXY), 2 * norm * dXY.size)) ** norm
     return fitness
 
 
@@ -132,7 +132,7 @@ def phase_support(Q, di, dj, thres=1.4826):
     C = construct_phase_values(data[:, 0:2], di, dj)
 
     # calculation
-    QC = (data[:, -1] - C)**2
+    QC = (data[:, -1] - C) ** 2
     dXY = np.abs(QC)
     IN = mad_filtering(dXY, thres=thres)
 
@@ -173,6 +173,6 @@ def signal_to_noise(Q, C, norm=2):
     assert type(C) == np.ndarray, ('please provide an array')
 
     Qn = normalize_power_spectrum(Q)
-    Q_diff = np.abs(Qn - C)**norm
+    Q_diff = np.abs(Qn - C) ** norm
     snr = 1 - (np.sum(Q_diff) / (2 * norm * np.prod(C.shape)))
     return snr

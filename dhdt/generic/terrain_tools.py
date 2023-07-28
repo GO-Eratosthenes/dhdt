@@ -12,7 +12,7 @@ def terrain_curvature(Z):
     return C
 
 
-def ridge_shape(Z):  #todo: check if correct
+def ridge_shape(Z):  # todo: check if correct
     # can be peak, hole, valley or saddle
     dx2, _ = get_grad_filters(ftype='kroon', tsize=3, order=2)
     dZ_dx2 = convolve(Z, -dx2)
@@ -114,5 +114,5 @@ def get_slope_corrected_area(Z, spac=10.):
     """
     Z_dx, Z_dy = terrain_slope(Z, spac=10.)
     Slp = np.hypot(Z_dy, Z_dx)
-    A = np.cos(Slp) * spac**2
+    A = np.cos(Slp) * spac ** 2
     return A

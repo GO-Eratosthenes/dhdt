@@ -4,7 +4,7 @@ from scipy import fftpack
 
 
 # general frequency functions
-def create_complex_DCT(I, C_c, C_s):  #todo
+def create_complex_DCT(I, C_c, C_s):  # todo
     C_cc, C_ss = C_c * I * C_c.T, C_s * I * C_s.T
     C_sc, C_cs = C_s * I * C_c.T, C_c * I * C_s.T
 
@@ -23,7 +23,7 @@ def create_complex_fftpack_DCT(I):
     return C
 
 
-def get_cosine_matrix(I, N=None):  #todo
+def get_cosine_matrix(I, N=None):  # todo
     """ create matrix with a cosine-basis
 
     Parameters
@@ -53,12 +53,14 @@ def get_cosine_matrix(I, N=None):  #todo
                 C[k, n] = np.sqrt(
                     np.divide(1, L, out=np.zeros_like(L), where=L != 0))
             else:
-                C[k,n] = np.sqrt(np.divide(2, L, out=np.zeros_like(L), where=L!=0))*\
-                    np.cos(np.divide(np.pi*k*(1/2+n), L, out=np.zeros_like(L), where=L!=0))
+                C[k, n] = np.sqrt(
+                    np.divide(2, L, out=np.zeros_like(L), where=L != 0)) * \
+                          np.cos(np.divide(np.pi * k * (1 / 2 + n), L,
+                                           out=np.zeros_like(L), where=L != 0))
     return (C)
 
 
-def get_sine_matrix(I, N=None):  #todo
+def get_sine_matrix(I, N=None):  # todo
     """ create matrix with a sine-basis
 
     Parameters
@@ -89,6 +91,8 @@ def get_sine_matrix(I, N=None):  #todo
                 C[k, n] = np.sqrt(
                     np.divide(1, L, out=np.zeros_like(L), where=L != 0))
             else:
-                C[k,n] = np.sqrt(np.divide(2, L, out=np.zeros_like(L), where=L!=0))*\
-                    np.sin(np.divide(np.pi*k*(1/2+n), L, out=np.zeros_like(L), where=L!=0))
+                C[k, n] = np.sqrt(
+                    np.divide(2, L, out=np.zeros_like(L), where=L != 0)) * \
+                          np.sin(np.divide(np.pi * k * (1 / 2 + n), L,
+                                           out=np.zeros_like(L), where=L != 0))
     return (C)

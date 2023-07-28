@@ -73,7 +73,7 @@ def make_conn_txt_a_shapefile(fpath):
     # get metadata
     crs, _, _, _, _, _ = read_geo_info(os.path.join(fdir, 'shadow.tif'))
 
-    xy_list = np.loadtxt(fname=fpath)  #, skiprows=1)
+    xy_list = np.loadtxt(fname=fpath)  # , skiprows=1)
 
     # set up the shapefile driver
     driver = ogr.GetDriverByName('ESRI Shapefile')
@@ -151,7 +151,7 @@ def get_intersection(xy_1, xy_2, xy_3, xy_4):
             and isinstance(xy_2, (float, np.ndarray)))
     assert (isinstance(xy_3, (float, np.ndarray))
             and isinstance(xy_4, (float, np.ndarray)))
-    if type(xy_1) in (np.ndarray, ):
+    if type(xy_1) in (np.ndarray,):
         assert len(set({xy_1.shape[0], xy_2.shape[0],
                         xy_3.shape[0], xy_4.shape[0], })) == 1, \
             ('please provide arrays of the same size')

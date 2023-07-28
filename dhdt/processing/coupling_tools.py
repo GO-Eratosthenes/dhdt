@@ -37,14 +37,14 @@ from dhdt.processing.matching_tools_differential import \
 def _assert_match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd,
                        Y_grd, temp_radius, search_radius):
     assert type(I1) in (np.ma.core.MaskedArray, np.ndarray), \
-         ("please provide an array")
+        ("please provide an array")
     assert type(I2) in (np.ma.core.MaskedArray, np.ndarray), \
-         ("please provide an array")
-    if (type(I1) not in (np.ma.core.MaskedArray, )) and (L1 is None):
+        ("please provide an array")
+    if (type(I1) not in (np.ma.core.MaskedArray,)) and (L1 is None):
         L1 = np.ones_like(I1, dtype=bool)
     elif L1 is None:
         L1 = np.array([])
-    if (type(I2) not in (np.ma.core.MaskedArray, )) and (L2 is None):
+    if (type(I2) not in (np.ma.core.MaskedArray,)) and (L2 is None):
         L2 = np.ones_like(I2, dtype=bool)
     elif L2 is None:
         L2 = np.array([])
@@ -57,10 +57,10 @@ def _assert_match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd,
 
     if len(geoTransform1) >= 6:
         assert I1.shape[:2] == geoTransform1[
-            -2:], "both should have same extent"
+                               -2:], "both should have same extent"
     if len(geoTransform2) >= 6:
         assert I2.shape[:2] == geoTransform2[
-            -2:], "both should have same extent"
+                               -2:], "both should have same extent"
     return L1, L2, geoTransform1, geoTransform2
 
 
@@ -200,8 +200,8 @@ def match_pair(I1,
         same=True)
     geoTransformPad2 = ref_trans(geoTransform2, -search_radius, -search_radius)
 
-    L1,L2 = pad_radius(L1,temp_radius, cval=False), \
-            pad_radius(L2, search_radius, cval=False)
+    L1, L2 = pad_radius(L1, temp_radius, cval=False), \
+             pad_radius(L2, search_radius, cval=False)
 
     (m, n) = X_grd.shape
     X2_grd, Y2_grd = np.zeros((m, n, b)), np.zeros((m, n, b))
@@ -240,7 +240,7 @@ def match_pair(I1,
         if correlator in differential_based:
             di, dj, rms = estimate_translation_of_two_subsets(
                 I1_sub, I2_sub, L1_sub, L2_sub, correlator, **kwargs)
-            score = np.sqrt(np.nansum(rms**2))  # euclidean distance of rms
+            score = np.sqrt(np.nansum(rms ** 2))  # euclidean distance of rms
         else:
             QC = match_translation_of_two_subsets(I1_sub, I2_sub, correlator,
                                                   subpix, L1_sub, L2_sub)
@@ -254,10 +254,10 @@ def match_pair(I1,
                 if correlator in frequency_based:
                     I2_new = create_template_off_center(
                         I2, i2[counter] - di, j2[counter] - dj,
-                        2 * temp_radius)
+                            2 * temp_radius)
                     L2_new = create_template_off_center(
                         L2, i2[counter] - di, j2[counter] - dj,
-                        2 * temp_radius)
+                            2 * temp_radius)
                 else:
                     I2_new = create_template_at_center(I2, i2[counter] - di,
                                                        j2[counter] - dj,
@@ -418,8 +418,8 @@ def couple_pair(file_1,
     idxConn = pair_images(conn_1, conn_2)  # connected list
     caster = conn_1[idxConn[:, 1], 0:2]
     # cast location in xy-coordinates
-    post_1,post_2 = conn_1[idxConn[:,1],2:4].copy(),\
-                     conn_2[idxConn[:,0],2:4].copy()
+    post_1, post_2 = conn_1[idxConn[:, 1], 2:4].copy(), \
+                     conn_2[idxConn[:, 0], 2:4].copy()
 
     if processing in ['shadow']:
         I1 = read_geo_image(os.path.join(dir_im1, shw_fname), boi=boi)[0]
@@ -432,7 +432,7 @@ def couple_pair(file_1,
     if wght_1 is not None:
         if isinstance(wght_1, str):
             L1 = read_geo_image(wght_1)[0].data
-        elif type(wght_1) in (np.ndarray, ):
+        elif type(wght_1) in (np.ndarray,):
             L1 = wght_1
         I1 = get_data_and_mask(I1)[0]
     else:
@@ -440,7 +440,7 @@ def couple_pair(file_1,
     if wght_2 is not None:
         if isinstance(wght_2, str):
             L2 = read_geo_image(wght_2)[0].data
-        elif type(wght_2) in (np.ndarray, ):
+        elif type(wght_2) in (np.ndarray,):
             L2 = wght_2
         I2 = get_data_and_mask(I2)[0]
     else:
@@ -540,7 +540,7 @@ def create_template_at_center(I, i, j, radius, filling='random'):
         sub_shape = (2 * radius[0] + 1, 2 * radius[1] + 1, I.shape[2])
 
     # create sub template
-    if filling in ('random', ):
+    if filling in ('random',):
         quant = 0
         if I.dtype.type == np.uint8:
             quant = 8
@@ -550,8 +550,8 @@ def create_template_at_center(I, i, j, radius, filling='random'):
         if quant == 0:
             I_sub = np.random.random_sample(sub_shape)
         else:
-            I_sub = np.random.randint(2**quant, size=sub_shape)
-    elif filling in ('nan', ):
+            I_sub = np.random.randint(2 ** quant, size=sub_shape)
+    elif filling in ('nan',):
         I_sub = np.nan * np.zeros(sub_shape)
     else:
         I_sub = np.zeros(sub_shape)
@@ -574,10 +574,10 @@ def create_template_at_center(I, i, j, radius, filling='random'):
     sub_min_1 = np.abs(np.minimum(j - radius[0], 0))
     sub_max_1 = (2 * radius[1] + 1) + n - np.maximum(j + radius[1] + 1, n)
     if I.ndim == 3:
-        I_sub[sub_min_0:sub_max_0,sub_min_1:sub_max_1,:] = \
+        I_sub[sub_min_0:sub_max_0, sub_min_1:sub_max_1, :] = \
             I[min_0:max_0, min_1:max_1, :]
     else:
-        I_sub[sub_min_0:sub_max_0,sub_min_1:sub_max_1] = \
+        I_sub[sub_min_0:sub_max_0, sub_min_1:sub_max_1] = \
             I[min_0:max_0, min_1:max_1]
     return I_sub
 
@@ -709,7 +709,7 @@ def pair_images(conn_1, conn_2, thres=20):
 
     """
     nbrs = NearestNeighbors(n_neighbors=1, algorithm='auto').fit(conn_1[:,
-                                                                        0:2])
+                                                                 0:2])
     distances, indices = nbrs.kneighbors(conn_2[:, 0:2])
     IN = distances < thres
     idxConn = np.transpose(np.vstack((np.where(IN)[0], indices[IN])))
@@ -797,9 +797,9 @@ def merge_by_common_caster_id(dh_mother, dh_child, idx_uni):
         else:
             return None
 
-    if type(dh_mother) in (pd.core.frame.DataFrame, ):
+    if type(dh_mother) in (pd.core.frame.DataFrame,):
         dh_stack = merge_by_common_caster_id_pd(dh_mother, dh_child, idx_uni)
-    elif type(dh_mother) in (np.recarray, ):
+    elif type(dh_mother) in (np.recarray,):
         dh_stack = merge_by_common_caster_id_rec(dh_mother, dh_child, idx_uni)
     return dh_stack
 
@@ -866,7 +866,8 @@ def merge_by_common_caster_id_pd(dh_mother, dh_child, idx_uni):
         df_header = list(dh_mother)
         df_id = [df_header.index(i) for i in df_header if 'caster_id' in i][0]
         dh_mother.iloc[idx_uni[NEW, 0], [df_id]] = id_counter + \
-                    np.arange(0, np.sum(NEW)).astype(int)
+                                                   np.arange(0, np.sum(
+                                                       NEW)).astype(int)
     else:
         id_mother = np.zeros(dh_mother.shape[0], dtype=int)
         id_child = np.zeros(dh_child.shape[0], dtype=int)
@@ -1144,7 +1145,7 @@ def match_shadow_casts(M1,
         ij2_corr[idx, 1] = j2[idx] - dj_rig
 
     x2_corr, y2_corr = pix2map(geoTransformPad2, ij2_corr[:, 0], ij2_corr[:,
-                                                                          1])
+                                                                 1])
     xy2_corr = np.nan * np.ones((IN.shape[0], 2))
     xy2_corr[IN, 0], xy2_corr[IN, 1] = x2_corr, y2_corr
     return xy2_corr, snr_score
@@ -1231,7 +1232,7 @@ def get_elevation_difference(sun_1, sun_2, xy_1, xy_2, xy_t):
             -----+<------+--
     """
     assert len(set({sun_1.shape[0], sun_2.shape[0], xy_t.shape[0],
-                    xy_1.shape[0],  xy_2.shape[0],}))==1, \
+                    xy_1.shape[0], xy_2.shape[0], })) == 1, \
         ('please provide arrays of the same size')
 
     zn_1 = _get_zenith_from_sun(sun_1)
@@ -1267,13 +1268,13 @@ def get_caster(sun_1, sun_2, xy_1, xy_2):
         estimated spatial location of common caster
     """
     assert len(set({sun_1.shape[0], sun_2.shape[0],
-                    xy_1.shape[0],  xy_2.shape[0],}))==1, \
+                    xy_1.shape[0], xy_2.shape[0], })) == 1, \
         ('please provide arrays of the same size')
     sun_1, sun_2 = np.deg2rad(sun_1), np.deg2rad(sun_2)
 
     caster_new = get_intersection(
         xy_1, xy_1 + np.stack((np.sin(sun_1), np.cos(sun_1)), axis=1), xy_2,
-        xy_2 + np.stack((np.sin(sun_2), np.cos(sun_2)), axis=1))
+              xy_2 + np.stack((np.sin(sun_2), np.cos(sun_2)), axis=1))
     return caster_new
 
 
@@ -1302,7 +1303,7 @@ def get_shadow_rectification(casters, post_1, post_2, az_1, az_2):
         relative shear between instance 1 & 2
     """
     assert len(set({post_1.shape[0], post_2.shape[0], casters.shape[0],
-                    az_1.shape[0], az_2.shape[0],}))==1, \
+                    az_1.shape[0], az_2.shape[0], })) == 1, \
         ('please provide arrays of the same size')
 
     # get planar distance between

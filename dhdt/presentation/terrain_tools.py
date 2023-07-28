@@ -8,6 +8,7 @@ from ..generic.filtering_statistical import make_2D_Gaussian
 from ..preprocessing.image_transforms import mat_to_gray
 from ..postprocessing.solar_tools import make_shading
 
+
 # pre-processing tools
 
 # todo: A design of contour generation for topographic maps
@@ -49,7 +50,7 @@ def adaptive_elevation_smoothing(Z, t_size=7, g_max=7):
               terrain representation through scale" International journal of
               cartography, vol.6(1) pp.99-120, 2020.
     """
-    #radii=5*90 [m]
+    # radii=5*90 [m]
     # entropy
     E = entropy(mat_to_gray(Z), np.ones((50, 50), dtype=bool))
 
@@ -67,7 +68,7 @@ def adaptive_elevation_smoothing(Z, t_size=7, g_max=7):
                                    mode='mirror',
                                    cval=np.nan,
                                    extra_keywords={'t_size': (t_size, t_size)})
-    #todo build scale space box
+    # todo build scale space box
 
     Z_new = Z_new[..., 0]
     return Z_new
@@ -171,7 +172,7 @@ def luminance_perspective(g, z, g_flat, k=1.3):
     return g_prime
 
 
-def contrast_perspective(v, z, v_flat, z_thres, v_min=0, k=2):  #todo
+def contrast_perspective(v, z, v_flat, z_thres, v_min=0, k=2):  # todo
     """enhance shadow transform, through classification knowledge, see [JPXX]_.
 
     Parameters
@@ -199,7 +200,7 @@ def contrast_perspective(v, z, v_flat, z_thres, v_min=0, k=2):  #todo
     v_prime = v_min + ((v_flat - v_min) / v_flat) * v
 
     # (4) in [1]
-    w = 1 - (z_star / z_thres)**k
+    w = 1 - (z_star / z_thres) ** k
 
     v_pp = w * v_prime + (1 - w) * v
     return v_pp

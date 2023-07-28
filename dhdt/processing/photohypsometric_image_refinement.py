@@ -40,7 +40,7 @@ def transform_4_logit(X, Y, method='exact', **kwargs):
              analytical chemistry, vol.41(1) pp. 36-69, 2011.
     """
 
-    if method in ('exact', ):
+    if method in ('exact',):
         a, d = np.nanmin(Y), np.nanmax(Y)
     else:
         qsep = 0.05 if kwargs.get('quantile_dist') == None else \
@@ -214,7 +214,7 @@ def update_casted_location(dh, S, M, geoTransform, extent=120.):
              |   \                   |
          ----┴----+  <-- casted      └-> {X,Y}
     """
-    assert type(dh) in (pandas.core.frame.DataFrame, ), \
+    assert type(dh) in (pandas.core.frame.DataFrame,), \
         ('please provide a pandas dataframe')
     assert np.all([
         header in dh.columns
@@ -325,7 +325,7 @@ def update_list_with_refined_casted(dh, file_dir, file_name='conn.txt'):
                  'casted_X_refine', 'casted_Y_refine', 'azimuth', 'zenith')
     col_frmt = ('{:+8.2f}', '{:+8.2f}', '{:+8.2f}', '{:+8.2f}', '{:+8.2f}',
                 '{:+8.2f}', '{:+3.4f}', '{:+3.4f}')
-    assert type(dh) in (pandas.core.frame.DataFrame, ), \
+    assert type(dh) in (pandas.core.frame.DataFrame,), \
         ('please provide a pandas dataframe')
     assert np.all([header in dh.columns for header in col_order])
 
@@ -338,10 +338,10 @@ def update_list_with_refined_casted(dh, file_dir, file_name='conn.txt'):
         print('# time: ' + np.datetime_as_string(timestamps[0], unit='D'),
               file=f)
     else:
-        col_order = ('timestamp', ) + col_order
-        col_frmt = ('place_holder', ) + col_order
-    col_order += ('zenith_refrac', )
-    col_frmt = col_frmt + ('{:+3.4f}', )
+        col_order = ('timestamp',) + col_order
+        col_frmt = ('place_holder',) + col_order
+    col_order += ('zenith_refrac',)
+    col_frmt = col_frmt + ('{:+3.4f}',)
     dh_sel = dh[dh.columns.intersection(list(col_order))]
 
     # add header
@@ -367,6 +367,5 @@ def update_list_with_refined_casted(dh, file_dir, file_name='conn.txt'):
         print(line[:-1], file=f)  # remove last spacer
     f.close()
     return
-
 
 # def filter_unresolved_refinements(dh):

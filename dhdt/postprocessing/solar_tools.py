@@ -143,7 +143,7 @@ def sun_angles_to_vector(az, zn, indexing='ij'):
         sun = np.dstack(
             (+np.sin(az) * np.sin(zn), +np.cos(az) * np.sin(zn), +np.cos(zn)))
 
-    if type(az) in (np.ndarray, ):
+    if type(az) in (np.ndarray,):
         return sun
     else:  # if single entry is given
         return np.squeeze(sun)
@@ -348,9 +348,9 @@ def make_shading(Z, az, zn, spac=10):
     normal[..., 1] /= n
     normal[..., 2] /= n
 
-    Sh = normal[...,0]*sun[...,0] + \
-         normal[...,1]*sun[...,1] + \
-         normal[...,2]*sun[...,2]
+    Sh = normal[..., 0] * sun[..., 0] + \
+         normal[..., 1] * sun[..., 1] + \
+         normal[..., 2] * sun[..., 2]
     return Sh
 
 
@@ -379,7 +379,7 @@ def make_doppler_range(Z, az, zn, Lambertian=True, spac=10):
     Z_r = ndimage.rotate(Z, az, axes=(1, 0), cval=-1, order=3)
     # mask based
     M_r = ndimage.rotate(np.ones_like(Z, dtype=bool), az, axes=(1, 0), \
-                        cval=False, order=0, prefilter=False)
+                         cval=False, order=0, prefilter=False)
 
     K_r = np.fliplr(
         np.meshgrid(np.linspace(0, M_r.shape[0] - 1, M_r.shape[0]),
@@ -387,7 +387,7 @@ def make_doppler_range(Z, az, zn, Lambertian=True, spac=10):
     np.putmask(K_r, ~M_r, 0)
 
     D_r = np.multiply(np.cos(np.deg2rad(zn)), Z_r) + \
-          np.multiply(np.sin(np.deg2rad(zn)), K_r*spac)
+          np.multiply(np.sin(np.deg2rad(zn)), K_r * spac)
 
     if Lambertian:  # do a weighted histogram
         Sd = make_shading(Z, az, zn, spac=10)
@@ -466,13 +466,12 @@ def make_shading_minnaert(Z, az, zn, k=1, spac=10):
     normal[..., 1] /= n
     normal[..., 2] /= n
 
-    L = normal[...,0]*sun[...,0] + \
-        normal[...,1]*sun[...,1] + \
-        normal[...,2]*sun[...,2]
+    L = normal[..., 0] * sun[..., 0] + \
+        normal[..., 1] * sun[..., 1] + \
+        normal[..., 2] * sun[..., 2]
     # assume overhead
-    Sh = L**(k + 1) * (1 - normal[..., 2])**(1 - k)
+    Sh = L ** (k + 1) * (1 - normal[..., 2]) ** (1 - k)
     return Sh
-
 
 # topocalc has horizon calculations
 # based upon Dozier & Frew 1990

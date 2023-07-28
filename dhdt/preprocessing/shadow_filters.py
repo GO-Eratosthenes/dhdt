@@ -93,9 +93,9 @@ def kuwahara(buffer):
 
     buffer = np.reshape(buffer, (d, d))
     r_a, r_b = buffer[:-d_sub + 1, :-d_sub + 1], buffer[+d_sub - 1:, :-d_sub +
-                                                        1]
+                                                                      1]
     r_c, r_d = buffer[:-d_sub + 1, +d_sub - 1:], buffer[+d_sub - 1:,
-                                                        +d_sub - 1:]
+                                                 +d_sub - 1:]
 
     var_abcd = np.array([np.var(r_a), np.var(r_b), np.var(r_c), np.var(r_d)])
     bar_abcd = np.array(
@@ -158,9 +158,9 @@ def kuwahara_filter(I, tsize=5):
     assert np.remainder(tsize - 1, 2) == 0, ('kernel dimension should be odd')
     assert tsize >= 3, ('kernel should be big enough')
 
-    #if (tsize==3) or (tsize==5): # todo
+    # if (tsize==3) or (tsize==5): # todo
     #    I_new = ndimage.generic_filter(I, kuwahara_strided, size=(tsize,tsize))
-    #else:
+    # else:
     I_new = ndimage.generic_filter(I, kuwahara, size=(tsize, tsize))
     return I_new
 
@@ -280,15 +280,15 @@ def diffusion_strength_1(I, K):
     # admin
     if np.iscomplexobj(I):  # support complex input
         I_abs = np.abs(I)
-        g_1 = np.exp(-1 * np.divide(np.abs(I), K)**2)
+        g_1 = np.exp(-1 * np.divide(np.abs(I), K) ** 2)
     elif I.ndim == 3:  # support multispectral input
-        I_sum = np.sum(I**2, axis=2)
+        I_sum = np.sum(I ** 2, axis=2)
         I_abs = np.sqrt(I_sum, out=np.zeros_like(I_sum), where=I_sum != 0)
     else:
         I_abs = I
 
     # caluculation
-    g_1 = np.exp(-1 * np.divide(I_abs, K)**2)
+    g_1 = np.exp(-1 * np.divide(I_abs, K) ** 2)
     return g_1
 
 
@@ -318,14 +318,14 @@ def diffusion_strength_2(I, K):
     """
     if np.iscomplexobj(I):
         I_abs = np.abs(I)
-        denom = (1 + np.divide(np.abs(I), K)**2)
+        denom = (1 + np.divide(np.abs(I), K) ** 2)
     elif I.ndim == 3:  # support multispectral input
-        I_sum = np.sum(I**2, axis=2)
+        I_sum = np.sum(I ** 2, axis=2)
         I_abs = np.sqrt(I_sum, out=np.zeros_like(I_sum), where=I_sum != 0)
     else:
         I_abs = I
     # calculation
-    denom = (1 + np.divide(I_abs, K)**2)
+    denom = (1 + np.divide(I_abs, K) ** 2)
     g_2 = np.divide(1, denom, where=denom != 0)
     return g_2
 
@@ -454,11 +454,11 @@ def L0_smoothing(I, lamb=2E-2, kappa=2., beta_max=1E5):
 
     I = perdecomp(I)[0]
     N_1 = np.fft.fft2(I)
-    D_2 = np.abs(dx_F)**2 + np.abs(dy_F)**2
+    D_2 = np.abs(dx_F) ** 2 + np.abs(dy_F) ** 2
 
     if b > 1:
-        dx, dy = np.tile(np.atleast_3d(dx), (1,1,b)),\
-                 np.tile(np.atleast_3d(dy), (1,1,b))
+        dx, dy = np.tile(np.atleast_3d(dx), (1, 1, b)), \
+                 np.tile(np.atleast_3d(dy), (1, 1, b))
         D_2 = np.tile(np.atleast_3d(D_2), (1, 1, b))
 
     beta = 2 * lamb
@@ -468,7 +468,7 @@ def L0_smoothing(I, lamb=2E-2, kappa=2., beta_max=1E5):
         h = np.roll(signal.fftconvolve(I, dx, mode='same'), -1, axis=1)
         v = np.roll(signal.fftconvolve(I, dy, mode='same'), -1, axis=0)
 
-        t = (h**2 + v**2) < (lamb / beta)
+        t = (h ** 2 + v ** 2) < (lamb / beta)
         np.putmask(h, t, 0)
         np.putmask(v, t, 0)
 

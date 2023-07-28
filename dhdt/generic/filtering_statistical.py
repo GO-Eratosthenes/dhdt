@@ -56,11 +56,11 @@ def online_steady_state(y_ol,
         d_fi = 2 * v_fi
     else:
         v_fi = np.multiply(lambda_2, (y_ol[-1] - X_fi) ** 2) + \
-               np.multiply(1.-lambda_2, v_fi)           # eq.9 in [1]
+               np.multiply(1. - lambda_2, v_fi)  # eq.9 in [1]
         X_fi = np.multiply(lambda_1, y_ol[-1]) + \
-               np.multiply(1.-lambda_1, y_ol[-2])       # eq.2 in [1]
+               np.multiply(1. - lambda_1, y_ol[-2])  # eq.2 in [1]
         d_fi = np.multiply(lambda_3, (y_ol[-1] - y_ol[-2]) ** 2) + \
-               np.multiply(1.-lambda_3, d_fi)           # eq.13 in [1]
+               np.multiply(1. - lambda_3, d_fi)  # eq.13 in [1]
 
     # eq.15 in [1]
     R_i = np.divide(np.multiply((2. - lambda_1), v_fi), d_fi)
@@ -120,7 +120,7 @@ def make_2D_Gaussian(size, fwhm=3.):
     x = np.linspace(-(size[0] - 1) / 2, +(size[0] - 1) / 2, size[0], float)
     y = np.linspace(-(size[1] - 1) / 2, +(size[1] - 1) / 2, size[0], float)
     y = y[:, np.newaxis]
-    M = np.exp(-4 * np.log(2) * (x**2 + y**2) / fwhm**2)
+    M = np.exp(-4 * np.log(2) * (x ** 2 + y ** 2) / fwhm ** 2)
     return M
 
 
@@ -162,8 +162,8 @@ def sigma_filtering(y, thres=3):
     mean_y = np.mean(y)
     std_y = np.std(y)
 
-    IN = (y > (mean_y - thres*std_y)) & \
-        (y < mean_y + thres*std_y)
+    IN = (y > (mean_y - thres * std_y)) & \
+         (y < mean_y + thres * std_y)
     return IN
 
 
@@ -194,10 +194,10 @@ def weighted_sigma_filtering(y, w, thres=3):
     sigma_filtering, mad_filtering
     """
     mean_y = np.average(y, weights=w)
-    std_y = np.sqrt(np.average((y - mean_y)**2, weights=w))
+    std_y = np.sqrt(np.average((y - mean_y) ** 2, weights=w))
 
-    IN = (y > (mean_y - thres*std_y)) & \
-        (y < mean_y + thres*std_y)
+    IN = (y > (mean_y - thres * std_y)) & \
+         (y < mean_y + thres * std_y)
     return IN
 
 
@@ -227,8 +227,8 @@ def mad_filtering(y, thres=1.4826):
     med_y = np.median(y)
     mad_y = np.median(np.abs(y - med_y))
 
-    IN = (y > (med_y - thres*mad_y)) & \
-        (y < med_y + thres*mad_y)
+    IN = (y > (med_y - thres * mad_y)) & \
+         (y < med_y + thres * mad_y)
     return IN
 
 
@@ -353,7 +353,7 @@ def cauchy_filtering(y, thres=2.385, preproc='normal'):
         r = normalize_variance(y)
     else:
         r = normalize_variance_robust(y)
-    w = 1 / (1 + r**2)
+    w = 1 / (1 + r ** 2)
     IN = w < thres
     return IN
 

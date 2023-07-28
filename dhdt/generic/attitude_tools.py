@@ -115,8 +115,10 @@ def euler_rot_y(θ):
     """
     R_y = np.diag(3)
     R_2 = rot_mat(θ)
-    R_y[0,0],R_y[0,-1],R_y[-1,0],R_y[-1,-1] = R_2[0,0],R_2[0,-1],R_2[-1,0],\
-                                              R_2[-1,-1]
+    R_y[0, 0], R_y[0, -1], R_y[-1, 0], R_y[-1, -1] = R_2[0, 0], \
+                                                     R_2[0, -1], \
+                                                     R_2[-1, 0], \
+                                                     R_2[-1, -1]
     return R_y
 
 
@@ -194,10 +196,10 @@ def quat_2_euler(q1, q2, q3, q4):
     .. [Ki13] Kim, "Rigid body dynamics for beginners", 2013.
     """
     φ = np.rad2deg(np.arctan2(2 * (q2 * q3 + q1 * q4),
-                              1 - 2 * (q1**2 + q2**2)))  # eq. 5.12 in [1]
+                              1 - 2 * (q1 ** 2 + q2 ** 2)))  # eq. 5.12 in [1]
     θ = np.rad2deg(np.arcsin(2 * (q2 * q4 - q1 * q3)))  # eq. 5.13 in [1]
     ψ = np.rad2deg(np.arctan2(2 * (q1 * q2 + q3 * q4),
-                              1 - 2 * (q2**2 + q3**2)))  # eq. 5.14 in [1]
+                              1 - 2 * (q2 ** 2 + q3 ** 2)))  # eq. 5.14 in [1]
     return φ, θ, ψ
 
 
@@ -292,19 +294,19 @@ def rodrigues_est(XYZ_1, XYZ_2):
                     (m, 1)), np.expand_dims(-XYZ_2[:, 2] - XYZ_1[:, 2],
                                             axis=1),
                  np.expand_dims(+XYZ_2[:, 1] + XYZ_1[:, 1], axis=1))),
-                           axis=2), [0, 1, 2], [2, 1, 0]),
+                axis=2), [0, 1, 2], [2, 1, 0]),
         np.moveaxis(
             np.expand_dims(np.hstack(
                 (np.expand_dims(+XYZ_2[:, 2] + XYZ_1[:, 2],
                                 axis=1), np.zeros((m, 1)),
                  np.expand_dims(-XYZ_2[:, 0] - XYZ_1[:, 0], axis=1))),
-                           axis=2), [0, 1, 2], [2, 1, 0]),
+                axis=2), [0, 1, 2], [2, 1, 0]),
         np.moveaxis(
             np.expand_dims(np.hstack(
                 (np.expand_dims(-XYZ_2[:, 1] - XYZ_1[:, 1], axis=1),
                  np.expand_dims(-XYZ_2[:, 0] - XYZ_1[:, 0],
                                 axis=1), np.zeros((m, 1)))),
-                           axis=2), [0, 1, 2], [2, 1, 0]),
+                axis=2), [0, 1, 2], [2, 1, 0]),
     ))
 
     # squeeze back to collumns
@@ -363,7 +365,6 @@ def ecef2ocs(xyz, uvw):
 
 
 def deconvolve_jitter(f, dt):
-
     N = f.size()
     k = np.arange(N)
 
@@ -377,5 +378,5 @@ def deconvolve_jitter(f, dt):
 
 def asd(f_a, f_c, beta, F):
     d_roll = np.divide(-f_c, F)
-    d_pitch = np.divide(-f_a * np.cos(beta)**2, F)  # (7) in [Ye20]
+    d_pitch = np.divide(-f_a * np.cos(beta) ** 2, F)  # (7) in [Ye20]
     return

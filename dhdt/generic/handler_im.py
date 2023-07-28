@@ -6,18 +6,16 @@ from scipy.interpolate import griddata
 
 
 def _check_same_im(I1, I2):
-
-    assert ((I1.ndim>=2) and (I2.ndim>=2)), \
+    assert ((I1.ndim >= 2) and (I2.ndim >= 2)), \
         'please provide grids'
-    assert len(set({I1.shape[0], I2.shape[0]}))==1,\
-         'please provide arrays of the same size'
-    assert len(set({I1.shape[1], I2.shape[1]}))==1,\
-         'please provide arrays of the same size'
+    assert len(set({I1.shape[0], I2.shape[0]})) == 1, \
+        'please provide arrays of the same size'
+    assert len(set({I1.shape[1], I2.shape[1]})) == 1, \
+        'please provide arrays of the same size'
     return I1, I2
 
 
 def conv_2Dfilter(I, kernel):
-
     sub_shape = tuple(map(lambda i, j: i - j + 1, I.shape, kernel.shape))
     view_shape = tuple(np.subtract(I.shape, sub_shape) + 1) + sub_shape
     strides = I.strides + I.strides
@@ -312,8 +310,9 @@ def bilinear_interpolation(I, di, dj):
     else:
         Ia, Ib, Ic, Id = I[i0, j0], I[i1, j0], I[i0, j1], I[i1, j1]
 
-    wa,wb,wc,wd = (j1-dj)*(i1-di), (j1-dj)*(di-i0), (dj-j0)*(i1-di), \
-                  (dj-j0)*(di-i0)
+    wa, wb, wc, wd = (j1 - dj) * (i1 - di), (j1 - dj) * (di - i0), (
+                dj - j0) * (i1 - di), \
+                     (dj - j0) * (di - i0)
 
     if I.ndim == 3:
         wa = np.repeat(np.atleast_3d(wa), I.shape[2], axis=2)
@@ -453,11 +452,11 @@ def rotated_sobel(az, size=3, indexing='ij'):
         H_x = I / (np.multiply(I, I) + np.multiply(J, J))
     else:
         if indexing == 'ij':
-            H_x = (+np.cos(az)*I) + (+np.sin(az)*J) / \
-                  (np.multiply(I,I) + np.multiply(J,J))
+            H_x = (+np.cos(az) * I) + (+np.sin(az) * J) / \
+                  (np.multiply(I, I) + np.multiply(J, J))
         else:
-            H_x = (-np.sin(az)*I) + (-np.cos(az)*J) / \
-                  (np.multiply(I,I) + np.multiply(J,J))
+            H_x = (-np.sin(az) * I) + (-np.cos(az) * J) / \
+                  (np.multiply(I, I) + np.multiply(J, J))
     H_x[d, d] = 0
     return H_x
 

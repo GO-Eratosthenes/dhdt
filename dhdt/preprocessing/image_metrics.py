@@ -14,16 +14,17 @@ def ssim(I1, I2):
               vol.13(4) pp.600-612, 2004.
     """
 
-    ɛ_1 = (0.01 * 255)**2
-    ɛ_2 = (0.03 * 255)**2
+    ɛ_1 = (0.01 * 255) ** 2
+    ɛ_2 = (0.03 * 255) ** 2
 
     window = make_2D_Gaussian([11, 11], fwhm=3)
 
     μ_1, μ_2 = ndimage.convolve(I1, window), ndimage.convolve(I2, window)
-    μ_1, μ_2 = μ_1**2, μ_2**2
+    μ_1, μ_2 = μ_1 ** 2, μ_2 ** 2
     μ_12 = μ_1 * μ_2
 
-    σ_1, σ_2 = ndimage.convolve(I1**2, window), ndimage.convolve(I2**2, window)
+    σ_1, σ_2 = ndimage.convolve(I1 ** 2, window), ndimage.convolve(I2 ** 2,
+                                                                   window)
     σ_12 = ndimage.convolve(I1 * I2, window) - μ_12
     σ_1 -= μ_1
     σ_2 -= μ_2
@@ -34,7 +35,6 @@ def ssim(I1, I2):
 
 
 def moments(x, y, k, stride):
-
     def _mom_int(I, k, stride):
         mu = I[:-k:stride, :-k:stride] - \
              I[:-k:stride, +k::stride] - \
@@ -48,14 +48,14 @@ def moments(x, y, k, stride):
         C[1:, 1:] = np.cumsum(np.cumsum(I, 0), 1)
         return C
 
-    k_norm = k**2
+    k_norm = k ** 2
 
-    x_pad, y_pad = np.pad(x, int((k - stride)/2), mode='reflect'),\
-                   np.pad(y, int((k - stride)/2), mode='reflect')
+    x_pad, y_pad = np.pad(x, int((k - stride) / 2), mode='reflect'), \
+                   np.pad(y, int((k - stride) / 2), mode='reflect')
 
     int_1_x, int_1_y = _integral_image(x_pad), _integral_image(y_pad)
-    int_2_x, int_2_y = _integral_image(x_pad*x_pad), \
-                       _integral_image(y_pad*y_pad)
+    int_2_x, int_2_y = _integral_image(x_pad * x_pad), \
+                       _integral_image(y_pad * y_pad)
 
     int_xy = _integral_image(x_pad * y_pad)
 
@@ -66,8 +66,8 @@ def moments(x, y, k, stride):
     σ_y = _mom_int(int_2_y, k, stride) / k_norm
     σ_xy = _mom_int(int_xy, k, stride) / k_norm
 
-    σ_x -= μ_x**2
-    σ_y -= μ_y**2
+    σ_x -= μ_x ** 2
+    σ_y -= μ_y ** 2
     σ_xy -= μ_x * μ_y
 
     OUT_x, OUT_y = σ_x < 0, σ_y < 0
@@ -94,13 +94,13 @@ def vif(I1, I2, k=11):
     sv_sq = σ_2 - g * σ_12
 
     vi_fidel = np.divide(
-        np.log(1 + g**2 * σ_1 / (sv_sq + σ_nsq)) + 1e-4,
+        np.log(1 + g ** 2 * σ_1 / (sv_sq + σ_nsq)) + 1e-4,
         np.log(1 + σ_1 / σ_nsq) + 1e-4)
     return vi_fidel
 
 
 def psnr(I1, I2):
-    mse = np.mean((I1 - I2)**2)
+    mse = np.mean((I1 - I2) ** 2)
     mse_isq = np.sqrt(mse)
     peak_snr = 20 * np.log10(np.divide(255.0, mse_isq, where=mse_isq != 0))
     return peak_snr

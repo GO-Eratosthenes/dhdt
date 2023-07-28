@@ -1,6 +1,6 @@
 import numpy as np
 
-#from ..processing.matching_tools_frequency_subpixel import phase_jac
+# from ..processing.matching_tools_frequency_subpixel import phase_jac
 from ..processing.matching_tools import \
     get_integer_peak_location, get_peak_indices
 
@@ -107,8 +107,8 @@ def secant(A, y, J, params, n_iters=5, print_diagnostics=False):
             delta_f = fx1 - fx0
             # estimate Jacobian
             J_new = J + \
-                np.outer( (delta_f - (J @ delta_x)), delta_x) / \
-                np.dot(delta_x,delta_x)
+                    np.outer((delta_f - (J @ delta_x)), delta_x) / \
+                    np.dot(delta_x, delta_x)
 
             # estimate new parameter set
             dx = np.linalg.lstsq(J_new, -fx1, rcond=None)[0]
@@ -330,7 +330,7 @@ def logit_weighting(Y, sigma_Y=1., sigma_0=1.):
               2011.
     """
 
-    W = np.multiply(Y**2, (1 - Y)**2) * np.divide(sigma_Y, sigma_0)
+    W = np.multiply(Y ** 2, (1 - Y) ** 2) * np.divide(sigma_Y, sigma_0)
     # from Table 9 in [1]
     return W
 
@@ -366,7 +366,7 @@ def ln_weighting(Y, sigma_Y=1., sigma_0=1.):
               Critical reviews in analytical chemistry, vol.41(1) pp. 36-69,
               2011.
     """
-    W = Y**2 * np.divide(sigma_Y, sigma_0)  # from Table 9 in [1]
+    W = Y ** 2 * np.divide(sigma_Y, sigma_0)  # from Table 9 in [1]
     return W
 
 
@@ -400,7 +400,7 @@ def reciprocal_weighting(Y, sigma_Y=1., sigma_0=1.):
               Critical reviews in analytical chemistry, vol.41(1) pp. 36-69,
               2011.
     """
-    W = Y**4 * np.divide(sigma_Y, sigma_0)  # from Table 9 in [As11]
+    W = Y ** 4 * np.divide(sigma_Y, sigma_0)  # from Table 9 in [As11]
     return W
 
 
@@ -496,7 +496,7 @@ def squared_weighting(Y, sigma_Y=1., sigma_0=1.):
               Critical reviews in analytical chemistry, vol.41(1) pp. 36-69,
               2011.
     """
-    W = np.divide(sigma_0**2, np.multiply(4 * np.power(Y, 2), sigma_Y))
+    W = np.divide(sigma_0 ** 2, np.multiply(4 * np.power(Y, 2), sigma_Y))
     # from Table 9 in [As11]
     return W
 

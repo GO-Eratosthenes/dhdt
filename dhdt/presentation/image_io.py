@@ -91,7 +91,6 @@ def output_image(data, outputname, cmap='bone', compress=95):
 
 
 def output_mask(data, outputname, color=np.array([255, 0, 64]), alpha=255):
-
     col_arr = np.stack((np.array([255, 255, 255, 0]), np.hstack(
         (color, alpha))))
 
@@ -224,7 +223,7 @@ def output_glacier_map_background(Z,
     I_rgb = hsv2rgb(
         np.dstack((RGI.astype(float) * .55, RGI.astype(float) * .25,
                    (Shd * .2) + .8)))
-    I_rgb = np.uint8(I_rgb * 2**8)
+    I_rgb = np.uint8(I_rgb * 2 ** 8)
 
     img = Image.fromarray(I_rgb)
     img.save(outputname, quality=compress)

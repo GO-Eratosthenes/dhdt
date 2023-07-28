@@ -71,26 +71,27 @@ def gamma_adjustment(I, gamma=1.0):
         array with transform
     """
     if I.dtype.type == np.uint8:
-        radio_range = 2**8 - 1
-        look_up_table = np.array([((i / radio_range)**gamma) * radio_range
+        radio_range = 2 ** 8 - 1
+        look_up_table = np.array([((i / radio_range) ** gamma) * radio_range
                                   for i in np.arange(0, radio_range + 1)
                                   ]).astype("uint8")
         I_new = np.take(look_up_table, I, out=np.zeros_like(I))
     elif I.dtype.type == np.uint16:
-        radio_range = 2**16 - 1
-        look_up_table = np.array([((i / radio_range)**gamma) * radio_range
+        radio_range = 2 ** 16 - 1
+        look_up_table = np.array([((i / radio_range) ** gamma) * radio_range
                                   for i in np.arange(0, radio_range + 1)
                                   ]).astype("uint16")
         I_new = np.take(look_up_table, I, out=np.zeros_like(I))
     else:  # float
         if np.ptp(I) <= 1.0:
-            I_new = I**gamma
+            I_new = I ** gamma
         else:
-            radio_range = 2**16 - 1
+            radio_range = 2 ** 16 - 1
             I = np.round(I * radio_range).astype(np.uint16)
-            look_up_table = np.array([((i / radio_range)**gamma) * radio_range
-                                      for i in np.arange(0, radio_range + 1)
-                                      ]).astype("uint16")
+            look_up_table = np.array(
+                [((i / radio_range) ** gamma) * radio_range
+                 for i in np.arange(0, radio_range + 1)
+                 ]).astype("uint16")
             I_new = np.take(look_up_table, I, out=np.zeros_like(I))
             I_new = (I_new / radio_range).astype(np.float64)
     return I_new
@@ -139,9 +140,9 @@ def log_adjustment(I):
         grid with transform
     """
     if I.dtype.type == np.uint8:
-        radio_range = 2**8 - 1
+        radio_range = 2 ** 8 - 1
     else:
-        radio_range = 2**16 - 1
+        radio_range = 2 ** 16 - 1
 
     c = radio_range / (np.log(1 + np.amax(I)))
     I_new = c * np.log(1 + I)
@@ -216,7 +217,7 @@ def get_histogram(img):
     assert img.ndim == 2, ('please provide a 2D array')
     m, n = img.shape[:2]
     bit_depth = 8 if img.dtype.type == np.uint8 else 16
-    hist = [0.] * 2**bit_depth
+    hist = [0.] * 2 ** bit_depth
 
     for i in range(m):
         for j in range(n):
@@ -248,9 +249,9 @@ def normalize_histogram(img):
 
         # determine the normalization values for each unit of the cdf
         if img.dtype.type == np.uint8:
-            scaling = np.uint8(cdf * 2**8)
+            scaling = np.uint8(cdf * 2 ** 8)
         else:
-            scaling = np.uint16(cdf * 2**16)
+            scaling = np.uint16(cdf * 2 ** 16)
 
         # normalize the normalization values
         new_img = scaling[img]
@@ -300,8 +301,8 @@ def histogram_equalization(img, img_ref):
                                           return_inverse=True)
     val_ref, cnt_ref = np.unique(img_ref[IN_ref], return_counts=True)
 
-    qnt_img,qnt_ref = np.cumsum(cnt_img).astype(np.float64), \
-                      np.cumsum(cnt_ref).astype(np.float64)
+    qnt_img, qnt_ref = np.cumsum(cnt_img).astype(np.float64), \
+                       np.cumsum(cnt_ref).astype(np.float64)
     qnt_img /= qnt_img[-1]  # normalize
     qnt_ref /= qnt_ref[-1]
 
@@ -327,7 +328,7 @@ def cum_hist(img):
         emperical cumulative distribution function, i.e. a cumulative histogram.
     """
     bit_depth = 8 if img.dtype.type == np.uint8 else 16
-    pdf = np.histogram(img, bins=range(0, 2**bit_depth))[0]
+    pdf = np.histogram(img, bins=range(0, 2 ** bit_depth))[0]
     cdf = np.cumsum(pdf).astype(float)
     cdf = cdf / np.sum(pdf)
     return cdf
@@ -389,12 +390,12 @@ def general_midway_equalization(I):
     bit_depth = 8 if I.dtype.type == np.uint8 else 16
     im_depth = I.shape[2]
     for k in range(im_depth):
-        if type(I) in (np.ma.core.MaskedArray, ):
+        if type(I) in (np.ma.core.MaskedArray,):
             CDFs.append(cum_hist(I[..., k].compressed()))
         else:
             CDFs.append(cum_hist(I[..., k]))
 
-    idx_min_CDF, idx_max_CDF = (2**bit_depth) - 1, 0
+    idx_min_CDF, idx_max_CDF = (2 ** bit_depth) - 1, 0
     for k in range(im_depth):
         idx_min_CDF = np.minimum(np.argmin(CDFs[k] == 0), idx_min_CDF)
         idx_max_CDF = np.maximum(np.argmax(CDFs[k] == 1), idx_max_CDF)
@@ -437,8 +438,9 @@ def high_pass_im(Im, radius=10):
     # Fourier coordinate system
     (I, J) = np.mgrid[:m, :n]
     Hi = np.fft.fftshift(1 -
-                         np.exp(-np.divide(((I - m / 2)**2 +
-                                            (J - n / 2)**2), (2 * radius)**2)))
+                         np.exp(-np.divide(((I - m / 2) ** 2 +
+                                            (J - n / 2) ** 2),
+                                           (2 * radius) ** 2)))
 
     if Im.ndim == 2:
         If = np.fft.fft2(Im)

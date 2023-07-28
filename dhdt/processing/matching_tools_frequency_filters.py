@@ -177,10 +177,11 @@ def local_coherence(Q, ds=1):
 
     diam = 2 * ds + 1
     C = np.zeros_like(Q)
-    (isteps, jsteps) = np.meshgrid(np.linspace(-ds, +ds, 2 * ds + 1, dtype=int), \
-                                   np.linspace(-ds, +ds, 2 * ds + 1, dtype=int))
-    IN = np.ones(diam**2, dtype=bool)
-    IN[diam**2 // 2] = False
+    (isteps, jsteps) = np.meshgrid(
+        np.linspace(-ds, +ds, 2 * ds + 1, dtype=int), \
+        np.linspace(-ds, +ds, 2 * ds + 1, dtype=int))
+    IN = np.ones(diam ** 2, dtype=bool)
+    IN[diam ** 2 // 2] = False
     isteps, jsteps = isteps.flatten()[IN], jsteps.flatten()[IN]
 
     for idx, istep in enumerate(isteps):
@@ -257,7 +258,7 @@ def make_fourier_grid(Q,
         ("please provide an array")
     (m, n) = Q.shape
     if indexing == 'ij':
-        if axis in ('center', ):
+        if axis in ('center',):
             (I_grd, J_grd) = np.meshgrid(np.arange(0, m),
                                          np.arange(0, n),
                                          indexing='ij')
@@ -268,7 +269,7 @@ def make_fourier_grid(Q,
         F_1, F_2 = I_grd / m, J_grd / n
     else:
         fy, fx = np.linspace(0, m, m), np.linspace(0, n, n)
-        if axis in ('center', ):
+        if axis in ('center',):
             fy, fx = fy - (m // 2), fx - (n // 2)
         fy, fx = np.flip(fy) / m, fx / n
 
@@ -328,9 +329,9 @@ def construct_phase_plane(I, di, dj, indexing='ij'):
     """
     (m, n) = I.shape
 
-    (I_grd,J_grd) = np.meshgrid(np.arange(0,n)-(n//2),
-                                np.arange(0,m)-(m//2), \
-                                indexing='ij')
+    (I_grd, J_grd) = np.meshgrid(np.arange(0, n) - (n // 2),
+                                 np.arange(0, m) - (m // 2), \
+                                 indexing='ij')
     I_grd, J_grd = I_grd / m, J_grd / n
 
     Q_unwrap = ((I_grd * di) + (J_grd * dj)) * (2 * np.pi)  # in radians
@@ -365,7 +366,7 @@ def cross_spectrum_to_coordinate_list(data, W=np.array([])):
                                    system='unit')
 
         # transform from complex to -1...+1
-        Q = np.fft.fftshift(np.angle(data) / np.pi)  #(2*np.pi))
+        Q = np.fft.fftshift(np.angle(data) / np.pi)  # (2*np.pi))
 
         data_list = np.vstack((F1.flatten(), F2.flatten(), Q.flatten())).T
         if W.size > 0:  # remove masked data
@@ -381,7 +382,7 @@ def construct_phase_values(IJ,
                            di,
                            dj,
                            indexing='ij',
-                           system='radians'):  #todo implement indexing
+                           system='radians'):  # todo implement indexing
     """given a displacement, create what its phase plane in Fourier space
 
     Parameters
@@ -501,7 +502,7 @@ def raised_cosine(I, beta=0.35):
     Fx, Fy = make_fourier_grid(I, indexing='xy', system='normalized')
     R = np.hypot(Fx, Fy)  # radius
     # filter formulation
-    Hamm = np.cos((np.pi / (2 * beta)) * (R - (.5 - beta)))**2
+    Hamm = np.cos((np.pi / (2 * beta)) * (R - (.5 - beta))) ** 2
     selec = np.logical_and((.5 - beta) <= R, R <= .5)
 
     # compose filter
@@ -746,7 +747,7 @@ def low_pass_circle(I, r=0.50):
     """
     assert type(I) in (np.ma.core.MaskedArray, np.ndarray), \
         ("please provide an array")
-    if type(I) in (np.ma.core.MaskedArray, ):
+    if type(I) in (np.ma.core.MaskedArray,):
         I = np.ma.getdata(I)
 
     Fx, Fy = make_fourier_grid(I,
@@ -843,7 +844,7 @@ def cosine_bell(I):
     return W
 
 
-def cross_shading_filter(Q, az_1, az_2):  #todo
+def cross_shading_filter(Q, az_1, az_2):  # todo
     """
 
     Parameters
@@ -1033,6 +1034,6 @@ def gaussian_mask(S):
     (m, n) = S.shape
     Fx, Fy = make_fourier_grid(S, indexing='xy', system='normalized')
 
-    M = np.exp(-.5 * ((Fy * np.pi) / m)**2) * np.exp(-.5 *
-                                                     ((Fx * np.pi) / n)**2)
+    M = np.exp(-.5 * ((Fy * np.pi) / m) ** 2) * np.exp(-.5 *
+                                                       ((Fx * np.pi) / n) ** 2)
     return M

@@ -55,7 +55,7 @@ def get_radon_angle(I, num_dir=1, fitting='polynomial'):
     sino_std = np.std(sinogram, axis=0)
     sino_med = np.median(np.stack(
         (np.roll(sino_std, -1), sino_std, np.roll(sino_std, +1))),
-                         axis=0)
+        axis=0)
     if fitting in ['polynomial']:
         θ_x = np.linspace(-90, +90, 360, endpoint=False)
         poly = np.poly1d(np.polyfit(θ, sino_med, 12))
@@ -106,6 +106,5 @@ def radon_orientation(I,
             Θ[idx_grd[0], idx_grd[1]] = θ
             Score[idx_grd[0], idx_grd[1]] = score
     return Θ, Score
-
 
 # get_orientation_of_two_subsets(I1_sub, I2_sub)

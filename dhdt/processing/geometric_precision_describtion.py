@@ -53,7 +53,7 @@ def fast_noise_estimation(I, t_size, grd_i, grd_j, Gaussian=True):
     N = np.array([[1, -2, 1], [-2, 4, -2], [1, -2, 1]])
 
     if Gaussian is True:
-        S = ndimage.convolve(I, N)**2
+        S = ndimage.convolve(I, N) ** 2
         preamble = 1 / (36 * (t_size[0] - 2) * (t_size[1] - 2))
     else:
         S = ndimage.convolve(I, N)

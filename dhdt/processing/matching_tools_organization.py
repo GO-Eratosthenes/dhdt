@@ -228,9 +228,9 @@ def estimate_translation_of_two_subsets(I1,
 
     optical_flow_approaches = list_differential_correlators()
     assert (correlator in optical_flow_approaches), \
-            ('please provide a valid optical flow approach. ' +
-             'this can be one of the following:'+
-             f' { {*optical_flow_approaches} }')
+        ('please provide a valid optical flow approach. ' +
+         'this can be one of the following:' +
+         f' { {*optical_flow_approaches} }')
 
     if correlator in ['lucas_aff']:
         di, dj, _, score = affine_optical_flow(
@@ -251,7 +251,7 @@ def estimate_translation_of_two_subsets(I1,
             num_estimates=num_est,
             preprocessing=kwargs.get('preprocessing'),
             max_amp=max_amp)
-    else:  #'lucas_kan'
+    else:  # 'lucas_kan'
         di, dj, _, score = affine_optical_flow(
             I1, I2, model='simple', preprocessing=kwargs.get('preprocessing'))
 
@@ -307,7 +307,7 @@ def match_translation_of_two_subsets(I1_sub,
             (correlator
              in spatial_based)), ('please provide a valid correlation ' +
                                   'method. it can be one of the following:' +
-                                  f' { {*frequency_based,*spatial_based} }')
+                                  f' { {*frequency_based, *spatial_based} }')
 
     # reduce edge effects in frequency space
     if correlator in frequency_based:
@@ -404,7 +404,7 @@ def estimate_subpixel(QC, subpix, m0=np.zeros((1, 2)), **kwargs):
     assert ((subpix in phase_based) or (subpix in peak_based)), \
         ('please provide a valid subpixel method.' +
          'it can be one of the following:' +
-         f' { {*peak_based,*phase_based} }')
+         f' { {*peak_based, *phase_based} }')
 
     ds = 1
     if kwargs.get('ds') != None: ds = kwargs.get('num_estimates')
@@ -437,7 +437,7 @@ def estimate_subpixel(QC, subpix, m0=np.zeros((1, 2)), **kwargs):
         elif subpix in ['parab_2t']:
             ddi, ddj, _, _ = get_top_paraboloid(QC, ds=ds, top=m0)
 
-    elif subpix in phase_based:  #cross-spectrum
+    elif subpix in phase_based:  # cross-spectrum
         if subpix in ['tpss']:
             W = thresh_masking(QC)
             ddi, ddj, snr = phase_tpss(QC, W, m0)
@@ -524,7 +524,7 @@ def estimate_precision(C, di, dj, method='gaussian'):
     if method in ['hessian']:
         cov_ii, cov_jj, cov_ij = hessian_spread(
             C, C.shape[0] // 2 + np.round(di).astype(int),
-            C.shape[1] // 2 + np.round(dj).astype(int))
+               C.shape[1] // 2 + np.round(dj).astype(int))
     else:
         cov_ii, cov_jj, cov_ij, _, _ = gauss_spread(
             C,

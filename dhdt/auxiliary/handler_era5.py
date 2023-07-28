@@ -40,7 +40,7 @@ def get_space_time_id(date, ϕ, λ, full=True):
     # construct part of string about the location
     fname = str(np.floor(np.abs(ϕ)).astype(int)).zfill(2)
     fname += 'S' if ϕ < 0 else 'N'
-    fname += f'{1 - ϕ%1:.3f}'[2:]
+    fname += f'{1 - ϕ % 1:.3f}'[2:]
 
     fname += '-' + str(np.floor(np.abs(λ)).astype(int)).zfill(3)
     fname += 'W' if λ < 0 else 'E'
@@ -130,7 +130,7 @@ def get_pressure_from_grib_file(fname='download.grib'):
         t_IN = t == toi  # is date already visited before
         if np.any(t_IN):
             idx_t = np.where(t_IN)[0][0]
-        else:  #update with new data entry for a specific time stamp
+        else:  # update with new data entry for a specific time stamp
             t = np.append(t, toi)
             idx_t = t.size - 1
             G = np.dstack((G, np.zeros((m, n, 1))))
@@ -232,7 +232,7 @@ def get_era5_atmos_profile(date, x, y, spatialRef, z=None, era5_dir=None):
     """
     if isinstance(x, float): x = np.array([x])
     if isinstance(y, float): y = np.array([y])
-    if z is None: z = 10**np.linspace(0, 5, 100)
+    if z is None: z = 10 ** np.linspace(0, 5, 100)
     if era5_dir is None: era5_dir = ERA5_DIR_DEFAULT
 
     pres_levels = get_era5_pressure_levels()
@@ -255,18 +255,18 @@ def get_era5_atmos_profile(date, x, y, spatialRef, z=None, era5_dir=None):
     if not os.path.isfile(fpath):
         request = {
             'product_type':
-            'reanalysis',
+                'reanalysis',
             'format':
-            'grib',
+                'grib',
             'variable': [
                 'geopotential',
                 'relative_humidity',
                 'temperature',
             ],
             'pressure_level':
-            np.ndarray.tolist(pres_levels.astype(str)),
+                np.ndarray.tolist(pres_levels.astype(str)),
             'date':
-            np.ndarray.tolist(np.datetime_as_string(date, unit='D')),
+                np.ndarray.tolist(np.datetime_as_string(date, unit='D')),
             'time': [
                 str(hour - 1).zfill(2) + ':00',
                 str(hour + 1).zfill(2) + ':00',
@@ -307,7 +307,6 @@ def get_era5_atmos_profile(date, x, y, spatialRef, z=None, era5_dir=None):
 
 
 def get_era5_monthly_surface_wind(ϕ, λ, year, era5_dir=None):
-
     era5_dir = ERA5_DIR_DEFAULT if era5_dir is None else era5_dir
 
     name = 'reanalysis-era5-pressure-levels-monthly-means'
@@ -319,9 +318,9 @@ def get_era5_monthly_surface_wind(ϕ, λ, year, era5_dir=None):
         deg_xtr = .5
         request = {
             'product_type':
-            'monthly_averaged_reanalysis',
+                'monthly_averaged_reanalysis',
             'format':
-            'grib',
+                'grib',
             'variable': [
                 'u_component_of_wind',
                 'v_component_of_wind',
@@ -329,9 +328,9 @@ def get_era5_monthly_surface_wind(ϕ, λ, year, era5_dir=None):
                 'temperature',
             ],
             'pressure_level':
-            '1000',
+                '1000',
             'year':
-            str(year),
+                str(year),
             'month': [
                 '01',
                 '02',
@@ -347,7 +346,7 @@ def get_era5_monthly_surface_wind(ϕ, λ, year, era5_dir=None):
                 '12',
             ],
             'time':
-            '00:00',
+                '00:00',
             'area': [ϕ + deg_xtr, λ - deg_xtr, ϕ - deg_xtr, λ + deg_xtr],
         }
         download_era5(name, request, fpath)

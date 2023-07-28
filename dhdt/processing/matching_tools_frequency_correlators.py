@@ -20,13 +20,13 @@ def upsample_dft(Q, up_m=0, up_n=0, upsampling=1, i_offset=0, j_offset=0):
     if up_n == 0:
         up_n = n.copy()
 
-    kernel_collumn = np.exp((1j*2*np.pi/(n*upsampling)) *\
-                            ( np.fft.fftshift(np.arange(n) - \
-                                              (n//2))[:,np.newaxis] )*\
-                            ( np.arange(up_n) - j_offset ))
-    kernel_row = np.exp((1j*2*np.pi/(m*upsampling)) *\
-                        ( np.arange(up_m)[:,np.newaxis] - i_offset )*\
-                        ( np.fft.fftshift(np.arange(m) - (m//2)) ))
+    kernel_collumn = np.exp((1j * 2 * np.pi / (n * upsampling)) * \
+                            (np.fft.fftshift(np.arange(n) - \
+                                             (n // 2))[:, np.newaxis]) * \
+                            (np.arange(up_n) - j_offset))
+    kernel_row = np.exp((1j * 2 * np.pi / (m * upsampling)) * \
+                        (np.arange(up_m)[:, np.newaxis] - i_offset) * \
+                        (np.fft.fftshift(np.arange(m) - (m // 2))))
     Q_up = np.matmul(kernel_row, np.matmul(Q, kernel_collumn))
     return Q_up
 
@@ -43,13 +43,14 @@ def pad_dft(Q, m_new, n_new):
     center_offset = center_new - center_old
 
     # fill the old data in the new array
-    Q_new[np.maximum(center_offset[0], 0):np.minimum(center_offset[0]+m, m_new),\
-          np.maximum(center_offset[1], 0):np.minimum(center_offset[1]+n, n_new)]\
+    Q_new[
+    np.maximum(center_offset[0], 0):np.minimum(center_offset[0] + m, m_new), \
+    np.maximum(center_offset[1], 0):np.minimum(center_offset[1] + n, n_new)] \
         = \
-        Q_ij[np.maximum(-center_offset[0], 0):\
-             np.minimum(-center_offset[0]+m_new, m),\
-             np.maximum(-center_offset[1], 0):\
-             np.minimum(-center_offset[1]+n_new, n)]
+        Q_ij[np.maximum(-center_offset[0], 0): \
+             np.minimum(-center_offset[0] + m_new, m), \
+        np.maximum(-center_offset[1], 0): \
+        np.minimum(-center_offset[1] + n_new, n)]
 
     Q_new = (np.fft.fftshift(Q_new) * m_new * n_new) / (m * n)  # scaling
     return Q_new
@@ -150,9 +151,8 @@ def cosine_corr(I1, I2):
         Qn = normalize_power_spectrum(Q)
         return Q
 
-
-#    # construct cosine and sine basis matrices
-#    Cc, Cs = get_cosine_matrix(I1), get_sine_matrix(I1)
+    #    # construct cosine and sine basis matrices
+    #    Cc, Cs = get_cosine_matrix(I1), get_sine_matrix(I1)
 
     I1sub, I2sub = make_templates_same_size(I1, I2)
     I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
@@ -171,7 +171,7 @@ def cosine_corr(I1, I2):
     return Q
 
 
-def masked_cosine_corr(I1, I2, M1, M2):  #todo
+def masked_cosine_corr(I1, I2, M1, M2):  # todo
     """
 
     Parameters
@@ -216,7 +216,7 @@ def masked_cosine_corr(I1, I2, M1, M2):  #todo
     # shrink size
     Ccc = Ccc[M1.flatten(), :]  # remove rows, as these are missing
     Ccc = Ccc[:,
-              X1.flatten()]  # remove collumns, since these can't be estimated
+          X1.flatten()]  # remove collumns, since these can't be estimated
     Icc = np.linalg.lstsq(Ccc, y, rcond=None)[0]
     Icc = np.reshape(Icc, (min_span, min_span))
 
@@ -508,10 +508,9 @@ def sign_only_corr(I1, I2):  # to do
         C_cs = fftpack.idct(fftpack.idst(Q, axis=1, type=1), axis=0, type=1)
         C_ss = fftpack.idst(fftpack.idst(Q, axis=1, type=1), axis=0, type=1)
 
-
-#        iC1 = fft.idctn(C1,2)
-#        import matplotlib.pyplot as plt
-#        plt.imshow(iC1), plt.show()
+    #        iC1 = fft.idctn(C1,2)
+    #        import matplotlib.pyplot as plt
+    #        plt.imshow(iC1), plt.show()
     return C
 
 
@@ -659,7 +658,7 @@ def amplitude_comp_corr(I1, I2, F_0=0.04):
         s_0 = F_0 * np.amax(abs(S2))
 
         W = np.divide(1, abs(I2), out=np.zeros_like(I2), where=I2 != 0)
-        A = np.divide(s_0, abs(I2)**2, out=np.zeros_like(I2), where=I2 != 0)
+        A = np.divide(s_0, abs(I2) ** 2, out=np.zeros_like(I2), where=I2 != 0)
         W[abs(S2) > s_0] = A[abs(S2) > s_0]
         Q = (S1) * np.conj((W * S2))
         return Q
@@ -724,10 +723,10 @@ def robust_corr(I1, I2):
     I1sub, I2sub = make_templates_same_size(I1, I2)
     I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
 
-    p_steps = 10**np.arange(0, 1, .5)
+    p_steps = 10 ** np.arange(0, 1, .5)
     for idx, p in enumerate(p_steps):
-        I1p = 1 / p**(1 / 3) * np.exp(1j * (2 * p - 1) * I1sub)
-        I2p = 1 / p**(1 / 3) * np.exp(1j * (2 * p - 1) * I2sub)
+        I1p = 1 / p ** (1 / 3) * np.exp(1j * (2 * p - 1) * I1sub)
+        I2p = 1 / p ** (1 / 3) * np.exp(1j * (2 * p - 1) * I2sub)
 
         S1p, S2p = np.fft.fft2(I1p), np.fft.fft2(I2p)
         if idx == 0:
@@ -1679,13 +1678,13 @@ def masked_corr(I1, I2, M1=np.array(()), M2=np.array(())):
     fM1F2 = np.fft.ifft2(M1f * np.conj(I2f))
     fF1M2 = np.fft.ifft2(I1f * np.conj(M2f))
 
-    ff1M2 = np.fft.ifft2(np.fft.fft2(I1sub**2) * np.conj(M2f))
-    fM1f2 = np.fft.ifft2(M1f * np.fft.fft2(np.flipud(I2sub**2)))
+    ff1M2 = np.fft.ifft2(np.fft.fft2(I1sub ** 2) * np.conj(M2f))
+    fM1f2 = np.fft.ifft2(M1f * np.fft.fft2(np.flipud(I2sub ** 2)))
 
     NCC_num = fF1F2 - \
-        (np.divide(np.multiply( fF1M2, fM1F2 ), fM1M2,
-                   out=np.zeros_like(fM1M2), where=fM1M2!=0))
-    NCC_den_den = np.divide(fF1M2**2,
+              (np.divide(np.multiply(fF1M2, fM1F2), fM1M2,
+                         out=np.zeros_like(fM1M2), where=fM1M2 != 0))
+    NCC_den_den = np.divide(fF1M2 ** 2,
                             fM1M2,
                             out=np.zeros_like(fM1M2),
                             where=fM1M2 != 0)

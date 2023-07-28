@@ -116,7 +116,7 @@ def nan_resistant_filter(I, kernel):
               estimate uncertainty of remotely sensed glacier displacements",
               The Crysophere, vol.16(6) pp.2285–2300, 2022.
     """
-    if type(I) in (np.ma.core.MaskedArray, ):
+    if type(I) in (np.ma.core.MaskedArray,):
         OUT = I.mask
         I = I.data
         np.putmask(I, OUT, np.nan)
@@ -138,7 +138,7 @@ def var_func(buffer):
     d = int(np.sqrt(buffer.size))
     r = d // 2
     IJ = np.mgrid[-r:+r + 1, -r:+r + 1]  # local coordinate frame
-    A = np.array([IJ[0].flatten(), IJ[1].flatten(), np.ones(r**2)])
+    A = np.array([IJ[0].flatten(), IJ[1].flatten(), np.ones(r ** 2)])
     x = np.linalg.lstsq(A, buffer)[0]
     y_hat = A @ x
     e_hat = y_hat - buffer
@@ -181,12 +181,11 @@ def local_variance(V, tsize=5):
     V_0 = local_infilling_filter(V, tsize=tsize)
 
     # running mean adjustment
-    mean_kernel = np.ones((tsize, tsize), dtype=float) / (tsize**2)
+    mean_kernel = np.ones((tsize, tsize), dtype=float) / (tsize ** 2)
     V = ndimage.convolve(V, mean_kernel)
 
     # plane fitting and variance of residual
     sig_V = local_nonlin_var_filter(V, tsize=tsize)
     return sig_V
 
-
-#todo: relax labelling
+# todo: relax labelling

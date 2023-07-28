@@ -12,7 +12,6 @@ def _construct_jitter(A, ϕ, ω, N=100, τ=0):
 
 
 def create_artificial_jitter_1d(N, n=2):
-
     # create random amplitude, phase, frequency
     A, ϕ, ω = np.zeros((n)), np.zeros((n)), np.zeros((n))
     for idx, val in enumerate(range(n)):
@@ -20,7 +19,7 @@ def create_artificial_jitter_1d(N, n=2):
         ϕ[idx] = np.random.rand(1) * 2 * np.pi
         ω[idx] = np.random.uniform(low=np.power(val + 1, 2),
                                    high=np.power(val + 2, 2),
-                                   size=(1, ))
+                                   size=(1,))
     A = np.flip(A)
 
     τ = np.random.randint(low=3, high=13)

@@ -1,6 +1,7 @@
 import numpy as np
 
-from .multispec_transforms import principle_component_analysis, pca_rgb_preparation
+from .multispec_transforms import principle_component_analysis, \
+    pca_rgb_preparation
 from ..generic.unit_check import are_three_arrays_equal, are_two_arrays_equal
 
 from .color_transforms import \
@@ -243,7 +244,7 @@ def modified_shadow_fraction(Blue, Green, Red, P_S=.95):
     T_S = np.quantile(r, P_S)
     sig = np.std(r)
 
-    SF = np.exp(-np.divide((r - T_S)**2, 4 * sig))
+    SF = np.exp(-np.divide((r - T_S) ** 2, 4 * sig))
     np.putmask(SF, SF >= T_S, 1.)
     return SF
 
@@ -350,7 +351,7 @@ def shadow_yiq_fraction(Blue, Green, Red):
     return SF
 
 
-#def shadow_quantifier_index
+# def shadow_quantifier_index
 # Polidorio, A. M., Flores F. C., Imai N. N., Tommaselli, A. M. G. and Franco, C. 2003. Automatic Shadow Segmentation in Aerial Color Images. In: Proceedings of the XVI SIBGRAPI. XVI Brazilian Symposium on Computer Graphics and Image Processing. São Carlos, Brasil, 12-15 October 2003. doi:10.1109/SIBGRA.2003.1241019.
 def improved_shadow_index(Blue, Green, Red, Near):
     """transform red, green, blue arrays to improved shadow index. Based upon
@@ -964,7 +965,7 @@ def color_invariant(Blue, Green, Red):
     return c3
 
 
-def modified_color_invariant(Blue, Green, Red, Near):  #wip
+def modified_color_invariant(Blue, Green, Red, Near):  # wip
     """ transform red, green, blue arrays to color invariant (c3), see also
     [GS99] and [BA15].
 
@@ -1078,8 +1079,8 @@ def entropy_shade_removal(Ia, Ib, Ic, a=None):
         angl = np.arange(0, 180)
         shan = np.zeros(angl.shape)
         for i in angl:
-            chi_rot = np.cos(np.radians(i))*chi1 + \
-                np.sin(np.radians(i))*chi2
+            chi_rot = np.cos(np.radians(i)) * chi1 + \
+                      np.sin(np.radians(i)) * chi2
             band_w = 3.5 * np.std(chi_rot) * mn
             shan[i] = shannon_entropy(chi_rot, band_w)
 
@@ -1088,7 +1089,7 @@ def entropy_shade_removal(Ia, Ib, Ic, a=None):
     # create imagery
     S = np.cos(np.radians(a)) * chi1 + np.sin(np.radians(a)) * chi2
     b = a - 90
-    #b = angl[np.argmax(shan)]
+    # b = angl[np.argmax(shan)]
     R = np.cos(np.radians(b)) * chi1 + np.sin(np.radians(b)) * chi2
     return S, R
 
@@ -1257,7 +1258,6 @@ def shadow_probabilities(Blue, Green, Red, Near, ae=1e+1, be=5e-1):
 
     M = np.multiply(D, (1 - F))
     return M
-
 
 # recovery - normalized color composite
 

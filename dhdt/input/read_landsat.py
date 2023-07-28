@@ -224,17 +224,17 @@ def list_central_wavelength_oli():
     }
     d = {
         "center_wavelength":
-        pd.Series(center_wavelength, dtype=np.dtype('float')),
+            pd.Series(center_wavelength, dtype=np.dtype('float')),
         "full_width_half_max":
-        pd.Series(full_width_half_max, dtype=np.dtype('float')),
+            pd.Series(full_width_half_max, dtype=np.dtype('float')),
         "gsd":
-        pd.Series(gsd, dtype=np.dtype('float')),
+            pd.Series(gsd, dtype=np.dtype('float')),
         "common_name":
-        pd.Series(common_name, dtype=np.dtype('str')),
+            pd.Series(common_name, dtype=np.dtype('str')),
         "field_of_view":
-        pd.Series(field_of_view, dtype=np.dtype('float')),
+            pd.Series(field_of_view, dtype=np.dtype('float')),
         "bandid":
-        pd.Series(bandid, dtype=np.dtype('int64'))
+            pd.Series(bandid, dtype=np.dtype('int64'))
     }
     df = pd.DataFrame(d)
     return df
@@ -298,7 +298,7 @@ def read_band_ls(path, band='B8'):
     <osgeo.osr.SpatialReference; proxy of <Swig Object of type 'OSRSpatial ...
     """
     if band != '0':
-        if len(band) == 2:  #when band : 'BX'
+        if len(band) == 2:  # when band : 'BX'
             fname = os.path.join(path, '*' + band + '.TIF')
         else:  # when band: '0X'
             fname = os.path.join(path, '*' + band + '.TIF')
@@ -312,7 +312,6 @@ def read_band_ls(path, band='B8'):
 
 
 def read_stack_ls(path, ls_df):
-
     for idx, val in enumerate(ls_df.index):
         if idx == 0:
             im_stack, spatialRef, geoTransform, targetprj = read_band_ls(
@@ -326,7 +325,6 @@ def read_stack_ls(path, ls_df):
 
 
 def read_view_angles_ls(path):
-
     # ANGLE_SENSOR_AZIMUTH_BAND_4
     fname = os.path.join(path, '*VAA.TIF')
     assert len(
@@ -414,10 +412,10 @@ def get_sca_numbering_ls(ang, boi='BAND04'):
     # extent overlap
     e_para = np.array(
         [arr_lines[0] - arr_lines[-1], arr_samps[0] - arr_samps[-1]])
-    e_para /= np.sqrt(np.sum(e_para**2))
+    e_para /= np.sqrt(np.sum(e_para ** 2))
     e_perp = np.array(
         [arr_lines[0] - arr_lines[+1], arr_samps[0] - arr_samps[+1]])
-    e_perp /= np.sqrt(np.sum(e_perp**2))
+    e_perp /= np.sqrt(np.sum(e_perp ** 2))
 
     # label array
     bbox_left = np.array([[arr_lines[0], arr_samps[0]],
@@ -467,7 +465,6 @@ def get_sca_numbering_ls(ang, boi='BAND04'):
 
 
 def read_sun_angles_ls(path):
-
     # ANGLE_SOLAR_AZIMUTH_BAND_4
     fname = os.path.join(path, '*SAA.TIF')
     assert len(

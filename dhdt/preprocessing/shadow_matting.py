@@ -18,7 +18,7 @@ def _rolling_block(A, block=(3, 3)):
     return A_rolls
 
 
-def compute_laplacian(img, mask=None, eps=10**(-7), win_rad=1):
+def compute_laplacian(img, mask=None, eps=10 ** (-7), win_rad=1):
     """ computes matting Laplacian for a given image.
 
     Parameters
@@ -47,7 +47,7 @@ def compute_laplacian(img, mask=None, eps=10**(-7), win_rad=1):
               IEEE Transactions on pattern analysis and machine intelligence.
               vol.30(2) pp.228-242, 2008.
     """
-    win_size = (win_rad * 2 + 1)**2
+    win_size = (win_rad * 2 + 1) ** 2
     h, w, d = img.shape
     # Number of window centre indices in h, w axes
     c_h, c_w = h - 2 * win_rad, w - 2 * win_rad
@@ -71,19 +71,20 @@ def compute_laplacian(img, mask=None, eps=10**(-7), win_rad=1):
 
     win_mu = np.mean(winI, axis=1, keepdims=True)
     win_var = np.einsum('...ji,...jk ->...ik', winI, winI) / \
-        win_size - np.einsum('...ji,...jk ->...ik', win_mu, win_mu)
+              win_size - np.einsum('...ji,...jk ->...ik', win_mu, win_mu)
 
     inv = np.linalg.inv(win_var + (eps / win_size) * np.eye(3))
 
     X = np.einsum('...ij,...jk->...ik', winI - win_mu, inv)
     vals = np.eye(win_size) - \
-        (1.0/win_size)*(1 + np.einsum('...ij,...kj->...ik', X, winI - win_mu))
+           (1.0 / win_size) * (
+                       1 + np.einsum('...ij,...kj->...ik', X, winI - win_mu))
 
     nz_indsCol = np.tile(win_inds, win_size).ravel()
     nz_indsRow = np.repeat(win_inds, win_size).ravel()
     nz_indsVal = vals.ravel()
     L = scipy.sparse.coo_matrix((nz_indsVal, (nz_indsRow, nz_indsCol)), \
-                                shape=(h*w, h*w))
+                                shape=(h * w, h * w))
     return L
 
 
@@ -162,7 +163,7 @@ def closed_form_matting_with_scribbles(img,
     prior = np.sign(np.sum(scribbles - img, axis=2)) / 2 + 0.5
     consts_map = prior != 0.5
     alpha = closed_form_matting_with_prior(img, prior, \
-                                           scribbles_confidence * consts_map,\
+                                           scribbles_confidence * consts_map, \
                                            consts_map)
     return alpha
 

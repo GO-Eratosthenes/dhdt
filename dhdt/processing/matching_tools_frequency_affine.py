@@ -11,6 +11,7 @@ from ..generic.mapping_tools import pol2cart, cart2pol
 from ..generic.attitude_tools import rot_mat
 from .matching_tools_frequency_filters import make_fourier_grid
 
+
 # radon > direction > sign > shear
 
 
@@ -82,9 +83,9 @@ def sheared_cross_spectrum(Q, shear, θ):
 
 def compute_E(cirus, θ):
     # following Kadyrov '06
-    a_0 = (1 / 8) * np.sum(cirus**4)
-    a_2 = (1 / 8) * np.sum(cirus**4 * np.cos(2 * θ))
-    b_2 = (1 / 8) * np.sum(cirus**4 * np.sin(2 * θ))  # (25)
+    a_0 = (1 / 8) * np.sum(cirus ** 4)
+    a_2 = (1 / 8) * np.sum(cirus ** 4 * np.cos(2 * θ))
+    b_2 = (1 / 8) * np.sum(cirus ** 4 * np.sin(2 * θ))  # (25)
 
     ab_dist = np.hypot(a_2, b_2)
     cos_omega = np.divide(a_2, ab_dist)
@@ -94,12 +95,12 @@ def compute_E(cirus, θ):
     φ_min, φ_max = (omega + np.pi) / 2, omega / 2  # (27)
     ψ_min, ψ_max = a_0 - ab_dist, a_0 + ab_dist  # (28)
 
-    a_tilde = np.sqrt(ψ_max)*(np.cos(ψ_max))**2 + \
-        np.sqrt(ψ_min)*(np.cos(ψ_min))**2
-    b_tilde = np.sqrt(ψ_max)*np.sin(φ_max)*np.cos(φ_max) + \
-        np.sqrt(ψ_min)*np.sin(φ_min)*np.cos(φ_min)
-    d_tilde = np.sqrt(ψ_max)*(np.sin(ψ_max))**2 + \
-        np.sqrt(ψ_min)*(np.sin(ψ_min))**2                   # (29)
+    a_tilde = np.sqrt(ψ_max) * (np.cos(ψ_max)) ** 2 + \
+              np.sqrt(ψ_min) * (np.cos(ψ_min)) ** 2
+    b_tilde = np.sqrt(ψ_max) * np.sin(φ_max) * np.cos(φ_max) + \
+              np.sqrt(ψ_min) * np.sin(φ_min) * np.cos(φ_min)
+    d_tilde = np.sqrt(ψ_max) * (np.sin(ψ_max)) ** 2 + \
+              np.sqrt(ψ_min) * (np.sin(ψ_min)) ** 2  # (29)
     D = np.power(ψ_max * ψ_min, 1. / 4)  # (30)
     a, b, d = np.divide(a_tilde, D), np.divide(b_tilde,
                                                D), np.divide(d_tilde, D)
@@ -122,7 +123,7 @@ def create_cirus_array(ρ, θ, d):
     return B
 
 
-def affine_binairy_center(B1, B2):  #todo: docstring
+def affine_binairy_center(B1, B2):  # todo: docstring
     # preparation
     pT, pO = np.sum(B1), np.sum(B2)  # Lebesgue integral
 
@@ -134,8 +135,8 @@ def affine_binairy_center(B1, B2):  #todo: docstring
     del x, y
 
     # calculating moments of the template
-    x12, x13 = Jac * np.sum(X1**2 * B1), Jac * np.sum(X1**3 * B1)
-    x22, x23 = Jac * np.sum(Y1**2 * B1), Jac * np.sum(Y1**3 * B1)
+    x12, x13 = Jac * np.sum(X1 ** 2 * B1), Jac * np.sum(X1 ** 3 * B1)
+    x22, x23 = Jac * np.sum(Y1 ** 2 * B1), Jac * np.sum(Y1 ** 3 * B1)
     del X1, Y1
 
     x = np.linspace(0, B2.shape[1] - 1, B2.shape[1])
@@ -144,21 +145,21 @@ def affine_binairy_center(B1, B2):  #todo: docstring
     del x, y
 
     # calculating moments of the observation
-    y12 = np.sum(X2**2 * B2)
-    y13 = np.sum(X2**3 * B2)
-    y12y2 = np.sum(X2**2 * Y2 * B2)
-    y22 = np.sum(Y2**2 * B2)
-    y23 = np.sum(Y2**3 * B2)
-    y1y22 = np.sum(X2 * Y2**2 * B2)
+    y12 = np.sum(X2 ** 2 * B2)
+    y13 = np.sum(X2 ** 3 * B2)
+    y12y2 = np.sum(X2 ** 2 * Y2 * B2)
+    y22 = np.sum(Y2 ** 2 * B2)
+    y23 = np.sum(Y2 ** 3 * B2)
+    y1y22 = np.sum(X2 * Y2 ** 2 * B2)
     y1y2 = np.sum(X2 * Y2 * B2)
     del X2, Y2
 
     # estimation
     def func1(x):
         q12, q13 = x
-        return [y12*q12**2 + y22*q13**2 + 2*y1y2*q12*q13 - x12,
-                y13*q12**3 + y23*q13**3 + 3*y12y2*q12**2*q13 + \
-                    3*y1y22*q12*q13**2 - x13]
+        return [y12 * q12 ** 2 + y22 * q13 ** 2 + 2 * y1y2 * q12 * q13 - x12,
+                y13 * q12 ** 3 + y23 * q13 ** 3 + 3 * y12y2 * q12 ** 2 * q13 + \
+                3 * y1y22 * q12 * q13 ** 2 - x13]
 
     Q12, Q13 = fsolve(func1, (1.0, 0.0))
 
@@ -166,9 +167,9 @@ def affine_binairy_center(B1, B2):  #todo: docstring
 
     def func2(x):
         q22, q23 = x
-        return [y12*q22**2 + y22*q23**2 + 2*y1y2*q22*q23 - x22,
-                y13*q22**3 + y23*q23**3 + 3*y12y2*q22**2*q23 + \
-                    3*y1y22*q22*q23**2 - x23]
+        return [y12 * q22 ** 2 + y22 * q23 ** 2 + 2 * y1y2 * q22 * q23 - x22,
+                y13 * q22 ** 3 + y23 * q23 ** 3 + 3 * y12y2 * q22 ** 2 * q23 + \
+                3 * y1y22 * q22 * q23 ** 2 - x23]
 
     Q22, Q23 = fsolve(func2, (0.0, 1.0))
     # test for complex solutions, which should be excluded
@@ -192,7 +193,7 @@ def moment(I, p, q):
                                  np.arange(I.shape[1]),
                                  sparse=False,
                                  indexing='ij')
-    im_mom = np.sum(np.sum((i_grd**p) * (j_grd**q) * I, axis=1), axis=0)
+    im_mom = np.sum(np.sum((i_grd ** p) * (j_grd ** q) * I, axis=1), axis=0)
     return im_mom
 
 
@@ -200,8 +201,8 @@ def mom_mat(I):
     M_00 = moment(I, 0, 0)
     i_bar, j_bar = moment(I, 1, 0) / M_00, moment(I, 0, 1) / M_00
 
-    mu_20 = moment(I, 2, 0) / M_00 - i_bar**2
-    mu_02 = moment(I, 0, 2) / M_00 - j_bar**2
+    mu_20 = moment(I, 2, 0) / M_00 - i_bar ** 2
+    mu_02 = moment(I, 0, 2) / M_00 - j_bar ** 2
     mu_11 = moment(I, 1, 1) / M_00 - i_bar * j_bar
 
     M = hankel([mu_20, mu_11], [mu_11, mu_02])
@@ -281,8 +282,8 @@ def scaling_through_power_summation(S1, S2):
 
     F_1, F_2 = make_fourier_grid(S1, indexing='ij', system='pixel')
 
-    sc_x = np.sum(np.abs(F_1*S2).flatten()) / \
-        np.sum(np.abs(F_1*S1).flatten())
-    sc_y = np.sum(np.abs(F_2*S2).flatten()) / \
-        np.sum(np.abs(F_2*S1).flatten())
+    sc_x = np.sum(np.abs(F_1 * S2).flatten()) / \
+           np.sum(np.abs(F_1 * S1).flatten())
+    sc_y = np.sum(np.abs(F_2 * S2).flatten()) / \
+           np.sum(np.abs(F_2 * S1).flatten())
     return sc_x, sc_y
