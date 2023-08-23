@@ -317,11 +317,12 @@ def construct_phase_plane(I, di, dj, indexing='ij'):
           based      v           based       |
 
     """
+
     (m,n) = I.shape
 
     (I_grd,J_grd) = np.meshgrid(np.arange(0,n)-(n//2),
-                                np.arange(0,m)-(m//2), \
-                                indexing='ij')
+                                np.arange(0,m)-(m//2),
+                                indexing=indexing)
     I_grd,J_grd = I_grd/m, J_grd/n
 
     Q_unwrap = ((I_grd*di) + (J_grd*dj) ) * (2*np.pi)   # in radians
