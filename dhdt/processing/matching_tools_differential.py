@@ -354,13 +354,13 @@ def affine_optical_flow(I1, I2, model='affine', iteration=10,
         new_i = np.reshape(grd_new[0,:], (mI, nI))
         new_j = np.reshape(grd_new[1,:], (mI, nI))
 
-        # construct new templates
-        try:
-            I2_new = interpolate.griddata(stk_ij, I2.flatten().T,
-                                          (new_i,new_j), method='cubic')
-            I2_new = ndimage.convolve(I2_new, make_2D_Gaussian((3,3), fwhm=3))
-        except:
-            print('different number of values and points')
+        # quit when outside the domain
+        if np.any(0>=new_i>mI) or  np.any(0>=new_j>nI):
+            break
+
+        I2_new = interpolate.griddata(stk_ij, I2.flatten().T,
+                                      (new_i,new_j), method='cubic')
+        I2_new = ndimage.convolve(I2_new, make_2D_Gaussian((3,3), fwhm=3))
 
         I_dt_new = I2_new - I1
 
