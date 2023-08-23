@@ -5,7 +5,9 @@ import numpy as np
 from skimage.feature import match_template
 from skimage.util import view_as_windows
 from scipy import ndimage
+from scipy.stats import kurtosis
 
+from ..generic.handler_im import get_grad_filters
 from ..preprocessing.image_transforms import mat_to_gray
 
 # spatial pattern matching functions
@@ -384,6 +386,55 @@ def cosine_similarity(I1, I2):
     score = np.abs(np.mean(np.mean(dot_product, axis=-2),
                            axis=-1)).astype(np.float64)
     return score
+
+def total_gradients(I1, I2):
+    """ calculate total gradients and its kurtosis, inspired by [Ch17]_
+
+    Parameters
+    ----------
+    I1 : numpy.ndarray, ndim=2, size=(m,n)
+        grid with intensities (template)
+    I2 : numpy.ndarray, ndim=2, size=(k,l), {k>=m, l>=n}
+        grid with intensities (search space)
+
+    Returns
+    -------
+    tg : numpy.array, ndim=2
+        similarity score surface
+
+    References
+    ----------
+    .. [Ch17] Chen et al. "Normalized total gradients: a new measure for
+              multispectral image registration" IEEE transactions on image
+              processing, vol.27(3) pp.1297--1310, 2017.
+    """
+    assert I1.ndim == I2.ndim, 'please provide data with the same dimension'
+    assert I1.shape[0:2]<=I2.shape[0:2], \
+        ('search space (I2) should be at least as big as the template (I1)')
+
+    t_size = I1.shape
+    y = np.lib.stride_tricks.as_strided(I2,
+                    shape=(I2.shape[0] - t_size[0] + 1,
+                           I2.shape[1] - t_size[1] + 1,) +
+                          t_size,
+                    strides=I2.strides * 2)
+
+    Idiff = np.abs(y - I1[None, None, ...])
+
+    fx,fy = get_grad_filters(ftype='kroon', tsize=3, order=1)
+    # total gradients
+    Igrad = np.stack((ndimage.convolve(Idiff, fx[None, None, ...]),
+                      ndimage.convolve(Idiff, fy[None, None, ...])), axis=-1)
+    Igrad = Igrad[...,1:-1,1:-1,:]
+    # remove border pixels
+    m,n = Idiff.shape[:-2]
+
+    Iravel = np.moveaxis(Igrad.reshape((m, n, -1)), -1, 0
+                         ).reshape((2*np.prod(np.subtract(t_size, 2)), -1))
+    # estimate heavy tails/ sharpness of the distribution
+    Ikurt = kurtosis(Iravel, axis=0, fisher=False)
+    tg = Ikurt.reshape((m,n))
+    return tg
 
 # weighted sum of differences
 # sum of robust differences, see Li_03
