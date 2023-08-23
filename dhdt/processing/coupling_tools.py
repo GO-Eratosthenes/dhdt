@@ -278,21 +278,19 @@ def match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
         X2_grd,Y2_grd = np.squeeze(X2_grd), np.squeeze(Y2_grd)
     return X2_grd, Y2_grd, match_metric
 
-def couple_pair(file_1, file_2, bbox=None, rgi_id=None,
+def couple_pair(file_1, file_2, rgi_id=None,
                 wght_1=None, wght_2=None,
                 rect='metadata', prepro='bandpass',
                 match='norm_corr', boi=np.array([]),
                 temp_radius=3, search_radius=7,
-                processing=None, subpix='moment', metric='peak_entr',
-                shw_fname="shadow.tif", label_fname="labelPolygons.tif"):
+                processing=None, subpix='moment', metric='peak_abs',
+                shw_fname="shadow.tif"):
     """ refine and couple two shadow images together via matching
 
     Parameters
     ----------
     file_1, file_2 : string
         path to first and second image(ry)
-    bbox : {list, numpy.array}, size=(4,1)
-        bounding box of region of interest
     rgi_id : string
         code of the glacier of interest following the Randolph Glacier Inventory
     rect : {"binary", "metadata", None}
@@ -329,8 +327,6 @@ def couple_pair(file_1, file_2, bbox=None, rgi_id=None,
         "list_peak_estimators", list_phase_estimators" for more information
     shw_fname : str, default='shadow.tif'
         image name of the shadow transform/enhancement
-    label_fname : str, default="labelPolygons.tif"
-        filename of the numbered image with all the shadow polygons
 
     Returns
     -------
@@ -357,8 +353,6 @@ def couple_pair(file_1, file_2, bbox=None, rgi_id=None,
 
     crs,geoTransform1,_,rows1,cols1,_ = read_geo_info(file_1)
     _,geoTransform2,_,rows2,cols2,_ = read_geo_info(file_2)
-
-    if bbox is None:  bbox = get_local_bbox_in_s2_tile(file_1, dir_im1)
 
     # text file listing coordinates of shadow casting and casted points
     if os.path.isfile(file_1[:-4]+'.tif'): # testing dataset is created
@@ -417,7 +411,7 @@ def couple_pair(file_1, file_2, bbox=None, rgi_id=None,
     post_2_new, score = match_shadow_casts(I1, I2, L1, L2,
        geoTransform1, geoTransform2, post_1, post_2, scale_12, simple_sh,
        temp_radius=temp_radius, search_radius=search_radius,
-       prepro=prepro, correlator=match, subpix=subpix, metric='peak_abs')
+       prepro=prepro, correlator=match, subpix=subpix, metric=metric)
 
     # cast location in xy-coordinates for t_1
     post_1,post_2 = conn_1[idxConn[:,1],2:4], conn_2[idxConn[:,0],2:4]
