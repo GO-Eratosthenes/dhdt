@@ -519,7 +519,7 @@ def create_template_at_center(I, i,j, radius, filling='random'):
             I[min_0:max_0, min_1:max_1]
     return I_sub
 
-def create_template_off_center(I, i,j, width, filling='random'):
+def create_template_off_center(I, i,j, width):
     """ get sub template of data array, at a certain location
 
     Parameters
@@ -532,13 +532,6 @@ def create_template_off_center(I, i,j, width, filling='random'):
         horizontal coordinate of the template center
     width : {integer, tuple}
         dimension of the template
-    filling : {'random', 'NaN', 'zero'}
-        sometimes the location is outside the domain or to close to the border.
-        then the template is filled up with either:
-           * 'random' : random numbers, ranging from 0...1, 0...2**bit
-                        dependend on the data type of the array
-           * 'nan' : not a number values
-           * 'zero' : all zeros
 
     Returns
     -------
