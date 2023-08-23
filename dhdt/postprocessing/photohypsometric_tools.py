@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 import pandas as pd
 from numpy.lib.recfunctions import stack_arrays, merge_arrays
-from scipy import ndimage
+from scipy import ndimage, sparse
 
 from dhdt.generic.debugging import loggg
 from dhdt.generic.mapping_tools import map2pix, pix2map
