@@ -1,6 +1,7 @@
 import os
 import tempfile
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 from dhdt.generic.handler_im import bilinear_interpolation
