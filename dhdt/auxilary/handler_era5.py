@@ -3,9 +3,12 @@ import os
 import numpy as np
 
 import pygrib
-import cdsapi
-
-# https://cds.climate.copernicus.eu/api-how-to
+try:
+    import cdsapi
+except ImportError as err:
+    print(err)
+    print('See https://cds.climate.copernicus.eu/api-how-to for\n' +
+          'instructions on how to setup an account for data access')
 
 # local libraries
 from dhdt.generic.mapping_tools import map2ll
