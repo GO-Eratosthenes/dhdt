@@ -9,6 +9,7 @@ except ImportError as err:
     print(err)
     print('See https://cds.climate.copernicus.eu/api-how-to for\n' +
           'instructions on how to setup an account for data access')
+    raise ImportError
 
 # local libraries
 from dhdt.generic.mapping_tools import map2ll
