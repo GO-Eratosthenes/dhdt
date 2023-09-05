@@ -282,6 +282,11 @@ def histogram_equalization(img, img_ref):
     mn = img.shape[:2]
     img, img_ref = img.flatten(), img_ref.flatten()
 
+    if type(img) in (np.ma.core.MaskedArray,):
+        np.putmask(img, np.ma.getmaskarray(img), np.nan)
+    if type(img_ref) in (np.ma.core.MaskedArray,):
+        np.putmask(img_ref, np.ma.getmaskarray(img_ref), np.nan)
+
     # make resistant to NaN's
     IN, IN_ref = ~np.isnan(img), ~np.isnan(img_ref)
     # do not do processing if there is a lack of data
@@ -318,7 +323,13 @@ def cum_hist(img):
         emperical cumulative distribution function, i.e. a cumulative histogram.
     """
     bit_depth = 8 if img.dtype.type == np.uint8 else 16
-    pdf = np.histogram(img, bins=range(0, 2 ** bit_depth))[0]
+
+    if type(img) in (np.ma.core.MaskedArray,):
+        w = np.invert(np.ma.getmaskarray(img)).astype(float)
+        pdf = np.histogram(np.ma.getdata(img), weights=w,
+                           bins=range(0, 2 ** bit_depth))[0]
+    else:
+        pdf = np.histogram(img, bins=range(0, 2 ** bit_depth))[0]
     cdf = np.cumsum(pdf).astype(float)
     cdf = cdf / np.sum(pdf)
     return cdf
