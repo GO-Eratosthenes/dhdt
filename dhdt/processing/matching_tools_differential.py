@@ -583,7 +583,9 @@ def hough_sinus(φ, ρ,
 
     normalize = True
     IN = np.logical_and.reduce((~np.isnan(φ), ~np.isnan(ρ), np.abs(ρ)<max_amp))
-    if np.sum(IN)<2: return 0, 0, 0
+    if np.sum(IN)<2:
+        return np.zeros(num_estimates), np.zeros(num_estimates), \
+               np.zeros(num_estimates)
     φ, ρ = φ[IN], ρ[IN]
 
     if normalize:

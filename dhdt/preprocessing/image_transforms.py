@@ -476,5 +476,5 @@ def multi_spectral_grad(I):
 
     _,s,v = np.linalg.svd(np.stack((Idx,Idy), axis=-1),
                           full_matrices=False)
-    grad_I = np.squeeze(s[...,0]*v[...,0] + 1j*s[...,0]*v[...,1])
+    grad_I = np.squeeze(s*v[...,0] + 1j*s*v[...,1])
     return grad_I
