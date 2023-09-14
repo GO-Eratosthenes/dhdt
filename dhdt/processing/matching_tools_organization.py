@@ -160,8 +160,8 @@ def list_phase_estimators():
 
 
 def list_peak_estimators():
-    """ list the abbreviations of the different implemented for the peak fitting
-    of the similarity function.
+    """ list the abbreviations of the different implemented for the peak
+    fitting of the similarity function.
 
     The following methods are implemented:
 
@@ -234,26 +234,31 @@ def estimate_translation_of_two_subsets(I1,
 
     if correlator in ['lucas_aff']:
         di, dj, _, score = affine_optical_flow(
-            I1, I2, model='affine', preprocessing=kwargs.get('preprocessing'))
+            I1, I2, model='affine', preprocessing=kwargs.get('preprocessing')
+        )
     if correlator in ['hough_opt_flw']:
         num_est, max_amp = 1, 1
-        if kwargs.get('num_estimates') != None:
+        if kwargs.get('num_estimates') is not None:
             num_est = kwargs.get('num_estimates')
-        if kwargs.get('max_amp') != None:
+        if kwargs.get('max_amp') is not None:
             max_amp = kwargs.get('max_amp')
 
-        if M1.size != 0: I1[M1] = np.nan  # set data outside mask to NaN
-        if M2.size != 0: I2[M2] = np.nan  # set data outside mask to NaN
+        if M1.size != 0:
+            I1[M1] = np.nan  # set data outside mask to NaN
+        if M2.size != 0:
+            I2[M2] = np.nan  # set data outside mask to NaN
 
         di, dj, score = hough_optical_flow(
             I1,
             I2,
             num_estimates=num_est,
             preprocessing=kwargs.get('preprocessing'),
-            max_amp=max_amp)
+            max_amp=max_amp
+        )
     else:  # 'lucas_kan'
         di, dj, _, score = affine_optical_flow(
-            I1, I2, model='simple', preprocessing=kwargs.get('preprocessing'))
+            I1, I2, model='simple', preprocessing=kwargs.get('preprocessing')
+        )
 
     return di, dj, score
 
@@ -268,9 +273,9 @@ def match_translation_of_two_subsets(I1_sub,
 
     Parameters
     ----------
-    I1_sub : numpy.ndarray, size={(m,n),(k,l)}, dtype={float,integer}, ndim={2,3}
+    I1_sub : numpy.ndarray, size={(m,n),(k,l)}, dtype={float,int}, ndim={2,3}
         grid with intensities, a.k.a. template to locate
-    I2_sub : numpy.ndarray, size=(m,n), dtype={float,integer}, ndim={2,3}
+    I2_sub : numpy.ndarray, size=(m,n), dtype={float,int}, ndim={2,3}
         grid with intensities, a.k.a. search space
     correlator : string
         methodology to use to correlate I1 and I2
@@ -334,7 +339,8 @@ def match_translation_of_two_subsets(I1_sub,
             Q = normalized_gradient_corr(I1_sub, I2_sub)
         elif correlator in ['mask_corr']:
             C = masked_corr(I1_sub, I2_sub, M1_sub, M2_sub)
-            if subpix in phase_based: Q = np.fft.fft2(C)
+            if subpix in phase_based:
+                Q = np.fft.fft2(C)
         elif correlator in ['bina_phas']:
             Q = binary_orientation_corr(I1_sub, I2_sub)
         elif correlator in ['wind_corr']:
@@ -349,7 +355,8 @@ def match_translation_of_two_subsets(I1_sub,
             Q = robust_corr(I1_sub, I2_sub)
         elif correlator in ['proj_phas']:
             C = projected_phase_corr(I1_sub, I2_sub, M1_sub, M2_sub)
-            if subpix in phase_based: Q = np.fft.fft2(C)
+            if subpix in phase_based:
+                Q = np.fft.fft2(C)
         if (subpix in peak_based) and ('Q' in locals()):
             C = np.fft.fftshift(np.real(np.fft.ifft2(Q)))
     else:
@@ -407,7 +414,8 @@ def estimate_subpixel(QC, subpix, m0=np.zeros((1, 2)), **kwargs):
          f' { {*peak_based, *phase_based} }')
 
     ds = 1
-    if kwargs.get('ds') != None: ds = kwargs.get('num_estimates')
+    if kwargs.get('ds') is not None:
+        ds = kwargs.get('num_estimates')
 
     if subpix in peak_based:  # correlation surface
         if subpix in ['gauss_1']:
@@ -524,7 +532,7 @@ def estimate_precision(C, di, dj, method='gaussian'):
     if method in ['hessian']:
         cov_ii, cov_jj, cov_ij = hessian_spread(
             C, C.shape[0] // 2 + np.round(di).astype(int),
-               C.shape[1] // 2 + np.round(dj).astype(int))
+            C.shape[1] // 2 + np.round(dj).astype(int))
     else:
         cov_ii, cov_jj, cov_ij, _, _ = gauss_spread(
             C,

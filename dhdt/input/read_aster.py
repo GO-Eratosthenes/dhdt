@@ -235,7 +235,7 @@ def read_band_as_hdf(path, band='3N'):
     .. [wwwASTR] https://asterweb.jpl.nasa.gov/content/03_data/04_Documents/ASTERHigherLevelUserGuideVer2May01.pdf
     .. [wwwGCTP] https://www.cmascenter.org/ioapi/documentation/all_versions/html/GCTP.html
 
-    """
+    """  # noqa: E501
     assert os.path.exists(path), ('file does not seem to be present')
 
     if len(band) == 3:
@@ -292,8 +292,8 @@ def read_stack_as_l1(path, as_df):
     path : string
         location where the imagery data is situated
     as_df : pandas.DataFrame
-        metadata and general multispectral information about the instrument that
-        is onboard Terra
+        metadata and general multispectral information about the instrument
+        that is onboard Terra
 
     Returns
     -------
@@ -391,7 +391,8 @@ def get_flight_path_as(as_path,
         counter = 0
         for line in file:
             counter += 1
-            if counter == 1: continue
+            if counter == 1:
+                continue
             line = " ".join(line.rstrip().split())
             line = np.fromstring(line, dtype=int, sep=' ')
 
@@ -404,8 +405,8 @@ def get_flight_path_as(as_path,
                                   seconds=int(time_sat[2]),
                                   milliseconds=int(time_sat[3]))
             time_sat = np.datetime64(time_utc, 'ns')
-            sat_ecef, sat_velo = line[22:25].astype(float), \
-                                 line[25:28].astype(float)
+            sat_ecef = line[22:25].astype(float)
+            sat_velo = line[25:28].astype(float)
 
             if counter == 2:
                 sat_time, sat_xyz, sat_uvw = time_sat.copy(), \
@@ -498,7 +499,8 @@ def _pad_to_same(A, B, size_diff, constant_values=0):
 
 
 def _pad_along_axis(A, pad_size, axis=0, constant_values=0):
-    if pad_size <= 0: return A
+    if pad_size <= 0:
+        return A
 
     npad = [(0, 0)] * A.ndim
     npad[axis] = (0, pad_size)

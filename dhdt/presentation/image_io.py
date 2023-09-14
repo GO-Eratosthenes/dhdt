@@ -65,7 +65,8 @@ def output_image(data, outputname, cmap='bone', compress=95):
     if np.any(OUT):
         data[OUT] = np.median(data[~OUT])  # create placeholder
 
-    if data.dtype == np.bool8: data = np.uint8(data.astype('float') * 255)
+    if data.dtype == np.bool8:
+        data = np.uint8(data.astype('float') * 255)
     if data.ndim == 2:
         m, n = data.shape[0], data.shape[1]
         col_map = plt.cm.get_cmap(cmap, 256)

@@ -108,7 +108,9 @@ def write_df_to_belev_file(df, belev_dir, rgi_num=0, rgi_region=0):
     header = 'Elev  ' + "  ".join(list(map(str, df.columns)))
     print(header, file=f)
 
-    func = lambda x: '{:+.2f}'.format(x)
+    def func(x):
+        return '{:+.2f}'.format(x)
+
     for index, row in df.iterrows():
         line = index + "  " + "  ".join(list(map(func, row)))
         print(line, file=f)
@@ -281,12 +283,12 @@ def read_conn_files_to_stack(folder_list,
 
             # create new ids
             id_dh[idx_uni[NEW, 1]] = id_counter + \
-                                     np.arange(0, np.sum(NEW)).astype(int)
+                np.arange(0, np.sum(NEW)).astype(int)
             dh_stack['id'][idx_uni[NEW, 0]] = id_counter + \
-                                              np.arange(0, np.sum(NEW)).astype(
-                                                  int)
-            id_dh = np.rec.fromarrays([id_dh],
-                                      dtype=np.dtype([('caster_id', int)]))
+                np.arange(0, np.sum(NEW)).astype(int)
+            id_dh = np.rec.fromarrays(
+                [id_dh], dtype=np.dtype([('caster_id', int)])
+            )
             dh = merge_arrays((dh, id_dh), flatten=True, usemask=False)
         else:
             id_stack = np.zeros(dh_stack.shape[0], dtype=int)
@@ -468,9 +470,9 @@ def clean_dh_with_no_caster_id_pd(dh):
 
 @loggg
 def keep_refined_locations(dh):
-    """ if the refinement has not been able to get a sub-pixel location estimate
-    it will have the same location as the initial location. Hence, such
-    locations can be excluded, which this function does.
+    """ if the refinement has not been able to get a sub-pixel location
+    estimate it will have the same location as the initial location. Hence,
+    such locations can be excluded, which this function does.
 
     Parameters
     ----------
@@ -560,7 +562,7 @@ def update_caster_elevation_pd(dh, Z, geoTransform):
                          dh['caster_Y'].to_numpy())
     dh_Z = ndimage.map_coordinates(Z, [i_im, i_im], order=1, mode='mirror')
 
-    if not coi in dh.columns:
+    if coi not in dh.columns:
         dh.insert(len(dh.keys()), coi, dh_Z)
     else:
         dh[coi] = dh_Z
@@ -630,10 +632,11 @@ def update_casted_elevation_pd(dxyt, Z, geoTransform):
         x_str, y_str, z_str = 'X_' + str(i + 1), 'Y_' + str(i +
                                                             1), 'Z_' + str(i +
                                                                            1)
-        i_im, j_im = map2pix(geoTransform, dxyt[x_str].to_numpy(),
-                             dxyt[y_str].to_numpy())
+        i_im, j_im = map2pix(
+            geoTransform, dxyt[x_str].to_numpy(), dxyt[y_str].to_numpy()
+        )
         dh_Z = ndimage.map_coordinates(Z, [i_im, j_im], order=1, mode='mirror')
-        if not z_str in dxyt.columns:
+        if z_str not in dxyt.columns:
             dxyt.insert(len(dxyt.keys()), z_str, dh_Z)
         else:
             dxyt[z_str] = dh_Z
@@ -688,7 +691,7 @@ def update_caster_view_angles(dh, view_zn, view_az, geoTransform):
              |  \  <-- sun trace     ^ Z
              |   \                   |
          ----┴----+  <-- casted      └-> {X,Y}
-    """
+    """  # noqa: W605
     if type(dh) in (pd.core.frame.DataFrame,):
         update_caster_view_angles_pd(dh, view_zn, view_az, geoTransform)
     # todo : make the same function for recordarray
@@ -703,13 +706,13 @@ def update_caster_view_angles_pd(dh, view_zn, view_az, geoTransform):
     i_im, j_im = map2pix(geoTransform, dh['caster_X'].to_numpy(),
                          dh['caster_Y'].to_numpy())
     zn_im = simple_nearest_neighbor(view_zn, i_im, j_im).astype(int)
-    if not 'caster_zn' in dh.columns:
+    if 'caster_zn' not in dh.columns:
         dh.insert(len(dh.keys()), 'caster_zn', zn_im)
     else:
         dh['caster_zn'] = zn_im
 
     az_im = simple_nearest_neighbor(view_az, i_im, j_im).astype(int)
-    if not 'caster_az' in dh.columns:
+    if 'caster_az' not in dh.columns:
         dh.insert(len(dh.keys()), 'caster_az', az_im)
     else:
         dh['caster_az'] = az_im
@@ -806,7 +809,7 @@ def get_casted_elevation_difference(dh):
              |  \                    ^ Z
              |   \                   |
          ----┴----+  <-- casted      └-> {X,Y}
-    """
+    """  # noqa: W605
     if type(dh) in (np.recarray,):
         dxyt = get_casted_elevation_difference_rec(dh)
     elif type(dh) in (np.ndarray,):
@@ -817,10 +820,13 @@ def get_casted_elevation_difference(dh):
 
 
 def get_casted_elevation_difference_pd(dh):
-    assert 'caster_id' in dh.columns, 'please couple the dataframe to other timestamps'
+    assert 'caster_id' in dh.columns, \
+        'please couple the dataframe to other timestamps'
     # is refraction present
     if 'zenith_refrac' not in dh.columns:
-        warnings.warn('OBS: refractured zenith does not seem to be calculated')
+        warnings.warn(
+            'OBS: refractured zenith does not seem to be calculated'
+        )
         zn_name = 'zenith'
     else:
         zn_name = 'zenith_refrac'
@@ -852,7 +858,8 @@ def get_casted_elevation_difference_pd(dh):
         dh_ioi = dh[dh['caster_id'] == ioi]  # get
 
         n = dh_ioi.shape[0]
-        if n < 2: continue
+        if n < 2:
+            continue
 
         # sort in temporal progression
         dh_ioi = dh_ioi.iloc[np.argsort(dh_ioi['timestamp']), :]
@@ -959,8 +966,8 @@ def get_casted_elevation_difference_np(dh):
 
 @loggg
 def clean_dxyt_via_common_glacier_id(dxyt):
-    """ since dhdt is glacier centric, connections between shadow casts that are
-    situated on different glaciers, are removed from the collection by this
+    """ since dhdt is glacier centric, connections between shadow casts that
+    are situated on different glaciers, are removed from the collection by this
     function
 
     Parameters
@@ -1027,8 +1034,10 @@ def get_relative_hypsometric_network(dxyt, Z, geoTransform):
         j_2)
     i_1, j_1, i_2, j_2 = remove_posts_pairs_outside_image(
         Z, i_1, j_1, Z, i_2, j_2)
-    i_1, j_1, i_2, j_2 = i_1.astype(int), j_1.astype(int), i_2.astype(int), \
-                         j_2.astype(int)
+    i_1 = i_1.astype(int)
+    j_1 = j_1.astype(int)
+    i_2 = i_2.astype(int)
+    j_2 = j_2.astype(int)
 
     ij_stack = np.vstack((np.hstack((i_1[:, np.newaxis], j_1[:, np.newaxis])),
                           np.hstack((i_2[:, np.newaxis], j_2[:, np.newaxis]))))
@@ -1158,12 +1167,12 @@ def get_hypsometric_elevation_change_pd(dxyt, Z=None, geoTransform=None):
 
     Z_1, Z_2 = _get_elevation(dxyt, Z, 1), _get_elevation(dxyt, Z, 2)
 
-    #    if simple:
+    # if simple:
     Z_12 = (Z_1 + Z_2) / 2
-    #    else:
-    #        # calculate mid point elevation
-    #        Z_12 = ndimage.map_coordinates(Z, [(i_1 + i_2) / 2, (j_1 + j_2) / 2],
-    #                                       order=1, mode='mirror')
+    # else:
+    #     # calculate mid point elevation
+    #     Z_12 = ndimage.map_coordinates(Z, [(i_1 + i_2) / 2, (j_1 + j_2) / 2],
+    #                                    order=1, mode='mirror')
 
     dZ = np.squeeze(Z_1) - np.squeeze(Z_2)
     dz_12 = dxyt['dH_12'] - dZ
@@ -1196,8 +1205,8 @@ def _compensate_via_prior(X, Y):
                                    min_samples=2,
                                    residual_threshold=30,
                                    max_trials=1000)
-    p, q = np.array(ransac_model.params[0]), \
-           np.array(ransac_model.params[1])
+    p = np.array(ransac_model.params[0])
+    q = np.array(ransac_model.params[1])
     pq_perp = point_distance_irt_line(p, q, data)
 
     inliers = mad_filtering(pq_perp)
@@ -1219,12 +1228,14 @@ def get_mass_balance_per_elev(dhdt, spac=100.):
     yr_min = np.min(dhdt['T_1'].to_numpy())
     yr_mnd = yr_min.astype('datetime64[M]').astype(int) % 12
     yr_min = yr_min.astype('datetime64[Y]').astype(int) + 1970
-    if yr_mnd < 9: yr_min -= 1
+    if yr_mnd < 9:
+        yr_min -= 1
 
     yr_max = np.max(dhdt['T_2'].to_numpy())
     yr_mnd = yr_max.astype('datetime64[M]').astype(int) % 12
     yr_max = yr_max.astype('datetime64[Y]').astype(int) + 1970
-    if yr_mnd >= 9: yr_max += 1
+    if yr_mnd >= 9:
+        yr_max += 1
 
     T_step = pd.date_range(start=str(yr_min),
                            end=str(yr_max + 1),
@@ -1235,8 +1246,8 @@ def get_mass_balance_per_elev(dhdt, spac=100.):
     for idx, arr in enumerate(dZ_split):
         df_sub = dhdt.iloc[arr.index, :]
 
-        T_1, T_2 = df_sub['T_1'].values.astype('datetime64[D]'), \
-                   df_sub['T_2'].values.astype('datetime64[D]')
+        T_1 = df_sub['T_1'].values.astype('datetime64[D]')
+        T_2 = df_sub['T_2'].values.astype('datetime64[D]')
 
         A = get_temporal_incidence_matrix(T_1, T_2, T_step, open_network=True)
         W = get_temporal_weighting(T_1, T_2, covariance=True)

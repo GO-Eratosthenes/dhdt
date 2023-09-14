@@ -79,10 +79,10 @@ def phase_jac(Q,
     else:
         C_hat = construct_phase_plane(Q, m[0], m[1], indexing='ij')
         QC = Q - C_hat  # convert complex vector difference to metric
-        dXY = np.abs(np.multiply(W, QC) ** rank)
+        dXY = np.abs(np.multiply(W, QC)**rank)
 
     dQdm = np.array(
-        [np.multiply(2 * W.flatten() * F1.flatten(), dXY.flatten()), \
+        [np.multiply(2 * W.flatten() * F1.flatten(), dXY.flatten()),
          np.multiply(2 * W.flatten() * F2.flatten(), dXY.flatten())]).T
     return dQdm
 
@@ -135,8 +135,7 @@ def phase_secant(data, W=np.array([]), x_0=np.zeros((2))):  # wip
 
     data = cross_spectrum_to_coordinate_list(data, W)
     J = phase_jac(data, x_0)
-    x_hat, _ = secant(data[:, :-1], data[:, -1], J, x_0, \
-                      n_iters=10)
+    x_hat, _ = secant(data[:, :-1], data[:, -1], J, x_0, n_iters=10)
     di, dj = 2 * x_hat[0], 2 * x_hat[1]
     return di, dj
 
@@ -235,9 +234,11 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3):  # wip
               journal of numerical analysis. vol.8 pp.141--148, 1988.
     .. [Le07] Leprince, et.al. "Automatic and precise orthorectification,
               coregistration, and subpixel correlation of satellite images,
-              application to ground deformation measurements", IEEE Transactions
-              on geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.
+              application to ground deformation measurements", IEEE
+              Transactions on geoscience and remote sensing vol. 45.6 pp.
+              1529-1558, 2007.
     """
+    # noqa: E741
     m = np.squeeze(m)
     s = 1.  # 1.25#.5#1.#.5#2.
 
@@ -284,9 +285,9 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3):  # wip
         # φ = np.abs(QC*np.conjugate(QC))/2
         C = 1j * -np.sin(Fx * m[1] + Fy * m[0])
         C += np.cos(Fx * m[1] + Fy * m[0])
-        QC = (Q - C) ** 2  # np.abs(Q-C)#np.abs(Q-C)
+        QC = (Q - C)**2  # np.abs(Q-C)#np.abs(Q-C)
         dXY = np.abs(np.multiply(W, QC))
-        W = W * (1 - (dXY / 4)) ** n
+        W = W * (1 - (dXY / 4))**n
 
     #        φ = np.multiply(2*W,\
     #                          (1 - np.multiply(np.real(Q),
@@ -321,7 +322,7 @@ def phase_slope_1d(t, rad=.1):
     """
     assert type(t) == np.ndarray, ("please provide an array")
 
-    idx_sub = np.arange(np.ceil((0.5 - rad) * len(t)), \
+    idx_sub = np.arange(np.ceil((0.5 - rad) * len(t)),
                         np.ceil((0.5 + rad) * len(t)) + 1).astype(int)
     y_ang = np.unwrap(np.angle(t[idx_sub]), axis=0)
     A = np.column_stack([np.transpose(idx_sub - 1), np.ones((len(idx_sub)))])
@@ -805,7 +806,9 @@ def ransac(data,
 
     Estimate ellipse model using RANSAC:
 
-    >>> ransac_model, inliers = ransac(data, EllipseModel, 20, 3, max_trials=50)
+    >>> ransac_model, inliers = ransac(
+    ...     data, EllipseModel, 20, 3, max_trials=50
+    ... )
     >>> abs(np.round(ransac_model.params))
     array([20., 30., 10.,  6.,  2.])
 
@@ -820,8 +823,9 @@ def ransac(data,
     >>> sum(inliers) > 40
     True
 
-    RANSAC can be used to robustly estimate a geometric transformation. In this section,
-    we also show how to use a proportion of the total samples, rather than an absolute number.
+    RANSAC can be used to robustly estimate a geometric transformation. In this
+    section, we also show how to use a proportion of the total samples, rather
+    than an absolute number.
 
     >>> from skimage.transform import SimilarityTransform
     >>> rng = np.random.default_rng()
@@ -856,7 +860,7 @@ def ransac(data,
 
     # in case data is not pair of input and output, male it like it
     if not isinstance(data, (tuple, list)):
-        data = (data,)
+        data = (data, )
     num_samples = len(data[0])
 
     if not (0 < min_samples < num_samples):
@@ -888,7 +892,8 @@ def ransac(data,
     for num_trials in range(max_trials):
         # do sample selection according data pairs
         samples = [d[spl_idxs] for d in data]
-        # for next iteration choose random sample set and be sure that no samples repeat
+        # for next iteration choose random sample set and be sure that no
+        # samples repeat
         spl_idxs = random_state.choice(num_samples, min_samples, replace=False)
 
         # optional check if random sample set is valid
@@ -904,26 +909,29 @@ def ransac(data,
         for potential_param in np.arange(success):
             potential_model = model_class()
             potential_model.params = sample_model.params[potential_param][
-                                     0:min_samples]
+                0:min_samples]
 
             potential_model_residuals = np.abs(
                 potential_model.residuals(*data))
 
             # consensus set / inliers
-            potential_model_inliers = potential_model_residuals < \
-                                      residual_threshold
+            potential_model_inliers = (
+                potential_model_residuals < residual_threshold
+            )
             potential_model_residuals_sum = np.sum(
-                potential_model_residuals ** 2)
+                potential_model_residuals**2)
 
             # choose as new best model if number of inliers is maximal
             potential_inlier_num = np.sum(potential_model_inliers)
-            if (
-                    # more inliers
-                    potential_inlier_num > best_inlier_num
-                    # same number of inliers but less "error" in terms of residuals
-                    or
-                    (potential_inlier_num == best_inlier_num and
-                     potential_model_residuals_sum < best_inlier_residuals_sum)):
+
+            # more inliers
+            cond_1 = potential_inlier_num > best_inlier_num
+            # same number of inliers but less "error" in terms of residuals
+            cond_2 = (
+                potential_inlier_num == best_inlier_num and
+                potential_model_residuals_sum < best_inlier_residuals_sum
+            )
+            if cond_1 or cond_2:
                 best_model = potential_model
                 best_inlier_num = potential_inlier_num
                 best_inlier_residuals_sum = potential_model_residuals_sum
@@ -954,7 +962,8 @@ class BaseModel(object):
 class PlaneModel(BaseModel):
     """Least squares estimator for phase plane.
 
-    Vectors/lines are parameterized using polar coordinates as functional model::
+    Vectors/lines are parameterized using polar coordinates as functional
+    model:
         z = x * dx + y * dy
     This estimator minimizes the squared distances from all points to the
     plane, independent of distance.
@@ -1045,19 +1054,21 @@ class SawtoothModel(BaseModel):
         if data.shape[0] >= 2:  # well determined
             if params_bound != 0:
                 # create multitudes of cycles
-                param_cycle = np.mgrid[-params_bound:+params_bound + 1, \
-                              -params_bound:+params_bound + 1]
+                param_cycle = np.mgrid[
+                    -params_bound:+params_bound + 1,
+                    -params_bound:+params_bound + 1
+                ]
                 cycle_0 = param_cycle[:, :,
-                          0].flatten()  # 2*np.pi() if in radians
+                                      0].flatten()  # 2*np.pi() if in radians
                 cycle_1 = param_cycle[:, :, 1].flatten()  # but -.5 ... +.5
                 x_stack = np.zeros((cycle_0.size, 2))
 
                 for val, idx in enumerate(cycle_0):
-                    y = np.array([data[0, -1] + cycle_0[idx], \
-                                  data[1, -1] + cycle_1[idx]])
-                    x_hat = np.linalg.lstsq(data[:, 0:2], \
-                                            y, \
-                                            rcond=None)[0]
+                    y = np.array([
+                        data[0, -1] + cycle_0[idx],
+                        data[1, -1] + cycle_1[idx]
+                    ])
+                    x_hat = np.linalg.lstsq(data[:, 0:2], y, rcond=None)[0]
                     x_stack[idx, 0] = x_hat[0]
                     x_stack[idx, 1] = x_hat[1]
                 # multitutes = np.maximum(np.floor(params_bound/x_hat[0]), \
@@ -1148,7 +1159,8 @@ def phase_ransac(data, max_displacement=1, precision_threshold=.05):
     ----------
     .. [FB81] Fischler & Bolles. "Random sample consensus: a paradigm for model
               fitting with applications to image analysis and automated
-              cartography" Communications of the ACM vol.24(6) pp.381-395, 1981.
+              cartography" Communications of the ACM vol.24(6) pp.381-395,
+              1981.
     .. [To15] Tong et al. "A novel subpixel phase correlation method using
               singular value decomposition and unified random sample consensus"
               IEEE transactions on geoscience and remote sensing vol.53(8)
@@ -1211,11 +1223,11 @@ def phase_hough(data,
         data = np.vstack((Fx.flatten(), Fy.flatten(), Q.flatten())).T
 
     # create voting space
-    (dj, di) = np.meshgrid(np.arange(-max_displacement, \
-                                     +max_displacement + param_spacing, \
+    (dj, di) = np.meshgrid(np.arange(-max_displacement,
+                                     +max_displacement + param_spacing,
                                      param_spacing),
-                           np.arange(-max_displacement, \
-                                     +max_displacement + param_spacing, \
+                           np.arange(-max_displacement,
+                                     +max_displacement + param_spacing,
                                      param_spacing))
 
     # create population that can vote
@@ -1240,7 +1252,7 @@ def phase_hough(data,
                          1) - .5)
 
         vote += 1 / (1 + (angle_diff /
-                          (.1 * np.std(angle_diff))) ** 2)  # cauchy weighting
+                          (.1 * np.std(angle_diff)))**2)  # cauchy weighting
         # hard threshold
         # vote += (np.abs(angle_diff) <= .1).astype(np.int32)
 
@@ -1330,6 +1342,7 @@ def phase_radon(Q, coord_system='ij'):
         return di, dj
     else:  # do polar coordinates
         return θ, rho
+
 
 # def phase_binairy_stripe():
 #    Notes

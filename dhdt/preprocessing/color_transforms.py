@@ -33,10 +33,11 @@ def rgb2hcv(Blue, Green, Red):
 
     References
     ----------
-    .. [Sm93] Smith, "Putting colors in order", Dr. Dobb’s Journal, pp 40, 1993.
+    .. [Sm93] Smith, "Putting colors in order", Dr. Dobb’s Journal, pp 40,
+              1993.
     .. [Ts06] Tsai, "A comparative study on shadow compensation of color aerial
-              images in invariant color models", IEEE transactions in geoscience
-              and remote sensing, vol. 44(6) pp. 1661--1671, 2006.
+              images in invariant color models", IEEE transactions in
+              geoscience and remote sensing, vol. 44(6) pp. 1661--1671, 2006.
     """
     are_three_arrays_equal(Blue, Green, Red)
 
@@ -132,21 +133,21 @@ def yiq2rgb(Y, I, Q):
 
     Parameters
     ----------
-    Red : numpy.array, size=(m,n)
-        red band of satellite image
-    Green : numpy.array, size=(m,n)
-        green band of satellite image
-    Blue : numpy.array, size=(m,n)
-        blue band of satellite image
-
-    Returns
-    -------
     Y : numpy.array, size=(m,n)
         luminance
     I : numpy.array, size=(m,n)
         inphase
     Q : numpy.array, size=(m,n)
         quadrature
+
+    Returns
+    -------
+    Red : numpy.array, size=(m,n)
+        red band of satellite image
+    Green : numpy.array, size=(m,n)
+        green band of satellite image
+    Blue : numpy.array, size=(m,n)
+        blue band of satellite image
 
     See also
     --------
@@ -156,7 +157,7 @@ def yiq2rgb(Y, I, Q):
     ----------
     .. [GW92] Gonzalez & Woods "Digital image processing", 1992.
     """
-    are_three_arrays_equal(Y, I, Q)
+    are_three_arrays_equal(Y, I, Q)  # noqa: E741
 
     L = np.array([(+0.299, +0.587, +0.114), (+0.596, -0.275, -0.321),
                   (+0.212, -0.523, +0.311)])
@@ -195,8 +196,8 @@ def rgb2ycbcr(Red, Green, Blue):
     References
     ----------
     .. [Ts06] Tsai, "A comparative study on shadow compensation of color aerial
-              images in invariant color models", IEEE transactions in geoscience
-              and remote sensing, vol. 44(6) pp. 1661--1671, 2006.
+              images in invariant color models", IEEE transactions in
+              geoscience and remote sensing, vol. 44(6) pp. 1661--1671, 2006.
     """
     are_three_arrays_equal(Blue, Green, Red)
 
@@ -242,8 +243,8 @@ def rgb2hsi(Red, Green, Blue):
     References
     ----------
     .. [Ts06] Tsai, "A comparative study on shadow compensation of color aerial
-              images in invariant color models", IEEE transactions in geoscience
-              and remote sensing, vol. 44(6) pp. 1661--1671, 2006.
+              images in invariant color models", IEEE transactions in
+              geoscience and remote sensing, vol. 44(6) pp. 1661--1671, 2006.
     .. [Pr91] Pratt, "Digital image processing" Wiley, 1991.
     """
     are_three_arrays_equal(Blue, Green, Red)
@@ -460,8 +461,8 @@ def xyz2lab(X, Y, Z, th=0.008856):
     ----------
     .. [FR98] Ford & Roberts. "Color space conversion", pp. 1--31, 1998.
     .. [Si18] Silva et al. "Near real-time shadow detection and removal in
-              aerial motion imagery application" ISPRS journal of photogrammetry
-              and remote sensing, vol.140 pp.104--121, 2018.
+              aerial motion imagery application" ISPRS journal of
+              photogrammetry and remote sensing, vol.140 pp.104--121, 2018.
     """
     are_three_arrays_equal(X, Y, Z)
 
@@ -504,8 +505,8 @@ def lab2lch(L, a, b):
     ----------
     .. [FR98] Ford & Roberts. "Color space conversion", pp. 1--31, 1998.
     .. [Si18] Silva et al. "Near real-time shadow detection and removal in
-              aerial motion imagery application" ISPRS journal of photogrammetry
-              and remote sensing, vol.140 pp.104--121, 2018.
+              aerial motion imagery application" ISPRS journal of
+              photogrammetry and remote sensing, vol.140 pp.104--121, 2018.
     """
     are_two_arrays_equal(a, b)
 
@@ -543,11 +544,11 @@ def rgb2lms(Red, Green, Blue):
     """
     are_three_arrays_equal(Blue, Green, Red)
 
-    I = np.array([(0.3811, 0.5783, 0.0402), (0.1967, 0.7244, 0.0782),
+    Z = np.array([(0.3811, 0.5783, 0.0402), (0.1967, 0.7244, 0.0782),
                   (0.0241, 0.1228, 0.8444)])
 
     RGB = np.dstack((Red, Green, Blue))
-    LMS = np.einsum('ij,klj->kli', I, RGB)
+    LMS = np.einsum('ij,klj->kli', Z, RGB)
     L, M, S = LMS[:, :, 0], LMS[:, :, 1], LMS[:, :, 2]
     return L, M, S
 
@@ -574,12 +575,12 @@ def lms2lab(L, M, S):
     """
     are_three_arrays_equal(L, M, S)
 
-    I = np.matmul(
+    Z = np.matmul(
         np.array([(1 / np.sqrt(3), 0, 0), (0, 1 / np.sqrt(6), 0),
                   (0, 0, 1 / np.sqrt(2))]),
         np.array([(+1, +1, +1), (+1, +1, -2), (+1, -1, +0)]))
 
     LMS = np.dstack((L, M, S))
-    lab = np.einsum('ij,klj->kli', I, LMS)
+    lab = np.einsum('ij,klj->kli', Z, LMS)
     l, a, b = lab[:, :, 0], lab[:, :, 1], lab[:, :, 2]
     return l, a, b

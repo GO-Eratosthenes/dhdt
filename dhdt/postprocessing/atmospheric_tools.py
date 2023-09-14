@@ -100,9 +100,9 @@ def oro_precip(Z,
     ----------
     .. [SB04] Smith and Barstad, "A linear theory of orographic precipitation",
               Journal of atmospheric science, vol.61, pp.1377-1391, 2004.
-    .. [Sc08] Schuler et al. "Distribution of snow accumulation on the Svartisen
-              ice cap, Norway, assessed by a model of orographic precipitation",
-              Hydrologic processes, vol.22 pp.3998-4008, 2008.
+    .. [Sc08] Schuler et al. "Distribution of snow accumulation on the
+              Svartisen ice cap, Norway, assessed by a model of orographic
+              precipitation", Hydrologic processes, vol.22 pp.3998-4008, 2008.
     """
 
     # sensitivity uplift factor, unit=kg m**3

@@ -56,9 +56,9 @@ def get_space_time_id(date, ϕ, λ, full=True):
 
 
 def get_amount_of_timestamps(name_str):
-    """ Reanalysis data from ERA5 can have different timestamps. These are given
-    in the name, separtated by an indent. This function counts these indents,
-    so the file does not need to be read.
+    """ Reanalysis data from ERA5 can have different timestamps. These are
+    given in the name, separtated by an indent. This function counts these
+    indents, so the file does not need to be read.
 
     Parameters
     ----------
@@ -229,11 +229,15 @@ def get_era5_atmos_profile(date, x, y, spatialRef, z=None, era5_dir=None):
     >>> ax2.plot(Pres,z,'g'), ax2.set_title('Pressure [Pa]'), ax2.set_yscale('log')
     >>> ax3.plot(fracHum,z,'b'), ax3.set_title('Humidity [%]'), ax3.set_yscale('log')
     >>> plt.show()
-    """
-    if isinstance(x, float): x = np.array([x])
-    if isinstance(y, float): y = np.array([y])
-    if z is None: z = 10 ** np.linspace(0, 5, 100)
-    if era5_dir is None: era5_dir = ERA5_DIR_DEFAULT
+    """  # noqa: E501
+    if isinstance(x, float):
+        x = np.array([x])
+    if isinstance(y, float):
+        y = np.array([y])
+    if z is None:
+        z = 10 ** np.linspace(0, 5, 100)
+    if era5_dir is None:
+        era5_dir = ERA5_DIR_DEFAULT
 
     pres_levels = get_era5_pressure_levels()
 

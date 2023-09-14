@@ -33,7 +33,8 @@ def read_geo_info(fname):
     spatialRef : string
         osr.SpatialReference in well known text
     geoTransform : tuple, size=(8,1)
-        affine transformation coefficients, but also giving the image dimensions
+        affine transformation coefficients, but also giving the image
+        dimensions
     targetprj : osgeo.osr.SpatialReference() object
         coordinate reference system (CRS)
     rows : integer, {x ∈ ℕ | x ≥ 0}
@@ -102,9 +103,9 @@ def read_geo_image(fname, boi=np.array([]), no_dat=None):
     >>> import os
     >>> from dhdt.generic.mapping_io import read_geo_image
     >>> fpath = os.path.join(os.getcwd(), "data.jp2" )
-    
+
     >>> I, spatialRef, geoTransform, targetPrj = read_geo_image(fpath)
-    
+
     >>> I_ones = np.zeros(I.shape, dtype=bool)
     >>> make_geo_im(I_ones, geoTransformM, spatialRefM, "ones.tif")
     """
@@ -164,7 +165,7 @@ def _correct_sun_angle_string(sun_angles):
 
 
 # output functions
-def make_geo_im(I,
+def make_geo_im(Z,
                 R,
                 crs,
                 fName,
@@ -176,7 +177,7 @@ def make_geo_im(I,
 
     Parameters
     ----------
-    I : numpy.array, size=(m,n)
+    Z : numpy.array, size=(m,n)
         band image
     R : list, size=(1,6)
         GDAL georeference transform of an image
@@ -193,30 +194,32 @@ def make_geo_im(I,
 
     Examples
     --------
-    
+
     >>> import os
     >>> fpath = os.path.join(os.getcwd(), "data.jp2")
-    
+
     >>> (I, spatialRef, geoTransform, targetPrj) = read_geo_image(fpath)
-    
-    >>> I_ones = np.zeros(I.shape, dtype=bool)
-    >>> make_geo_im(I_ones, geoTransformM, spatialRefM, ‘ones.tif’)
+
+    >>> Z_ones = np.zeros(Z.shape, dtype=bool)
+    >>> make_geo_im(Z_ones, geoTransformM, spatialRefM, 'ones.tif')
     """
-    if crs is None: crs = create_local_crs()
-    if not isinstance(crs, str): crs = crs.ExportToWkt()
+    if crs is None:
+        crs = create_local_crs()
+    if not isinstance(crs, str):
+        crs = crs.ExportToWkt()
     R = correct_geoTransform(R)
     sun_angles = _correct_sun_angle_string(sun_angles)
 
-    bands = I.shape[2] if I.ndim == 3 else 1
+    bands = Z.shape[2] if Z.ndim == 3 else 1
 
     drv = gdal.GetDriverByName("GTiff")  # export image
-    if I.dtype == 'float64':  # make it type dependent
+    if Z.dtype == 'float64':  # make it type dependent
         gdal_dtype = gdal.GDT_Float64
         predictor = "3"
-    elif I.dtype == 'float32':
+    elif Z.dtype == 'float32':
         gdal_dtype = gdal.GDT_Float32
         predictor = "3"
-    elif I.dtype in ('bool', 'uint8'):
+    elif Z.dtype in ('bool', 'uint8'):
         gdal_dtype = gdal.GDT_Byte
         predictor = "2"
     else:
@@ -225,8 +228,8 @@ def make_geo_im(I,
 
     ds = drv.Create(
         fName,
-        xsize=I.shape[1],
-        ysize=I.shape[0],
+        xsize=Z.shape[1],
+        ysize=Z.shape[0],
         bands=bands,
         eType=gdal_dtype,
         options=['TFW=YES', 'COMPRESS=LZW', "PREDICTOR=" + predictor])
@@ -242,29 +245,30 @@ def make_geo_im(I,
     })
 
     # set georeferencing metadata
-    if len(R) != 6: R = R[:6]
+    if len(R) != 6:
+        R = R[:6]
 
     ds.SetGeoTransform(R)
     ds.SetProjection(crs)
-    if I.ndim == 3:
-        for count in np.arange(1, I.shape[2] + 1, 1):
+    if Z.ndim == 3:
+        for count in np.arange(1, Z.shape[2] + 1, 1):
             band = ds.GetRasterBand(int(count))
-            band.WriteArray(I[:, :, count - 1], 0, 0)
+            band.WriteArray(Z[:, :, count - 1], 0, 0)
             if count == 1:
                 band.SetNoDataValue(no_dat)
             band = None
     else:
-        ds.GetRasterBand(1).WriteArray(I)
+        ds.GetRasterBand(1).WriteArray(Z)
         ds.GetRasterBand(1).SetNoDataValue(no_dat)
-    if (ds is None):
+    if ds is None:
         print(gdal.GetLastErrorMsg())
     ds = None
     del ds
 
 
 def make_multispectral_vrt(df, fpath=None, fname='multispec.vrt'):
-    """ virtual raster tile (VRT) is a description of datasets written in an XML
-    format, it eases the display of multi-spectral data or other means.
+    """ virtual raster tile (VRT) is a description of datasets written in an
+    XML format, it eases the display of multi-spectral data or other means.
 
     Parameters
     ----------
@@ -294,7 +298,8 @@ def make_multispectral_vrt(df, fpath=None, fname='multispec.vrt'):
                                        srcNodata=0)
     my_vrt = gdal.BuildVRT(ffull, [f + '.jp2' for f in df['filepath']],
                            options=vrt_options)
-    if (my_vrt is None): print(gdal.GetLastErrorMsg())
+    if my_vrt is None:
+        print(gdal.GetLastErrorMsg())
     my_vrt = None
 
     # modify the vrt-file to include band names
@@ -307,12 +312,13 @@ def make_multispectral_vrt(df, fpath=None, fname='multispec.vrt'):
     return
 
 
-def make_nc_image(I,
+def make_nc_image(Z,
                   R,
                   crs,
                   fName,
                   date_created=datetime.datetime(2022, 11, 28)):
-    if not isinstance(crs, str): crs = crs.ExportToWkt()
+    if not isinstance(crs, str):
+        crs = crs.ExportToWkt()
 
     X, Y = pix_centers(R, make_grid=False)
 
@@ -359,7 +365,7 @@ def make_nc_image(I,
                         units=times.units,
                         calendar=times.calendar)
 
-    if np.iscomplexobj(I):
+    if np.iscomplexobj(Z):
         U = dsout.createVariable('U',
                                  'f4',
                                  nc_struct,
@@ -367,7 +373,7 @@ def make_nc_image(I,
                                  complevel=4,
                                  least_significant_digit=1,
                                  fill_value=-9999)
-        U[:] = np.real(I[np.newaxis, ...])
+        U[:] = np.real(Z[np.newaxis, ...])
         U.standard_name = 'horizontal_velocity'
         U.units = 'm/s'
         U.setncattr('grid_mapping', 'spatial_ref')
@@ -379,20 +385,20 @@ def make_nc_image(I,
                                  complevel=4,
                                  least_significant_digit=1,
                                  fill_value=-9999)
-        V[:] = np.imag(I[np.newaxis, ...])
+        V[:] = np.imag(Z[np.newaxis, ...])
         V.standard_name = 'vertical_velocity'
         V.units = 'm/s'
         V.setncattr('grid_mapping', 'spatial_ref')
     else:
-        I = dsout.createVariable('I',
+        Z = dsout.createVariable('I',
                                  'f4',
                                  nc_struct,
                                  zlib=True,
                                  complevel=4,
                                  least_significant_digit=1,
                                  fill_value=-9999)
-        I[:] = I[np.newaxis(), ...]
-        I.setncattr('grid_mapping', 'spatial_ref')
+        Z[:] = Z[np.newaxis(), ...]
+        Z.setncattr('grid_mapping', 'spatial_ref')
 
     proj = dsout.createVariable('spatial_ref', 'i4')
     proj.spatial_ref = crs
@@ -409,9 +415,12 @@ def make_im_from_geojson(geoTransform,
                          geom_dir=None,
                          aoi=None):
     geoTransform = correct_geoTransform(geoTransform)
-    if not isinstance(crs, str): crs = crs.ExportToWkt()
-    if out_dir is None: out_dir = os.getcwd()
-    if not os.path.isdir(out_dir): os.makedirs(out_dir)
+    if not isinstance(crs, str):
+        crs = crs.ExportToWkt()
+    if out_dir is None:
+        out_dir = os.getcwd()
+    if not os.path.isdir(out_dir):
+        os.makedirs(out_dir)
     if geom_dir is None:
         rot_dir = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3])
         geom_dir = os.path.join(rot_dir, 'data')

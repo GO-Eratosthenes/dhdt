@@ -12,8 +12,7 @@ def directional_line(tsize, θ):
     else:
         grd = np.meshgrid(np.linspace(-tsize[0] / 2, +tsize[0] / 2, tsize[0]),
                           np.linspace(-tsize[1] / 2, +tsize[1] / 2, tsize[1]))
-    grd_th = np.sin(np.rad2deg(θ)) * grd[1] + \
-             np.cos(np.rad2deg(θ)) * grd[0]
+    grd_th = np.sin(np.rad2deg(θ)) * grd[1] + np.cos(np.rad2deg(θ)) * grd[0]
     L = np.exp(-np.abs(grd_th))
     return L
 

@@ -107,8 +107,8 @@ def secant(A, y, J, params, n_iters=5, print_diagnostics=False):
             delta_f = fx1 - fx0
             # estimate Jacobian
             J_new = J + \
-                    np.outer((delta_f - (J @ delta_x)), delta_x) / \
-                    np.dot(delta_x, delta_x)
+                np.outer((delta_f - (J @ delta_x)), delta_x) / \
+                np.dot(delta_x, delta_x)
 
             # estimate new parameter set
             dx = np.linalg.lstsq(J_new, -fx1, rcond=None)[0]
@@ -151,7 +151,7 @@ def estimate_sinus(φ, ρ, bias=True):
     assert ρ.size >= 2, 'please provide enough data points'
 
     # design matrix
-    if bias == True:
+    if bias:
         A = np.vstack(
             [np.sin(np.deg2rad(φ)),
              np.cos(np.deg2rad(φ)),
@@ -320,7 +320,8 @@ def logit_weighting(Y, sigma_Y=1., sigma_0=1.):
 
     See Also
     --------
-    ln_weighting, reciprocal_weighting, exponential_weighting, squared_weighting
+    ln_weighting, reciprocal_weighting, exponential_weighting,
+    squared_weighting
 
     References
     ----------
@@ -371,8 +372,8 @@ def ln_weighting(Y, sigma_Y=1., sigma_0=1.):
 
 
 def reciprocal_weighting(Y, sigma_Y=1., sigma_0=1.):
-    """ calculate transformed weighting values for reciprocal function, see also
-    [As11]_.
+    """ calculate transformed weighting values for reciprocal function, see
+    also [As11]_.
 
     Parameters
     ----------
@@ -547,7 +548,8 @@ def hough_transf(x,
     >>> plt.plot(x,y), plt.plot(x,a*x+b)
     >>> plt.show()
     """
-    if w is None: w = np.ones_like(x)
+    if w is None:
+        w = np.ones_like(x)
     x, y, w = x.flatten(), y.flatten(), w.flatten()
 
     sample_size = x.size

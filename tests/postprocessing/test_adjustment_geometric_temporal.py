@@ -28,19 +28,19 @@ def test_rotate_disp_field(m=40, n=30):
 
 def test_rot_covar():
     # initialization
-    I = np.eye(2)
+    eye = np.eye(2)
     θ = np.random.uniform(low=0., high=360., size=(1,))[0]
 
     # forward rotation
-    I_frw = rot_covar(I, rot_mat(θ))
+    eye_frw = rot_covar(eye, rot_mat(θ))
 
     # whole circle rotation
-    I_whl = rot_covar(I_frw, rot_mat(360 - θ))
-    assert np.isclose(0, np.max(np.abs(I - I_whl)))
+    eye_whl = rot_covar(eye_frw, rot_mat(360 - θ))
+    assert np.isclose(0, np.max(np.abs(eye - eye_whl)))
 
     # backward rotation
-    I_bck = rot_covar(I_frw, np.transpose(rot_mat(θ)))
-    assert np.isclose(0, np.max(np.abs(I - I_bck)))
+    eye_bck = rot_covar(eye_frw, np.transpose(rot_mat(θ)))
+    assert np.isclose(0, np.max(np.abs(eye - eye_bck)))
 
 
 def test_helmholtz_hodge(m=40, n=30):

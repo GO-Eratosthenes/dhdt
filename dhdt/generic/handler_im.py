@@ -15,18 +15,18 @@ def _check_same_im(I1, I2):
     return I1, I2
 
 
-def conv_2Dfilter(I, kernel):
-    sub_shape = tuple(map(lambda i, j: i - j + 1, I.shape, kernel.shape))
-    view_shape = tuple(np.subtract(I.shape, sub_shape) + 1) + sub_shape
-    strides = I.strides + I.strides
+def conv_2Dfilter(Z, kernel):
+    sub_shape = tuple(map(lambda i, j: i - j + 1, Z.shape, kernel.shape))
+    view_shape = tuple(np.subtract(Z.shape, sub_shape) + 1) + sub_shape
+    strides = Z.strides + Z.strides
 
-    sub_matrices = np.lib.stride_tricks.as_strided(I, view_shape, strides)
+    sub_matrices = np.lib.stride_tricks.as_strided(Z, view_shape, strides)
     V = np.einsum('ij,ijkl->kl', kernel, sub_matrices)
     return V
 
 
 def toeplitz_block(kernel, image_size):
-    # from https://stackoverflow.com/questions/56702873/is-there-an-function-in-pytorch-for-converting-convolutions-to-fully-connected-n
+    # from https://stackoverflow.com/questions/56702873/is-there-an-function-in-pytorch-for-converting-convolutions-to-fully-connected-n  # noqa: E501
     # admin
     k_h, k_w = kernel.shape
     i_h, i_w = image_size
@@ -53,15 +53,15 @@ def toeplitz_block(kernel, image_size):
     return W_conv
 
 
-def nan_resistant_conv2(I, kernel, size='same', cval=np.nan):
+def nan_resistant_conv2(Z, kernel, size='same', cval=np.nan):
     """ estimates a convolution on a corrupted array, making use of the energy
     perserving principle, see [Al22]_.
 
     Parameters
     ----------
-    I : np.array, size=(m,n)
+    Z : np.array, size=(m,n)
         array with intensity value
-    kernel : np.array, size=(k,l)
+    kernel : np.array, size=(j,k)
         kernel to be used for the convolution
     size : {'same','smaller'}
         padding is done with NaN's
@@ -78,12 +78,12 @@ def nan_resistant_conv2(I, kernel, size='same', cval=np.nan):
               estimate uncertainty of remotely sensed glacier displacements",
               The Crysophere, vol.16(6) pp.2285–2300, 2022.
     """
-    m, n = I.shape
-    k, l = kernel.shape
+    m, n = Z.shape
+    j, k = kernel.shape
 
     # set the stage
-    C = np.isnan(I.flatten())  # classification
-    A = toeplitz_block(kernel, I.shape).T  # design matrix
+    C = np.isnan(Z.flatten())  # classification
+    A = toeplitz_block(kernel, Z.shape).T  # design matrix
 
     for i in range(A.shape[1]):
         if np.sum(A[:, i]) != np.sum(A[C, i]):
@@ -100,12 +100,12 @@ def nan_resistant_conv2(I, kernel, size='same', cval=np.nan):
                 A[idx[~sat], i] += contrib
 
     # estimate
-    I = I.flatten()
-    I[C] = 0
-    U = np.dot(A.T, I)
+    Z = Z.flatten()
+    Z[C] = 0
+    U = np.dot(A.T, Z)
 
     # reorganize
-    pad_size = (k // 2, l // 2)
+    pad_size = (j // 2, k // 2)
     U = U.reshape(m - 2 * pad_size[0], n - 2 * pad_size[1])
     if size in ['same']:
         U = np.pad(U, ((pad_size[0], pad_size[0]), (pad_size[1], pad_size[1])),
@@ -114,15 +114,15 @@ def nan_resistant_conv2(I, kernel, size='same', cval=np.nan):
     return U
 
 
-def nan_resistant_diff2(I, kernel, size='same', cval=np.nan):
+def nan_resistant_diff2(Z, kernel, size='same', cval=np.nan):
     """ estimates a differential convolution on a corrupted array, making use
     of the energy perserving principle, see [Al22]_.
 
     Parameters
     ----------
-    I : np.array, size=(m,n)
+    Z : np.array, size=(m,n)
         array with intensity value
-    kernel : np.array, size=(k,l)
+    kernel : np.array, size=(j,k)
         kernel to be used for the convolution
     size : {'same','smaller'}
         padding is done with NaN's
@@ -139,12 +139,12 @@ def nan_resistant_diff2(I, kernel, size='same', cval=np.nan):
               estimate uncertainty of remotely sensed glacier displacements",
               The Crysophere, vol.16(6) pp.2285–2300, 2022.
     """
-    m, n = I.shape
-    k, l = kernel.shape
+    m, n = Z.shape
+    j, k = kernel.shape
 
     # set the stage
-    C = np.isnan(I.flatten())  # classification
-    A = toeplitz_block(kernel, I.shape).T  # design matrix
+    C = np.isnan(Z.flatten())  # classification
+    A = toeplitz_block(kernel, Z.shape).T  # design matrix
 
     for i in range(A.shape[1]):
         if np.sum(A[:, i]) != np.sum(A[C, i]):
@@ -152,7 +152,7 @@ def nan_resistant_diff2(I, kernel, size='same', cval=np.nan):
             val = np.squeeze(A[idx, i])
             sat = C[idx]
 
-            # redistribute the energy to comply with the closed system constrain
+            # redistribute energy to comply with the closed system constrain
             surplus = np.sum(val[sat])  # energy to distribute
             posse = np.sign(val)
 
@@ -171,12 +171,12 @@ def nan_resistant_diff2(I, kernel, size='same', cval=np.nan):
                 A[idx_sub, i] += contrib
 
     # estimate
-    I = I.flatten()
-    I[C] = 0
-    U = np.dot(A.T, I)
+    Z = Z.flatten()
+    Z[C] = 0
+    U = np.dot(A.T, Z)
 
     # reorganize
-    pad_size = (k // 2, l // 2)
+    pad_size = (j // 2, k // 2)
     U = U.reshape(m - 2 * pad_size[0], n - 2 * pad_size[1])
     if size in ['same']:
         U = np.pad(U, ((pad_size[0], pad_size[0]), (pad_size[1], pad_size[1])),
@@ -186,71 +186,71 @@ def nan_resistant_diff2(I, kernel, size='same', cval=np.nan):
     return U
 
 
-def select_boi_from_stack(I, boi):
+def select_boi_from_stack(Z, boi):
     """ give array with selection given by a pointing array
 
     Parameters
     ----------
-    I : np.array, size=(m,n,b), ndim={2,3}
+    Z : np.array, size=(m,n,b), ndim={2,3}
         data array.
     boi : np.array, size=(k,1), dtype=integer
         array giving the bands of interest.
 
     Returns
     -------
-    I_new : np.array, size=(m,n,k), ndim={2,3}
+    Z_new : np.array, size=(m,n,k), ndim={2,3}
         selection of bands, in the order given by boi.
     """
-    assert type(I) == np.ndarray, ("please provide an array")
+    assert type(Z) == np.ndarray, ("please provide an array")
     assert type(boi) == np.ndarray, ("please provide an array")
 
     if boi.shape[0] > 0:
-        if I.ndim > 2:
-            ndim = I.shape[2]
+        if Z.ndim > 2:
+            ndim = Z.shape[2]
             assert (ndim >= np.max(boi))  # boi pointer should not exceed bands
-            I_new = I[:, :, boi]
+            Z_new = Z[:, :, boi]
         else:
-            I_new = I
+            Z_new = Z
     else:
-        I_new = I
-    return I_new
+        Z_new = Z
+    return Z_new
 
 
-def get_image_subset(I, bbox):
+def get_image_subset(Z, bbox):
     """ get subset of an image specified by the bounding box extents
 
     Parameters
     ----------
-    I : np.array, size=(m,n), ndim={2,3,4}
+    Z : np.array, size=(m,n), ndim={2,3,4}
         data array
     bbox : np.array, size=(1,4)
         [minimum row, maximum row, minimum collumn maximum collumn].
 
     Returns
     -------
-    sub_I : np.array, size=(k,l), ndim={2,3,4}
+    sub_Z : np.array, size=(k,l), ndim={2,3,4}
         sub set of the data array.
 
     """
-    assert type(I) == np.ndarray, ("please provide an array")
+    assert type(Z) == np.ndarray, ("please provide an array")
     assert (bbox[0] <= bbox[1])
     assert (bbox[2] <= bbox[3])
 
-    if I.ndim == 2:
-        sub_I = I[bbox[0]:bbox[1], bbox[2]:bbox[3]]
-    elif I.ndim == 3:
-        sub_I = I[bbox[0]:bbox[1], bbox[2]:bbox[3], :]
-    elif I.ndim == 4:
-        sub_I = I[bbox[0]:bbox[1], bbox[2]:bbox[3], :, :]
-    return sub_I
+    if Z.ndim == 2:
+        sub_Z = Z[bbox[0]:bbox[1], bbox[2]:bbox[3]]
+    elif Z.ndim == 3:
+        sub_Z = Z[bbox[0]:bbox[1], bbox[2]:bbox[3], :]
+    elif Z.ndim == 4:
+        sub_Z = Z[bbox[0]:bbox[1], bbox[2]:bbox[3], :, :]
+    return sub_Z
 
 
-def bilinear_interpolation(I, di, dj):
+def bilinear_interpolation(Z, di, dj):
     """ do bilinear interpolation of an image at different locations
 
     Parameters
     ----------
-    I : np.array, size=(m,n), ndim={2,3}
+    Z : np.array, size=(m,n), ndim={2,3}
         data array.
     di :
         * np.array, size=(k,l), ndim=2
@@ -264,7 +264,7 @@ def bilinear_interpolation(I, di, dj):
             uniform horizontal displacement
     Returns
     -------
-    I_new : np.array, size=(k,l), ndim=2, dtype={float,complex}
+    Z_new : np.array, size=(k,l), ndim=2, dtype={float,complex}
         interpolated values.
 
     See Also
@@ -288,11 +288,11 @@ def bilinear_interpolation(I, di, dj):
           based      v           based       |
 
     """
-    assert type(I) in (np.ma.core.MaskedArray, np.ndarray), \
-        ("please provide an array")
+    assert type(Z) in (np.ma.core.MaskedArray, np.ndarray), \
+        "please provide an array"
 
     if isinstance(dj, (float, int)):  # integer values: constant displacement
-        mI, nI = I.shape[0], I.shape[1]
+        mI, nI = Z.shape[0], Z.shape[1]
         (dj, di) = np.meshgrid(
             np.linspace(0, nI - 1, nI) + dj,
             np.linspace(0, mI - 1, mI) + di)
@@ -302,43 +302,44 @@ def bilinear_interpolation(I, di, dj):
     i0, j0 = np.floor(di).astype(int), np.floor(dj).astype(int)
     i1, j1 = i0 + 1, j0 + 1
 
-    j0, j1 = np.clip(j0, 0, I.shape[1] - 1), np.clip(j1, 0, I.shape[1] - 1)
-    i0, i1 = np.clip(i0, 0, I.shape[0] - 1), np.clip(i1, 0, I.shape[0] - 1)
+    j0, j1 = np.clip(j0, 0, Z.shape[1] - 1), np.clip(j1, 0, Z.shape[1] - 1)
+    i0, i1 = np.clip(i0, 0, Z.shape[0] - 1), np.clip(i1, 0, Z.shape[0] - 1)
 
-    if I.ndim == 3:  # make resitent to multi-dimensional arrays
-        Ia, Ib, Ic, Id = I[i0, j0, :], I[i1, j0, :], I[i0, j1, :], I[i1, j1, :]
+    if Z.ndim == 3:  # make resitent to multi-dimensional arrays
+        Ia, Ib, Ic, Id = Z[i0, j0, :], Z[i1, j0, :], Z[i0, j1, :], Z[i1, j1, :]
     else:
-        Ia, Ib, Ic, Id = I[i0, j0], I[i1, j0], I[i0, j1], I[i1, j1]
+        Ia, Ib, Ic, Id = Z[i0, j0], Z[i1, j0], Z[i0, j1], Z[i1, j1]
 
-    wa, wb, wc, wd = (j1 - dj) * (i1 - di), (j1 - dj) * (di - i0), (
-                dj - j0) * (i1 - di), \
-                     (dj - j0) * (di - i0)
+    wa = (j1 - dj) * (i1 - di)
+    wb = (j1 - dj) * (di - i0)
+    wc = (dj - j0) * (i1 - di)
+    wd = (dj - j0) * (di - i0)
 
-    if I.ndim == 3:
-        wa = np.repeat(np.atleast_3d(wa), I.shape[2], axis=2)
-        wb = np.repeat(np.atleast_3d(wb), I.shape[2], axis=2)
-        wc = np.repeat(np.atleast_3d(wc), I.shape[2], axis=2)
-        wd = np.repeat(np.atleast_3d(wd), I.shape[2], axis=2)
+    if Z.ndim == 3:
+        wa = np.repeat(np.atleast_3d(wa), Z.shape[2], axis=2)
+        wb = np.repeat(np.atleast_3d(wb), Z.shape[2], axis=2)
+        wc = np.repeat(np.atleast_3d(wc), Z.shape[2], axis=2)
+        wd = np.repeat(np.atleast_3d(wd), Z.shape[2], axis=2)
 
-    I_new = wa * Ia + wb * Ib + wc * Ic + wd * Id
-    return I_new
+    Z_new = wa * Ia + wb * Ib + wc * Ic + wd * Id
+    return Z_new
 
 
-def simple_nearest_neighbor(I, i, j):
-    I_ij = np.zeros((i.size))
+def simple_nearest_neighbor(Z, i, j):
+    Z_ij = np.zeros((i.size))
     i, j = np.round(i).astype(int), np.round(j).astype(int)
-    IN = np.logical_and.reduce((i >= 0, i < I.shape[0], j >= 0, j
-                                < I.shape[1]))
-    I_ij[IN] = I[i[IN], j[IN]]
-    return I_ij
+    IN = np.logical_and.reduce((i >= 0, i < Z.shape[0], j >= 0, j
+                                < Z.shape[1]))
+    Z_ij[IN] = Z[i[IN], j[IN]]
+    return Z_ij
 
 
-def rescale_image(I, sc, method='cubic'):
+def rescale_image(Z, sc, method='cubic'):
     """ generate a zoomed-in version of an image, through isotropic scaling
 
     Parameters
     ----------
-    I : numpy.array, size=(m,n), ndim={2,3}
+    Z : numpy.array, size=(m,n), ndim={2,3}
         image
     sc : float
         scaling factor, >1 is zoom-in, <1 is zoom-out.
@@ -349,15 +350,15 @@ def rescale_image(I, sc, method='cubic'):
 
     Returns
     -------
-    I_new : numpy.array, size={(m,n),(m,n,b)}, ndim={2,3}
+    Z_new : numpy.array, size={(m,n),(m,n,b)}, ndim={2,3}
         rescaled, but not resized image
 
     """
-    assert type(I) == np.ndarray, ("please provide an array")
+    assert type(Z) == np.ndarray, ("please provide an array")
     T = np.array([[sc, 0], [0, sc]])  # scaling matrix
 
     # make local coordinate system
-    m, n = I.shape[:2]
+    m, n = Z.shape[:2]
     (grd_i1, grd_j1) = np.meshgrid(np.linspace(-1, 1, m),
                                    np.linspace(-1, 1, n))
 
@@ -369,16 +370,16 @@ def rescale_image(I, sc, method='cubic'):
     grd_j2 = np.reshape(grd_2[1, :], (m, n))
 
     # apply scaling
-    if I.ndim < 3:
-        I_new = griddata(stk_1, I.flatten().T, (grd_i2, grd_j2), method=method)
+    if Z.ndim < 3:
+        Z_new = griddata(stk_1, Z.flatten().T, (grd_i2, grd_j2), method=method)
     else:
-        b = I.shape[2]
-        I_new = np.zeros((m, n, b))
+        b = Z.shape[2]
+        Z_new = np.zeros((m, n, b))
         for i in range(b):
-            I_new[..., i] = griddata(stk_1,
-                                     I[..., i].flatten().T, (grd_i2, grd_j2),
+            Z_new[..., i] = griddata(stk_1,
+                                     Z[..., i].flatten().T, (grd_i2, grd_j2),
                                      method=method)
-    return I_new
+    return Z_new
 
 
 def rotated_sobel(az, size=3, indexing='ij'):
@@ -444,79 +445,79 @@ def rotated_sobel(az, size=3, indexing='ij'):
     az = np.radians(az)
 
     steps = np.arange(-d, +d + 1)
-    I = np.repeat(steps[np.newaxis, :], size, axis=0)
-    J = np.rot90(I)
+    Z = np.repeat(steps[np.newaxis, :], size, axis=0)
+    J = np.rot90(Z)
 
     np.seterr(divide='ignore', invalid='ignore')
     if az == 0:
-        H_x = I / (np.multiply(I, I) + np.multiply(J, J))
+        H_x = Z / (np.multiply(Z, Z) + np.multiply(J, J))
     else:
         if indexing == 'ij':
-            H_x = (+np.cos(az) * I) + (+np.sin(az) * J) / \
-                  (np.multiply(I, I) + np.multiply(J, J))
+            H_x = (+np.cos(az) * Z) + (+np.sin(az) * J) / \
+                  (np.multiply(Z, Z) + np.multiply(J, J))
         else:
-            H_x = (-np.sin(az) * I) + (-np.cos(az) * J) / \
-                  (np.multiply(I, I) + np.multiply(J, J))
+            H_x = (-np.sin(az) * Z) + (-np.cos(az) * J) / \
+                  (np.multiply(Z, Z) + np.multiply(J, J))
     H_x[d, d] = 0
     return H_x
 
 
-def diff_compass(I, direction='n'):
+def diff_compass(Z, direction='n'):
     """ calculates the neighboring directional difference
 
     Parameters
     ----------
-    I : np.array, size=(m-2,n-2), dtype=float
+    Z : np.array, size=(m-2,n-2), dtype=float
         intensity array
     direction : {'n','ne','e','se','s','sw','w','nw'}
         compass direction
 
     Returns
     -------
-    dI : np.array, size=(m-2,n-2), dtype=float
+    dZ : np.array, size=(m-2,n-2), dtype=float
         directional neighboring difference
     """
     if direction in ('n', 'north', 'up'):
-        if I.ndim == 2:
-            dI = I[:-2, 1:-1] - I[1:-1, 1:-1]
+        if Z.ndim == 2:
+            dZ = Z[:-2, 1:-1] - Z[1:-1, 1:-1]
         else:
-            dI = I[:-2, 1:-1, :] - I[1:-1, 1:-1, :]
+            dZ = Z[:-2, 1:-1, :] - Z[1:-1, 1:-1, :]
     elif direction in ('e', 'east', 'right'):
-        if I.ndim == 2:
-            dI = I[1:-1, +2:] - I[1:-1, 1:-1]
+        if Z.ndim == 2:
+            dZ = Z[1:-1, +2:] - Z[1:-1, 1:-1]
         else:
-            dI = I[1:-1, +2:, :] - I[1:-1, 1:-1, :]
+            dZ = Z[1:-1, +2:, :] - Z[1:-1, 1:-1, :]
     elif direction in ('s', 'south', 'down'):
-        if I.ndim == 2:
-            dI = I[+2:, 1:-1] - I[1:-1, 1:-1]
+        if Z.ndim == 2:
+            dZ = Z[+2:, 1:-1] - Z[1:-1, 1:-1]
         else:
-            dI = I[+2:, 1:-1, :] - I[1:-1, 1:-1, :]
+            dZ = Z[+2:, 1:-1, :] - Z[1:-1, 1:-1, :]
     elif direction in ('w', 'west', 'left'):
-        if I.ndim == 2:
-            dI = I[1:-1, :-2] - I[1:-1, 1:-1]
+        if Z.ndim == 2:
+            dZ = Z[1:-1, :-2] - Z[1:-1, 1:-1]
         else:
-            dI = I[1:-1, :-2, :] - I[1:-1, 1:-1, :]
+            dZ = Z[1:-1, :-2, :] - Z[1:-1, 1:-1, :]
     elif direction in ('ne', 'norhteast', 'ur', 'ru', 'upperright'):
-        if I.ndim == 2:
-            dI = I[:-2, +2:] - I[1:-1, 1:-1]
+        if Z.ndim == 2:
+            dZ = Z[:-2, +2:] - Z[1:-1, 1:-1]
         else:
-            dI = I[:-2, +2:, :] - I[1:-1, 1:-1, :]
+            dZ = Z[:-2, +2:, :] - Z[1:-1, 1:-1, :]
     elif direction in ('se', 'southeast', 'lr', 'rl', 'lowerright'):
-        if I.ndim == 2:
-            dI = I[+2:, +2:] - I[1:-1, 1:-1]
+        if Z.ndim == 2:
+            dZ = Z[+2:, +2:] - Z[1:-1, 1:-1]
         else:
-            dI = I[+2:, +2:, :] - I[1:-1, 1:-1, :]
+            dZ = Z[+2:, +2:, :] - Z[1:-1, 1:-1, :]
     elif direction in ('sw', 'southwest', 'll', 'lowerleft'):
-        if I.ndim == 2:
-            dI = I[+2:, :-2] - I[1:-1, 1:-1]
+        if Z.ndim == 2:
+            dZ = Z[+2:, :-2] - Z[1:-1, 1:-1]
         else:
-            dI = I[+2:, :-2, :] - I[1:-1, 1:-1, :]
+            dZ = Z[+2:, :-2, :] - Z[1:-1, 1:-1, :]
     elif direction in ('nw', 'northwest', 'ul', 'lu', 'upperleft'):
-        if I.ndim == 2:
-            dI = I[:-2, :-2] - I[1:-1, 1:-1]
+        if Z.ndim == 2:
+            dZ = Z[:-2, :-2] - Z[1:-1, 1:-1]
         else:
-            dI = I[:-2, :-2, :] - I[1:-1, 1:-1, :]
-    return dI
+            dZ = Z[:-2, :-2, :] - Z[1:-1, 1:-1, :]
+    return dZ
 
 
 def get_grad_filters(ftype='sobel', tsize=3, order=1, indexing='xy'):
@@ -540,8 +541,8 @@ def get_grad_filters(ftype='sobel', tsize=3, order=1, indexing='xy'):
     order : {1,2}, dtype=integer
         first or second order derivative (not all have this)
     indexing : {'xy','ij'}
-        Cartesian (‘xy’, default) or matrix (‘ij’) indexing of output, see Notes
-        for more details.
+        Cartesian (‘xy’, default) or matrix (‘ij’) indexing of output, see
+        Notes for more details.
 
     Returns
     -------
@@ -580,8 +581,8 @@ def get_grad_filters(ftype='sobel', tsize=3, order=1, indexing='xy'):
     ----------
     .. [S090] Sobel, "An isotropic 3×3 gradient operator" Machine vision for
               three-dimensional scenes, Academic press, pp.376–379, 1990.
-    .. [Kr09] Kroon, "Numerical optimization of kernel-based image derivatives",
-              2009
+    .. [Kr09] Kroon, "Numerical optimization of kernel-based image
+              derivatives", 2009
     .. [Sc00] Scharr, "Optimal operators in digital image processing"
               PhD dissertation University of Heidelberg, 2000.
     .. [Ki70] Kirsch, "Computer determination of the constituent structure of
@@ -592,8 +593,8 @@ def get_grad_filters(ftype='sobel', tsize=3, order=1, indexing='xy'):
     .. [Pr70] Prewitt, "Object enhancement and extraction" Picture processing
               and psychopictorics, 1970.
     .. [FS97] Farid & Simoncelli "Optimally rotation-equivariant directional
-              derivative kernels" Proceedings of the international conference on
-              computer analysis of images and patterns, pp207–214, 1997
+              derivative kernels" Proceedings of the international conference
+              on computer analysis of images and patterns, pp207–214, 1997
     """
 
     ftype = ftype.lower()  # make string lowercase
@@ -677,21 +678,21 @@ def get_grad_filters(ftype='sobel', tsize=3, order=1, indexing='xy'):
     return out1, out2
 
 
-def harst_conv(I, ftype='bezier'):
+def harst_conv(Z, ftype='bezier'):
     """ construct derivatives through double filtering, see [Ha14]_
 
     Parameters
     ----------
-    I : np.array, size=(m,n)
+    Z : np.array, size=(m,n)
         array with intensities
     ftype : {'bezier', 'bspline','catmull','cubic'}
         the type of gradient filter to use. The default is 'bezier'.
 
     Returns
     -------
-    I_y : np.array, size=(m,n)
+    Z_y : np.array, size=(m,n)
         gradient in vertical direction
-    I_x : np.array, size=(m,n)
+    Z_x : np.array, size=(m,n)
         gradient in horizontal direction
 
     References
@@ -719,10 +720,10 @@ def harst_conv(I, ftype='bezier'):
     d = np.matmul(un, M)
     k = np.matmul(up, M)
 
-    I_y = ndimage.convolve1d(ndimage.convolve1d(I, np.convolve(d, k), axis=0),
+    Z_y = ndimage.convolve1d(ndimage.convolve1d(Z, np.convolve(d, k), axis=0),
                              np.convolve(k, k),
                              axis=1)
-    I_x = ndimage.convolve1d(ndimage.convolve1d(I, np.convolve(k, k), axis=0),
+    Z_x = ndimage.convolve1d(ndimage.convolve1d(Z, np.convolve(k, k), axis=0),
                              np.convolve(d, k),
                              axis=1)
-    return I_y, I_x
+    return Z_y, Z_x

@@ -97,8 +97,8 @@ def get_peak_indices(C, num_estimates=1):
     Returns
     -------
     idx : np.array, size=(k,2), dtype=integer
-        vertical and horizontal location of highest peak(s), based upon an image
-        coordinate system, that is [row, collumn] indexing
+        vertical and horizontal location of highest peak(s), based upon an
+        image coordinate system, that is [row, collumn] indexing
     val : np.array, size=(k,)
         voting score at peak location
 
@@ -131,20 +131,20 @@ def get_peak_indices(C, num_estimates=1):
     val = np.zeros(num_estimates)
 
     maximal_num = np.minimum(len(scores), num_estimates)
-    idx[:maximal_num, :] = ids[:, :
-                                  maximal_num].T  # swap axis, because of np.where
+    idx[:maximal_num, :] = \
+        ids[:, :maximal_num].T  # swap axis, because of np.where
     val[:maximal_num] = scores[:maximal_num]
     return idx, val
 
 
 # supporting functions
-def get_template(I, idx_1, idx_2, radius):
+def get_template(Z, idx_1, idx_2, radius):
     """ get a template, eventhough the index or template might be outside the
     given domain
 
     Parameters
     ----------
-    I : np.array, size=(m,n), dtype={integer,float}
+    Z : np.array, size=(m,n), dtype={integer,float}
         large numpy array with intensities/data
     idx_1 : integer
         row index of the central pixel of interest
@@ -155,19 +155,19 @@ def get_template(I, idx_1, idx_2, radius):
 
     Returns
     -------
-    I_sub : np.array, size=(k,k)
+    Z_sub : np.array, size=(k,k)
         array with Gaussian peak in the center
     """
     sub_idx = np.mgrid[idx_1 - radius:idx_1 + radius + 1,
-              idx_2 - radius:idx_2 + radius + 1]
+                       idx_2 - radius:idx_2 + radius + 1]
 
     sub_ids = np.ravel_multi_index(np.vstack(
         (sub_idx[0].flatten(), sub_idx[1].flatten())),
-        I.shape,
-        mode='clip')
-    I_sub = np.take(I, sub_ids, mode='clip')
-    I_sub = np.reshape(I_sub, (2 * radius + 1, 2 * radius + 1))
-    return I_sub
+                                   Z.shape,
+                                   mode='clip')
+    Z_sub = np.take(Z, sub_ids, mode='clip')
+    Z_sub = np.reshape(Z_sub, (2 * radius + 1, 2 * radius + 1))
+    return Z_sub
 
 
 def pad_images_and_filter_coord_list(M1,
@@ -271,12 +271,12 @@ def pad_images_and_filter_coord_list(M1,
     return M1_new, M2_new, i1, j1, i2, j2, IN
 
 
-def pad_radius(I, radius, cval=0):
+def pad_radius(Z, radius, cval=0):
     """ add extra boundary to array, so templates can be easier extracted
 
     Parameters
     ----------
-    I : {numpy.ndarray, numpy.masked.array}, size=(m,n) or (m,n,b)
+    Z : {numpy.ndarray, numpy.masked.array}, size=(m,n) or (m,n,b)
         data array
     radius : {positive integer, tuple}
         extra boundary to be added to the data array
@@ -285,45 +285,46 @@ def pad_radius(I, radius, cval=0):
 
     Returns
     -------
-    I_xtra : np.array, size=(m+2*radius,n+2*radius)
+    Z_xtra : np.array, size=(m+2*radius,n+2*radius)
         extended data array
     """
-    assert type(I) in (np.ma.core.MaskedArray, np.ndarray), \
+    assert type(Z) in (np.ma.core.MaskedArray, np.ndarray), \
         ("please provide an array")
-    if not type(radius) is tuple: radius = (radius, radius)
+    if not type(radius) is tuple:
+        radius = (radius, radius)
 
-    if I.ndim == 3:
-        if type(I) in (np.ma.core.MaskedArray,):
-            I_xtra = np.ma.array(np.pad(I, ((radius[0], radius[1]),
+    if Z.ndim == 3:
+        if type(Z) in (np.ma.core.MaskedArray, ):
+            Z_xtra = np.ma.array(np.pad(Z, ((radius[0], radius[1]),
                                             (radius[0], radius[1]), (0, 0)),
                                         'constant',
                                         constant_values=cval),
-                                 mask=np.pad(np.ma.getmaskarray(I),
+                                 mask=np.pad(np.ma.getmaskarray(Z),
                                              ((radius[0], radius[1]),
                                               (radius[0], radius[1]), (0, 0)),
                                              'constant',
                                              constant_values=True))
-            return I_xtra
-        I_xtra = np.pad(I, ((radius[0], radius[1]), (radius[0], radius[1]),
+            return Z_xtra
+        Z_xtra = np.pad(Z, ((radius[0], radius[1]), (radius[0], radius[1]),
                             (0, 0)),
                         'constant',
                         constant_values=cval)
-        return I_xtra
-    if type(I) in (np.ma.core.MaskedArray,):
-        I_xtra = np.ma.array(np.pad(I, ((radius[0], radius[1]),
+        return Z_xtra
+    if type(Z) in (np.ma.core.MaskedArray, ):
+        Z_xtra = np.ma.array(np.pad(Z, ((radius[0], radius[1]),
                                         (radius[0], radius[1])),
                                     'constant',
                                     constant_values=cval),
-                             mask=np.pad(np.ma.getmaskarray(I),
+                             mask=np.pad(np.ma.getmaskarray(Z),
                                          ((radius[0], radius[1]),
                                           (radius[0], radius[1])),
                                          'constant',
                                          constant_values=True))
-        return I_xtra
-    I_xtra = np.pad(I, ((radius[0], radius[1]), (radius[0], radius[1])),
+        return Z_xtra
+    Z_xtra = np.pad(Z, ((radius[0], radius[1]), (radius[0], radius[1])),
                     'constant',
                     constant_values=cval)
-    return I_xtra
+    return Z_xtra
 
 
 def prepare_grids(im_stack, ds, cval=0):
@@ -355,7 +356,8 @@ def prepare_grids(im_stack, ds, cval=0):
     assert type(im_stack) in (np.ma.core.MaskedArray, np.ndarray), \
         ("please provide an array")
     assert type(ds) == int, ("please provide an integer")
-    if im_stack.ndim == 2: im_stack = np.atleast_3d(im_stack)
+    if im_stack.ndim == 2:
+        im_stack = np.atleast_3d(im_stack)
 
     # padding is needed to let all imagery be of the correct template size
     i_pad = int(np.ceil(im_stack.shape[0] / ds) * ds - im_stack.shape[0])
@@ -407,12 +409,12 @@ def make_templates_same_size(I1, I2):
     return I1, I2sub
 
 
-def remove_posts_outside_image(I, i, j):
+def remove_posts_outside_image(Z, i, j):
     """
 
     Parameters
     ----------
-    I : numpy.ndarray, size=(m,n)
+    Z : numpy.ndarray, size=(m,n)
         grid of interest
     i,j : numpy.ndarray, size=(k,)
         post locations given in image coordinates
@@ -426,10 +428,10 @@ def remove_posts_outside_image(I, i, j):
     --------
     remove_posts_pairs_outside_image
     """
-    assert I.ndim >= 2, ('please provide an 2D array')
+    assert Z.ndim >= 2, ('please provide an 2D array')
 
-    IN = np.logical_and.reduce((i >= 0, i < (I.shape[0] - 1), j >= 0, j
-                                < (I.shape[1] - 1)))
+    IN = np.logical_and.reduce((i >= 0, i < (Z.shape[0] - 1), j >= 0, j
+                                < (Z.shape[1] - 1)))
     i, j = i[IN], j[IN]
     return i, j, IN
 
@@ -497,11 +499,11 @@ def reposition_templates_from_center(I1, I2, di, dj):
     mc, nc = ms // 2, ns // 2  # center location
 
     if I1.ndim == 3:
-        I2sub = I2[mc - (mt // 2) - di: mc + (mt // 2) - di, \
-                nc - (nt // 2) - dj: nc + (nt // 2) - dj, :]
+        I2sub = I2[mc - (mt // 2) - di:mc + (mt // 2) - di,
+                   nc - (nt // 2) - dj:nc + (nt // 2) - dj, :]
     else:
-        I2sub = I2[mc - (mt // 2) - di: mc + (mt // 2) - di, \
-                nc - (nt // 2) - dj: nc + (nt // 2) - dj]
+        I2sub = I2[mc - (mt // 2) - di:mc + (mt // 2) - di,
+                   nc - (nt // 2) - dj:nc + (nt // 2) - dj]
     return I1, I2sub
 
 
@@ -560,7 +562,7 @@ def get_coordinates_of_template_centers(Grid, temp_size):
 
     radius = np.floor(temp_size / 2).astype('int')
     I_idx, J_idx = np.mgrid[radius:(m - radius):temp_size,
-                   radius:(n - radius):temp_size]
+                            radius:(n - radius):temp_size]
     return I_idx, J_idx
 
 
@@ -592,8 +594,8 @@ def get_value_at_template_centers(Grid, temp_size):
     if (Grid.ndim == 3):
         m, n = Iidx.shape
         b = Grid.shape[2]
-        Iidx, Jidx = np.tile(np.atleast_3d(Iidx), (1, 1, b)), \
-                     np.tile(np.atleast_3d(Jidx), (1, 1, b))
+        Iidx = np.tile(np.atleast_3d(Iidx), (1, 1, b))
+        Jidx = np.tile(np.atleast_3d(Jidx), (1, 1, b))
         Kidx = np.ones((m, n, b))
         Kidx = np.einsum('k,ijk->ijk', np.linspace(0, b - 1, b),
                          Kidx).astype(int)
@@ -604,35 +606,39 @@ def get_value_at_template_centers(Grid, temp_size):
     return grid_centers_values
 
 
-def get_data_and_mask(I, M=None):
+def get_data_and_mask(Z, M=None):
     """ sometimes data is given in masked array form (numpy.ma), then this is
     separated into regular numpy.arrays
 
     Parameters
     ----------
-    I : {numpy.array, numpy.masked.array}
+    Z : {numpy.ndarray, numpy.masked.array}
         data grid
-    M : {numpy.array, numpy.masked.array}, default=None
+    M : {numpy.ndarray, numpy.masked.array}, default=None
         masking array, where True means data, and False neglecting elements
 
     Returns
     -------
-    I : numpy.array
+    Z : numpy.ndarray
         data array
-    M : numpy.array, dtype=bool
+    M : numpy.ndarray, dtype=bool
         masking array, where True means data, and False neglecting elements
     """
     # make compatible with masked array
-    if type(I) == np.ma.core.MaskedArray:
+    if type(Z) == np.ma.core.MaskedArray:
         if M is None:
-            M = np.invert(np.ma.getmaskarray(I))
+            M = np.invert(np.ma.getmaskarray(Z))
         else:
-            if type(M) == np.ma.core.MaskedArray: M = np.ma.getdata(M)
-            M = np.logical_and(M, np.invert(np.ma.getmaskarray(I)))
-        I = np.ma.getdata(I)
+            if type(M) == np.ma.core.MaskedArray:
+                M = np.ma.getdata(M)
+            M = np.logical_and(M, np.invert(np.ma.getmaskarray(Z)))
+        Z = np.ma.getdata(Z)
     else:
-        if M is None: M = np.ones_like(I)
-        if M.size == 0: M = np.ones_like(I)
-        if type(M) == np.ma.core.MaskedArray: M = np.ma.getdata(M)
+        if M is None:
+            M = np.ones_like(Z)
+        if M.size == 0:
+            M = np.ones_like(Z)
+        if type(M) == np.ma.core.MaskedArray:
+            M = np.ma.getdata(M)
         M = M.astype(dtype=bool)
-    return I, M
+    return Z, M

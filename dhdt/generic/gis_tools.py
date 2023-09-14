@@ -8,7 +8,7 @@ from osgeo import ogr, osr, gdal
 
 def create_crs_from_utm_zone(utm_code):
     """ generate GDAL SpatialReference from UTM code
-    
+
 
     Parameters
     ----------
@@ -27,25 +27,27 @@ def create_crs_from_utm_zone(utm_code):
     crs = osr.SpatialReference()
     crs.SetWellKnownGeogCS("WGS84")
     if utm_sphere != 'N':
-        crs.SetProjCS("UTM " + str(utm_zone) + \
-                      " (WGS84) in northern hemisphere.")
+        crs.SetProjCS(
+            "UTM " + str(utm_zone) + " (WGS84) in northern hemisphere."
+        )
         crs.SetUTM(utm_zone, True)
     else:
-        crs.SetProjCS("UTM " + str(utm_zone) + \
-                      " (WGS84) in southern hemisphere.")
+        crs.SetProjCS(
+            "UTM " + str(utm_zone) + " (WGS84) in southern hemisphere."
+        )
         crs.SetUTM(utm_zone, False)
     return crs
 
 
 def ll2utm(ll_fname, utm_fname, crs, aoi='RGIId'):
     """ transfrom shapefile in Lat-Long to UTM coordinates
-    
+
     Parameters
     ----------
     ll_fname : string
         path and filename of input file
     utm_fname : string
-        path and filename of output file 
+        path and filename of output file
     crs : string
         coordinate reference code
     aoi : string
@@ -67,10 +69,12 @@ def ll2utm(ll_fname, utm_fname, crs, aoi='RGIId'):
     if os.path.exists(utm_fname):
         driver.DeleteDataSource(utm_fname)
     outDataSet = driver.CreateDataSource(utm_fname)
-    outLayer = outDataSet.CreateLayer("reproject",
-                                      outSpatialRef,
-                                      geom_type=ogr.wkbMultiPolygon)
-    #               outLayer = outDataSet.CreateLayer("reproject", geom_type=ogr.wkbMultiPolygon)
+    outLayer = outDataSet.CreateLayer(
+        "reproject", outSpatialRef, geom_type=ogr.wkbMultiPolygon
+    )
+    # outLayer = outDataSet.CreateLayer(
+    #     "reproject", geom_type=ogr.wkbMultiPolygon
+    # )
 
     # add fields
     fieldDefn = ogr.FieldDefn('RGIId', ogr.OFTInteger)
@@ -113,7 +117,7 @@ def shape2raster(shp_fname,
                  cols,
                  spatialRef,
                  aoi='RGIId'):
-    """ converts shapefile into raster        
+    """ converts shapefile into raster
 
     Parameters
     ----------
@@ -124,7 +128,7 @@ def shape2raster(shp_fname,
     geoTransform : tuple, size=(1,6)
         affine transformation coefficients
     rows : integer, {x ∈ ℕ | x ≥ 0}
-        number of rows in the image 
+        number of rows in the image
     cols : integer, {x ∈ ℕ | x ≥ 0}
         number of collumns in the image
     aoi : string
@@ -170,7 +174,7 @@ def get_mask_boundary(Msk):
 
 def reproject_shapefile(path, in_file, targetprj):
     """ transforms shapefile into other projection
-    
+
     Parameters
     ----------
     path : string
@@ -255,8 +259,8 @@ def get_utm_zone(ϕ, λ):
         string specifying the UTM zone
     """
     ϕ_zones = [
-        chr(i) for i in list(range(67, 73)) + list(range(74, 79)) +
-                        list(range(80, 89))
+        chr(i) for i in
+        list(range(67, 73)) + list(range(74, 79)) + list(range(80, 89))
     ]  # tile letters
     ϕ_cen = np.append(np.arange(-80, 72 + 1, 8), 84)
     λ_cen = np.arange(-180, 180 + 1, 6)
@@ -296,8 +300,8 @@ def utm_zone_limits(utm_zone):
         minimum and maximum extent
     """
     ϕ_zones = [
-        chr(i) for i in list(range(67, 73)) + list(range(74, 79)) +
-                        list(range(80, 89))
+        chr(i) for i in
+        list(range(67, 73)) + list(range(74, 79)) + list(range(80, 89))
     ]  # tile letters
 
     ϕ_min = np.append(np.arange(-80, 64 + 1, 8), 72)

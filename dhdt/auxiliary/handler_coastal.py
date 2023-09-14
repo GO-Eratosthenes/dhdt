@@ -65,7 +65,8 @@ def get_coastal_dataset(geom_dir,
         'l',
         'c',
     ), 'please provide correct letter'
-    if not os.path.isdir(geom_dir): os.makedirs(geom_dir)
+    if not os.path.isdir(geom_dir):
+        os.makedirs(geom_dir)
     if geom_name is None:
         geom_name = 'GSHHS_' + resolution + '_L' + str(minimal_level) + \
                     '.geojson'
@@ -107,9 +108,12 @@ def get_coastal_polygon_of_tile(tile_code,
     if geom_dir is None:
         rot_dir = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3])
         geom_dir = os.path.join(rot_dir, 'data')
-    if geom_name is None: geom_name = 'GSHHS_f_L1.geojson'
-    if out_dir is None: out_dir = os.getcwd()
-    if not os.path.isdir(out_dir): os.makedirs(out_dir)
+    if geom_name is None:
+        geom_name = 'GSHHS_f_L1.geojson'
+    if out_dir is None:
+        out_dir = os.getcwd()
+    if not os.path.isdir(out_dir):
+        os.makedirs(out_dir)
 
     if tile_system == 'MGRS':
         tile_code = check_mgrs_code(tile_code)

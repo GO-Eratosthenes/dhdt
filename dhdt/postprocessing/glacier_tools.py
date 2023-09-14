@@ -50,9 +50,11 @@ def update_glacier_mask(Z, R, iter=50, curv_max=2.):
 
     # for multi-polygons remove the smaller ones
     for r_id in np.unique(R_new):
-        if r_id == 0: continue
+        if r_id == 0:
+            continue
         L, num_poly = ndimage.label(R_new == r_id)
-        if num_poly == 1: continue
+        if num_poly == 1:
+            continue
         idx_poly = np.arange(1, num_poly + 1)
         siz_poly = ndimage.sum_labels(np.ones_like(L), L, index=idx_poly)
         max_poly = idx_poly[np.argmax(siz_poly)]
@@ -134,8 +136,9 @@ def volume2icemass(V, Z=None, RGI=None, ela=None, distinction='Kaeaeb'):
 
 
 def mass_change2specific_glaciers(dM, RGI):
-    f = lambda x: np.quantile(x, 0.5)
-    labels, mb, count = get_stats_from_labelled_array(RGI, dM, f)
+    labels, mb, count = get_stats_from_labelled_array(
+        RGI, dM, lambda x: np.quantile(x, 0.5)
+    )
 
     IN = ~np.isnan(mb[..., 0])
     labels, mb, count = labels[IN], mb[IN], count[IN]
@@ -181,8 +184,9 @@ def mass_changes2specific_glacier_hypsometries(dM,
         Z = np.minimum(Z, Z_stop)
 
     Z_bin = (Z // interval).astype(int)
-    f = lambda x: np.quantile(x, 0.5) if x.size > 0 else np.nan
-    Mb, rgi, z_bin, Count = get_stats_from_labelled_arrays(RGI, Z_bin, dM, f)
+    Mb, rgi, z_bin, Count = get_stats_from_labelled_arrays(
+        RGI, Z_bin, dM, lambda x: np.quantile(x, 0.5) if x.size > 0 else np.nan
+    )
 
     # sort array, so biggest glacier is first
     new_idx = np.flip(np.argsort(np.sum(Count, axis=1)))

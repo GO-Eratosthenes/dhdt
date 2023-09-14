@@ -9,7 +9,8 @@ def dh_txt2shp(dh_mat, DEM_1, DEM_2, shp_name, srs):
     dh matrix to shapefile with matches
     """
 
-    if isinstance(srs, str): srs = osr.SpatialReference(wkt=srs)
+    if isinstance(srs, str):
+        srs = osr.SpatialReference(wkt=srs)
 
     driver = ogr.GetDriverByName(
         'ESRI Shapefile')  # set up the shapefile driver
@@ -29,7 +30,7 @@ def dh_txt2shp(dh_mat, DEM_1, DEM_2, shp_name, srs):
     layer.CreateField(ogr.FieldDefn('h2', ogr.OFTReal))
     layer.CreateField(ogr.FieldDefn('score', ogr.OFTReal))
 
-    # Process the text file and add the attributes and features to the shapefile
+    # Process the text file and add attributes and features to the shapefile
     for j in range(dh_mat.shape[0]):
         # create the feature
         feature = ogr.Feature(layer.GetLayerDefn())
@@ -54,7 +55,8 @@ def dh_txt2shp(dh_mat, DEM_1, DEM_2, shp_name, srs):
 
 
 def casting_pairs_mat2shp(xy_1, caster, xy_2, shp_name, srs):
-    if isinstance(srs, str): srs = osr.SpatialReference(wkt=srs)
+    if isinstance(srs, str):
+        srs = osr.SpatialReference(wkt=srs)
 
     driver = ogr.GetDriverByName(
         'ESRI Shapefile')  # set up the shapefile driver
@@ -64,11 +66,11 @@ def casting_pairs_mat2shp(xy_1, caster, xy_2, shp_name, srs):
     ds = driver.CreateDataSource(shp_name)  # create the data source
 
     # create the layer
-    layer = ds.CreateLayer('photohypso_pairs',
-                           srs,
-                           geom_type=ogr.wkbLineString)
+    layer = ds.CreateLayer(
+        'photohypso_pairs', srs, geom_type=ogr.wkbLineString
+    )
 
-    # Process the text file and add the attributes and features to the shapefile
+    # Process the text file and add attributes and features to the shapefile
     for j in range(caster.shape[0]):
         # create the feature
         feature = ogr.Feature(layer.GetLayerDefn())
@@ -103,7 +105,8 @@ def casting_pairs_mat2shp(xy_1, xy_2, shp_name, srs):
     srs : {str, osr.SpatialReference}
         spatial reference system in which the map coordinates are defined
     """
-    if isinstance(srs, str): srs = osr.SpatialReference(wkt=srs)
+    if isinstance(srs, str):
+        srs = osr.SpatialReference(wkt=srs)
 
     driver = ogr.GetDriverByName(
         'ESRI Shapefile')  # set up the shapefile driver
@@ -115,7 +118,7 @@ def casting_pairs_mat2shp(xy_1, xy_2, shp_name, srs):
     # create the layer
     layer = ds.CreateLayer('shadow_edge', srs, geom_type=ogr.wkbLineString)
 
-    # Process the text file and add the attributes and features to the shapefile
+    # Process the text file and add attributes and features to the shapefile
     for j in range(xy_1.shape[0]):
         # create the feature
         feature = ogr.Feature(layer.GetLayerDefn())

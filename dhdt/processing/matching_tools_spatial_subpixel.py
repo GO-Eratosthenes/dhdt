@@ -59,7 +59,7 @@ def get_top_moment(C, ds=1, top=np.array([])):
     i_int, j_int = np.copy(di), np.copy(dj)
 
     if is_estimate_away_from_border(C, di, dj, ds):  # estimate sub-pixel top
-        idx_mid = int(np.floor((2. * ds + 1) ** 2 / 2))
+        idx_mid = int(np.floor((2. * ds + 1)**2 / 2))
 
         i_sub = C.shape[0] // 2 + np.arange(-ds, +ds + 1) + di
         j_sub = C.shape[1] // 2 + np.arange(-ds, +ds + 1) + dj
@@ -112,7 +112,7 @@ def get_top_blue(C, ds=1, top=np.array([])):  # todo
         return 0, 0, i_int, j_int
 
     # estimate sub-pixel top
-    idx_mid = int(np.floor((2. * ds + 1) ** 2 / 2))
+    idx_mid = int(np.floor((2. * ds + 1)**2 / 2))
 
     i_sub = C.shape[0] // 2 + np.arange(-ds, +ds + 1) + di
     j_sub = C.shape[1] // 2 + np.arange(-ds, +ds + 1) + dj
@@ -176,13 +176,14 @@ def get_top_gaussian(C, top=np.array([])):
         return 0, 0, i_int, j_int
 
     # estimate sub-pixel along each axis
-    ddi = (np.log(C[di + 1, dj]) - np.log(C[di - 1, dj])) / \
-          2 * ((2 * np.log(C[di, dj])) - np.log(C[di - 1, dj]) - np.log(
-        C[di + 1, dj]))
-    ddj = (np.log(C[di, dj + 1]) - np.log(C[di, dj - 1])) / \
-          2 * ((2 * np.log(C[di, dj])) - np.log(C[di, dj - 1]) - np.log(
-        C[di, dj + 1]))
-
+    ddi = (
+        (np.log(C[di + 1, dj]) - np.log(C[di - 1, dj])) / 2 *
+        (2 * np.log(C[di, dj]) - np.log(C[di - 1, dj]) - np.log(C[di + 1, dj]))
+    )
+    ddj = (
+        (np.log(C[di, dj + 1]) - np.log(C[di, dj - 1])) / 2 *
+        (2 * np.log(C[di, dj]) - np.log(C[di, dj - 1]) - np.log(C[di, dj + 1]))
+    )
     return ddi, ddj, i_int, j_int
 
 
@@ -226,12 +227,14 @@ def get_top_centroid(C, top=np.array([])):
         return 0, 0, i_int, j_int
 
     # estimate sub-pixel along each axis
-    ddi = ((i_int - 1) * C[di - 1, dj] + i_int * C[di, dj] + (i_int + 1) * C[
-        di + 1, dj]) / \
-          (C[di - 1, dj] + C[di, dj] + C[di + 1, dj])
-    ddj = ((j_int - 1) * C[di, dj - 1] + j_int * C[di, dj] + (j_int + 1) * C[
-        di, dj + 1]) / \
-          (C[di, dj - 1] + C[di, dj] + C[di, dj + 1])
+    ddi = (
+        ((i_int - 1) * C[di - 1, dj] + i_int * C[di, dj] + (i_int + 1) * C[di + 1, dj]) /  # noqa: E501
+        (C[di - 1, dj] + C[di, dj] + C[di + 1, dj])
+    )
+    ddj = (
+        ((j_int - 1) * C[di, dj - 1] + j_int * C[di, dj] + (j_int + 1) * C[di, dj + 1]) /  # noqa: E501
+        (C[di, dj - 1] + C[di, dj] + C[di, dj + 1])
+    )
     ddi -= i_int
     ddj -= j_int
 
@@ -673,12 +676,12 @@ def get_top_esinc(C, ds=1, top=np.array([])):
         #        coord = np.linspace(1, y.size, y.size) - (y.size//2+1)
         #        return y - a * np.exp(-(b * (coord - c)) ** 2) * \
         #            (np.sin(np.pi * (coord - c)) / np.pi * (coord - c))**2
-        return [(y[0] - a * np.exp(-(b * (-1 - c)) ** 2) *
-                 (np.sin(np.pi * (-1 - c)) / np.pi * (-1 - c))) ** 2,
-                (y[1] - a * np.exp(-(b * (+0 - c)) ** 2) *
-                 (np.sin(np.pi * (+0 - c)) / np.pi * (+0 - c))) ** 2,
-                (y[2] - a * np.exp(-(b * (+1 - c)) ** 2) *
-                 (np.sin(np.pi * (+1 - c)) / np.pi * (+1 - c))) ** 2]
+        return [(y[0] - a * np.exp(-(b * (-1 - c))**2) *
+                 (np.sin(np.pi * (-1 - c)) / np.pi * (-1 - c)))**2,
+                (y[1] - a * np.exp(-(b * (+0 - c))**2) *
+                 (np.sin(np.pi * (+0 - c)) / np.pi * (+0 - c)))**2,
+                (y[2] - a * np.exp(-(b * (+1 - c))**2) *
+                 (np.sin(np.pi * (+1 - c)) / np.pi * (+1 - c)))**2]
 
     _, _, jC = fsolve(func_esinc, (1.0, 1.0, 0.0), args=Cj)
     _, _, iC = fsolve(func_esinc, (1.0, 1.0, 0.0), args=Ci)
@@ -710,9 +713,9 @@ def get_top_2d_gaussian(C, top=np.array([])):
     Notes
     -----
     .. [NH05] Nobach & Honkanen, "Two-dimensional Gaussian regression for
-              sub-pixel displacement estimation in particle image velocimetry or
-              particle position estimation in particle tracking velocimetry",
-              Experiments in fluids, vol.38 pp.511-515, 2005
+              sub-pixel displacement estimation in particle image velocimetry
+              or particle position estimation in particle tracking
+              velocimetry", Experiments in fluids, vol.38 pp.511-515, 2005
     '''
     (Jsub, Isub) = np.meshgrid(np.linspace(-1, +1, 3), np.linspace(-1, +1, 3))
     Isub = Isub.ravel()
@@ -740,13 +743,13 @@ def get_top_2d_gaussian(C, top=np.array([])):
     c_10 = (1 / 6) * np.sum(Isub * Clog)
     c_01 = (1 / 6) * np.sum(Jsub * Clog)
     c_11 = (1 / 4) * np.sum(Isub * Jsub * Clog)
-    c_20 = (1 / 6) * np.sum(((3 * Isub ** 2) - 2) * Clog)
-    c_02 = (1 / 6) * np.sum(((3 * Jsub ** 2) - 2) * Clog)
+    c_20 = (1 / 6) * np.sum(((3 * Isub**2) - 2) * Clog)
+    c_02 = (1 / 6) * np.sum(((3 * Jsub**2) - 2) * Clog)
 
     ddj = np.divide((c_11 * c_10) - (2 * c_01 * c_20),
-                    (4 * c_20 * c_02) - (c_11 ** 2))
+                    (4 * c_20 * c_02) - (c_11**2))
     ddi = np.divide((c_11 * c_01) - (2 * c_10 * c_02),
-                    (4 * c_20 * c_02) - (c_11 ** 2))
+                    (4 * c_20 * c_02) - (c_11**2))
 
     return ddi, ddj, i_int, j_int
 
@@ -774,9 +777,10 @@ def get_top_paraboloid(C, top=np.array([])):
 
     Notes
     -----
-    .. [Pa20] Pallotta et al. "Subpixel SAR image registration through parabolic
-              interpolation of the 2-D cross correlation",  IEEE transactions on
-              geoscience and remote sensing, vol.58(6) pp.4132--4144, 2020.
+    .. [Pa20] Pallotta et al. "Subpixel SAR image registration through
+              parabolic interpolation of the 2-D cross correlation", IEEE
+              transactions on geoscience and remote sensing, vol.58(6)
+              pp.4132--4144, 2020.
     '''
     if top.size == 0:  # find highest score
         di, dj, _, _ = get_integer_peak_location(C)
@@ -795,7 +799,7 @@ def get_top_paraboloid(C, top=np.array([])):
     a_2, a_3 = C[di + 1, dj + 0], C[di - 1, dj + 0]
     a_4, a_5 = C[di + 1, dj + 0], C[di - 1, dj + 0]
 
-    a_6 = np.max(np.array([C[di + 1, dj + 1], C[di - 1, dj + 1], \
+    a_6 = np.max(np.array([C[di + 1, dj + 1], C[di - 1, dj + 1],
                            C[di + 1, dj - 1], C[di - 1, dj - 1]]))
 
     a = a_6 + a_1 - a_2 - a_4

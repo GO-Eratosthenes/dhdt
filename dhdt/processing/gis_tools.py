@@ -7,12 +7,12 @@ from ..generic.mapping_io import read_geo_info
 
 
 def make_casting_couple_shapefile(fpath):
-    '''
+    """
     make shapefile, to be used in a GIS for analysis
-    
+
     S_1(x) S_1(y) S_2(x) S_2(y) C(x) C(y)
-    
-    '''
+
+    """
 
     fdir, fname = os.path.split(fpath)
     oname = fname[:-3] + 'shp'
@@ -32,12 +32,13 @@ def make_casting_couple_shapefile(fpath):
     # create the output layer
     dataSet = driver.CreateDataSource(os.path.join(fdir, oname))
     # create the layer
-    layer = dataSet.CreateLayer("castlines", spatialRef, \
+    layer = dataSet.CreateLayer("castlines",
+                                spatialRef,
                                 geom_type=ogr.wkbLineString)
     # add field
     layer.CreateField(ogr.FieldDefn("dh", ogr.OFTReal))
 
-    # process the text file and add the attributes and features to the shapefile
+    # process the txt file and add the attributes and features to the shapefile
     for p in range(xy_list.shape[0]):
         # create the feature
         feature = ogr.Feature(layer.GetLayerDefn())
@@ -60,12 +61,12 @@ def make_casting_couple_shapefile(fpath):
 
 
 def make_conn_txt_a_shapefile(fpath):
-    '''
+    """
     make shapefile, to be used in a GIS for analysis
-    
+
     C(x) C(y) S(x) S(y) azi(x) elev(y)
-    
-    '''
+
+    """
 
     fdir, fname = os.path.split(fpath)
     oname = fname[:-3] + 'shp'  # output name
@@ -83,13 +84,14 @@ def make_conn_txt_a_shapefile(fpath):
     # create the output layer
     dataSet = driver.CreateDataSource(os.path.join(fdir, oname))
     # create the layer
-    layer = dataSet.CreateLayer("castlines", spatialRef, \
+    layer = dataSet.CreateLayer("castlines",
+                                spatialRef,
                                 geom_type=ogr.wkbLineString)
     # add field
     layer.CreateField(ogr.FieldDefn("sunAz", ogr.OFTReal))
     layer.CreateField(ogr.FieldDefn("sunZn", ogr.OFTReal))
 
-    # process the text file and add the attributes and features to the shapefile
+    # process the txt file and add the attributes and features to the shapefile
     for p in range(xy_list.shape[0]):
         # create the feature
         feature = ogr.Feature(layer.GetLayerDefn())
@@ -151,7 +153,7 @@ def get_intersection(xy_1, xy_2, xy_3, xy_4):
             and isinstance(xy_2, (float, np.ndarray)))
     assert (isinstance(xy_3, (float, np.ndarray))
             and isinstance(xy_4, (float, np.ndarray)))
-    if type(xy_1) in (np.ndarray,):
+    if type(xy_1) in (np.ndarray, ):
         assert len(set({xy_1.shape[0], xy_2.shape[0],
                         xy_3.shape[0], xy_4.shape[0], })) == 1, \
             ('please provide arrays of the same size')

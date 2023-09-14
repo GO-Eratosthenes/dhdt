@@ -3,7 +3,6 @@ import warnings
 
 from dhdt.processing.gis_tools import get_intersection
 
-warnings.filterwarnings('once')
 from tqdm import tqdm
 
 import numpy as np
@@ -32,6 +31,8 @@ from dhdt.processing.matching_tools_organization import \
 from dhdt.processing.matching_tools_differential import \
     affine_optical_flow, simple_optical_flow
 
+warnings.filterwarnings('once')
+
 
 # simple image matching
 def _assert_match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd,
@@ -40,27 +41,28 @@ def _assert_match_pair(I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd,
         ("please provide an array")
     assert type(I2) in (np.ma.core.MaskedArray, np.ndarray), \
         ("please provide an array")
-    if (type(I1) not in (np.ma.core.MaskedArray,)) and (L1 is None):
+    if (type(I1) not in (np.ma.core.MaskedArray, )) and (L1 is None):
         L1 = np.ones_like(I1, dtype=bool)
     elif L1 is None:
         L1 = np.array([])
-    if (type(I2) not in (np.ma.core.MaskedArray,)) and (L2 is None):
+    if (type(I2) not in (np.ma.core.MaskedArray, )) and (L2 is None):
         L2 = np.ones_like(I2, dtype=bool)
     elif L2 is None:
         L2 = np.array([])
     assert isinstance(L1, np.ndarray), "please provide an array"
     assert isinstance(L2, np.ndarray), "please provide an array"
-    geoTransform1, geoTransform2 = correct_geoTransform(geoTransform1), \
-                                   correct_geoTransform(geoTransform2)
+    geoTransform1 = correct_geoTransform(geoTransform1)
+    geoTransform2 = correct_geoTransform(geoTransform2)
+
     assert X_grd.shape == Y_grd.shape  # should be of the same size
     assert temp_radius <= search_radius, "given search radius is too small"
 
     if len(geoTransform1) >= 6:
         assert I1.shape[:2] == geoTransform1[
-                               -2:], "both should have same extent"
+            -2:], "both should have same extent"
     if len(geoTransform2) >= 6:
         assert I2.shape[:2] == geoTransform2[
-                               -2:], "both should have same extent"
+            -2:], "both should have same extent"
     return L1, L2, geoTransform1, geoTransform2
 
 
@@ -157,9 +159,9 @@ def match_pair(I1,
     .. [Al22] Altena et al. "Correlation dispersion as a measure to better
               estimate uncertainty of remotely sensed glacier displacements",
               The Crysophere, vol.16(6) pp.2285–2300, 2022.
-    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
-              stacking cross-correlation spectra from multi-channel imagery",
-              Science of remote sensing, vol.6 pp.100070, 2022.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation
+              through stacking cross-correlation spectra from multi-channel
+              imagery", Science of remote sensing, vol.6 pp.100070, 2022.
     """
     # combating import loops
     from .matching_tools_organization import \
@@ -171,15 +173,17 @@ def match_pair(I1,
         I1, I2, L1, L2, geoTransform1, geoTransform2, X_grd, Y_grd,
         temp_radius, search_radius)
 
-    b = 1 if kwargs.get('num_estimates') == None else kwargs.get(
+    b = 1 if kwargs.get('num_estimates') is None else kwargs.get(
         'num_estimates')
 
     I1, L1 = get_data_and_mask(I1, L1)
     I2, L2 = get_data_and_mask(I2, L2)
-    X_grd, Y_grd = np.atleast_2d(X_grd), np.atleast_2d(Y_grd)
+    X_grd = np.atleast_2d(X_grd)
+    Y_grd = np.atleast_2d(Y_grd)
 
     correlator = correlator.lower()
-    if (subpix is not None): subpix = subpix.lower()
+    if (subpix is not None):
+        subpix = subpix.lower()
 
     # create lists with the different match approaches
     frequency_based = list_frequency_correlators()
@@ -197,14 +201,16 @@ def match_pair(I1,
         Y_grd,
         temp_radius,
         search_radius,
-        same=True)
+        same=True,
+    )
     geoTransformPad2 = ref_trans(geoTransform2, -search_radius, -search_radius)
 
-    L1, L2 = pad_radius(L1, temp_radius, cval=False), \
-             pad_radius(L2, search_radius, cval=False)
+    L1 = pad_radius(L1, temp_radius, cval=False)
+    L2 = pad_radius(L2, search_radius, cval=False)
 
     (m, n) = X_grd.shape
-    X2_grd, Y2_grd = np.zeros((m, n, b)), np.zeros((m, n, b))
+    X2_grd = np.zeros((m, n, b))
+    Y2_grd = np.zeros((m, n, b))
     if precision_estimate:  # also include error estimate
         match_metric = np.zeros((m, n, 4))
     else:
@@ -240,7 +246,7 @@ def match_pair(I1,
         if correlator in differential_based:
             di, dj, rms = estimate_translation_of_two_subsets(
                 I1_sub, I2_sub, L1_sub, L2_sub, correlator, **kwargs)
-            score = np.sqrt(np.nansum(rms ** 2))  # euclidean distance of rms
+            score = np.sqrt(np.nansum(rms**2))  # euclidean distance of rms
         else:
             QC = match_translation_of_two_subsets(I1_sub, I2_sub, correlator,
                                                   subpix, L1_sub, L2_sub)
@@ -254,10 +260,10 @@ def match_pair(I1,
                 if correlator in frequency_based:
                     I2_new = create_template_off_center(
                         I2, i2[counter] - di, j2[counter] - dj,
-                            2 * temp_radius)
+                        2 * temp_radius)
                     L2_new = create_template_off_center(
                         L2, i2[counter] - di, j2[counter] - dj,
-                            2 * temp_radius)
+                        2 * temp_radius)
                 else:
                     I2_new = create_template_at_center(I2, i2[counter] - di,
                                                        j2[counter] - dj,
@@ -335,7 +341,8 @@ def couple_pair(file_1,
     bbox : {list, numpy.array}, size=(4,1)
         bounding box of region of interest
     rgi_id : string
-        code of the glacier of interest following the Randolph Glacier Inventory
+        code of the glacier of interest following the Randolph Glacier
+        Inventory
     rect : {"binary", "metadata", None}
         rectify the imagery so shear and elongation is reduced, done by
             * binary - asdsa
@@ -344,9 +351,9 @@ def couple_pair(file_1,
     prepro : string
         #todo
     match: {'norm_corr' (default), 'aff_of', 'cumu_corr', 'sq_diff',
-    'sad_diff', 'cosi_corr', 'phas_only', 'symm_phas', 'ampl_comp', 'orie_corr',
-    'mask_corr', 'bina_phas', 'wind_corr', 'gaus_phas', 'upsp_corr',
-    'cros_corr', 'robu_corr', 'lucas_kan', 'lucas_aff'}
+    'sad_diff', 'cosi_corr', 'phas_only', 'symm_phas', 'ampl_comp',
+    'orie_corr', 'mask_corr', 'bina_phas', 'wind_corr', 'gaus_phas',
+    'upsp_corr', 'cros_corr', 'robu_corr', 'lucas_kan', 'lucas_aff'}
         Specifies which matching method to apply, see
             "list_spatial_correlators", "list_frequency_correlators" or
             "list_differential_correlators" for more information
@@ -386,9 +393,9 @@ def couple_pair(file_1,
 
     References
     ----------
-    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
-              stacking cross-correlation spectra from multi-channel imagery",
-              Science of remote sensing, vol.6 pp.100070, 2022.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation
+              through stacking cross-correlation spectra from multi-channel
+              imagery", Science of remote sensing, vol.6 pp.100070, 2022.
     """
     # admin
     assert os.path.isfile(file_1), ('file does not seem to exist')
@@ -399,7 +406,8 @@ def couple_pair(file_1,
     crs, geoTransform1, _, rows1, cols1, _ = read_geo_info(file_1)
     _, geoTransform2, _, rows2, cols2, _ = read_geo_info(file_2)
 
-    if bbox is None: bbox = get_local_bbox_in_s2_tile(file_1, dir_im1)
+    if bbox is None:
+        bbox = get_local_bbox_in_s2_tile(file_1, dir_im1)
 
     # text file listing coordinates of shadow casting and casted points
     if os.path.isfile(file_1[:-4] + '.tif'):  # testing dataset is created
@@ -418,8 +426,8 @@ def couple_pair(file_1,
     idxConn = pair_images(conn_1, conn_2)  # connected list
     caster = conn_1[idxConn[:, 1], 0:2]
     # cast location in xy-coordinates
-    post_1, post_2 = conn_1[idxConn[:, 1], 2:4].copy(), \
-                     conn_2[idxConn[:, 0], 2:4].copy()
+    post_1 = conn_1[idxConn[:, 1], 2:4].copy()
+    post_2 = conn_2[idxConn[:, 0], 2:4].copy()
 
     if processing in ['shadow']:
         I1 = read_geo_image(os.path.join(dir_im1, shw_fname), boi=boi)[0]
@@ -432,7 +440,7 @@ def couple_pair(file_1,
     if wght_1 is not None:
         if isinstance(wght_1, str):
             L1 = read_geo_image(wght_1)[0].data
-        elif type(wght_1) in (np.ndarray,):
+        elif type(wght_1) in (np.ndarray, ):
             L1 = wght_1
         I1 = get_data_and_mask(I1)[0]
     else:
@@ -440,7 +448,7 @@ def couple_pair(file_1,
     if wght_2 is not None:
         if isinstance(wght_2, str):
             L2 = read_geo_image(wght_2)[0].data
-        elif type(wght_2) in (np.ndarray,):
+        elif type(wght_2) in (np.ndarray, ):
             L2 = wght_2
         I2 = get_data_and_mask(I2)[0]
     else:
@@ -482,16 +490,25 @@ def couple_pair(file_1,
 
     dh_old = get_elevation_difference(sun_1, sun_2, post_1, post_2, caster)
     dh_new = get_elevation_difference(sun_1, sun_2, post_1, post_2_new, caster)
-    return post_1, post_2_new, caster, dh_new, score, caster_new, dh_old, \
-           post_2, crs
+    return (
+        post_1,
+        post_2_new,
+        caster,
+        dh_new,
+        score,
+        caster_new,
+        dh_old,
+        post_2,
+        crs,
+    )
 
 
-def create_template_at_center(I, i, j, radius, filling='random'):
+def create_template_at_center(Z, i, j, radius, filling='random'):
     """ get sub template of data array, at a certain location
 
     Parameters
     ----------
-    I : numpy.ndarray, size=(m,n) or (m,n,b)
+    Z : numpy.ndarray, size=(m,n) or (m,n,b)
         data array
     i,j : integer
         horizontal, vertical coordinate of the template center
@@ -507,7 +524,7 @@ def create_template_at_center(I, i, j, radius, filling='random'):
 
     Returns
     -------
-    I_sub : numpy.ndarray, size={(m,n),(m,n,b)}
+    Z_sub : numpy.ndarray, size={(m,n),(m,n,b)}
         template of data array
 
     See Also
@@ -532,62 +549,63 @@ def create_template_at_center(I, i, j, radius, filling='random'):
 
     """
     i, j = np.round(i).astype(int), np.round(j).astype(int)
-    if not type(radius) is tuple: radius = (radius, radius)
+    if not type(radius) is tuple:
+        radius = (radius, radius)
 
-    if I.ndim == 2:
+    if Z.ndim == 2:
         sub_shape = (2 * radius[0] + 1, 2 * radius[1] + 1)
-    elif I.ndim == 3:
-        sub_shape = (2 * radius[0] + 1, 2 * radius[1] + 1, I.shape[2])
+    elif Z.ndim == 3:
+        sub_shape = (2 * radius[0] + 1, 2 * radius[1] + 1, Z.shape[2])
 
     # create sub template
-    if filling in ('random',):
+    if filling in ('random', ):
         quant = 0
-        if I.dtype.type == np.uint8:
+        if Z.dtype.type == np.uint8:
             quant = 8
-        elif I.dtype.type == np.uint16:
+        elif Z.dtype.type == np.uint16:
             quant = 16
 
         if quant == 0:
-            I_sub = np.random.random_sample(sub_shape)
+            Z_sub = np.random.random_sample(sub_shape)
         else:
-            I_sub = np.random.randint(2 ** quant, size=sub_shape)
-    elif filling in ('nan',):
-        I_sub = np.nan * np.zeros(sub_shape)
+            Z_sub = np.random.randint(2**quant, size=sub_shape)
+    elif filling in ('nan', ):
+        Z_sub = np.nan * np.zeros(sub_shape)
     else:
-        I_sub = np.zeros(sub_shape)
+        Z_sub = np.zeros(sub_shape)
 
-    if I.dtype.type == np.uint8:
-        I_sub = I_sub.astype(np.uint8)
-    elif I.dtype.type == np.uint16:
-        I_sub = I_sub.astype(np.uint16)
+    if Z.dtype.type == np.uint8:
+        Z_sub = Z_sub.astype(np.uint8)
+    elif Z.dtype.type == np.uint16:
+        Z_sub = Z_sub.astype(np.uint16)
 
-    m, n = I.shape[0], I.shape[1]
+    m, n = Z.shape[0], Z.shape[1]
     min_0, max_0 = np.maximum(0,
                               i - radius[0]), np.minimum(m, i + radius[0] + 1)
     min_1, max_1 = np.maximum(0,
                               j - radius[1]), np.minimum(n, j + radius[1] + 1)
 
     if np.logical_or(min_0 >= max_0, min_1 >= max_1):
-        return I_sub
+        return Z_sub
     sub_min_0 = np.abs(np.minimum(i - radius[0], 0))
     sub_max_0 = (2 * radius[0] + 1) + m - np.maximum(i + radius[0] + 1, m)
     sub_min_1 = np.abs(np.minimum(j - radius[0], 0))
     sub_max_1 = (2 * radius[1] + 1) + n - np.maximum(j + radius[1] + 1, n)
-    if I.ndim == 3:
-        I_sub[sub_min_0:sub_max_0, sub_min_1:sub_max_1, :] = \
-            I[min_0:max_0, min_1:max_1, :]
+    if Z.ndim == 3:
+        Z_sub[sub_min_0:sub_max_0, sub_min_1:sub_max_1, :] = \
+            Z[min_0:max_0, min_1:max_1, :]
     else:
-        I_sub[sub_min_0:sub_max_0, sub_min_1:sub_max_1] = \
-            I[min_0:max_0, min_1:max_1]
-    return I_sub
+        Z_sub[sub_min_0:sub_max_0, sub_min_1:sub_max_1] = \
+            Z[min_0:max_0, min_1:max_1]
+    return Z_sub
 
 
-def create_template_off_center(I, i, j, width, filling='random'):
+def create_template_off_center(Z, i, j, width, filling='random'):
     """ get sub template of data array, at a certain location
 
     Parameters
     ----------
-    I : numpy.ndarray, size={(m,n), (m,n,b)}
+    Z : numpy.ndarray, size={(m,n), (m,n,b)}
         data array
     i : integer
         vertical coordinate of the template center
@@ -605,7 +623,7 @@ def create_template_off_center(I, i, j, width, filling='random'):
 
     Returns
     -------
-    I_sub : numpy.ndarray, size={(m,n),(m,n,b)}
+    Z_sub : numpy.ndarray, size={(m,n),(m,n,b)}
         template of data array
 
     See Also
@@ -629,16 +647,17 @@ def create_template_off_center(I, i, j, width, filling='random'):
           based      v           based       |
 
     """
-    # make sure the input are integer loctions
+    # make sure the input are integer locations
     i, j = np.round(i).astype(int), np.round(j).astype(int)
 
-    if not type(width) is tuple: width = (width, width)
+    if not type(width) is tuple:
+        width = (width, width)
     radius = (width[0] // 2, width[1] // 2)
-    if I.ndim == 3:
-        I_sub = I[i - radius[0]:i + radius[1], j - radius[0]:j + radius[1], :]
+    if Z.ndim == 3:
+        Z_sub = Z[i - radius[0]:i + radius[1], j - radius[0]:j + radius[1], :]
     else:
-        I_sub = I[i - radius[0]:i + radius[1], j - radius[0]:j + radius[1]]
-    return I_sub
+        Z_sub = Z[i - radius[0]:i + radius[1], j - radius[0]:j + radius[1]]
+    return Z_sub
 
 
 def make_time_pairing(acq_time,
@@ -709,7 +728,7 @@ def pair_images(conn_1, conn_2, thres=20):
 
     """
     nbrs = NearestNeighbors(n_neighbors=1, algorithm='auto').fit(conn_1[:,
-                                                                 0:2])
+                                                                        0:2])
     distances, indices = nbrs.kneighbors(conn_2[:, 0:2])
     IN = distances < thres
     idxConn = np.transpose(np.vstack((np.where(IN)[0], indices[IN])))
@@ -797,9 +816,9 @@ def merge_by_common_caster_id(dh_mother, dh_child, idx_uni):
         else:
             return None
 
-    if type(dh_mother) in (pd.core.frame.DataFrame,):
+    if type(dh_mother) in (pd.core.frame.DataFrame, ):
         dh_stack = merge_by_common_caster_id_pd(dh_mother, dh_child, idx_uni)
-    elif type(dh_mother) in (np.recarray,):
+    elif type(dh_mother) in (np.recarray, ):
         dh_stack = merge_by_common_caster_id_rec(dh_mother, dh_child, idx_uni)
     return dh_stack
 
@@ -865,9 +884,8 @@ def merge_by_common_caster_id_pd(dh_mother, dh_child, idx_uni):
         # update mother
         df_header = list(dh_mother)
         df_id = [df_header.index(i) for i in df_header if 'caster_id' in i][0]
-        dh_mother.iloc[idx_uni[NEW, 0], [df_id]] = id_counter + \
-                                                   np.arange(0, np.sum(
-                                                       NEW)).astype(int)
+        dh_mother.iloc[idx_uni[NEW, 0], [df_id]] = \
+            id_counter + np.arange(0, np.sum(NEW)).astype(int)
     else:
         id_mother = np.zeros(dh_mother.shape[0], dtype=int)
         id_child = np.zeros(dh_child.shape[0], dtype=int)
@@ -885,15 +903,16 @@ def merge_by_common_caster_id_pd(dh_mother, dh_child, idx_uni):
 
 def merge_by_common_caster_id_simple(dh):
     """
-    the locations provided for different timestamps can also be merged directly,
-    this can be done when the imagery is co-registered, then the caster
-    locations have the same rounded pixel coordinates. This function uses this
-    simplification, to include an additional collumn to the data stack.
+    the locations provided for different timestamps can also be merged
+    directly, this can be done when the imagery is co-registered, then the
+    caster locations have the same rounded pixel coordinates. This function
+    uses this simplification, to include an additional column to the data
+    stack.
 
     Parameters
     ----------
     dh : pandas.DataFrame
-        stack of coordinates and times, having at least the following collumns:
+        stack of coordinates and times, having at least the following columns:
             - timestamp : unit=days, date stamp
             - caster_x,caster_y : unit=meter, map coordinate of start of shadow
             - casted_x,casted_y : unit=meter, map coordinate of end of shadow
@@ -957,7 +976,8 @@ def split_caster_id_on_orbit_id(dh):
         view_id = 0
         for orb_group, df_sub in dh_cast_orbit:
             view_id += 1
-            if view_id == 1: continue
+            if view_id == 1:
+                continue
             dh.iloc[df_sub.index, id_loc] = id_counter
             id_counter += 1
     return dh
@@ -1127,8 +1147,10 @@ def match_shadow_casts(M1,
         else:
             ddi, ddj = estimate_subpixel(QC, subpix, m0=m0)
 
-        if abs(ddi) < 2: di += ddi
-        if abs(ddj) < 2: dj += ddj
+        if abs(ddi) < 2:
+            di += ddi
+        if abs(ddj) < 2:
+            dj += ddj
 
         # adjust for affine transform
         if 'Aff' in locals():  # affine transform is also estimated
@@ -1145,7 +1167,7 @@ def match_shadow_casts(M1,
         ij2_corr[idx, 1] = j2[idx] - dj_rig
 
     x2_corr, y2_corr = pix2map(geoTransformPad2, ij2_corr[:, 0], ij2_corr[:,
-                                                                 1])
+                                                                          1])
     xy2_corr = np.nan * np.ones((IN.shape[0], 2))
     xy2_corr[IN, 0], xy2_corr[IN, 1] = x2_corr, y2_corr
     return xy2_corr, snr_score
@@ -1243,8 +1265,7 @@ def get_elevation_difference(sun_1, sun_2, xy_1, xy_2, xy_t):
     dist_2 = np.hypot(xy_2[..., 0] - xy_t[..., 0], xy_2[..., 1] - xy_t[..., 1])
 
     # get elevation difference
-    dh = np.divide(dist_1, np.tan(zn_1)) - \
-         np.divide(dist_2, np.tan(zn_2))
+    dh = np.divide(dist_1, np.tan(zn_1)) - np.divide(dist_2, np.tan(zn_2))
     return dh
 
 
@@ -1273,8 +1294,11 @@ def get_caster(sun_1, sun_2, xy_1, xy_2):
     sun_1, sun_2 = np.deg2rad(sun_1), np.deg2rad(sun_2)
 
     caster_new = get_intersection(
-        xy_1, xy_1 + np.stack((np.sin(sun_1), np.cos(sun_1)), axis=1), xy_2,
-              xy_2 + np.stack((np.sin(sun_2), np.cos(sun_2)), axis=1))
+        xy_1,
+        xy_1 + np.stack((np.sin(sun_1), np.cos(sun_1)), axis=1),
+        xy_2,
+        xy_2 + np.stack((np.sin(sun_2), np.cos(sun_2)), axis=1),
+    )
     return caster_new
 
 

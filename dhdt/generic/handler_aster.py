@@ -42,8 +42,8 @@ def get_as_image_locations(f_path, as_df):
 
     Notes
     -----
-    The file structure of ASTER can be in different forms. For L1A in tif-format
-    this looks like:
+    The file structure of ASTER can be in different forms. For L1A in
+    tif-format this looks like:
 
     .. code-block:: text
 

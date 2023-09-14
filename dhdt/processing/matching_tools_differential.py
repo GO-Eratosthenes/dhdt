@@ -160,9 +160,9 @@ def simple_optical_flow(I1,
 
     References
     ----------
-    .. [LK81] Lucas & Kanade, "An iterative image registration technique with an
-              application to stereo vision", Proceedings of 7th international
-              joint conference on artificial intelligence, 1981.
+    .. [LK81] Lucas & Kanade, "An iterative image registration technique with
+              an application to stereo vision", Proceedings of 7th
+              international joint conference on artificial intelligence, 1981.
     """
     are_two_arrays_equal(I1, I2)
 
@@ -211,11 +211,11 @@ def simple_optical_flow(I1,
 
         # get templates
         Ix = fx[iIm - radius:iIm + radius + 1,
-             jIm - radius:jIm + radius + 1].flatten()
+                jIm - radius:jIm + radius + 1].flatten()  # noqa: E501
         Iy = fy[iIm - radius:iIm + radius + 1,
-             jIm - radius:jIm + radius + 1].flatten()
+                jIm - radius:jIm + radius + 1].flatten()  # noqa: E501
         It = ft[iIm - radius:iIm + radius + 1,
-             jIm - radius:jIm + radius + 1].flatten()
+                jIm - radius:jIm + radius + 1].flatten()  # noqa: E501
 
         # look if variation is present
         if np.std(It) != 0:
@@ -294,24 +294,19 @@ def affine_optical_flow(I1,
 
     References
     ----------
-    .. [LK81] Lucas & Kanade, "An iterative image registration technique with an
-              application to stereo vision", Proceedings of 7th international
-              joint conference on artificial intelligence, 1981.
-    .. [Br16] Brigot et al. "Adaptation and evaluation of an optical flow method
-              applied to coregisgtration of forest remote sensing images", IEEE
-              journal of selected topics in applied remote sensing, vol.9(7)
-              pp.2923-2939, 2016
+    .. [LK81] Lucas & Kanade, "An iterative image registration technique with
+              an application to stereo vision", Proceedings of 7th
+              international joint conference on artificial intelligence, 1981.
+    .. [Br16] Brigot et al. "Adaptation and evaluation of an optical flow
+              method applied to coregisgtration of forest remote sensing
+              images", IEEE journal of selected topics in applied remote
+              sensing, vol.9(7) pp.2923-2939, 2016
     .. [M015] Mohamed et al. "Differential optical flow estimation under
               monocular epipolar line constraint", Proceedings of the
               international conference on computer vision systems, 2015.
     """
-    assert isinstance(model, str), ('please provide a model; ', '{'
-                                                                'simple'
-                                                                ','
-                                                                'affine'
-                                                                ','
-                                                                'similarity'
-                                                                '}')
+    assert isinstance(
+        model, str), ('please provide a model; {simple, affine, similarity}')
     assert ~np.any(np.isnan(I2)), (
         "arrays with missing data are not yet supported")
     are_two_arrays_equal(I1, I2)
@@ -430,8 +425,7 @@ def affine_optical_flow(I1,
         p += dp.T
         p_stack[i, :] = p
 
-    Aff = np.array([[1, 0, 0], [0, 1, 0]]) + \
-          p_stack[-1, :].reshape(3, 2).T
+    Aff = np.array([[1, 0, 0], [0, 1, 0]]) + p_stack[-1, :].reshape(3, 2).T
     # np.argmin(res)
     u, v = Aff[0, -1], Aff[1, -1]
     A = np.linalg.inv(Aff[:, 0:2]).T
@@ -458,8 +452,8 @@ def hough_optical_flow(I1,
     I2 : {numpy.array, numpy.ma}, size=(m,n,b), dtype=float, ndim=2
         second image array, np.nan entries indicate no-data.
     param_resol : integer
-        resolution of the Hough transform, that is, the amount of elements along
-        one axis
+        resolution of the Hough transform, that is, the amount of elements
+        along one axis
     sample_fraction : {float,integer}
         * 0< & <1, a fraction is used in the sampling
         * >1, the number of elements given are used for sampling
@@ -554,9 +548,9 @@ def _histogram_sample(φ, ρ, param_resol, max_amp, u, v):
 
     democracy = np.zeros((param_resol, param_resol), dtype=np.float32)
     for i, j in np.ndindex(H.shape):
-        if H[i, j] == 0: continue
-        diff = ρ_h[j] - \
-               (u * +np.sin(φ_h[i]) + v * +np.cos(φ_h[i]))
+        if H[i, j] == 0:
+            continue
+        diff = ρ_h[j] - (u * +np.sin(φ_h[i]) + v * +np.cos(φ_h[i]))
         vote = np.exp(-np.abs(diff * param_resol) / max_amp)
         np.putmask(vote, np.isnan(vote), 0)
         democracy += H[i, j] * vote
@@ -609,8 +603,10 @@ def hough_sinus(φ,
     normalize = True
     IN = np.logical_and.reduce((~np.isnan(φ), ~np.isnan(ρ), np.abs(ρ)
                                 < max_amp))
-    if np.sum(IN) < 2: return 0, 0, 0
-    φ, ρ = φ[IN], ρ[IN]
+    if np.sum(IN) < 2:
+        return 0, 0, 0
+    φ = φ[IN]
+    ρ = ρ[IN]
 
     if normalize:
         ρ -= np.nanmedian(ρ)
@@ -651,8 +647,8 @@ def hough_sinus(φ,
         rho_H, φ_H = np.zeros(num_estimates), np.zeros(num_estimates)
         for cnt, sc in enumerate(score):
             if sc != 0:
-                rho_H[cnt] = np.sqrt(u[ind[cnt, 0]][ind[cnt, 1]] ** 2 +
-                                     v[ind[cnt, 0]][ind[cnt, 1]] ** 2)
+                rho_H[cnt] = np.sqrt(u[ind[cnt, 0]][ind[cnt, 1]]**2 +
+                                     v[ind[cnt, 0]][ind[cnt, 1]]**2)
                 φ_H[cnt] = np.arctan2(u[ind[cnt, 0]][ind[cnt, 1]],
                                       v[ind[cnt, 0]][ind[cnt, 1]])
         return φ_H, rho_H, score
@@ -688,9 +684,12 @@ def differential_stacking(I_st, id_1, id_2, dt):
     diff_stack : {float, np.array}
         sub-pixel displacement, amount depends upon "num_estimates"
     """
-    if isinstance(dt, float): dt = np.array([dt])
-    if isinstance(id_1, int): id_1 = np.array([id_1])
-    if isinstance(id_2, int): id_2 = np.array([id_2])
+    if isinstance(dt, float):
+        dt = np.array([dt])
+    if isinstance(id_1, int):
+        id_1 = np.array([id_1])
+    if isinstance(id_2, int):
+        id_2 = np.array([id_2])
 
     for i in range(len(dt)):
         I1, I2 = I_st[..., id_1[i]], I_st[..., id_2[i]]
@@ -714,5 +713,6 @@ def differential_stacking(I_st, id_1, id_2, dt):
             diff_stack = np.vstack(
                 (diff_stack, np.array([ρ.flatten(), θ.flatten()]).T))
     return diff_stack
+
 
 # todo episolar_optical_flow

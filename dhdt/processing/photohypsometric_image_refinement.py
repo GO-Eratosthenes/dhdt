@@ -35,22 +35,23 @@ def transform_4_logit(X, Y, method='exact', **kwargs):
 
     References
     ----------
-    .. [As1] Asuero, et al. "Fitting straight lines with replicated observations
-             by linear regression. IV. Transforming data." Critical reviews in
-             analytical chemistry, vol.41(1) pp. 36-69, 2011.
+    .. [As1] Asuero, et al. "Fitting straight lines with replicated
+             observations by linear regression. IV. Transforming data."
+             Critical reviews in analytical chemistry, vol.41(1) pp. 36-69,
+             2011.
     """
 
-    if method in ('exact',):
+    if method in ('exact', ):
         a, d = np.nanmin(Y), np.nanmax(Y)
     else:
-        qsep = 0.05 if kwargs.get('quantile_dist') == None else \
+        qsep = 0.05 if kwargs.get('quantile_dist') is None else \
             kwargs.get('quantile_dist')
         a, d = np.quantile(Y, qsep), np.quantile(Y, 1 - qsep)
     X_tilde, Y_tilde = np.log10(X), logit(np.divide(Y - d, a - d))
     return X_tilde, Y_tilde, a, d
 
 
-def refine_cast_location(I,
+def refine_cast_location(Z,
                          M,
                          geoTransform,
                          x_casted,
@@ -65,7 +66,7 @@ def refine_cast_location(I,
 
     Parameters
     ----------
-    I : {numpy.array, numpy.masked.array}, size=(m,n), ndim=2
+    Z : {numpy.array, numpy.masked.array}, size=(m,n), ndim=2
         grid with intensity values
     M : numpy.array, size=(m,n), ndim=2, dtype={bool,int}
         grid with mask
@@ -93,8 +94,8 @@ def refine_cast_location(I,
                np.isnan(y_caster), np.isnan(azimuth))):
         return x_casted, y_casted
 
-    I, M = get_data_and_mask(I, M)
-    are_two_arrays_equal(I, M)
+    Z, M = get_data_and_mask(Z, M)
+    are_two_arrays_equal(Z, M)
 
     cast_length = np.hypot(x_casted - x_caster, y_casted - y_caster)
     steps = get_max_pixel_spacing(geoTransform)
@@ -107,7 +108,7 @@ def refine_cast_location(I,
     line_y = np.cos(az_rad) * rng + y_casted
 
     line_i, line_j = map2pix(geoTransform, line_x, line_y)
-    line_I = ndimage.map_coordinates(I, [line_i, line_j],
+    line_Z = ndimage.map_coordinates(Z, [line_i, line_j],
                                      order=1,
                                      mode='mirror')
     line_M = simple_nearest_neighbor(M.astype(int), line_i, line_j)
@@ -119,15 +120,17 @@ def refine_cast_location(I,
 
     if prio.size > 0:  # bright pixels are present...
         prio_idx = np.max(prio) + 1
-        local_x, rng, line_I = local_x[prio_idx:], rng[prio_idx:], \
-                               line_I[prio_idx:]
+        local_x = local_x[prio_idx:]
+        rng = rng[prio_idx:]
+        line_Z = line_Z[prio_idx:]
     if post.size > 0:
         post_idx = np.min(post) - 1
-        local_x, rng, line_I = local_x[:post_idx], rng[:post_idx], \
-                               line_I[:post_idx]
+        local_x = local_x[:post_idx]
+        rng = rng[:post_idx]
+        line_Z = line_Z[:post_idx]
 
     # estimate infliction point
-    if line_I.shape[0] < 4:  # shadow cast line is too small
+    if line_Z.shape[0] < 4:  # shadow cast line is too small
         return x_casted, y_casted
 
     if method in ('curve fitting', 'curve_fit'):
@@ -135,18 +138,19 @@ def refine_cast_location(I,
             a_hat, a_cov = curve_fit(
                 four_pl_curve,
                 local_x,
-                line_I,
-                p0=[np.min(line_I), 1., .1,
-                    np.max(line_I)])
+                line_Z,
+                p0=[np.min(line_Z), 1., .1,
+                    np.max(line_Z)])
             y_lsq = four_pl_curve(local_x, *a_hat)
             infl_point = np.interp(a_hat[2], local_x, rng)
             point_cov = a_cov[2, 2] * steps
         except:
             infl_point, point_cov = 0, 0
     elif method in ('spline', 'cubic_spline'):
-        #        qnt = 0.5 if kwargs.get('quantile') is None else kwargs.get('quantile')
-        #        spli = UnivariateSpline(rng, line_I-np.quantile(line_I,qnt), k=3)
-        spli = CubicSpline(rng, line_I - threshold_otsu(line_I))
+        # qnt = 0.5 if kwargs.get('quantile') is None else \
+        #     kwargs.get('quantile')
+        # spli = UnivariateSpline(rng, line_Z-np.quantile(line_Z,qnt), k=3)
+        spli = CubicSpline(rng, line_Z - threshold_otsu(line_Z))
         crossings = spli.roots()
         # only select upwards roots
         UP = np.sign(spli(crossings, 1)) == 1
@@ -156,10 +160,10 @@ def refine_cast_location(I,
         infl_point = crossings[np.argmin(np.abs(crossings))]
     else:  # estimate via Hough transform
         x_tilde, y_tilde, a, d = transform_4_logit(local_x,
-                                                   line_I,
+                                                   line_Z,
                                                    method='exact',
                                                    quantile_dist=0.05)
-        w = logit_weighting(np.divide(line_I - d, a - d))
+        w = logit_weighting(np.divide(line_Z - d, a - d))
         c, b, point_cov = hough_transf(x_tilde,
                                        y_tilde,
                                        w=w,
@@ -177,8 +181,8 @@ def refine_cast_location(I,
 
 @loggg
 def update_casted_location(dh, S, M, geoTransform, extent=120.):
-    """ update the cast location to sub-pixel level, by looking at the intensity
-    profile along the sun trace.
+    """ update the cast location to sub-pixel level, by looking at the 
+    intensity profile along the sun trace.
 
     Parameters
     ----------
@@ -213,24 +217,26 @@ def update_casted_location(dh, S, M, geoTransform, extent=120.):
              |  \                    ^ Z
              |   \                   |
          ----┴----+  <-- casted      └-> {X,Y}
-    """
+    """  # noqa: W605
     assert type(dh) in (pandas.core.frame.DataFrame,), \
-        ('please provide a pandas dataframe')
+        'please provide a pandas dataframe'
     assert np.all([
         header in dh.columns
         for header in ('caster_X', 'caster_Y', 'casted_X', 'casted_Y')
     ])
 
-    if not 'casted_X_refine' in dh.columns: dh['casted_X_refine'] = None
-    if not 'casted_Y_refine' in dh.columns: dh['casted_Y_refine'] = None
+    if 'casted_X_refine' not in dh.columns:
+        dh['casted_X_refine'] = None
+    if 'casted_Y_refine' not in dh.columns:
+        dh['casted_Y_refine'] = None
 
     # create pointers for iloc
-    idx_caster_x, idx_caster_y = dh.columns.get_loc("caster_X"), \
-                                 dh.columns.get_loc("caster_Y")
-    idx_casted_x, idx_casted_y = dh.columns.get_loc("casted_X"), \
-                                 dh.columns.get_loc("casted_Y")
-    idx_refine_x, idx_refine_y = dh.columns.get_loc("casted_X_refine"), \
-                                 dh.columns.get_loc("casted_Y_refine")
+    idx_caster_x = dh.columns.get_loc("caster_X")
+    idx_caster_y = dh.columns.get_loc("caster_Y")
+    idx_casted_x = dh.columns.get_loc("casted_X")
+    idx_casted_y = dh.columns.get_loc("casted_Y")
+    idx_refine_x = dh.columns.get_loc("casted_X_refine")
+    idx_refine_y = dh.columns.get_loc("casted_Y_refine")
 
     idx_azimuth = dh.columns.get_loc("azimuth")
     for cnt in tqdm(range(dh.shape[0])):
@@ -320,7 +326,7 @@ def update_list_with_refined_casted(dh, file_dir, file_name='conn.txt'):
     See Also
     --------
     update_casted_location
-    """
+    """  # noqa: W605,E501
     col_order = ('caster_X', 'caster_Y', 'casted_X', 'casted_Y',
                  'casted_X_refine', 'casted_Y_refine', 'azimuth', 'zenith')
     col_frmt = ('{:+8.2f}', '{:+8.2f}', '{:+8.2f}', '{:+8.2f}', '{:+8.2f}',
@@ -338,10 +344,10 @@ def update_list_with_refined_casted(dh, file_dir, file_name='conn.txt'):
         print('# time: ' + np.datetime_as_string(timestamps[0], unit='D'),
               file=f)
     else:
-        col_order = ('timestamp',) + col_order
-        col_frmt = ('place_holder',) + col_order
-    col_order += ('zenith_refrac',)
-    col_frmt = col_frmt + ('{:+3.4f}',)
+        col_order = ('timestamp', ) + col_order
+        col_frmt = ('place_holder', ) + col_order
+    col_order += ('zenith_refrac', )
+    col_frmt = col_frmt + ('{:+3.4f}', )
     dh_sel = dh[dh.columns.intersection(list(col_order))]
 
     # add header
@@ -358,7 +364,8 @@ def update_list_with_refined_casted(dh, file_dir, file_name='conn.txt'):
                 line += np.datetime_as_string(dh_sel.iloc[k, val], unit='D')
             else:
                 elem = dh_sel.iloc[k, val]
-                if elem is None:  # refinement or refraction seem to have an error
+                if elem is None:
+                    # refinement or refraction seem to have an error
                     # find
                     ori_name = '_'.join(dh_sel.columns[val].split('_')[0:2])
                 else:
@@ -367,5 +374,6 @@ def update_list_with_refined_casted(dh, file_dir, file_name='conn.txt'):
         print(line[:-1], file=f)  # remove last spacer
     f.close()
     return
+
 
 # def filter_unresolved_refinements(dh):

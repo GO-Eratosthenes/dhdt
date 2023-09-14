@@ -114,12 +114,12 @@ def angular_momentum(xyz, uvw):
 
 
 def transform_rpy_xyz2ocs(xyz, uvw, roll, pitch, yaw, xyz_time, ang_time):
-    x, y, z = np.interp(ang_time, xyz_time, xyz[..., 0]), \
-              np.interp(ang_time, xyz_time, xyz[..., 1]), \
-              np.interp(ang_time, xyz_time, xyz[..., 2])
-    u, v, w = np.interp(ang_time, xyz_time, uvw[..., 0]), \
-              np.interp(ang_time, xyz_time, uvw[..., 1]), \
-              np.interp(ang_time, xyz_time, uvw[..., 2])
+    x = np.interp(ang_time, xyz_time, xyz[..., 0])
+    y = np.interp(ang_time, xyz_time, xyz[..., 1])
+    z = np.interp(ang_time, xyz_time, xyz[..., 2])
+    u = np.interp(ang_time, xyz_time, uvw[..., 0])
+    v = np.interp(ang_time, xyz_time, uvw[..., 1])
+    w = np.interp(ang_time, xyz_time, uvw[..., 2])
     xyz, uvw = np.stack((x, y, z), axis=1), np.stack((u, v, w), axis=1)
 
     m, n = xyz.shape
@@ -168,7 +168,8 @@ def calculate_correct_mapping(Zn_grd,
     bnd : numpy.ndarray, size=(h,)
         number of the band, corresponding to the third dimension of 'Zn_grd'
     det : numpy.ndarray, size=(h,)
-        number of the detector, corresponding to the third dimension of 'Zn_grd'
+        number of the detector, corresponding to the third dimension of
+        'Zn_grd'
     grdTransform : tuple, size=(8,)
         geotransform of the grid of 'Zn_grd' and 'Az_grd'
     crs : osgeo.osr.SpatialReference() object
@@ -209,8 +210,8 @@ def calculate_correct_mapping(Zn_grd,
         X_grd, Y_grd = pix_centers(grdTransform, make_grid=True)
         (m, n) = X_grd.shape
         ll_grd = map2ll(np.stack((X_grd.ravel(), Y_grd.ravel()), axis=1), crs)
-        Lat_grd, Lon_grd = ll_grd[:, 0].reshape((m, n)), \
-                           ll_grd[:, 1].reshape((m, n))
+        Lat_grd = ll_grd[:, 0].reshape((m, n))
+        Lon_grd = ll_grd[:, 1].reshape((m, n))
         del ll_grd
     else:
         Lon_grd, Lat_grd = pix_centers(grdTransform, make_grid=True)
@@ -229,8 +230,8 @@ def calculate_correct_mapping(Zn_grd,
 
     # vectorize band and detector indicators
     Bnd, Det = np.tile(bnd, (m, n, 1))[IN], np.tile(det, (m, n, 1))[IN]
-    X, Y = np.tile(np.atleast_3d(X_grd), (1, 1, depth))[IN], \
-           np.tile(np.atleast_3d(Y_grd), (1, 1, depth))[IN]
+    X = np.tile(np.atleast_3d(X_grd), (1, 1, depth))[IN]
+    Y = np.tile(np.atleast_3d(Y_grd), (1, 1, depth))[IN]
     time_para, combos = time_fitting(Ltime, Az, Zn, Bnd, Det, X, Y,
                                      grdTransform)
 
@@ -272,7 +273,8 @@ def remap_observation_angles(Ltime, lat, lon, radius, inclination, period,
 
         for cnt, sca in enumerate(combos[doi, 1]):
             IN = det_stack[..., idx] == sca
-            if not np.any(IN): continue
+            if not np.any(IN):
+                continue
             dX, dY = X_grd[IN] - geoTransform[0], geoTransform[3] - Y_grd[IN]
 
             # time stamps
@@ -554,8 +556,9 @@ def orbital_fitting(Sat,
         if 'altitude' in sat_dict:
             radius = major_axis + np.mean(sat_dict['altitude'])
         else:
-            radius = np.cbrt(np.divide(period, 2 * np.pi) ** 2 * \
-                             standard_gravity())
+            radius = np.cbrt(
+                np.divide(period, 2 * np.pi) ** 2 * standard_gravity()
+            )
 
     if (lat is None) or (lon is None):
         V_dist = np.sqrt(radius ** 2 + np.einsum('...i,...i', Sat, Gx) ** 2 -
@@ -660,8 +663,10 @@ def _omega_lon_calculation(lat, lon, inclination):
 def _gc_calculation(ltime, period, inclination, omega_0, lon_0):
     cta = omega_0 - np.divide(2 * np.pi * ltime, period)
     gclat = np.arcsin(np.sin(cta) * np.sin(inclination))
-    gclon = lon_0 + np.arcsin(np.tan(gclat) / -np.tan(inclination)) - \
-            2 * np.pi * ltime / (24 * 60 * 60)
+    gclon = (
+        lon_0 + np.arcsin(np.tan(gclat) / -np.tan(inclination))
+        - 2 * np.pi * ltime / (24 * 60 * 60)
+    )
     return cta, gclat, gclon
 
 

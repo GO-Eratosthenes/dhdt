@@ -4,14 +4,15 @@ from .matching_tools import get_peak_indices
 from .matching_tools_frequency_filters import perdecomp
 
 
-def directional_spectrum(I,
-                         num_estimates=1):  # todo: bring into correct framework
+def directional_spectrum(Z,
+                         num_estimates=1
+                         ):  # todo: bring into correct framework
     """ look at the directional spectra, to get dominant frequency
 
     Parameters
     ----------
-    I : numpy.ndarray, size=(m,n)
-        satellite image (prefferably with sun-glitter)
+    Z : numpy.ndarray, size=(m,n)
+        satellite image (preferably with sun-glitter)
     num_estimates : integer
         amount of spectral peaks to be estimated
     Returns
@@ -28,7 +29,7 @@ def directional_spectrum(I,
               geophysical research: oceans. vol.122 pp.1369-1383
     """
     # spectral pre-processing
-    per = perdecomp(I)[0]
+    per = perdecomp(Z)[0]
 
     # spectral transform
     spec = np.fft.fft2(per)

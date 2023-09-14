@@ -2,7 +2,8 @@ import numpy as np
 
 
 def _construct_jitter(A, ϕ, ω, N=100, τ=0):
-    if isinstance(N, float): N = int(np.round(N))
+    if isinstance(N, float):
+        N = int(np.round(N))
     x = np.linspace(0, 2 * np.pi, N)
     x += τ
     y = np.zeros_like(x)

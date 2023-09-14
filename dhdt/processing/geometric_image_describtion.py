@@ -13,13 +13,13 @@ from .matching_tools_frequency_filters import low_pass_circle
 from .coupling_tools import create_template_at_center
 
 
-def get_radon_angle(I, num_dir=1, fitting='polynomial'):
+def get_radon_angle(Z, num_dir=1, fitting='polynomial'):
     """ get the major directional tendencies within an image. Based upon
     [wwwRUN]_ which is the basis for [Go18]_ and [IL23]_
 
     Parameters
     ----------
-    I : numpy.ndarray, size=(m,n)
+    Z : numpy.ndarray, size=(m,n)
         image with intensities
     num_dir : positive integer
         amount of directions to estimate
@@ -30,7 +30,7 @@ def get_radon_angle(I, num_dir=1, fitting='polynomial'):
     -------
     θ : np.array, float, unit=degree
         predominant direction(s) of the image
-    score : np.array, float
+    score : np.ndarray, float
         relative strength of the directional signal
 
     References
@@ -44,22 +44,18 @@ def get_radon_angle(I, num_dir=1, fitting='polynomial'):
               environment vol.284 pp.113359, 2023.
     """
     θ = np.linspace(-90, +90, 36, endpoint=False)
-    circle = low_pass_circle(I)
-    np.putmask(I, ~circle, 0)
-    sinogram = radon(I, θ, circle=True)
-
-    if len(np.unique(I)) == I.size:
-        breakpoint
+    circle = low_pass_circle(Z)
+    np.putmask(Z, ~circle, 0)
+    sinogram = radon(Z, θ, circle=True)
 
     # entropy
     sino_std = np.std(sinogram, axis=0)
     sino_med = np.median(np.stack(
         (np.roll(sino_std, -1), sino_std, np.roll(sino_std, +1))),
-        axis=0)
+                         axis=0)
     if fitting in ['polynomial']:
         θ_x = np.linspace(-90, +90, 360, endpoint=False)
         poly = np.poly1d(np.polyfit(θ, sino_med, 12))
-        breakpoint
     else:
         # local peaks
         idx, properties = find_peaks(sino_std, distance=3)
@@ -68,7 +64,7 @@ def get_radon_angle(I, num_dir=1, fitting='polynomial'):
     return θ_hat, score
 
 
-def radon_orientation(I,
+def radon_orientation(Z,
                       geoTransform,
                       X_grd,
                       Y_grd,
@@ -83,7 +79,7 @@ def radon_orientation(I,
     (m, n) = X_grd.shape
     assert (X_grd.shape == Y_grd.shape)  # should be of the same size
     # preparation
-    I = pad_radius(I, temp_radius)
+    Z = pad_radius(Z, temp_radius)
     I_grd, J_grd = map2pix(geoTransform, X_grd, Y_grd)
     I_grd, J_grd = I_grd.flatten(), J_grd.flatten()
     I_grd, J_grd = np.round(I_grd).astype(int), np.round(J_grd).astype(int)
@@ -91,20 +87,21 @@ def radon_orientation(I,
     J_grd += temp_radius
 
     for counter in tqdm(range(len(I_grd))):
-        I_sub = create_template_at_center(I, I_grd[counter], J_grd[counter],
+        Z_sub = create_template_at_center(Z, I_grd[counter], J_grd[counter],
                                           temp_radius)
         idx_grd = np.unravel_index(counter, (m, n), 'C')
         try:
-            if np.ptp(I_sub) == 0:
+            if np.ptp(Z_sub) == 0:
                 continue
         except:
             print('.')
 
-        θ, score = get_radon_angle(I_sub, num_dir=num_dir, fitting=fitting)
+        θ, score = get_radon_angle(Z_sub, num_dir=num_dir, fitting=fitting)
         # write results
         if Θ.size > 0:
             Θ[idx_grd[0], idx_grd[1]] = θ
             Score[idx_grd[0], idx_grd[1]] = score
     return Θ, Score
+
 
 # get_orientation_of_two_subsets(I1_sub, I2_sub)

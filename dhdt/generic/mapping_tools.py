@@ -518,12 +518,12 @@ def rotate_variance(θ, qii, qjj, ρ):
     return qii_r, qjj_r
 
 
-def cast_orientation(I, Az, indexing='ij'):
+def cast_orientation(Z, Az, indexing='ij'):
     """ emphasises intensities within a certain direction, following [Fr91]_.
 
     Parameters
     ----------
-    I : np.array, size=(m,n)
+    Z : np.array, size=(m,n)
         array with intensity values
     Az : {float,np.array}, size{(m,n),1}, unit=degrees
         band of azimuth values or single azimuth angle.
@@ -533,7 +533,7 @@ def cast_orientation(I, Az, indexing='ij'):
 
     Returns
     -------
-    Ican : np.array, size=(m,n)
+    Zcan : np.array, size=(m,n)
         array with intensity variation in the preferred direction.
 
     See Also
@@ -573,29 +573,29 @@ def cast_orientation(I, Az, indexing='ij'):
               transactions on pattern analysis and machine intelligence
               vol.13(9) pp.891-906, 1991.
     """
-    assert type(I) == np.ndarray, ("please provide an array")
+    assert type(Z) == np.ndarray, "please provide an array"
 
     fx, fy = get_grad_filters(ftype='sobel', tsize=3, order=1)
 
-    Idx = ndimage.convolve(I, fx)  # steerable filters
-    Idy = ndimage.convolve(I, fy)
+    Zdx = ndimage.convolve(Z, fx)  # steerable filters
+    Zdy = ndimage.convolve(Z, fy)
 
     if indexing == 'ij':
-        Ican = (np.multiply(np.cos(np.radians(Az)), Idy) -
-                np.multiply(np.sin(np.radians(Az)), Idx))
+        Zcan = (np.multiply(np.cos(np.radians(Az)), Zdy) -
+                np.multiply(np.sin(np.radians(Az)), Zdx))
     else:
-        Ican = (np.multiply(np.cos(np.radians(Az)), Idy) +
-                np.multiply(np.sin(np.radians(Az)), Idx))
-    return Ican
+        Zcan = (np.multiply(np.cos(np.radians(Az)), Zdy) +
+                np.multiply(np.sin(np.radians(Az)), Zdx))
+    return Zcan
 
 
-def estimate_geoTransform(I, J, X, Y, samp=10):
-    m, n = I.shape[:2]
+def estimate_geoTransform(Z, J, X, Y, samp=10):
+    m, n = Z.shape[:2]
     y = np.vstack(
         [X[::samp, ::samp].reshape(-1, 1), Y[::samp, ::samp].reshape(-1, 1)])
     # design matrix
     A_sub = np.hstack(
-        [I[::samp, ::samp].reshape(-1, 1), J[::samp, ::samp].reshape(-1, 1)])
+        [Z[::samp, ::samp].reshape(-1, 1), J[::samp, ::samp].reshape(-1, 1)])
     A_sub = np.pad(A_sub, ((0, 0), (1, 0)), constant_values=1.)
     A = np.kron(np.eye(2), A_sub)
 
@@ -820,8 +820,8 @@ def pix_centers(geoTransform, rows=None, cols=None, make_grid=True):
     i, j = np.linspace(0, rows - 1, rows), np.linspace(0, cols - 1, cols)
 
     if make_grid:
-        J, I = np.meshgrid(j, i)
-        X, Y = pix2map(geoTransform, I, J)
+        jj, ii = np.meshgrid(j, i)
+        X, Y = pix2map(geoTransform, ii, jj)
         return X, Y
     else:
         x, y_dummy = pix2map(geoTransform, np.repeat(i[0], len(j)), j)
@@ -829,16 +829,16 @@ def pix_centers(geoTransform, rows=None, cols=None, make_grid=True):
         return x, y
 
 
-def bilinear_interp_excluding_nodat(I, i_I, j_I, noData=-9999):
+def bilinear_interp_excluding_nodat(Z, i_Z, j_Z, noData=-9999):
     """ do simple bi-linear interpolation, taking care of nodata
 
     Parameters
     ----------
-    I : np.array, size=(m,n), ndim={2,3}
+    Z : np.array, size=(m,n), ndim={2,3}
         data array.
-    i_I : np.array, size=(k,l), ndim=2
+    i_Z : np.array, size=(k,l), ndim=2
         horizontal locations, within local image frame.
-    j_I : np.array, size=(k,l), ndim=2
+    j_Z : np.array, size=(k,l), ndim=2
         vertical locations, within local image frame.
     noData : TYPE, optional
         DESCRIPTION. The default is -9999.
@@ -869,30 +869,30 @@ def bilinear_interp_excluding_nodat(I, i_I, j_I, noData=-9999):
           based      v           based       |
 
     """
-    assert type(I) == np.ndarray, ("please provide an array")
-    are_two_arrays_equal(i_I, j_I)
-    m, n = I.shape[0:2]
+    assert type(Z) == np.ndarray, ("please provide an array")
+    are_two_arrays_equal(i_Z, j_Z)
+    m, n = Z.shape[0:2]
 
-    i_prio, i_post = np.floor(i_I).astype(int), np.ceil(i_I).astype(int)
-    j_prio, j_post = np.floor(j_I).astype(int), np.ceil(j_I).astype(int)
+    i_prio, i_post = np.floor(i_Z).astype(int), np.ceil(i_Z).astype(int)
+    j_prio, j_post = np.floor(j_Z).astype(int), np.ceil(j_Z).astype(int)
 
-    wi, wj = np.remainder(i_I, 1), np.remainder(j_I, 1)
+    wi, wj = np.remainder(i_Z, 1), np.remainder(j_Z, 1)
 
     # make resistant to locations outside the bounds of the array
-    I_1, I_2 = np.ones_like(i_prio) * noData, np.ones_like(i_prio) * noData
-    I_3, I_4 = np.ones_like(i_prio) * noData, np.ones_like(i_prio) * noData
+    Z_1, Z_2 = np.ones_like(i_prio) * noData, np.ones_like(i_prio) * noData
+    Z_3, Z_4 = np.ones_like(i_prio) * noData, np.ones_like(i_prio) * noData
 
     IN = np.logical_and.reduce(
         ((i_prio >= 0), (i_post <= (m - 1)), (j_prio >= 0), (j_post
                                                              <= (n - 1))))
 
-    I_1[IN], I_2[IN] = I[i_prio[IN], j_prio[IN]], I[i_prio[IN], j_post[IN]]
-    I_3[IN], I_4[IN] = I[i_post[IN], j_post[IN]], I[i_post[IN], j_prio[IN]]
+    Z_1[IN], Z_2[IN] = Z[i_prio[IN], j_prio[IN]], Z[i_prio[IN], j_post[IN]]
+    Z_3[IN], Z_4[IN] = Z[i_post[IN], j_post[IN]], Z[i_post[IN], j_prio[IN]]
 
-    no_dat = np.any(np.vstack((I_1, I_2, I_3, I_4)) == noData, axis=0)
+    no_dat = np.any(np.vstack((Z_1, Z_2, Z_3, Z_4)) == noData, axis=0)
 
-    DEM_new = wj * (wi * I_1 + (1 - wi) * I_4) + (1 - wj) * (wi * I_2 +
-                                                             (1 - wi) * I_3)
+    DEM_new = wj * (wi * Z_1 + (1 - wi) * Z_4) + (1 - wj) * (wi * Z_2 +
+                                                             (1 - wi) * Z_3)
     DEM_new[no_dat] = noData
     return DEM_new
 
@@ -964,7 +964,7 @@ def get_bbox(geoTransform, rows=None, cols=None):
 
     """
     geoTransform = correct_geoTransform(geoTransform)
-    if rows == None:
+    if rows is None:
         assert len(geoTransform) >= 8, ('please provide raster information')
         rows, cols = geoTransform[6], geoTransform[7]
 
@@ -1286,15 +1286,15 @@ def make_same_size(Old,
     return New
 
 
-def create_offset_grid(I, dx, dy, geoTransform):
+def create_offset_grid(Z, dx, dy, geoTransform):
     geoTransform = correct_geoTransform(geoTransform)
     dx, dy = correct_floating_parameter(dx), correct_floating_parameter(dy)
     di, dj = vel2pix(geoTransform, dx, dy)
-    if len(geoTransform
-           ) == 8:  # sometimes the image dimensions are also included
+    if len(geoTransform) == 8:
+        # sometimes the image dimensions are also included
         mI, nI = geoTransform[-2], geoTransform[-1]
     else:
-        mI, nI = I.shape[0:2]
+        mI, nI = Z.shape[0:2]
     dI_grd, dJ_grd = np.meshgrid(np.linspace(0, mI - 1, mI) + di,
                                  np.linspace(0, nI - 1, nI) + dj,
                                  indexing='ij')

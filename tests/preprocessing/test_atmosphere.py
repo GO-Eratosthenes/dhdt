@@ -87,8 +87,9 @@ def test_refractive_index_broadband():
 
     References
     ----------
-    .. [BJ94] Birch and Jones, "Correction to the updated Edlen equation for the
-              refractive index of air", Metrologica, vol.31(4) pp.315-316, 1994.
+    .. [BJ94] Birch and Jones, "Correction to the updated Edlen equation for
+              the refractive index of air", Metrologica, vol.31(4) pp.315-316,
+              1994.
     .. [Ci96] Ciddor, "Refractive index of air: new equations for the visible
               and near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
     """

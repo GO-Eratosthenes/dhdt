@@ -14,8 +14,8 @@ from dhdt.generic.handler_dat import get_list_files
 
 
 def get_s2_dict(s2_df):
-    """ given a dataframe with a filename within, create a dictionary with scene
-    and satellite specific metadata.
+    """ given a dataframe with a filename within, create a dictionary with
+    scene and satellite specific metadata.
 
     Parameters
     ----------
@@ -329,16 +329,17 @@ def get_s2_image_locations(fname, s2_df):
      'GRANULE/L1C_T15MXV_A027450_20200923T163313/IMG_DATA/T15MXV_20200923T163311_B02']
     >>> datastrip_id
     'S2A_OPER_MSI_L1C_DS_VGS1_20200923T200821_S20200923T163313_N02.09'
-    """
-    if os.path.isdir(fname): fname = os.path.join(fname, 'MTD_MSIL1C.xml')
-    assert os.path.isfile(fname), ('metafile does not seem to be present')
+    """  # noqa: E501
+    if os.path.isdir(fname):
+        fname = os.path.join(fname, 'MTD_MSIL1C.xml')
+    assert os.path.isfile(fname), 'metafile does not seem to be present'
     root = get_root_of_table(fname)
     root_dir = os.path.split(fname)[0]
 
     for att in root.iter('Granule'):
         datastrip_full = att.get('datastripIdentifier')
         datastrip_id = '_'.join(datastrip_full.split('_')[4:-1])
-    assert datastrip_id != None, ('metafile does not have required info')
+    assert datastrip_id is not None, 'metafile does not have required info'
 
     im_paths, band_id = [], []
     for im_loc in root.iter('IMAGE_FILE'):
@@ -348,7 +349,8 @@ def get_s2_image_locations(fname, s2_df):
             full_path = None
             for _, _, files in os.walk(root_dir):
                 for file in files:
-                    if file.find(boi) == -1: continue
+                    if file.find(boi) == -1:
+                        continue
                     if file.endswith(tuple(['.jp2', '.tif'])):
                         full_path = os.path.join(root_dir, file.split('.')[0])
             if full_path is None:  # file does not seem to be present
@@ -363,7 +365,7 @@ def get_s2_image_locations(fname, s2_df):
 
 
 def get_s2_granule_id(fname, s2_df):
-    assert os.path.isfile(fname), ('metafile does not seem to be present')
+    assert os.path.isfile(fname), 'metafile does not seem to be present'
     root = get_root_of_table(fname)
 
     for im_loc in root.iter('IMAGE_FILE'):
@@ -398,8 +400,8 @@ def meta_s2string(s2_str):
     'R140'
     >>> s2_tile
     'T15MXV'
-    """
-    assert isinstance(s2_str, str), ("please provide a string")
+    """  # noqa: E501
+    assert isinstance(s2_str, str), "please provide a string"
 
     if s2_str[0:2] == 'S2':  # some have info about orbit and sensor
         s2_split = s2_str.split('_')
@@ -511,7 +513,8 @@ def get_epsg_from_mgrs_tile(tile_code):
     epsg_code = 32600 + utm_num
 
     # N to X are in the Northern hemisphere
-    if tile_code[2] < 'N': epsg_code += 100
+    if tile_code[2] < 'N':
+        epsg_code += 100
     return epsg_code
 
 

@@ -14,12 +14,10 @@ def get_wrs_url(version=2):
     References
     ----------
     .. [wwwUSGS] https://www.usgs.gov/media/files/landsat-wrs-2-descending-path-row-shapefile
-    """
+    """  # noqa: E501
     assert isinstance(version, int), 'please provide an integer'
     assert 0 < version < 3, 'please provide a correct version, i.e.: {1,2}'
-    wrs_url = 'https://d9-wret.s3.us-west-2.amazonaws.com/assets/palladium/' + \
-              'production/s3fs-public/atoms/files/' + \
-              'WRS' + str(version) + '_descending_0.zip'
+    wrs_url = 'https://d9-wret.s3.us-west-2.amazonaws.com/assets/palladium/production/s3fs-public/atoms/files/WRS' + str(version) + '_descending_0.zip'  # noqa: E501
     return wrs_url
 
 
@@ -39,7 +37,7 @@ def get_wrs_dataset(geom_dir, geom_name=None, version=2):
     wrs = geopandas.read_file(sfull)
 
     header = wrs.keys()
-    head_drop = [k for k in header if not k in (
+    head_drop = [k for k in header if k not in (
         'PATH',
         'ROW',
         'geometry',

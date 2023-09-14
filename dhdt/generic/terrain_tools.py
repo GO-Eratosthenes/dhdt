@@ -7,8 +7,8 @@ from .filtering_statistical import make_2D_Laplacian
 
 
 def terrain_curvature(Z):
-    l = make_2D_Laplacian(alpha=.5)
-    C = convolve(Z, -l)
+    lapl = make_2D_Laplacian(alpha=.5)
+    C = convolve(Z, -lapl)
     return C
 
 
@@ -45,21 +45,22 @@ def terrain_slope(Z, spac=10.):
 
     References
     ----------
-    .. [Ho81] Horn, "Hill shading and the reflectance map", Proceedings of the IEEE
-              vol.69(1) pp.14--47, 1981.
+    .. [Ho81] Horn, "Hill shading and the reflectance map", Proceedings of the
+              IEEE vol.69(1) pp.14--47, 1981.
     """
     fx, fy = get_grad_filters(ftype='kroon', tsize=3, order=1, indexing='xy')
     fx /= spac
     fy /= spac
-    Z_dx, Z_dy = conv_2Dfilter(Z, fx), conv_2Dfilter(Z, fy)
-    Z_dx, Z_dy = np.pad(Z_dx, 1, mode='linear_ramp'), \
-                 np.pad(Z_dy, 1, mode='linear_ramp')
+    Z_dx = conv_2Dfilter(Z, fx)
+    Z_dy = conv_2Dfilter(Z, fy)
+    Z_dx = np.pad(Z_dx, 1, mode='linear_ramp')
+    Z_dy = np.pad(Z_dy, 1, mode='linear_ramp')
     return Z_dx, Z_dy
 
 
 def terrain_aspect_slope(Z, spac=10.):
-    """ use simple local estimation, to calculate terrain direction and steepest
-    slope. Following [Ho81]_.
+    """ use simple local estimation, to calculate terrain direction and
+    steepest slope. Following [Ho81]_.
 
     Parameters
     ----------
@@ -79,8 +80,8 @@ def terrain_aspect_slope(Z, spac=10.):
 
     References
     ----------
-    .. [Ho81] Horn, "Hill shading and the reflectance map", Proceedings of the IEEE
-              vol.69(1) pp.14--47, 1981.
+    .. [Ho81] Horn, "Hill shading and the reflectance map", Proceedings of the
+              IEEE vol.69(1) pp.14--47, 1981.
     """
     # calculate gradients
     Z_dx, Z_dy = terrain_slope(Z, spac=spac)

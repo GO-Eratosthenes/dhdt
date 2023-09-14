@@ -41,7 +41,8 @@ def flow_anim(V_x,
               color=np.array([255, 0, 64])):
     im_count = 1
     (m, n) = V_x.shape
-    if M.size == 0: M = np.ones((m, n), dtype=bool)
+    if M.size == 0:
+        M = np.ones((m, n), dtype=bool)
 
     V_i, V_j = vel2pix(geoTransform, V_x, V_y)
     i, j = make_seeds(M, n=num_seeds)
@@ -60,7 +61,8 @@ def flow_anim(V_x,
         OUT = np.in1d(idx_seed, idx_msk, invert=True)
 
         # generate new ones
-        if np.any(OUT): i[OUT], j[OUT] = make_seeds(M, n=np.sum(OUT))
+        if np.any(OUT):
+            i[OUT], j[OUT] = make_seeds(M, n=np.sum(OUT))
 
         Seed_new = construct_correlation_peak(Seed, i, j, origin='corner')
 

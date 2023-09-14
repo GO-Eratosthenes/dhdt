@@ -241,7 +241,8 @@ def read_stack_vn(vn_df):
     assert 'imagepath' in vn_df, ('please first run "get_vn_image_locations"' +
                                   ' to find the proper file locations')
 
-    if len(vn_df) == 0: return
+    if len(vn_df) == 0:
+        return
 
     # start with the highest resolution
     for val, idx in enumerate(vn_df.sort_values('band_id').index):

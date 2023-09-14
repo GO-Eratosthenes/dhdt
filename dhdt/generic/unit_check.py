@@ -55,7 +55,8 @@ def is_crs_an_srs(crs):
     --------
     dhdt.testing.mapping_tools.create_local_crs
     """
-    if not isinstance(crs, str): crs = crs.ExportToWkt()
+    if not isinstance(crs, str):
+        crs = crs.ExportToWkt()
     return crs.find('"metre"') != -1
 
 
@@ -87,7 +88,8 @@ def correct_floating_parameter(a):
         a = a[0]
 
     assert isinstance(a, (int, float)), 'please provide an integer'
-    if isinstance(a, int): a = float(a)
+    if isinstance(a, int):
+        a = float(a)
     return a
 
 

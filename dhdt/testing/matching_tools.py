@@ -150,8 +150,8 @@ def create_sheared_image_pair(d=2 ** 7, sh_i=0.00, sh_j=0.00, max_range=1):
             |        |  /        /
             +--------+ +--------+
 
-    The shear parameter is based upon a centered unit image domain, that is, the
-    image extent spans -1...+1
+    The shear parameter is based upon a centered unit image domain, that is,
+    the image extent spans -1...+1
     """
     from skimage import data
 
@@ -270,12 +270,12 @@ def create_scaled_image_pair(d=2 ** 7, sc_x=1.00, sc_y=1.00, max_range=1):
     return im1_same, im2, random_di, random_dj, im1
 
 
-def construct_correlation_peak(I, di, dj, fwhm=3., origin='center'):
+def construct_correlation_peak(Z, di, dj, fwhm=3., origin='center'):
     """given a displacement, create a gaussian peak
 
     Parameters
     ----------
-    I : numpy.ndarray, size=(m,n)
+    Z : numpy.ndarray, size=(m,n)
         image domain
     di : {float, np.array}
         displacement along the vertical axis
@@ -289,7 +289,7 @@ def construct_correlation_peak(I, di, dj, fwhm=3., origin='center'):
     C : np.array, size=(m,n), complex
         array with correlation peak in the form of a circular Gaussian
     """
-    m, n = I.shape[:2]
+    m, n = Z.shape[:2]
 
     (I_grd, J_grd) = np.meshgrid(np.arange(0, m),
                                  np.arange(0, n),

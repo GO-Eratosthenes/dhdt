@@ -114,12 +114,12 @@ def get_ortho_offset(Z, dx, dy, obs_az, obs_zn, geoTransform):
     return dI, dJ
 
 
-def compensate_ortho_offset(I, Z, dx, dy, obs_az, obs_zn, geoTransform):
+def compensate_ortho_offset(Img, Z, dx, dy, obs_az, obs_zn, geoTransform):
     """
 
     Parameters
     ----------
-    I : numpy.array, size=(m,n), ndim=2, dtype={float,integer}
+    Img : numpy.array, size=(m,n), ndim=2, dtype={float,integer}
         grid with intensities to be compensated
     Z : numpy.array, size=(m,n), ndim=2, dtype={float,integer}, unit=meters
         grid with elevations
@@ -134,7 +134,7 @@ def compensate_ortho_offset(I, Z, dx, dy, obs_az, obs_zn, geoTransform):
 
     Returns
     -------
-    I_cor : numpy.array, size=(m,n), ndim=2, dtype=float
+    Img_cor : numpy.array, size=(m,n), ndim=2, dtype=float
         corrected intensities
 
     See Also
@@ -150,17 +150,18 @@ def compensate_ortho_offset(I, Z, dx, dy, obs_az, obs_zn, geoTransform):
                                np.linspace(0, nI - 1, nI),
                                indexing='ij')
 
-    I_warp = ndimage.map_coordinates(I, [I_grd + dI_ortho, J_grd + dJ_ortho],
-                                     order=1,
-                                     mode='mirror')
-    del I  # sometime the files are very big, so memory is emptied
+    Img_warp = ndimage.map_coordinates(Img,
+                                       [I_grd + dI_ortho, J_grd + dJ_ortho],
+                                       order=1,
+                                       mode='mirror')
+    del Img  # sometimes the files are very big, so memory is emptied
     # remove registration mismatch
     dI_coreg, dJ_coreg = vel2pix(geoTransform, dx, dy)
-    I_cor = ndimage.map_coordinates(I_warp,
-                                    [I_grd + dI_coreg, J_grd + dJ_coreg],
-                                    order=1,
-                                    mode='mirror')
-    return I_cor
+    Img_cor = ndimage.map_coordinates(Img_warp,
+                                      [I_grd + dI_coreg, J_grd + dJ_coreg],
+                                      order=1,
+                                      mode='mirror')
+    return Img_cor
 
 
 def get_template_aspect_slope(Z, i_samp, j_samp, t_size, spac=10.):

@@ -27,8 +27,8 @@ def get_mgrs_tile(ϕ, λ):
 
     # numbering goes with the alphabet, excluding "O" and "I"
     mgrsABC = [
-        chr(i) for i in list(range(65, 73)) + list(range(74, 79)) +
-                        list(range(80, 91))
+        chr(i) for i in
+        list(range(65, 73)) + list(range(74, 79)) + list(range(80, 91))
     ]
     tile_size = 100.  # [km]
     tile_size *= 1E3

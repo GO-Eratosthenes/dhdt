@@ -115,10 +115,10 @@ def euler_rot_y(θ):
     """
     R_y = np.diag(3)
     R_2 = rot_mat(θ)
-    R_y[0, 0], R_y[0, -1], R_y[-1, 0], R_y[-1, -1] = R_2[0, 0], \
-                                                     R_2[0, -1], \
-                                                     R_2[-1, 0], \
-                                                     R_2[-1, -1]
+    R_y[0, 0] = R_2[0, 0]
+    R_y[0, -1] = R_2[0, -1]
+    R_y[-1, 0] = R_2[-1, 0]
+    R_y[-1, -1] = R_2[-1, -1]
     return R_y
 
 
@@ -142,7 +142,8 @@ def euler_rot_z(φ):
 
 # backward attitude methods
 def rot_2_euler(R):
-    """ convert to euler angels, rotating order is via Z->Y->X, see also [Ki13]_
+    """ convert to euler angels, rotating order is via Z->Y->X, see also
+    [Ki13]_
 
     Parameters
     ----------
@@ -172,7 +173,8 @@ def rot_2_euler(R):
 
 
 def quat_2_euler(q1, q2, q3, q4):
-    """ convert to euler angels, rotating order is via Z->Y->X, see also [Ki13]_
+    """ convert to euler angels, rotating order is via Z->Y->X, see also
+    [Ki13]_
 
     Parameters
     ----------

@@ -30,23 +30,23 @@ def project_along_flow(dX_raw, dY_raw, dX_prio, dY_prio, e_perp):
         projected horizontal displacement in the same direction as reference.
     dY_proj : numpy.ndarray, size=(m,n), dtype=float
         projected vertical displacement in the same direction as reference.
-    
+
     Notes
-    ----- 
+    -----
     The projection function is as follows:
 
     .. math:: P = ({d_{x}}e^{\perp}_{x} - {d_{y}}e^{\perp}_{y}) / ({\hat{d}_{x}}e^{\perp}_{x} - {\hat{d}_{y}}e^{\perp}_{y})
 
     See also Equation 10 and Figure 2 in [AK17]_.
 
-    Furthermore, two different coordinate system are used here: 
-        
+    Furthermore, two different coordinate system are used here:
+
         .. code-block:: text
 
           indexing   |           indexing    ^ y
           system 'ij'|           system 'xy' |
                      |                       |
-                     |       i               |       x 
+                     |       i               |       x
              --------+-------->      --------+-------->
                      |                       |
                      |                       |
@@ -57,9 +57,9 @@ def project_along_flow(dX_raw, dY_raw, dX_prio, dY_prio, e_perp):
     References
     ----------
     .. [AK17] Altena & Kääb. "Elevation change and improved velocity retrieval
-              using orthorectified optical satellite data from different orbits"
-              Remote Sensing vol.9(3) pp.300 2017.
-    """
+              using orthorectified optical satellite data from different
+              orbits" Remote Sensing vol.9(3) pp.300 2017.
+    """  # noqa: E501
     # e_{\para} = bearing satellite...
     assert (dX_raw.size == dY_raw.size)  # all should be of the same size
     assert (dX_prio.size == dY_prio.size)
@@ -164,7 +164,8 @@ def helmholtz_hodge(dX, dY):
 
     # a Fourier transform can not handle nan's very well, hence mask with zeros
     Msk = np.logical_or(np.isnan(dX), np.isnan(dY))
-    if np.any(Msk): dX[Msk], dY[Msk] = 0, 0
+    if np.any(Msk):
+        dX[Msk], dY[Msk] = 0, 0
 
     dX_F, dY_F = np.fft.fftn(dX), np.fft.fftn(dX)
     F1, F2 = make_fourier_grid(dX, indexing='ij', system='unit')
@@ -180,5 +181,6 @@ def helmholtz_hodge(dX, dY):
     dY_irrot = np.real(np.fft.ifftn(div_dXY_F * F1))
     dX_divfre, dY_divfre = dX - dX_irrot, dY - dY_irrot
 
-    if np.any(Msk): dX_irrot[Msk], dY_irrot[Msk] = np.nan, np.nan
+    if np.any(Msk):
+        dX_irrot[Msk], dY_irrot[Msk] = np.nan, np.nan
     return dX_divfre, dY_divfre, dX_irrot, dY_irrot

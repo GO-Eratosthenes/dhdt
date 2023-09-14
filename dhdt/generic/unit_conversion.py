@@ -269,7 +269,8 @@ def gon2deg(ang):
 
 
 def deg2compass(θ):
-    """ adjust angle to be in bounds of a positive argument angle,like a compass
+    """ adjust angle to be in bounds of a positive argument angle,like a
+    compass
 
     Parameters
     ----------

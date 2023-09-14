@@ -35,27 +35,28 @@ def ssim(I1, I2):
 
 
 def moments(x, y, k, stride):
-    def _mom_int(I, k, stride):
-        mu = I[:-k:stride, :-k:stride] - \
-             I[:-k:stride, +k::stride] - \
-             I[+k::stride, :-k:stride] + \
-             I[+k::stride, +k::stride]
+    def _mom_int(Z, k, stride):
+        mu = Z[:-k:stride, :-k:stride] - \
+             Z[:-k:stride, +k::stride] - \
+             Z[+k::stride, :-k:stride] + \
+             Z[+k::stride, +k::stride]
         return mu
 
-    def _integral_image(I):
-        m, n = I.shape
+    def _integral_image(Z):
+        m, n = Z.shape
         C = np.zeros((m + 1, n + 1))
-        C[1:, 1:] = np.cumsum(np.cumsum(I, 0), 1)
+        C[1:, 1:] = np.cumsum(np.cumsum(Z, 0), 1)
         return C
 
     k_norm = k ** 2
 
-    x_pad, y_pad = np.pad(x, int((k - stride) / 2), mode='reflect'), \
-                   np.pad(y, int((k - stride) / 2), mode='reflect')
+    x_pad = np.pad(x, int((k - stride) / 2), mode='reflect')
+    y_pad = np.pad(y, int((k - stride) / 2), mode='reflect')
 
-    int_1_x, int_1_y = _integral_image(x_pad), _integral_image(y_pad)
-    int_2_x, int_2_y = _integral_image(x_pad * x_pad), \
-                       _integral_image(y_pad * y_pad)
+    int_1_x = _integral_image(x_pad)
+    int_1_y = _integral_image(y_pad)
+    int_2_x = _integral_image(x_pad * x_pad)
+    int_2_y = _integral_image(y_pad * y_pad)
 
     int_xy = _integral_image(x_pad * y_pad)
 

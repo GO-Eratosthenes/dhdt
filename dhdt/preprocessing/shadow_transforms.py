@@ -5,8 +5,8 @@ from .multispec_transforms import principle_component_analysis, \
 from ..generic.unit_check import are_three_arrays_equal, are_two_arrays_equal
 
 from .color_transforms import \
-    rgb2ycbcr, rgb2hsi, rgb2xyz, xyz2lab, lab2lch, erdas2hsi, rgb2lms, lms2lab, \
-    rgb2hcv, rgb2yiq
+    rgb2ycbcr, rgb2hsi, rgb2xyz, xyz2lab, lab2lch, erdas2hsi, rgb2lms, \
+    lms2lab, rgb2hcv, rgb2yiq
 from dhdt.generic.data_tools import s_curve
 
 
@@ -165,8 +165,8 @@ def shadow_index_zhou(Blue, Green, Red):
 
     References
     ----------
-    .. [Zh21] Zhou et al. "Shadow detection and compensation from remote sensing
-              images under complex urban conditions", 2021.
+    .. [Zh21] Zhou et al. "Shadow detection and compensation from remote
+              sensing images under complex urban conditions", 2021.
     """
     are_three_arrays_equal(Blue, Green, Red)
 
@@ -205,7 +205,7 @@ def shadow_hsv_fraction(Blue, Green, Red):
     """
     are_three_arrays_equal(Blue, Green, Red)
 
-    H, _, I = rgb2hsi(Red, Green, Blue)
+    H, _, I = rgb2hsi(Red, Green, Blue)  # noqa: E741
     SF = np.divide(H + 1, I + 1, where=I != -1)
     return SF
 
@@ -234,12 +234,12 @@ def modified_shadow_fraction(Blue, Green, Red, P_S=.95):
     References
     ----------
     .. [Ch09] Chung, et al. "Efficient shadow detection of color aerial images
-       based on successive thresholding scheme." IEEE transactions on geoscience
-       and remote sensing vol.47, pp.671–682, 2009.
+       based on successive thresholding scheme." IEEE transactions on
+       geoscience and remote sensing vol.47, pp.671–682, 2009.
     """
     are_three_arrays_equal(Blue, Green, Red)
 
-    H, S, I = rgb2hsi(Red, Green, Blue)
+    H, S, I = rgb2hsi(Red, Green, Blue)  # noqa: E741
     r = np.divide(H, I + 1, where=I != -1)
     T_S = np.quantile(r, P_S)
     sig = np.std(r)
@@ -352,7 +352,11 @@ def shadow_yiq_fraction(Blue, Green, Red):
 
 
 # def shadow_quantifier_index
-# Polidorio, A. M., Flores F. C., Imai N. N., Tommaselli, A. M. G. and Franco, C. 2003. Automatic Shadow Segmentation in Aerial Color Images. In: Proceedings of the XVI SIBGRAPI. XVI Brazilian Symposium on Computer Graphics and Image Processing. São Carlos, Brasil, 12-15 October 2003. doi:10.1109/SIBGRA.2003.1241019.
+# Polidorio, A. M., Flores F. C., Imai N. N., Tommaselli, A. M. G. and Franco,
+# C. 2003. Automatic Shadow Segmentation in Aerial Color Images. In:
+# Proceedings of the XVI SIBGRAPI. XVI Brazilian Symposium on Computer Graphics
+# and Image Processing. São Carlos, Brasil, 12-15 October 2003.
+# doi:10.1109/SIBGRA.2003.1241019.
 def improved_shadow_index(Blue, Green, Red, Near):
     """transform red, green, blue arrays to improved shadow index. Based upon
     [Zh21].
@@ -383,8 +387,8 @@ def improved_shadow_index(Blue, Green, Red, Near):
 
     References
     ----------
-    .. [Zh21] Zhou et al. "Shadow detection and compensation from remote sensing
-       images under complex urban conditions", 2021.
+    .. [Zh21] Zhou et al. "Shadow detection and compensation from remote
+              sensing images under complex urban conditions", 2021.
     """
     are_three_arrays_equal(Blue, Green, Red)
     are_two_arrays_equal(Blue, Near)
@@ -474,7 +478,7 @@ def false_color_shadow_difference_index(Green, Red, Near):
     """
     are_three_arrays_equal(Green, Red, Near)
 
-    _, S, I = rgb2hsi(Near, Red, Green)  # create HSI bands
+    _, S, I = rgb2hsi(Near, Red, Green)  # create HSI bands  # noqa: E741
     denom = S + I
     FCSI = np.divide(S - I, denom, where=denom != 0)
     return FCSI
@@ -706,9 +710,9 @@ def normalized_sat_value_difference_index(Blue, Green, Red):
 
     References
     ----------
-    .. [Ma08] Ma et al. "Shadow segmentation and compensation in high resolution
-       satellite images", Proceedings of IEEE IGARSS, pp.II-1036--II-1039,
-       2008.
+    .. [Ma08] Ma et al. "Shadow segmentation and compensation in high
+       resolution satellite images", Proceedings of IEEE IGARSS,
+       pp.II-1036--II-1039, 2008.
     """
     are_three_arrays_equal(Blue, Green, Red)
 
@@ -747,18 +751,19 @@ def shadow_identification(Blue, Green, Red):
     References
     ----------
     .. [Po03] Polidorio et al. "Automatic shadow segmentation in aerial color
-       images", Proceedings of the 16th Brazilian symposium on computer graphics
-       and image processing, pp.270-277, 2003.
+       images", Proceedings of the 16th Brazilian symposium on computer
+       graphics and image processing, pp.270-277, 2003.
     """
     are_three_arrays_equal(Blue, Green, Red)
 
-    _, S, I = rgb2hsi(Red, Green, Blue)  # create HSI bands
+    _, S, I = rgb2hsi(Red, Green, Blue)  # create HSI bands  # noqa: E741
     SI = S - I
     return SI
 
 
 def shadow_index_liu(Blue, Green, Red):
-    """transform red, green, blue arrays to shadow index, see [LX13] and [Su19].
+    """transform red, green, blue arrays to shadow index, see [LX13] and
+    [Su19].
 
     Parameters
     ----------
@@ -786,7 +791,7 @@ def shadow_index_liu(Blue, Green, Red):
     """
     are_three_arrays_equal(Blue, Green, Red)
 
-    _, S, I = rgb2hsi(Red, Green, Blue)
+    _, S, I = rgb2hsi(Red, Green, Blue)  # noqa: E741
 
     X = pca_rgb_preparation(Red, Green, Blue, min_samp=1e4)
     e, lamb = principle_component_analysis(X)
@@ -823,9 +828,9 @@ def specthem_ratio(Blue, Green, Red):
 
     References
     ----------
-    .. [Si18] Silva et al. "Near real-time shadow detection and removal in aerial
-       motion imagery application" ISPRS journal of photogrammetry and remote
-       sensing, vol.140 pp.104--121, 2018.
+    .. [Si18] Silva et al. "Near real-time shadow detection and removal in
+       aerial motion imagery application" ISPRS journal of photogrammetry and
+       remote sensing, vol.140 pp.104--121, 2018.
     """
     are_three_arrays_equal(Blue, Green, Red)
 
@@ -891,13 +896,13 @@ def sat_int_shadow_detector_index(Blue, RedEdge, Near):
 
     References
     ----------
-    .. [MA18] Mustafa & Abedelwahab. "Corresponding regions for shadow restoration
-       in satellite high-resolution images" International journal of remote
-       sensing, vol.39(20) pp.7014--7028, 2018.
+    .. [MA18] Mustafa & Abedelwahab. "Corresponding regions for shadow
+       restoration in satellite high-resolution images" International journal
+       of remote sensing, vol.39(20) pp.7014--7028, 2018.
     """
     are_three_arrays_equal(Blue, RedEdge, Near)
 
-    _, S, I = erdas2hsi(Blue, RedEdge, Near)
+    _, S, I = erdas2hsi(Blue, RedEdge, Near)  # noqa: E741
     SISDI = S - (2 * I)
     return SISDI
 
@@ -928,7 +933,7 @@ def mixed_property_based_shadow_index(Blue, Green, Red):
     """
     are_three_arrays_equal(Blue, Green, Red)
 
-    H, _, I = rgb2hsi(Red, Green, Blue)  # create HSI bands
+    H, _, I = rgb2hsi(Red, Green, Blue)  # create HSI bands  # noqa: E741
     MPSI = np.multiply(H - I, Green - Blue)
     return MPSI
 

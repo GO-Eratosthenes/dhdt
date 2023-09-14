@@ -34,14 +34,16 @@ def _vector_arr_2_unit(vec_arr):
 
 
 def estimate_surface_normals(Z, spac=10.):
-    """ given an array with elevation values, and a given spacing, estimate the surface normals
+    """ given an array with elevation values, and a given spacing, estimate the
+     surface normals
 
     Parameters
     ----------
     Z : numpy.ndarray, size=(m,n)
         array with elevation values
     spac : float
-        spacing between posts, (isotropic spacing is assumed, that is a square grid)
+        spacing between posts, (isotropic spacing is assumed, that is a square
+        grid)
 
     Returns
     -------
@@ -190,12 +192,11 @@ def make_shading(
 
     normal = estimate_surface_normals(dem, geoTransform_im[1])
 
-    Shd = normal[:, :, 0] * sun[:, :,
-                            0] + normal[:, :,
-                                 1] * sun[:, :,
-                                      1] + normal[:, :,
-                                           2] * sun[:, :,
-                                                2]
+    Shd = (
+        normal[:, :, 0] * sun[:, :, 0] +
+        normal[:, :, 1] * sun[:, :, 1] +
+        normal[:, :, 2] * sun[:, :, 2]
+    )
     return Shd
 
 
@@ -253,7 +254,8 @@ def sturge(M):
 
 
 def find_valley(values, base, neighbors=2):
-    """ A valley is a point which has "n" consequative high values on both sides
+    """ A valley is a point which has "n" consequative high values on both
+    sides
 
     Parameters
     ----------
@@ -375,9 +377,9 @@ def shadow_image_to_suntrace_list(M, geoTransform, az, method='nearest'):
         shade_class = shade_class.astype(int)
         # remove shadowtraces that touch the boundary
         trace = np.logical_or(M_trace == -9999, shade_class)
-        start_idx = np.argmin(np.cumsum(trace) == \
+        start_idx = np.argmin(np.cumsum(trace) ==
                               np.linspace(1, trace.size, trace.size))
-        end_idx = np.argmin(np.linspace(1, trace.size, trace.size) == \
+        end_idx = np.argmin(np.linspace(1, trace.size, trace.size) ==
                             np.cumsum(np.flipud(trace)))
         shade_class[:start_idx] = 0
         shade_class[-end_idx:] = 0
@@ -395,7 +397,8 @@ def shadow_image_to_suntrace_list(M, geoTransform, az, method='nearest'):
             (shade_beg,) = np.where(shade_node[2::] == +1)
             (shade_end,) = np.where(shade_node[1::] == -1)
 
-        if len(shade_beg) == 0: continue
+        if len(shade_beg) == 0:
+            continue
 
         # coordinate transform, not image transform (loss of points)
         col_idx = k * np.ones(shade_beg.size, dtype=np.int32)
@@ -471,10 +474,14 @@ def shadow_image_to_list(M,
         sunZn, sunAz = Zn * np.ones_like(M), Az * np.ones_like(M)
     else:
         if 'bbox' in kwargs:
-            sunZn = sunZn[kwargs['bbox'][0]:kwargs['bbox'][1],
-                    kwargs['bbox'][2]:kwargs['bbox'][3]]
-            sunAz = sunAz[kwargs['bbox'][0]:kwargs['bbox'][1],
-                    kwargs['bbox'][2]:kwargs['bbox'][3]]
+            sunZn = sunZn[
+                kwargs['bbox'][0]:kwargs['bbox'][1],
+                kwargs['bbox'][2]:kwargs['bbox'][3]
+            ]
+            sunAz = sunAz[
+                kwargs['bbox'][0]:kwargs['bbox'][1],
+                kwargs['bbox'][2]:kwargs['bbox'][3]
+            ]
 
     i, j = map2pix(geoTransform, suntrace_list[:, 0].copy(),
                    suntrace_list[:, 1].copy())
@@ -492,8 +499,7 @@ def shadow_image_to_list(M,
         print('# proj: ' + crs, file=f)
 
     # add header
-    print('# caster_X ' + 'caster_Y ' + 'casted_X ' + 'casted_Y ' + \
-          'azimuth ' + 'zenith', file=f)
+    print('# caster_X caster_Y casted_X casted_Y azimuth zenith', file=f)
     # write suntrace list to text file
     for k in range(suntrace_list.shape[0]):
         line = '{:+8.2f}'.format(suntrace_list[k, 0]) + ' '
@@ -550,8 +556,8 @@ def label_occluder_and_casted(labeling, sunAz):
         subBound = subMsk ^ ndimage.morphology.binary_erosion(subMsk)
         subOrient[~subBound] = 0  # remove other boundaries
 
-        subAz = sunAz[labImin:labImax,
-                labJmin:labJmax]  # [loc] # subAz = sunAz[loc]
+        subAz = sunAz[labImin:labImax, labJmin:labJmax]  # [loc]
+        # subAz = sunAz[loc]
 
         subWhe = np.nonzero(subMsk)
         ridgIdx = subOrient[subWhe[0], subWhe[1]] == 1
@@ -591,9 +597,10 @@ def label_occluder_and_casted(labeling, sunAz):
                     rr = np.round(cc * dI) + ridgeI[x]
                     # generate cast line in sub-image
             rr, cc = rr.astype(np.int64), cc.astype(np.int64)
-            IN = (cc >= 0) & (cc <= n) & (rr >= 0) & (rr <= m
-                                                      )  # inside sub-image
-            if not IN.any(): continue
+            # inside sub-image
+            IN = (cc >= 0) & (cc <= n) & (rr >= 0) & (rr <= m)
+            if not IN.any():
+                continue
 
             rr = rr[IN]
             cc = cc[IN]
@@ -654,7 +661,8 @@ def list_occluder_and_casted(labels, sunZn, sunAz, geoTransform):
 
     castList = []
     for shp, val in shapes(labels, mask=msk, connectivity=8):
-        if val == 0: continue
+        if val == 0:
+            continue
 
         # get ridge coordinates
         polygoon = shape(shp)
@@ -674,7 +682,8 @@ def list_occluder_and_casted(labels, sunZn, sunAz, geoTransform):
                                               sunAz[ridgeI[idx]][ridgeJ[idx]],
                                               sunZn[ridgeI[idx]][ridgeJ[idx]],
                                               geoTransform)
-            if castLine is not None: castList.append(castLine)
+            if castLine is not None:
+                castList.append(castLine)
             del castLine
     return castList
 
@@ -739,7 +748,8 @@ def find_polygon_intersect(ridge_i, ridge_j, polygoon, sun_az, sun_zn,
     else:
         print('something went wrong?')
 
-    if len(castEnd) <= 1: return
+    if len(castEnd) <= 1:
+        return
 
     # find closest intersection
     occluder = Point(ridge_j, ridge_i)

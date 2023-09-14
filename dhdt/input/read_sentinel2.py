@@ -97,8 +97,8 @@ def list_central_wavelength_msi():
 
     References
     -------
-    .. [La15] Languille et al. "Sentinel-2 geometric image quality commissioning:
-              first results" Proceedings of the SPIE, 2015.
+    .. [La15] Languille et al. "Sentinel-2 geometric image quality
+              commissioning: first results" Proceedings of the SPIE, 2015.
     .. [MG10] Martin-Gonthier et al. "CMOS detectors for space applications:
               From R&D to operational program with large volume foundry",
               Proceedings of the SPIE conference on sensors, systems, and next
@@ -313,16 +313,15 @@ def list_central_wavelength_msi():
     return df
 
 
-def dn2toa_s2(I):
+def dn2toa_s2(dn):
     """convert the digital numbers of Sentinel-2 to top of atmosphere (TOA)
 
     Notes
     -----
-    sentinel.esa.int/web/sentinel/technical-guides/sentinel-2-msi/
-    level-1c/algorithm
-    """
-    I_toa = np.divide(I.astype('float'), 1E4)
-    return I_toa
+    https://sentinel.esa.int/web/sentinel/technical-guides/sentinel-2-msi/level-1c/algorithm
+    """  # noqa: E501
+    reflectance_toa = np.divide(dn.astype('float'), 1E4)
+    return reflectance_toa
 
 
 def read_band_s2(path, band=None):
@@ -353,7 +352,8 @@ def read_band_s2(path, band=None):
     --------
     list_central_wavelength_msi : creates a dataframe for the MSI instrument
     read_stack_s2 : reading several Sentinel-2 bands at once into a stack
-    dhdt.generic.read_geo_image : basic function to import geographic imagery data
+    dhdt.generic.read_geo_image : basic function to import geographic imagery
+    data
 
     Examples
     --------
@@ -378,7 +378,7 @@ def read_band_s2(path, band=None):
     <osgeo.osr.SpatialReference; proxy of <Swig Object of type
     'OSRSpatialReferenceShadow *' at 0x7f9a63ffe450> >
     """
-    if band != None:
+    if band is not None:
         if len(band) == 3:  # when band : 'B0X'
             fname = os.path.join(path, '*' + band + '.jp2')
         else:  # when band: '0X'
@@ -1133,13 +1133,14 @@ def read_view_angles_s2(path,
         else:
             Zn, Az = np.dstack((Zn, Zn_bnd)), np.dstack((Az, Az_bnd))
 
-    Zn, Az = np.ma.array(Zn, mask=det_stack.mask), \
-             np.ma.array(Az, mask=det_stack.mask)
+    Zn = np.ma.array(Zn, mask=det_stack.mask)
+    Az = np.ma.array(Az, mask=det_stack.mask)
     return Zn, Az
 
 
 def read_mean_sun_angles_s2(path, fname='MTD_TL.xml'):
-    """ Read the xml-file of the Sentinel-2 scene and extract the mean sun angles.
+    """
+    Read the xml-file of the Sentinel-2 scene and extract the mean sun angles.
 
     Parameters
     ----------
@@ -1304,8 +1305,9 @@ def read_detector_mask(path_meta, boi, geoTransform):
     for i in range(len(boi)):
         im_id = boi.index[i]  # 'B01' | 'B8A'
         if type(im_id) is int:
-            f_meta = os.path.join(path_meta, 'MSK_DETFOO_B' + \
-                                  f'{im_id:02.0f}' + '.gml')
+            f_meta = os.path.join(
+                path_meta, 'MSK_DETFOO_B' + f'{im_id:02.0f}' + '.gml'
+            )
         else:
             f_meta = os.path.join(path_meta, 'MSK_DETFOO_' + im_id + '.gml')
 
@@ -1323,10 +1325,12 @@ def read_detector_mask(path_meta, boi, geoTransform):
                 pos_arr, det_num = get_xy_poly_from_gml(mask_members, k)
 
                 # transform to image coordinates
-                i_arr, j_arr = map2pix(geoTransform, pos_arr[:, 0], pos_arr[:,
-                                                                    1])
-                ij_arr = np.hstack((j_arr[:, np.newaxis], i_arr[:,
-                                                          np.newaxis]))
+                i_arr, j_arr = map2pix(
+                    geoTransform, pos_arr[:, 0], pos_arr[:, 1]
+                )
+                ij_arr = np.hstack(
+                    (j_arr[:, np.newaxis], i_arr[:, np.newaxis])
+                )
                 # make mask
                 msk = Image.new("L",
                                 [np.size(det_stack, 1),
@@ -1418,13 +1422,14 @@ def read_sensing_time_s2(path, fname='MTD_TL.xml'):
     >>> rec_time = read_sensing_time_s2(path, fname='MTD_TL.xml')
     >>> rec_time
 
-    """
+    """  # noqa: E501
     assert os.path.isfile(os.path.join(path, fname)), \
         ('file does not seem to exist')
     root = get_root_of_table(path, fname)
     for att in root.iter('Sensing_Time'.upper()):
         time_str = att.text
-        if time_str.endswith('Z'): time_str = time_str[:-1]
+        if time_str.endswith('Z'):
+            time_str = time_str[:-1]
         rec_time = np.datetime64(time_str, 'ns')
     return rec_time
 
@@ -1529,8 +1534,8 @@ def read_cloud_mask(path_meta, geoTransform):
     Parameters
     ----------
     path_meta : string
-        directory where meta data is situated, 'MSK_CLOUDS_B00.gml' is typically
-        the file of interest
+        directory where meta data is situated, 'MSK_CLOUDS_B00.gml' is
+        typically the file of interest
     geoTransform : tuple
         affine transformation coefficients
 
@@ -1885,7 +1890,7 @@ def get_flight_path_s2(ds_path, fname='MTD_DS.xml', s2_dict=None):
     - PDOP : position dilution of precision
     - TDOP : time dilution of precision
 
-    """
+    """  # noqa: E501
     if isinstance(ds_path, dict):
         # only dictionary is given, which already has all metadata within
         s2_dict = ds_path
@@ -1912,7 +1917,8 @@ def get_flight_path_s2(ds_path, fname='MTD_DS.xml', s2_dict=None):
                 err *= 1E-3  # convert to meters
             # 'VELOCITY_VALUES'
             uvw = np.fromstring(point[2].text, dtype=float, sep=' ')
-            if point[2].attrib['unit'] == 'mm/s': uvw *= 1E-3
+            if point[2].attrib['unit'] == 'mm/s':
+                uvw *= 1E-3
             # convert to meters per second
 
             # 'GPS_TIME'

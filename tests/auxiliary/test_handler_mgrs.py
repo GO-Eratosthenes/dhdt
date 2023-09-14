@@ -19,7 +19,10 @@ TILE_CODE = '51GWL'  # tile code
 POINT_WITHIN = 'POINT (123.69324 -44.74430)'  # A point within the tile
 POINT_OUTSIDE = 'POINT (-53.1 1.5)'  # A point outside tile
 # A polygon within the tile
-POLYGON_WITHIN = 'POLYGON ((123.199 -44.451, 124.179 -44.445, 124.193 -45.034, 123.199 -45.040, 123.199 -44.451))'
+POLYGON_WITHIN = (
+    'POLYGON ((123.199 -44.451, 124.179 -44.445, 124.193 -45.034, 123.199 '
+    '-45.040, 123.199 -44.451))'
+)
 # A polygon overlaps but larger than the tile
 POLYGON_LARGER = 'POLYGON ((0.0 -10, 125.0 -10, 125.0 -45, 0.0 -45, 0.0 -10))'
 # A ploygon outside

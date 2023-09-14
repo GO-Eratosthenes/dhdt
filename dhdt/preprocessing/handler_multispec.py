@@ -5,25 +5,25 @@ from dhdt.input.read_rapideye import read_band_re
 def get_shadow_bands(satellite_name):
     """ give bandnumbers of visible bands of specific satellite
 
-    If the instrument has a high resolution panchromatic band, 
-    this is given as the fifth entry    
+    If the instrument has a high resolution panchromatic band,
+    this is given as the fifth entry
 
     Parameters
     ----------
-    satellite_name : {'Sentinel-2', 'Landsat8', 'Landsat7', 'Landsat5', 
+    satellite_name : {'Sentinel-2', 'Landsat8', 'Landsat7', 'Landsat5',
                       'RapidEye', 'PlanetScope', 'ASTER', 'Worldview3'}
         name of the satellite or instrument abreviation.
 
     Returns
     -------
     band_num : list, size=(1,4), integer
-            
+
         * band_num[0] : Blue band number
         * band_num[1] : Green band number
         * band_num[2] : Red band number
         * band_num[3] : Near-infrared band number
         * band_num[4] : panchrometic band
-        
+
     See Also
     --------
     read_shadow_bands
@@ -65,7 +65,7 @@ def read_shadow_bands(sat_path, band_num):
     sat_path : string
         path to imagery and file name.
     band_num : list, size=(1,4), integer
-            
+
         * band_num[0] : Blue band number
         * band_num[1] : Green band number
         * band_num[2] : Red band number
@@ -81,16 +81,16 @@ def read_shadow_bands(sat_path, band_num):
     Red : numpy.ndarray, size=(m,n), dtype=integer
         red band of satellite image
     Near : numpy.ndarray, size=(m,n), dtype=integer
-        near-infrared band of satellite image   
+        near-infrared band of satellite image
     crs : string
         osr.SpatialReference in well known text
     geoTransform : tuple, size=(6,1)
         affine transformation coefficients.
     targetprj : osgeo.osr.SpatialReference() object
         coordinate reference system (CRS)
-    Pan : 
+    Pan :
         Panchromatic band
-        
+
         * numpy.ndarray, size=(m,n), integer,
         * None if band does not exist
 

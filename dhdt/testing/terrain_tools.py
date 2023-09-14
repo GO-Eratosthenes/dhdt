@@ -45,18 +45,23 @@ def create_artificial_terrain(m, n, step_size=.01, multi_res=(2, 4)):
     --------
     dhdt.testing.mapping_tools.create_local_crs
     """
-    if m is None: m = 1E3
-    if n is None: n = 1E3
+    if m is None:
+        m = 1E3
+    if n is None:
+        n = 1E3
 
     def _linreg(a, b, x):
         return a + x * (b - a)
 
     def _fade(t):
-        "6t^5 - 15t^4 + 10t^3"
+        """ 6t^5 - 15t^4 + 10t^3 """
         return 6 * t ** 5 - 15 * t ** 4 + 10 * t ** 3
 
     def _gradient(h, x, y):
-        "grad converts h to the right gradient vector and return the dot product with (x,y)"
+        """
+        grad converts h to the right gradient vector and return the dot product
+        with (x,y)
+        """
         vectors = np.array([[0, 1], [0, -1], [1, 0], [-1, 0]])
         g = vectors[h % 4]
         return g[:, :, 0] * x + g[:, :, 1] * y
@@ -114,7 +119,8 @@ def create_artificial_glacier_mask(Z, geoTransform, seeds=42, labeling=True):
     R : numpy.ndarray, size=(m,n), dtype={boolean,int)
         labeled array or mask
     """
-    if Z is None: Z, geoTransform = create_artificial_terrain(None, None)
+    if Z is None:
+        Z, geoTransform = create_artificial_terrain(None, None)
     i, j = make_seeds(np.ones_like(Z, dtype=bool), n=seeds)
     i, j, _ = remove_posts_outside_image(Z, i, j)
     x, y = pix2map(geoTransform, i, j)
@@ -130,10 +136,12 @@ def create_artifical_sun_angles(n,
                                 zn_min=35.,
                                 az_max=200.,
                                 zn_max=85.):
-    zn_min, zn_max = zenit_angle_check(zn_min), zenit_angle_check(zn_max)
+    zn_min = zenit_angle_check(zn_min)
+    zn_max = zenit_angle_check(zn_max)
     zn = np.random.uniform(low=zn_min, high=zn_max, size=n)
     az = deg2arg(np.random.uniform(low=az_min, high=az_max, size=n))
-    if n == 1: return az[0], zn[0]
+    if n == 1:
+        return az[0], zn[0]
     return az, zn
 
 
@@ -165,7 +173,8 @@ def create_shadow_caster_casted(Z,
     spac = get_max_pixel_spacing(geoTransform)
     Shw = make_shadowing(Z, az, zn, spac=spac)
 
-    if np.logical_or(incl_image, incl_wght): crs = create_local_crs()
+    if np.logical_or(incl_image, incl_wght):
+        crs = create_local_crs()
 
     if incl_image:
         im_name = out_name.split('.')[0] + ".tif"
@@ -173,7 +182,7 @@ def create_shadow_caster_casted(Z,
                     os.path.join(out_path, im_name))
 
     if incl_wght:
-        t_size = 13 if kwargs.get('t_size') == None else kwargs.get('t_size')
+        t_size = 13 if kwargs.get('t_size') is None else kwargs.get('t_size')
         wg_name = out_name.split('.')[0] + "wgt.tif"
         # create weighting function
         F = fade_shadow_cast(Shw, az, t_size=t_size)
@@ -194,8 +203,8 @@ def create_shadow_caster_casted(Z,
 
 def create_artificial_glacier_change(Z, R):
     """ glacier change anomalies have a strong relation with elevation. This
-    is simulated by this function, where elevations are adjusted, though this is
-    only done for regions that are specified by the glacier mask.
+    is simulated by this function, where elevations are adjusted, though this
+    is only done for regions that are specified by the glacier mask.
 
     Parameters
     ----------
@@ -275,7 +284,9 @@ def create_artificial_morphsnake_data(m, n, delta=10):
     alpha = 0.3
 
     Shd = mat_to_gray(Shd)  # to a range of 0...1
-    I = np.dstack((1 - (1 - alpha) * Shw + alpha * Shd,
-                   (1 - alpha) * Shd + 1 - alpha * Shw))
+    Img = np.dstack((
+        1 - (1 - alpha) * Shw + alpha * Shd,
+        (1 - alpha) * Shd + 1 - alpha * Shw
+    ))
 
-    return Shw, I, M
+    return Shw, Img, M

@@ -39,7 +39,8 @@ def get_midpoint_altitude(RGI, Z, roi=None):
               hypsometry" The cryosphere, vol.3 pp.183-194, 2009.
     """
 
-    f = lambda x: np.quantile(x, 0.5)
+    def f(x):
+        return np.quantile(x, 0.5)
     if roi is None:
         labels, altitude, _ = get_stats_from_labelled_array(RGI, Z, f)
         labels = labels.astype(int)
@@ -155,7 +156,8 @@ def get_normalized_hypsometry(RGI, Z, dZ, bins=20):
               parameterization of glacier retreat", Hydrology and earth system
               sciences, vol.14 pp.815-829, 2010
     """
-    func = lambda x: np.quantile(x, 0.5)
+    def func(x):
+        return np.quantile(x, 0.5)
 
     hypsometry = None
     for rgiid in np.unique(RGI):
@@ -201,27 +203,31 @@ def get_general_hypsometry(Z, dZ, interval=100.):
     counts : numpy.ndarray
         amount of datapoints used for estimating
     """
-    if type(Z) is pd.core.series.Series: Z = Z.to_numpy()
-    if type(dZ) is pd.core.series.Series: dZ = dZ.to_numpy()
+    if type(Z) is pd.core.series.Series:
+        Z = Z.to_numpy()
+    if type(dZ) is pd.core.series.Series:
+        dZ = dZ.to_numpy()
 
     assert len(set({Z.size, dZ.size})) == 1, \
-        ('please provide arrays of the same size')
+        'please provide arrays of the same size'
 
     L = (Z // interval).astype(int)
-    f = lambda x: np.nanmedian(x) if x.size != 0 else np.nan
+
+    def f(x):
+        return np.nanmedian(x) if x.size != 0 else np.nan
     label, hypsometry, counts = get_stats_from_labelled_array(L, dZ, f)
     label = np.multiply(label.astype(float), interval)
     return label, hypsometry, counts
 
 
-def get_stats_from_labelled_array(L, I, func):
+def get_stats_from_labelled_array(L, Z, func):
     """ get properties of a labelled array
 
     Parameters
     ----------
     L : numpy.array, size=(m,n), {bool,integer,float}
         array with unique labels
-    I : numpy.array, size=(m,n)
+    Z : numpy.array, size=(m,n)
         data array of interest
     func : {function, list of functions}
         group operation, that extracts information about the labeled group
@@ -247,15 +253,15 @@ def get_stats_from_labelled_array(L, I, func):
     True: 172
     """
     if type(L) in (np.ma.core.MaskedArray,):
-        OUT = np.logical_or(L.mask, I.mask)
+        OUT = np.logical_or(L.mask, Z.mask)
     else:
-        OUT = np.logical_or(np.isnan(L), np.isnan(I))
-    L, I = L.data[~OUT], I.data[~OUT]
+        OUT = np.logical_or(np.isnan(L), np.isnan(Z))
+    L, Z = L.data[~OUT], Z.data[~OUT]
 
     labels, indices, counts = np.unique(L,
                                         return_counts=True,
                                         return_inverse=True)
-    arr_split = np.split(I[indices.argsort()], counts.cumsum()[:-1])
+    arr_split = np.split(Z[indices.argsort()], counts.cumsum()[:-1])
 
     if isinstance(func, list):
         result = np.empty((len(arr_split), len(func)))
@@ -266,14 +272,14 @@ def get_stats_from_labelled_array(L, I, func):
     return labels, result, counts
 
 
-def get_stats_from_labelled_arrays(L1, L2, I, func):
+def get_stats_from_labelled_arrays(L1, L2, Z, func):
     """ get properties of an array via a double labelling
 
     Parameters
     ----------
     L1,L2 : numpy.array, size=(m,n), {bool,integer,float}
         arrays with unique labels
-    I : numpy.array, size=(m,n)
+    Z : numpy.array, size=(m,n)
         data array of interest
     func : {function, list of functions}
         group operation, that extracts information about the labeled group
@@ -296,9 +302,9 @@ def get_stats_from_labelled_arrays(L1, L2, I, func):
 
     L1, M1 = _get_mask_dat(L1)
     L2, M2 = _get_mask_dat(L2)
-    I, M = _get_mask_dat(I)
+    Z, M = _get_mask_dat(Z)
     OUT = np.logical_or(M1, M2, M)
-    L1, L2, I = L1[~OUT], L2[~OUT], I[~OUT]
+    L1, L2, Z = L1[~OUT], L2[~OUT], Z[~OUT]
     del OUT, M1, M2, M
 
     labels_1, indices, counts = np.unique(L1,
@@ -306,18 +312,18 @@ def get_stats_from_labelled_arrays(L1, L2, I, func):
                                           return_inverse=True)
     labels_2 = np.unique(L2)
 
-    arr_I_split = np.split(I[indices.argsort()], counts.cumsum()[:-1])
+    arr_Z_split = np.split(Z[indices.argsort()], counts.cumsum()[:-1])
     arr_L_split = np.split(L2[indices.argsort()], counts.cumsum()[:-1])
 
     L = np.zeros((labels_1.size, labels_2.size))
     C = np.zeros_like(L)
-    for idx, I_L1 in enumerate(arr_I_split):
+    for idx, Z_L1 in enumerate(arr_Z_split):
         L2_split = arr_L_split[idx]
         labels, indices, counts = np.unique(L2_split,
                                             return_counts=True,
                                             return_inverse=True)
-        I_L2 = np.split(I_L1[indices.argsort()], counts.cumsum()[:-1])
-        result = np.array(list(map(func, I_L2)))
+        Z_L2 = np.split(Z_L1[indices.argsort()], counts.cumsum()[:-1])
+        result = np.array(list(map(func, Z_L2)))
         L[idx, np.searchsorted(labels_2, labels)] = result
         C[idx, np.searchsorted(labels_2, labels)] = counts
     return L, labels_1, labels_2, C

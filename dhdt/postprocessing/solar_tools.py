@@ -240,12 +240,15 @@ def make_shadowing(Z,
           └----                 └--┴---
     """
     az = deg2arg(az)  # give range -180...+180
-    if isinstance(spac, tuple): spac = get_max_pixel_spacing(spac)
+    if isinstance(spac, tuple):
+        spac = get_max_pixel_spacing(spac)
 
     Zr = ndimage.rotate(Z, az, axes=(1, 0), cval=-1, order=3)
     # mask based
-    Mr = ndimage.rotate(np.zeros(Z.shape, dtype=bool), az, axes=(1, 0), \
-                        cval=False, order=0, prefilter=False)
+    Mr = ndimage.rotate(
+        np.zeros(Z.shape, dtype=bool), az, axes=(1, 0), cval=False, order=0,
+        prefilter=False
+    )
 
     if not isinstance(zn, np.ndarray):
         zn, weights = np.array([zn]), np.array([1])
@@ -349,8 +352,8 @@ def make_shading(Z, az, zn, spac=10):
     normal[..., 2] /= n
 
     Sh = normal[..., 0] * sun[..., 0] + \
-         normal[..., 1] * sun[..., 1] + \
-         normal[..., 2] * sun[..., 2]
+        normal[..., 1] * sun[..., 1] + \
+        normal[..., 2] * sun[..., 2]
     return Sh
 
 
@@ -378,16 +381,21 @@ def make_doppler_range(Z, az, zn, Lambertian=True, spac=10):
     # rotate
     Z_r = ndimage.rotate(Z, az, axes=(1, 0), cval=-1, order=3)
     # mask based
-    M_r = ndimage.rotate(np.ones_like(Z, dtype=bool), az, axes=(1, 0), \
-                         cval=False, order=0, prefilter=False)
+    M_r = ndimage.rotate(
+        np.ones_like(Z, dtype=bool), az, axes=(1, 0), cval=False, order=0,
+        prefilter=False
+    )
 
     K_r = np.fliplr(
-        np.meshgrid(np.linspace(0, M_r.shape[0] - 1, M_r.shape[0]),
-                    np.linspace(0, M_r.shape[1] - 1, M_r.shape[1]))[0])
+        np.meshgrid(
+            np.linspace(0, M_r.shape[0] - 1, M_r.shape[0]),
+            np.linspace(0, M_r.shape[1] - 1, M_r.shape[1])
+        )[0]
+    )
     np.putmask(K_r, ~M_r, 0)
 
     D_r = np.multiply(np.cos(np.deg2rad(zn)), Z_r) + \
-          np.multiply(np.sin(np.deg2rad(zn)), K_r * spac)
+        np.multiply(np.sin(np.deg2rad(zn)), K_r * spac)
 
     if Lambertian:  # do a weighted histogram
         Sd = make_shading(Z, az, zn, spac=10)
@@ -454,7 +462,8 @@ def make_shading_minnaert(Z, az, zn, k=1, spac=10):
           |/                    |/ | elevation angle
           └----                 └--┴---
     """
-    if isinstance(spac, tuple): spac = get_max_pixel_spacing(spac)
+    if isinstance(spac, tuple):
+        spac = get_max_pixel_spacing(spac)
     sun = sun_angles_to_vector(az, zn, indexing='xy')
 
     # estimate surface normals

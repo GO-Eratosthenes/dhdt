@@ -61,10 +61,10 @@ def plot_displacement_vectors(X,
         # get displacement vectors
         X_beg = X[idxs[0][cnt], idxs[1][cnt]]
         X_end = X[idxs[0][cnt], idxs[1][cnt]] + \
-                np.multiply(U[idxs[0][cnt], idxs[1][cnt]], scaling[0])
+            np.multiply(U[idxs[0][cnt], idxs[1][cnt]], scaling[0])
         Y_beg = Y[idxs[0][cnt], idxs[1][cnt]]
         Y_end = Y[idxs[0][cnt], idxs[1][cnt]] + \
-                np.multiply(V[idxs[0][cnt], idxs[1][cnt]], scaling[0])
+            np.multiply(V[idxs[0][cnt], idxs[1][cnt]], scaling[0])
         plt.plot(np.stack((X_beg, X_end)),
                  np.stack((Y_beg, Y_end)),
                  '-k',

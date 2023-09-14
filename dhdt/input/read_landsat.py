@@ -80,10 +80,10 @@ def list_central_wavelength_oli():
     Notes
     -----
     The time lag between panchromatic and red is 0.52 seconds, while the time
-    difference between panchromatic and the green band is 0.65 sec.,see [dM16]_.
-    The detector samping time is 4.2 msec, while the total staring time is 1.2
-    seconds. The detector arrays (or senso chip assemblies: SCA) of landsat are
-    configured as follows:
+    difference between panchromatic and the green band is 0.65 sec., see
+    [dM16]_. The detector samping time is 4.2 msec, while the total staring
+    time is 1.2 seconds. The detector arrays (or senso chip assemblies: SCA) of
+    landsat are configured as follows:
 
         .. code-block:: text
 
@@ -377,7 +377,7 @@ def get_sca_numbering_ls(ang, boi='BAND04'):
     --------
     read_metadata_ls
 
-    """
+    """  # noqa: E501
     # https://www.usgs.gov/media/files/lsds-1928-landsat-8-olitirs-solar-view-angle-generation-add
     det_cross, det_num, det_len = 28, 14, 494
 

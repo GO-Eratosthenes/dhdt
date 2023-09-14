@@ -73,7 +73,7 @@ def get_CO2_level(lat, date, m=3, nb=3):
     .. [Ba16] Barnes et al. "Isentropic transport and the seasonal cycle
               amplitude of CO₂" Journal of geophysical research: atmosphere,
               vol.121 pp.8106-8124, 2016.
-    """
+    """  # noqa: E501
 
     # global trend:
     # using a polynomial upwards trend, unfortunately
@@ -86,7 +86,8 @@ def get_CO2_level(lat, date, m=3, nb=3):
 
     # annual trend:
     # using an asymmetric triangular wave, with latitudinal component
-    if np.sign(lat) == -1: m *= -1
+    if np.sign(lat) == -1:
+        m *= -1
     b = np.zeros(nb)  # estimate base
     for n in np.linspace(1, nb, nb):
         b[int(n - 1)] = -np.divide(2 * (-1 ** n) * (m ** 2),
@@ -180,8 +181,8 @@ def get_T_sealevel(lat, method='noerdlinger'):
     .. [No99] Noerdlinger, "Atmospheric refraction effects in Earth remote
               sensing" ISPRS journal of photogrammetry and remote sensing,
               vol.54, pp.360-373, 1999.
-    .. [Ya16] Yan et al, "Correction of atmospheric refraction geolocation error
-              of high resolution optical satellite pushbroom images"
+    .. [Ya16] Yan et al, "Correction of atmospheric refraction geolocation
+              error of high resolution optical satellite pushbroom images"
               Photogrammetric engineering & remote sensing, vol.82(6)
               pp.427-435, 2016.
     """
@@ -223,8 +224,8 @@ def get_T_in_troposphere(h, T_0):
 
     References
     ----------
-    .. [Ya16] Yan et al, "Correction of atmospheric refraction geolocation error
-              of high resolution optical satellite pushbroom images"
+    .. [Ya16] Yan et al, "Correction of atmospheric refraction geolocation
+              error of high resolution optical satellite pushbroom images"
               Photogrammetric engineering & remote sensing, vol.82(6)
               pp.427-435, 2016.
     """
@@ -253,15 +254,13 @@ def get_water_vapor_press(T):
 
     References
     ----------
-    .. [Ya16] Yan et al, "Correction of atmospheric refraction geolocation error
-              of high resolution optical satellite pushbroom images"
+    .. [Ya16] Yan et al, "Correction of atmospheric refraction geolocation
+              error of high resolution optical satellite pushbroom images"
               Photogrammetric engineering & remote sensing, vol.82(6)
               pp.427-435, 2016.
     """
     t = kelvin2celsius(T)
-    P_w = (7.38E-3 * t + 0.8072) ** 8 - \
-          1.9E-5 * (1.8 * t + 48) + \
-          1.316E-3
+    P_w = (7.38E-3 * t + 0.8072) ** 8 - 1.9E-5 * (1.8 * t + 48) + 1.316E-3
     P_w *= 3386.39  # eq. 23 in [1]
     return P_w
 
@@ -287,10 +286,10 @@ def get_sat_vapor_press(T, method='IAPWS'):
     ----------
     .. [Gi82] Giacomo, "Equation for the determination of the density of moist
               air" Metrologica, vol.18, pp.33-40, 1982.
-    .. [WP02] Wagner and Pruß, "The IAPWS formulation 1995 for the thermodynamic
-              properties of ordinary water substance for general and scientific
-              use.” Journal of physical and chemical reference data, vol.31(2),
-              pp.387-535, 2002.
+    .. [WP02] Wagner and Pruß, "The IAPWS formulation 1995 for the
+              thermodynamic properties of ordinary water substance for general
+              and scientific use.” Journal of physical and chemical reference
+              data, vol.31(2), pp.387-535, 2002.
     """
     if method in ('simple', 'old'):
         A, B, C, D = 1.2378847E-5, -1.9121316E-2, 33.93711047, -6.3431645E3
@@ -325,10 +324,10 @@ def get_sat_vapor_press_ice(T):
 
     References
     ----------
-    .. [WP02] Wagner and Pruß, "The IAPWS formulation 1995 for the thermodynamic
-              properties of ordinary water substance for general and scientific
-              use.” Journal of physical and chemical reference data, vol.31(2),
-              pp.387-535, 2002.
+    .. [WP02] Wagner and Pruß, "The IAPWS formulation 1995 for the
+              thermodynamic properties of ordinary water substance for general
+              and scientific use.” Journal of physical and chemical reference
+              data, vol.31(2), pp.387-535, 2002.
     """
     a_1, a_2 = -13.928169, 34.7078238
     t_frac = np.divide(T, 273.16)
@@ -444,8 +443,9 @@ def get_density_fraction(ϕ, h_0, alpha=0.0065, R=8314.36, M_t=28.825):
     h_t = get_height_tropopause(ϕ)
     T_t = h_t * alpha + T_sl
 
-    ρ_frac_s = T_frac_0 ** Gamma * \
-               np.exp(h_0 - h_t) * np.divide(M_t * g, R * T_t)  # eq. A7 in [1]
+    ρ_frac_s = (  # eq. A7 in [1]
+        T_frac_0 ** Gamma * np.exp(h_0 - h_t) * np.divide(M_t * g, R * T_t)
+    )
     return ρ_frac_t, ρ_frac_s
 
 
@@ -592,10 +592,11 @@ def compressability_moist_air(p, T, x_w):
     ----------
     .. [Ci96] Ciddor, "Refractive index of air: new equations for the visible
               and near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
-    .. [DaXX] Davis, "Equation for the determination of the density of moist air
-              (1981/91)" Metrologica, vol.29 pp.67-70.
+    .. [DaXX] Davis, "Equation for the determination of the density of moist
+              air (1981/91)" Metrologica, vol.29 pp.67-70.
     """
-    if isinstance(T, float): T = np.array([T])
+    if isinstance(T, float):
+        T = np.array([T])
 
     # values from Table1 in [2], taking the 1991 version
     a_0, a_1, a_2 = 1.58123E-6, -2.9331E-8, 1.1043E-10
@@ -660,8 +661,8 @@ def get_density_air(T,
     ----------
     .. [Ci96] Ciddor, "Refractive index of air: new equations for the visible
               and near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
-    .. [Da92] Davis, "Equation for the determination of the density of moist air
-              (1981/91)" Metrologica, vol.29 pp.67-70, 1992.
+    .. [Da92] Davis, "Equation for the determination of the density of moist
+              air (1981/91)" Metrologica, vol.29 pp.67-70, 1992.
     """
     # molar mass of dry air containing XXX ppm of CO2
     M_a = ((CO2 - 400) * 12.011E-6 + 28.9635) * 1E-3  # eq2 in [Da92]_
@@ -711,10 +712,11 @@ def ciddor_eq5(ρ_a, ρ_w, n_axs, n_ws, ρ_axs, ρ_ws):
               1967.
     """
     # eq. 4 in [1]
-    n_prop = 1 + \
-             np.multiply(np.divide(ρ_a, ρ_axs), n_axs) + \
-             np.multiply(np.divide(ρ_w, ρ_ws), n_ws)
-
+    n_prop = (
+        1
+        + np.multiply(np.divide(ρ_a, ρ_axs), n_axs)
+        + np.multiply(np.divide(ρ_w, ρ_ws), n_ws)
+    )
     return n_prop
 
 
@@ -787,17 +789,20 @@ def refractive_index_visible(df, T, P, p_w=None, CO2=None):
 
     References
     ----------
-    .. [BJ94] Birch and Jones, "Correction to the updated Edlén equation for the
-              refractive index of air", Metrologica, vol.31(4) pp.315-316, 1994.
+    .. [BJ94] Birch and Jones, "Correction to the updated Edlén equation for
+              the refractive index of air", Metrologica, vol.31(4) pp.315-316,
+              1994.
     .. [Ed66] Edlén, "The refractive index of air", Metrologica, vol.2(2)
               pp.71-80, 1966.
     .. [BJ94] Birch and Jones, "An updated Edlén equation for the refractive
               index of air", Metrologica, vol.30 pp.155-162, 1993.
     """
-    if isinstance(T, float): T = np.array([T])
-    if isinstance(P, float): P = np.array([P])
+    if isinstance(T, float):
+        T = np.array([T])
+    if isinstance(P, float):
+        P = np.array([P])
     assert T.size == P.size, \
-        ('please provide Temperature and Pressure array of the same size')
+        'please provide Temperature and Pressure array of the same size'
 
     if type(df) in (pandas.core.frame.DataFrame,):
         sigma = 1 / df['center_wavelength'].to_numpy()  # (vacuum) wavenumber
@@ -805,9 +810,11 @@ def refractive_index_visible(df, T, P, p_w=None, CO2=None):
         sigma = np.array([1 / df])
 
     # (n-1)_s : refractivity of standard air
-    n_s = 8342.54 + \
-          np.divide(15998, 38.9 - (sigma ** 2)) + \
-          np.divide(2406147, 130 - (sigma ** 2))  # eq.2 in [1]
+    n_s = (  # eq.2 in [1]
+        8342.54
+        + np.divide(15998, 38.9 - (sigma ** 2))
+        + np.divide(2406147, 130 - (sigma ** 2))
+    )
     n_s *= 1E-8
 
     if CO2 is not None:
@@ -862,8 +869,8 @@ def refractive_index_CO2(n_s, CO2):
 
     References
     ----------
-    .. [BD93] Birch & Downs, "An updated Edlen equation for the refractive index
-              of air" Metrologica, vol.30(155) pp.155-162, 1993.
+    .. [BD93] Birch & Downs, "An updated Edlen equation for the refractive
+              index of air" Metrologica, vol.30(155) pp.155-162, 1993.
     .. [Ed66] Edlén, "The refractive index of air", Metrologica, vol.2(2)
               pp.71-80, 1966.
     """
@@ -919,8 +926,8 @@ def refractive_index_broadband(df,
     Notes
     -----
     Standard air [2] is defined to be dry air at a temperature of 15 degrees
-    Celsius and a total pressure of 1013.25 mb, having the following composition
-    by molar percentage:
+    Celsius and a total pressure of 1013.25 mb, having the following
+    composition by molar percentage:
         - 78.09% nitrogen (N₂)
         - 20.95% oxygen (O₂)
         -  0.93% argon (Ar)
@@ -1043,7 +1050,8 @@ def get_refraction_angle(dh,
     Parameters
     ----------
     dh : pandas.DataFrame
-        photohypsometric data collection, having at least the following columns:
+        photohypsometric data collection, having at least the following
+        columns:
             - timestamp : date stamp
             - caster_X, caster_Y : map coordinate of start of shadow
             - caster_Z : elevation of the start of the shadow trace
@@ -1102,7 +1110,8 @@ def get_refraction_angle(dh,
 
         zn_new = refraction_angle_analytical(sub_dh['zenith'], n_0)
 
-        if not 'zenith_refrac' in dh.columns: dh['zenith_refrac'] = None
+        if 'zenith_refrac' not in dh.columns:
+            dh['zenith_refrac'] = None
         dh.loc[IN, lambda df: ['zenith_refrac']] = zn_new
     return dh
 
@@ -1173,7 +1182,7 @@ def update_list_with_corr_zenith_pd(dh, file_dir, file_name='conn.txt'):
     See Also
     --------
     get_refraction_angle
-    """
+    """  # noqa: W605
     # organize how the collumns need to be organized in the text file
     col_order = ('caster_X', 'caster_Y', 'casted_X', 'casted_Y', 'azimuth',
                  'zenith', 'zenith_refrac')
@@ -1258,8 +1267,9 @@ def refraction_spherical_symmetric(zn_0, lat=None, h_0=None):
     .. [No99] Noerdlinger, "Atmospheric refraction effects in Earth remote
               sensing" ISPRS journal of photogrammetry and remote sensing,
               vol.54, pp.360-373, 1999.
-    .. [BJ94] Birch and Jones, "Correction to the updated Edlen equation for the
-              refractive index of air", Metrologica, vol.31(4) pp.315-316, 1994.
+    .. [BJ94] Birch and Jones, "Correction to the updated Edlen equation for
+              the refractive index of air", Metrologica, vol.31(4) pp.315-316,
+              1994.
     """
     if lat is None:
         n_0 = 1.0002904

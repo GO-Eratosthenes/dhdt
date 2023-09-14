@@ -35,8 +35,8 @@ def get_d8_dir(V_x, V_y):
 
     References
     ----------
-    .. [GM97] Garbrecht & Martz, “The assignment of drainage direction over flat
-              surfaces in raster digital elevation models”, Journal of
+    .. [GM97] Garbrecht & Martz, “The assignment of drainage direction over
+              flat surfaces in raster digital elevation models”, Journal of
               hydrology, vol.193 pp.204-213, 1997.
     """
     d8_dir = np.round(np.divide(4 * np.arctan2(V_x, V_y), np.pi))
@@ -154,7 +154,8 @@ def d8_flow(Class,
     idx = np.linspace(0, mn - 1, mn, dtype=int).reshape([m, n], order='C')
     Class_new = ndimage.grey_dilation(Class, size=(5, 5))
 
-    if analysis: Class_stack = np.zeros((m, n, iter))
+    if analysis:
+        Class_stack = np.zeros((m, n, iter))
 
     for i in range(iter):
         # find the boundary of the polygons
@@ -168,7 +169,8 @@ def d8_flow(Class,
 
         # update
         Class_new[Bnd] = Class_new.ravel()[downstream_idx]
-        if analysis: Class_stack[..., i] = Class_new.copy()
+        if analysis:
+            Class_stack[..., i] = Class_new.copy()
 
     if analysis:
         return Class_stack
@@ -222,8 +224,10 @@ def d8_catchment(V_x, V_y, geoTransform, x, y, disperse=True, flat=True):
     for i in range(2 * np.ceil(np.hypot(m, n)).astype(int)):
         # get boundary
         Bnd = get_mask_boundary(C)
-        Bnd[:, 0], Bnd[:,
-                   -1], Bnd[0, :], Bnd[-1, :] = False, False, False, False
+        Bnd[:, 0] = False
+        Bnd[:, -1] = False
+        Bnd[0, :] = False
+        Bnd[-1, :] = False
         sel_idx = idx[Bnd]  # pixel locations of interest
 
         # get neighborhood of boundary

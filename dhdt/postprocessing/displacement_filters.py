@@ -10,16 +10,18 @@ def mad_func(buffer):
     return IN[IN.size // 2]
 
 
-def local_mad_filter(I, tsize=5):
-    I_new = ndimage.generic_filter(I, mad_func, size=(tsize, tsize))
+def local_mad_filter(Z, tsize=5):
+    I_new = ndimage.generic_filter(Z, mad_func, size=(tsize, tsize))
     return I_new
 
 
 def infill_func(buffer):
     central_pix = buffer[buffer.size // 2]
 
-    if ~np.isnan(central_pix): return central_pix
-    if np.all(np.isnan(buffer)): return np.nan
+    if ~np.isnan(central_pix):
+        return central_pix
+    if np.all(np.isnan(buffer)):
+        return np.nan
 
     # construct distance matrix
     d = int(np.sqrt(buffer.size))
@@ -35,19 +37,19 @@ def infill_func(buffer):
     return interp_pix
 
 
-def local_infilling_filter(I, tsize=5):
+def local_infilling_filter(Z, tsize=5):
     """ apply local inverse distance weighting, on no-data values in an array
 
     Parameters
     ----------
-    I : numpy.array, size=(m,n), dtype=float
+    Z : numpy.array, size=(m,n), dtype=float
         intensity array with no-data values
     tsize : integer, {x ∈ ℕ | x ≥ 1}, unit=pixel
         size of the neighborhood
 
     Returns
     -------
-    I_new : numpy.array, size=(m,n), dtype=float
+    Z_new : numpy.array, size=(m,n), dtype=float
         intensity array with interpolated values at the data gap locations
 
     References
@@ -55,13 +57,14 @@ def local_infilling_filter(I, tsize=5):
     .. [Jo02] Joughin "Ice-sheet velocity mapping: a combined interferometric
               and speckle-tracking approach", Annuals of glaciology vol.34
               pp.195-201, 2002.
-    .. [Jo17] Joughin et al. "Greenland ice mapping project 2 (GIMP-2) algorithm
-              theoretical basis document", Making earth system data records for
-              use in research environment (MEaSUREs) documentation, 2017.
+    .. [Jo17] Joughin et al. "Greenland ice mapping project 2 (GIMP-2)
+              algorithm theoretical basis document", Making earth system data
+              records for use in research environment (MEaSUREs) documentation,
+              2017.
     """
 
-    I_new = ndimage.generic_filter(I, infill_func, size=(tsize, tsize))
-    return I_new
+    Z_new = ndimage.generic_filter(Z, infill_func, size=(tsize, tsize))
+    return Z_new
 
 
 def nan_resistant_func(buffer, kernel):
@@ -93,7 +96,7 @@ def nan_resistant_func(buffer, kernel):
     return central_pix
 
 
-def nan_resistant_filter(I, kernel):
+def nan_resistant_filter(Z, kernel):
     """ operate zonal filter on image with missing values. Energy within the
     kernel that fals on missing instances is distributed over other elements.
     Hence, regions with no data are shrinking, instead of growing. For a more
@@ -101,13 +104,13 @@ def nan_resistant_filter(I, kernel):
 
     Parameters
     ----------
-    I : {numpy.ndarray, numpy.masked.array}, size=(m,n)
+    Z : {numpy.ndarray, numpy.masked.array}, size=(m,n)
         grid with values
     kernel : numpy.ndarray, size=(k,l)
         convolution kernel
 
     Returns
-    I_new : numpy.ndarray, size=(m,n)
+    Z_new : numpy.ndarray, size=(m,n)
         convolved estimate
 
     References
@@ -116,17 +119,17 @@ def nan_resistant_filter(I, kernel):
               estimate uncertainty of remotely sensed glacier displacements",
               The Crysophere, vol.16(6) pp.2285–2300, 2022.
     """
-    if type(I) in (np.ma.core.MaskedArray,):
-        OUT = I.mask
-        I = I.data
-        np.putmask(I, OUT, np.nan)
+    if type(Z) in (np.ma.core.MaskedArray,):
+        OUT = Z.mask
+        Z = Z.data
+        np.putmask(Z, OUT, np.nan)
 
-    I_new = ndimage.generic_filter(I,
+    Z_new = ndimage.generic_filter(Z,
                                    nan_resistant_func,
                                    mode='reflect',
                                    size=kernel.shape,
                                    extra_keywords={'kernel': kernel})
-    return I_new
+    return Z_new
 
 
 def var_func(buffer):
@@ -146,9 +149,9 @@ def var_func(buffer):
     return var_pix
 
 
-def local_nonlin_var_filter(I, tsize=5):
-    I_var = ndimage.generic_filter(I, var_func, size=(tsize, tsize))
-    return I_var
+def local_nonlin_var_filter(Z, tsize=5):
+    Z_var = ndimage.generic_filter(Z, var_func, size=(tsize, tsize))
+    return Z_var
 
 
 def local_variance(V, tsize=5):
@@ -163,17 +166,18 @@ def local_variance(V, tsize=5):
     Parameters
     ----------
     sig_V : numpy.array, size=(m,n), dtype=float
-        statistical local variance, based on the procedure described in [JoXX]_,
-        [JoYY]
+        statistical local variance, based on the procedure described in
+        [JoXX]_, [JoYY]
 
     References
     ----------
     .. [Jo02] Joughin "Ice-sheet velocity mapping: a combined interferometric
               and speckle-tracking approach", Annuals of glaciology vol.34
               pp.195-201, 2002.
-    .. [Jo17] Joughin et al. "Greenland ice mapping project 2 (GIMP-2) algorithm
-              theoretical basis document", Making earth system data records for
-              use in research environment (MEaSUREs) documentation, 2017.
+    .. [Jo17] Joughin et al. "Greenland ice mapping project 2 (GIMP-2)
+              algorithm theoretical basis document", Making earth system data
+              records for use in research environment (MEaSUREs) documentation,
+              2017.
     """
     V_class = local_mad_filter(V, tsize=tsize)
     V[V_class] = np.nan

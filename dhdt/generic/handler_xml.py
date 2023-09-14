@@ -27,7 +27,7 @@ def get_root_of_table(path, fname=None):
         full_name = path
     else:
         full_name = os.path.join(path, fname)
-    if not '*' in full_name:
+    if '*' not in full_name:
         assert os.path.isfile(full_name), \
             ('please provide correct path and file name')
     dom = ElementTree.parse(glob.glob(full_name)[0])

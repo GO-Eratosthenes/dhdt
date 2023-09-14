@@ -19,7 +19,7 @@ def selective_blur_func(C, t_size):
     # decompose arrays, these seem to alternate....
     C_col = C.reshape(t_size[0], t_size[1], 2)
     if np.any(np.sign(C[::2]) == -1):
-        M, I = -1 * C_col[:, :, 0].flatten(), C_col[:, :, 1].flatten()
+        M, Z = -1 * C_col[:, :, 0].flatten(), C_col[:, :, 1].flatten()
     else:  # redundant calculation, just ignore and exit
         return 0
 
@@ -27,12 +27,13 @@ def selective_blur_func(C, t_size):
 
     W = make_2D_Gaussian(t_size, fwhm=m_central).flatten()
     W /= np.sum(W)
-    new_intensity = np.sum(W * I)
+    new_intensity = np.sum(W * Z)
     return new_intensity
 
 
 def adaptive_elevation_smoothing(Z, t_size=7, g_max=7):
-    """ smooth elevation data, depending on the local entropy, based on [Pa20]_.
+    """ smooth elevation data, depending on the local entropy, based on
+    [Pa20]_.
 
     Parameters
     ----------

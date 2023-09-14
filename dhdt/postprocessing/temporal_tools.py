@@ -112,5 +112,6 @@ def get_temporal_weighting(T_1, T_2, covariance=False, corr_coef=.5):
                 I, J = np.meshgrid(ij, ij)
                 I, J = I.flatten(), J.flatten()
                 for c in range(I.size):
-                    if I[c] != J[c]: W[I[c], J[c]] = corr_coef
+                    if I[c] != J[c]:
+                        W[I[c], J[c]] = corr_coef
     return W

@@ -67,7 +67,8 @@ def alternative_floating_algae_index(Red, Rededge, Near):
     References
     ----------
     .. [Wa18] Wang, et al. "Remote sensing of Sargassum biomass, nutrients, and
-              pigments" Geophysical Research Letters, vol.45(22) pp.12-359, 2018.
+              pigments" Geophysical Research Letters, vol.45(22) pp.12-359,
+              2018.
     """
     AFAI = np.divide(Near - Red, Rededge - Red)
     return AFAI
@@ -222,8 +223,8 @@ def soil_adjusted_vegetation_index(Red, Near, L=.5):
 
     References
     ----------
-    .. [Hu88] Huete, "A soil vegetation adjusted index (SAVI)" Remote sensing of
-              environment, vol.25 pp.295–309, 1988.
+    .. [Hu88] Huete, "A soil vegetation adjusted index (SAVI)" Remote sensing
+              of environment, vol.25 pp.295–309, 1988.
     """
     SAVI = np.divide(np.multiply(1 + L, Near - Red), Near + Red + L)
     return SAVI
@@ -356,7 +357,7 @@ def triangular_vegetation_index(Green, Red, Rededge):
     return TVI
 
 
-# see https://www.usgs.gov/core-science-systems/nli/landsat/landsat-enhanced-vegetation-index?qt-science_support_page_related_con=0#qt-science_support_page_related_con
+# see https://www.usgs.gov/core-science-systems/nli/landsat/landsat-enhanced-vegetation-index?qt-science_support_page_related_con=0#qt-science_support_page_related_con  # noqa: E501
 def enhanced_vegetation_index(Blue, Red, Near, G=2.5, L=1, C1=6., C2=7.5):
     EVI = G * np.divide(Near - Red, Near + C1 * Red - C2 * Blue + L)
     return EVI

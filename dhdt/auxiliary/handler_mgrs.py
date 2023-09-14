@@ -60,7 +60,7 @@ def download_mgrs_tiling(tile_dir=None, tile_file=None, overwrite=False):
     References
     ----------
     .. [1] https://sentinels.copernicus.eu/web/sentinel/missions/sentinel-2/data-products
-    """
+    """  # noqa: E501
 
     tile_dir = MGRS_TILING_DIR_DEFAULT if tile_dir is None else tile_dir
     tile_file = MGRS_TILING_FILENAME if tile_file is None else tile_file

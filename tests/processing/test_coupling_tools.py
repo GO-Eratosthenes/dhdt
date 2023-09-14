@@ -31,11 +31,11 @@ from dhdt.testing.mapping_tools import \
 # testing functions
 def test_match_pair(im_size=2 ** 7, temp_size=2 ** 4, tolerance=10):
     # create artificial data
-    I = np.ones((im_size, im_size))
-    geoTransform = create_artificial_geoTransform(I, spac=1.)
-    I_samp, J_samp = get_coordinates_of_template_centers(I, temp_size // 2)
+    Z = np.ones((im_size, im_size))
+    geoTransform = create_artificial_geoTransform(Z, spac=1.)
+    I_samp, J_samp = get_coordinates_of_template_centers(Z, temp_size // 2)
     X_samp, Y_samp = pix2map(geoTransform, I_samp, J_samp)
-    del I
+    del Z
     for bands in [1, 3]:  # testing both grayscale and multi-spectral data
         im1, im2, di, dj, _ = create_sample_image_pair(d=im_size,
                                                        max_range=3,
@@ -200,7 +200,7 @@ def test_photohypsometric_refinement_by_same(
                             match='wght_corr')
         else:
             post_1, post_2_new, caster, dh, score, caster_new, _, _, _ = \
-                couple_pair(os.path.join(dump_path, "conn.tif"), \
+                couple_pair(os.path.join(dump_path, "conn.tif"),
                             os.path.join(dump_path, "conn.tif"),
                             rect=None)
     pix_dispersion = np.nanmedian(
@@ -247,8 +247,9 @@ def _test_photohypsometric_refinement(N, Z_shape, tolerance=0.1):
                             match='wght_corr')
             geoTransform = read_geo_info(file_1)[1]
             i_1, j_1 = map2pix(geoTransform, post_1[:, 0], post_1[:, 1])
-            i_2, j_2 = map2pix(geoTransform, post_2_new[:, 0], post_2_new[:,
-                                                               1])
+            i_2, j_2 = map2pix(
+                geoTransform, post_2_new[:, 0], post_2_new[:, 1]
+            )
             h_1 = bilinear_interpolation(Z, i_1, j_1)
             h_2 = bilinear_interpolation(Z, i_2, j_2)
             dh_12 = h_2 - h_1
@@ -257,11 +258,11 @@ def _test_photohypsometric_refinement(N, Z_shape, tolerance=0.1):
 
             cnt = 1320
             w, h = 11, 11
-            i_idx, j_idx = np.floor(i_1[cnt]).astype(int), \
-                           np.floor(j_1[cnt]).astype(int)
+            i_idx = np.floor(i_1[cnt]).astype(int)
+            j_idx = np.floor(j_1[cnt]).astype(int)
             Isub_1 = I_1[i_idx - w:i_idx + w, j_idx - w:j_idx + w]
-            i_idx, j_idx = np.floor(i_2[cnt]).astype(int), \
-                           np.floor(j_2[cnt]).astype(int)
+            i_idx = np.floor(i_2[cnt]).astype(int)
+            j_idx = np.floor(j_2[cnt]).astype(int)
             Isub_2 = I_2[i_idx - w:i_idx + w, j_idx - w:j_idx + w]
 
             fig, (ax1, ax2) = plt.subplots(1, 2)

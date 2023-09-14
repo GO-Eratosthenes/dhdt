@@ -10,7 +10,8 @@ from .matching_tools import \
 from .matching_tools_frequency_filters import \
     raised_cosine, thresh_masking, normalize_power_spectrum, gaussian_mask, \
     make_template_float
-from .matching_tools_harmonic_functions import create_complex_fftpack_DCT
+from .matching_tools_harmonic_functions import get_sine_matrix, \
+    get_cosine_matrix, create_complex_DCT, create_complex_fftpack_DCT
 
 
 def upsample_dft(Q, up_m=0, up_n=0, upsampling=1, i_offset=0, j_offset=0):
@@ -20,14 +21,14 @@ def upsample_dft(Q, up_m=0, up_n=0, upsampling=1, i_offset=0, j_offset=0):
     if up_n == 0:
         up_n = n.copy()
 
-    kernel_collumn = np.exp((1j * 2 * np.pi / (n * upsampling)) * \
-                            (np.fft.fftshift(np.arange(n) - \
-                                             (n // 2))[:, np.newaxis]) * \
-                            (np.arange(up_n) - j_offset))
-    kernel_row = np.exp((1j * 2 * np.pi / (m * upsampling)) * \
-                        (np.arange(up_m)[:, np.newaxis] - i_offset) * \
+    kernel_column = np.exp(
+        (1j * 2 * np.pi / (n * upsampling)) *
+        (np.fft.fftshift(np.arange(n) - (n // 2))[:, np.newaxis]) *
+        (np.arange(up_n) - j_offset))
+    kernel_row = np.exp((1j * 2 * np.pi / (m * upsampling)) *
+                        (np.arange(up_m)[:, np.newaxis] - i_offset) *
                         (np.fft.fftshift(np.arange(m) - (m // 2))))
-    Q_up = np.matmul(kernel_row, np.matmul(Q, kernel_collumn))
+    Q_up = np.matmul(kernel_row, np.matmul(Q, kernel_column))
     return Q_up
 
 
@@ -44,13 +45,16 @@ def pad_dft(Q, m_new, n_new):
 
     # fill the old data in the new array
     Q_new[
-    np.maximum(center_offset[0], 0):np.minimum(center_offset[0] + m, m_new), \
-    np.maximum(center_offset[1], 0):np.minimum(center_offset[1] + n, n_new)] \
-        = \
-        Q_ij[np.maximum(-center_offset[0], 0): \
-             np.minimum(-center_offset[0] + m_new, m), \
-        np.maximum(-center_offset[1], 0): \
-        np.minimum(-center_offset[1] + n_new, n)]
+        np.maximum(center_offset[0], 0):np.minimum(center_offset[0] +
+                                                   m, m_new),  # noqa: E501
+        np.maximum(center_offset[1], 0):np.minimum(center_offset[1] +
+                                                   n, n_new)  # noqa: E501
+    ] = Q_ij[
+        np.maximum(-center_offset[0], 0):np.minimum(-center_offset[0] +
+                                                    m_new, m),  # noqa: E501
+        np.maximum(-center_offset[1], 0):np.minimum(-center_offset[1] +
+                                                    n_new, n)  # noqa: E501
+    ]
 
     Q_new = (np.fft.fftshift(Q_new) * m_new * n_new) / (m * n)  # scaling
     return Q_new
@@ -58,8 +62,8 @@ def pad_dft(Q, m_new, n_new):
 
 # frequency/spectrum matching functions
 def cosi_corr(I1, I2, beta1=.35, beta2=.50, m=1e-4):
-    assert type(I1) == np.ndarray, ('please provide an array')
-    assert type(I2) == np.ndarray, ('please provide an array')
+    assert type(I1) == np.ndarray, 'please provide an array'
+    assert type(I2) == np.ndarray, 'please provide an array'
 
     mt, nt = I1.shape[0], I1.shape[1]  # dimensions of the template
 
@@ -72,7 +76,7 @@ def cosi_corr(I1, I2, beta1=.35, beta2=.50, m=1e-4):
         tries = [0, 1]
 
     di, dj, m0 = 0, 0, np.array([0, 0])
-    for trying in tries:  # implement refinement step to have more overlap
+    for _ in tries:  # implement refinement step to have more overlap
         if I1.ndim == 3:  # multi-spectral frequency stacking
             bands = I1.shape[2]
             I1sub, I2sub = reposition_templates_from_center(I1, I2, di, dj)
@@ -135,9 +139,9 @@ def cosine_corr(I1, I2):
     ----------
     .. [Li04] Li, et al. "DCT-based phase correlation motion estimation",
               IEEE international conference on image processing, vol. 1, 2004.
-    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
-              stacking cross-correlation spectra from multi-channel imagery",
-              Science of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation
+              through stacking cross-correlation spectra from multi-channel
+              imagery", Science of Remote Sensing, vol.6 pp.100070, 2022.
     """
     assert type(I1) == np.ndarray, ('please provide an array')
     assert type(I2) == np.ndarray, ('please provide an array')
@@ -215,8 +219,7 @@ def masked_cosine_corr(I1, I2, M1, M2):  # todo
     Ccc = np.kron(Cc, Cc)
     # shrink size
     Ccc = Ccc[M1.flatten(), :]  # remove rows, as these are missing
-    Ccc = Ccc[:,
-          X1.flatten()]  # remove collumns, since these can't be estimated
+    Ccc = Ccc[:, X1.flatten()]  # remove columns, these can't be estimated
     Icc = np.linalg.lstsq(Ccc, y, rcond=None)[0]
     Icc = np.reshape(Icc, (min_span, min_span))
 
@@ -233,8 +236,8 @@ def masked_cosine_corr(I1, I2, M1, M2):  # todo
         for i in range(bt):  # loop through all bands
             I1sub = I1[:, :, i]
             I2sub = I2[md:-md, nd:-nd, i]
-            I1sub, I2sub = make_template_float(I1sub), \
-                           make_template_float(I2sub)
+            I1sub = make_template_float(I1sub)
+            I2sub = make_template_float(I2sub)
 
             C1 = create_complex_DCT(I1sub, Cc, Cs)
             C2 = create_complex_DCT(I2sub, Cc, Cs)
@@ -302,7 +305,8 @@ def phase_only_corr(I1, I2):
            ---┤ F  ├---------------┘
               └----┘
 
-    If multiple bands are given, cross-spectral stacking is applied,see [AL22]_.
+    If multiple bands are given, cross-spectral stacking is applied,see
+    [AL22]_.
 
     References
     ----------
@@ -312,9 +316,9 @@ def phase_only_corr(I1, I2):
               complex ternary matched filters with increased signal-to-noise
               ratios for colored noise", Optics letters, vol.16(13)
               pp.1025--1027, 1991.
-    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
-              stacking cross-correlation spectra from multi-channel imagery",
-              Science of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation
+              through stacking cross-correlation spectra from multi-channel
+              imagery", Science of Remote Sensing, vol.6 pp.100070, 2022.
 
     Examples
     --------
@@ -422,10 +426,11 @@ def projected_phase_corr(I1, I2, M1=np.array(()), M2=np.array(())):
     I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
     M1sub, M2sub = make_templates_same_size(M1, M2)
 
-    def project_spectrum(I, M, axis=0):
-        if axis == 1: I, M = I.T, M.T
+    def project_spectrum(Z, M, axis=0):
+        if axis == 1:
+            Z, M = Z.T, M.T
         # projection
-        I_p = np.sum(I * M, axis=1)
+        I_p = np.sum(Z * M, axis=1)
         # windowing
         I_w = I_p * np.hamming(I_p.size)
         # Fourier transform
@@ -562,14 +567,15 @@ def symmetric_phase_corr(I1, I2):
 
     References
     ----------
-    .. [NP93] Nikias & Petropoulou. "Higher order spectral analysis: a nonlinear
-              signal processing framework", Prentice hall. pp.313-322, 1993.
+    .. [NP93] Nikias & Petropoulou. "Higher order spectral analysis: a
+              nonlinear signal processing framework", Prentice hall.
+              pp.313-322, 1993.
     .. [We05] Wernet. "Symmetric phase only filtering: a new paradigm for DPIV
               data processing", Measurement science and technology, vol.16
               pp.601-618, 2005.
-    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
-              stacking cross-correlation spectra from multi-channel imagery",
-              Science of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation
+              through stacking cross-correlation spectra from multi-channel
+              imagery", Science of Remote Sensing, vol.6 pp.100070, 2022.
 
     Examples
     --------
@@ -633,9 +639,9 @@ def amplitude_comp_corr(I1, I2, F_0=0.04):
     ----------
     .. [Mu88] Mu et al. "Amplitude-compensated matched filtering", Applied
               optics, vol. 27(16) pp. 3461-3463, 1988.
-    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
-              stacking cross-correlation spectra from multi-channel imagery",
-              Science of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation
+              through stacking cross-correlation spectra from multi-channel
+              imagery", Science of Remote Sensing, vol.6 pp.100070, 2022.
 
     Examples
     --------
@@ -658,7 +664,7 @@ def amplitude_comp_corr(I1, I2, F_0=0.04):
         s_0 = F_0 * np.amax(abs(S2))
 
         W = np.divide(1, abs(I2), out=np.zeros_like(I2), where=I2 != 0)
-        A = np.divide(s_0, abs(I2) ** 2, out=np.zeros_like(I2), where=I2 != 0)
+        A = np.divide(s_0, abs(I2)**2, out=np.zeros_like(I2), where=I2 != 0)
         W[abs(S2) > s_0] = A[abs(S2) > s_0]
         Q = (S1) * np.conj((W * S2))
         return Q
@@ -697,8 +703,8 @@ def robust_corr(I1, I2):
 
     References
     ----------
-    .. [Fi05] Fitch et al. "Fast robust correlation", IEEE transactions on image
-              processing vol. 14(8) pp. 1063-1073, 2005.
+    .. [Fi05] Fitch et al. "Fast robust correlation", IEEE transactions on
+              image processing vol. 14(8) pp. 1063-1073, 2005.
     .. [Es07] Essannouni et al. "Adjustable SAD matching algorithm using
               frequency domain" Journal of real-time image processing, vol.1
               pp.257-265, 2007.
@@ -723,10 +729,10 @@ def robust_corr(I1, I2):
     I1sub, I2sub = make_templates_same_size(I1, I2)
     I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
 
-    p_steps = 10 ** np.arange(0, 1, .5)
+    p_steps = 10**np.arange(0, 1, .5)
     for idx, p in enumerate(p_steps):
-        I1p = 1 / p ** (1 / 3) * np.exp(1j * (2 * p - 1) * I1sub)
-        I2p = 1 / p ** (1 / 3) * np.exp(1j * (2 * p - 1) * I2sub)
+        I1p = 1 / p**(1 / 3) * np.exp(1j * (2 * p - 1) * I1sub)
+        I2p = 1 / p**(1 / 3) * np.exp(1j * (2 * p - 1) * I2sub)
 
         S1p, S2p = np.fft.fft2(I1p), np.fft.fft2(I2p)
         if idx == 0:
@@ -792,15 +798,15 @@ def gradient_corr(I1, I2):
 
     References
     ----------
-    .. [AV03] Argyriou & Vlachos. "Estimation of sub-pixel motion using gradient
-              cross-correlation", Electronics letters, vol.39(13) pp.980--982,
-              2003.
+    .. [AV03] Argyriou & Vlachos. "Estimation of sub-pixel motion using
+              gradient cross-correlation", Electronics letters, vol.39(13)
+              pp.980--982, 2003.
     .. [Tz10] Tzimiropoulos et al. "Subpixel registration with gradient
               correlation" IEEE transactions on image processing, vol.20(6)
               pp.1761--1767, 2010.
-    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
-              stacking cross-correlation spectra from multi-channel imagery",
-              Science of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation
+              through stacking cross-correlation spectra from multi-channel
+              imagery", Science of Remote Sensing, vol.6 pp.100070, 2022.
 
     Examples
     --------
@@ -906,9 +912,9 @@ def normalized_gradient_corr(I1, I2):
     .. [Tz10] Tzimiropoulos et al. "Subpixel registration with gradient
               correlation" IEEE transactions on image processing, vol.20(6)
               pp.1761--1767, 2010.
-    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
-              stacking cross-correlation spectra from multi-channel imagery",
-              Science of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation
+              through stacking cross-correlation spectra from multi-channel
+              imagery", Science of Remote Sensing, vol.6 pp.100070, 2022.
 
     Examples
     --------
@@ -962,8 +968,8 @@ def normalized_gradient_corr(I1, I2):
 
 
 def orientation_corr(I1, I2):
-    r""" match two imagery through orientation correlation, developed by [Fi02]_
-    while demonstrated its benefits over glaciated terrain by [HK12]_.
+    r""" match two imagery through orientation correlation, developed by
+    [Fi02]_ while demonstrated its benefits over glaciated terrain by [HK12]_.
 
     Parameters
     ----------
@@ -1022,15 +1028,15 @@ def orientation_corr(I1, I2):
 
     References
     ----------
-    .. [Fi02] Fitch et al. "Orientation correlation", Proceeding of the Britisch
-              machine vison conference, pp. 1--10, 2002.
+    .. [Fi02] Fitch et al. "Orientation correlation", Proceeding of the
+              Britisch machine vison conference, pp. 1--10, 2002.
     .. [HK12] Heid & Kääb. "Evaluation of existing image matching methods for
               deriving glacier surface displacements globally from optical
               satellite imagery", Remote sensing of environment, vol.118
               pp.339-355, 2012.
-    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
-              stacking cross-correlation spectra from multi-channel imagery",
-              Science of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation
+              through stacking cross-correlation spectra from multi-channel
+              imagery", Science of Remote Sensing, vol.6 pp.100070, 2022.
 
     Examples
     --------
@@ -1114,13 +1120,13 @@ def windrose_corr(I1, I2):
 
     References
     ----------
-    .. [KJ91] Kumar & Juday, "Design of phase-only, binary phase-only, and complex
-              ternary matched filters with increased signal-to-noise ratios for
-              colored noise", Optics letters, vol. 16(13) pp. 1025--1027, 1991.
-    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
-              stacking cross-correlation spectra from multi-channel imagery",
-              Science of Remote Sensing, vol.6 pp.100070, 2022.
-
+    .. [KJ91] Kumar & Juday, "Design of phase-only, binary phase-only, and 
+              complex ternary matched filters with increased signal-to-noise 
+              ratios for colored noise", Optics letters, vol. 16(13) pp. 
+              1025--1027, 1991.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation 
+              through stacking cross-correlation spectra from multi-channel 
+              imagery" Science of Remote Sensing, vol.6 pp.100070, 2022.
 
     Examples
     --------
@@ -1135,9 +1141,9 @@ def windrose_corr(I1, I2):
 
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
-    """
-    assert type(I1) == np.ndarray, ('please provide an array')
-    assert type(I2) == np.ndarray, ('please provide an array')
+    """  # noqa: E501
+    assert type(I1) == np.ndarray, 'please provide an array'
+    assert type(I2) == np.ndarray, 'please provide an array'
 
     def _windrose_corr_core(I1, I2):
         S1, S2 = np.sign(np.fft.fft2(I1)), np.sign(np.fft.fft2(I2))
@@ -1213,9 +1219,9 @@ def phase_corr(I1, I2):
     .. [KH75] Kuglin & Hines. "The phase correlation image alignment method",
               proceedings of the IEEE international conference on cybernetics
               and society, pp. 163-165, 1975.
-    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
-              stacking cross-correlation spectra from multi-channel imagery",
-              Science of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation
+              through stacking cross-correlation spectra from multi-channel
+              imagery", Science of Remote Sensing, vol.6 pp.100070, 2022.
 
     Examples
     --------
@@ -1231,8 +1237,8 @@ def phase_corr(I1, I2):
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
     """
-    assert type(I1) == np.ndarray, ('please provide an array')
-    assert type(I2) == np.ndarray, ('please provide an array')
+    assert type(I1) == np.ndarray, 'please provide an array'
+    assert type(I2) == np.ndarray, 'please provide an array'
 
     def _phase_corr_core(I1, I2):
         S1, S2 = np.fft.fft2(I1), np.fft.fft2(I2)
@@ -1308,9 +1314,9 @@ def gaussian_transformed_phase_corr(I1, I2):
     ----------
     .. [Ec08] Eckstein et al. "Phase correlation processing for DPIV
            measurements", Experiments in fluids, vol.45 pp.485-500, 2008.
-    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
-              stacking cross-correlation spectra from multi-channel imagery",
-              Science of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation
+          through stacking cross-correlation spectra from multi-channel
+          imagery", Science of Remote Sensing, vol.6 pp.100070, 2022.
 
     Examples
     --------
@@ -1480,9 +1486,9 @@ def cross_corr(I1, I2):
            deriving glacier surface displacements globally from optical
            satellite imagery", Remote sensing of environment, vol.118
            pp.339-355, 2012.
-    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
-              stacking cross-correlation spectra from multi-channel imagery",
-              Science of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation
+              through stacking cross-correlation spectra from multi-channel
+              imagery", Science of Remote Sensing, vol.6 pp.100070, 2022.
 
     Examples
     --------
@@ -1562,9 +1568,9 @@ def binary_orientation_corr(I1, I2):
               complex ternary matched filters with increased signal-to-noise
               ratios for colored noise", Optics letters, vol.16(13)
               pp.1025-1027, 1991.
-    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
-              stacking cross-correlation spectra from multi-channel imagery",
-              Science of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation
+              through stacking cross-correlation spectra from multi-channel
+              imagery", Science of Remote Sensing, vol.6 pp.100070, 2022.
 
     Examples
     --------
@@ -1678,13 +1684,14 @@ def masked_corr(I1, I2, M1=np.array(()), M2=np.array(())):
     fM1F2 = np.fft.ifft2(M1f * np.conj(I2f))
     fF1M2 = np.fft.ifft2(I1f * np.conj(M2f))
 
-    ff1M2 = np.fft.ifft2(np.fft.fft2(I1sub ** 2) * np.conj(M2f))
-    fM1f2 = np.fft.ifft2(M1f * np.fft.fft2(np.flipud(I2sub ** 2)))
+    ff1M2 = np.fft.ifft2(np.fft.fft2(I1sub**2) * np.conj(M2f))
+    fM1f2 = np.fft.ifft2(M1f * np.fft.fft2(np.flipud(I2sub**2)))
 
-    NCC_num = fF1F2 - \
-              (np.divide(np.multiply(fF1M2, fM1F2), fM1M2,
-                         out=np.zeros_like(fM1M2), where=fM1M2 != 0))
-    NCC_den_den = np.divide(fF1M2 ** 2,
+    NCC_num = fF1F2 - (np.divide(np.multiply(fF1M2, fM1F2),
+                                 fM1M2,
+                                 out=np.zeros_like(fM1M2),
+                                 where=fM1M2 != 0))
+    NCC_den_den = np.divide(fF1M2**2,
                             fM1M2,
                             out=np.zeros_like(fM1M2),
                             where=fM1M2 != 0)

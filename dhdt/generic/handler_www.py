@@ -94,7 +94,8 @@ def get_file_from_protected_www(full_url,
     """
     assert user is not None, 'please provide username'
     assert password is not None, 'please provide a password'
-    if not os.path.isdir(dump_dir): os.makedirs(dump_dir)
+    if not os.path.isdir(dump_dir):
+        os.makedirs(dump_dir)
 
     file_name = os.path.basename(full_url)
     with requests.Session() as session:
