@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 import pandas as pd
 from numpy.lib.recfunctions import stack_arrays, merge_arrays
-from scipy import ndimage
+from scipy import ndimage, sparse
 
 from dhdt.generic.debugging import loggg
 from dhdt.generic.mapping_tools import map2pix, pix2map
@@ -1180,7 +1180,7 @@ def get_hypsometric_elevation_change_pd(dxyt, Z=None, geoTransform=None):
     desc = [('T_1', '<M8[D]'), ('T_2', '<M8[D]'), ('Z_12', np.float64),
             ('dZ_12', np.float64)]
 
-    debug = True
+    debug = False
     if debug:
         OK, dz_comp = _compensate_via_prior(dxyt['dH_12'], dZ)
         arrs = [dxyt['T_1'][OK], dxyt['T_2'][OK], Z_12[OK], dz_comp[OK]]

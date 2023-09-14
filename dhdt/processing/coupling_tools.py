@@ -317,7 +317,6 @@ def match_pair(I1,
 
 def couple_pair(file_1,
                 file_2,
-                bbox=None,
                 rgi_id=None,
                 wght_1=None,
                 wght_2=None,
@@ -329,17 +328,14 @@ def couple_pair(file_1,
                 search_radius=7,
                 processing=None,
                 subpix='moment',
-                metric='peak_entr',
-                shw_fname="shadow.tif",
-                label_fname="labelPolygons.tif"):
+                metric='peak_abs',
+                shw_fname="shadow.tif"):
     """ refine and couple two shadow images together via matching
 
     Parameters
     ----------
     file_1, file_2 : string
         path to first and second image(ry)
-    bbox : {list, numpy.array}, size=(4,1)
-        bounding box of region of interest
     rgi_id : string
         code of the glacier of interest following the Randolph Glacier
         Inventory
@@ -377,8 +373,6 @@ def couple_pair(file_1,
         "list_peak_estimators", list_phase_estimators" for more information
     shw_fname : str, default='shadow.tif'
         image name of the shadow transform/enhancement
-    label_fname : str, default="labelPolygons.tif"
-        filename of the numbered image with all the shadow polygons
 
     Returns
     -------
@@ -405,9 +399,6 @@ def couple_pair(file_1,
 
     crs, geoTransform1, _, rows1, cols1, _ = read_geo_info(file_1)
     _, geoTransform2, _, rows2, cols2, _ = read_geo_info(file_2)
-
-    if bbox is None:
-        bbox = get_local_bbox_in_s2_tile(file_1, dir_im1)
 
     # text file listing coordinates of shadow casting and casted points
     if os.path.isfile(file_1[:-4] + '.tif'):  # testing dataset is created
@@ -478,7 +469,7 @@ def couple_pair(file_1,
                                            prepro=prepro,
                                            correlator=match,
                                            subpix=subpix,
-                                           metric='peak_abs')
+                                           metric=metric)
 
     # cast location in xy-coordinates for t_1
     post_1, post_2 = conn_1[idxConn[:, 1], 2:4], conn_2[idxConn[:, 0], 2:4]
@@ -600,7 +591,7 @@ def create_template_at_center(Z, i, j, radius, filling='random'):
     return Z_sub
 
 
-def create_template_off_center(Z, i, j, width, filling='random'):
+def create_template_off_center(Z, i, j, width):
     """ get sub template of data array, at a certain location
 
     Parameters
@@ -613,13 +604,6 @@ def create_template_off_center(Z, i, j, width, filling='random'):
         horizontal coordinate of the template center
     width : {integer, tuple}
         dimension of the template
-    filling : {'random', 'NaN', 'zero'}
-        sometimes the location is outside the domain or to close to the border.
-        then the template is filled up with either:
-           * 'random' : random numbers, ranging from 0...1, 0...2**bit
-                        dependend on the data type of the array
-           * 'nan' : not a number values
-           * 'zero' : all zeros
 
     Returns
     -------

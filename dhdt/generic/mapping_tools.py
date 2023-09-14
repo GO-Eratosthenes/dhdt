@@ -35,7 +35,11 @@ def cart2pol(x, y):
     pol2xyz : equivalent function, but for three dimensions
     cart2pol : inverse function
     """
-    are_two_arrays_equal(x, y)
+    if type(x) in (np.ma.core.MaskedArray, np.ndarray):
+        are_two_arrays_equal(x, y)
+    else: # if only a float is given
+        x,y = correct_floating_parameter(x), correct_floating_parameter(y)
+
     ρ = np.hypot(x, y)
     φ = np.arctan2(y, x)
     return ρ, φ
@@ -61,7 +65,10 @@ def pol2cart(ρ, φ):
     pol2xyz : equivalent function, but for three dimensions
     cart2pol : inverse function
     """
-    are_two_arrays_equal(ρ, φ)
+    if type(ρ) in (np.ma.core.MaskedArray, np.ndarray):
+        are_two_arrays_equal(ρ, φ)
+    else: # if only a float is given
+        ρ,φ = correct_floating_parameter(ρ), correct_floating_parameter(φ)
 
     x = ρ * np.cos(φ)
     y = ρ * np.sin(φ)

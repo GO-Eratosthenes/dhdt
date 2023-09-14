@@ -88,18 +88,15 @@ def radon_orientation(Z,
 
     for counter in tqdm(range(len(I_grd))):
         Z_sub = create_template_at_center(Z, I_grd[counter], J_grd[counter],
-                                          temp_radius)
+                                          temp_radius, filling='random')
         idx_grd = np.unravel_index(counter, (m, n), 'C')
-        try:
-            if np.ptp(Z_sub) == 0:
-                continue
-        except:
-            print('.')
+        if np.ptp(Z_sub) == 0:
+            continue
 
-        θ, score = get_radon_angle(Z_sub, num_dir=num_dir, fitting=fitting)
+        ψ, score = get_radon_angle(Z_sub, num_dir=num_dir, fitting=fitting)
         # write results
         if Θ.size > 0:
-            Θ[idx_grd[0], idx_grd[1]] = θ
+            Θ[idx_grd[0], idx_grd[1]] = ψ
             Score[idx_grd[0], idx_grd[1]] = score
     return Θ, Score
 

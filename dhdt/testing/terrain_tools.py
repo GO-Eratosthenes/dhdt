@@ -11,7 +11,6 @@ from dhdt.generic.mapping_tools import pix2map, get_max_pixel_spacing, \
 from dhdt.generic.terrain_tools import terrain_slope
 from dhdt.generic.unit_check import zenit_angle_check
 from dhdt.generic.unit_conversion import deg2arg
-from dhdt.postprocessing.solar_tools import make_shadowing
 from dhdt.postprocessing.terrain_tools import d8_catchment
 from dhdt.preprocessing.image_transforms import mat_to_gray
 from dhdt.preprocessing.shadow_filters import fade_shadow_cast
