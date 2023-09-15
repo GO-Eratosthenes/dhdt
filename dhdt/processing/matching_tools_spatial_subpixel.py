@@ -1,7 +1,4 @@
-# general libraries
 import numpy as np
-
-# image processing libraries
 from scipy.optimize import fsolve
 
 from .matching_tools import get_integer_peak_location

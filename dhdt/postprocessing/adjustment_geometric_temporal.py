@@ -1,11 +1,9 @@
 import numpy as np
-
 from scipy import ndimage
 
 # local functions
 from ..generic.attitude_tools import rot_mat
-from ..processing.matching_tools_frequency_filters import \
-    make_fourier_grid
+from ..processing.matching_tools_frequency_filters import make_fourier_grid
 
 
 def project_along_flow(dX_raw, dY_raw, dX_prio, dY_prio, e_perp):

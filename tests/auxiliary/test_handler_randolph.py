@@ -7,8 +7,8 @@ import pyproj
 import pytest
 import rioxarray as rioxr
 
-from dhdt.auxiliary.handler_randolph import \
-    create_rgi_raster, create_rgi_tile_s2
+from dhdt.auxiliary.handler_randolph import (create_rgi_raster,
+                                             create_rgi_tile_s2)
 
 TESTDATA_DIR = 'testdata/RGI'
 RGI_SHAPES = f'{TESTDATA_DIR}/shapes.geojson'

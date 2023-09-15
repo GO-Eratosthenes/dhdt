@@ -1,35 +1,32 @@
 import os
 import warnings
 
-from dhdt.processing.gis_tools import get_intersection
-
-from tqdm import tqdm
-
 import numpy as np
 import pandas as pd
-from numpy.lib.recfunctions import stack_arrays, merge_arrays
-
-from sklearn.neighbors import NearestNeighbors
-from scipy.spatial.distance import cdist
+from numpy.lib.recfunctions import merge_arrays, stack_arrays
 from scipy import ndimage
+from scipy.spatial.distance import cdist
+from sklearn.neighbors import NearestNeighbors
+from tqdm import tqdm
 
-from dhdt.generic.unit_check import correct_geoTransform
-from dhdt.generic.mapping_tools import pix2map, ref_trans, \
-    aff_trans_template_coord
-from dhdt.generic.mapping_io import read_geo_image, read_geo_info
 from dhdt.generic.handler_im import select_boi_from_stack
-from dhdt.input.read_sentinel2 import \
-    get_local_bbox_in_s2_tile
-from dhdt.processing.matching_tools import \
-    pad_images_and_filter_coord_list, pad_radius, get_integer_peak_location, \
-    get_data_and_mask
-from dhdt.processing.matching_tools_organization import \
-    list_spatial_correlators, list_peak_estimators, list_phase_estimators, \
-    match_translation_of_two_subsets, estimate_subpixel, estimate_precision, \
-    estimate_translation_of_two_subsets, list_frequency_correlators, \
-    estimate_match_metric
-from dhdt.processing.matching_tools_differential import \
-    affine_optical_flow, simple_optical_flow
+from dhdt.generic.mapping_io import read_geo_image, read_geo_info
+from dhdt.generic.mapping_tools import (aff_trans_template_coord, pix2map,
+                                        ref_trans)
+from dhdt.generic.unit_check import correct_geoTransform
+from dhdt.input.read_sentinel2 import get_local_bbox_in_s2_tile
+from dhdt.processing.gis_tools import get_intersection
+from dhdt.processing.matching_tools import (get_data_and_mask,
+                                            get_integer_peak_location,
+                                            pad_images_and_filter_coord_list,
+                                            pad_radius)
+from dhdt.processing.matching_tools_differential import (affine_optical_flow,
+                                                         simple_optical_flow)
+from dhdt.processing.matching_tools_organization import (
+    estimate_match_metric, estimate_precision, estimate_subpixel,
+    estimate_translation_of_two_subsets, list_frequency_correlators,
+    list_peak_estimators, list_phase_estimators, list_spatial_correlators,
+    match_translation_of_two_subsets)
 
 warnings.filterwarnings('once')
 
@@ -164,9 +161,9 @@ def match_pair(I1,
               imagery", Science of remote sensing, vol.6 pp.100070, 2022.
     """
     # combating import loops
-    from .matching_tools_organization import \
-        list_differential_correlators, list_peak_estimators, \
-        list_frequency_correlators
+    from .matching_tools_organization import (list_differential_correlators,
+                                              list_frequency_correlators,
+                                              list_peak_estimators)
 
     # init
     L1, L2, geoTransform1, geoTransform2 = _assert_match_pair(

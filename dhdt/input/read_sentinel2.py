@@ -2,26 +2,23 @@
 import glob
 import os
 import warnings
-
 from xml.etree import ElementTree
-from osgeo import osr
 
 import numpy as np
 import pandas as pd
-
-# raster/image libraries
+from osgeo import osr
 from PIL import Image, ImageDraw
-from skimage.transform import resize
-from sklearn.neighbors import NearestNeighbors
 from scipy.interpolate import RegularGridInterpolator
 from scipy.ndimage import label
 from scipy.signal import convolve2d
+from skimage.transform import resize
+from sklearn.neighbors import NearestNeighbors
 
 from dhdt.generic.handler_sentinel2 import get_s2_dict
 from dhdt.generic.handler_xml import get_array_from_xml, get_root_of_table
-from dhdt.generic.mapping_tools import \
-    map2pix, ecef2map, ecef2llh, get_bbox, pol2xyz, make_same_size
 from dhdt.generic.mapping_io import read_geo_image, read_geo_info
+from dhdt.generic.mapping_tools import (ecef2llh, ecef2map, get_bbox,
+                                        make_same_size, map2pix, pol2xyz)
 
 
 def list_central_wavelength_msi():

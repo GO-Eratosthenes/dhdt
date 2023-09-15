@@ -1,14 +1,14 @@
 import numpy as np
 
+from dhdt.processing.matching_tools_frequency_correlators import phase_corr
 from dhdt.processing.matching_tools_frequency_filters import \
     construct_phase_plane
-from dhdt.processing.matching_tools_frequency_correlators import phase_corr
-from dhdt.processing.matching_tools_frequency_subpixel import \
-    phase_pca, phase_tpss, phase_difference, phase_ransac, \
-    phase_lsq, phase_radon, phase_hough, phase_gradient_descend, \
-    phase_weighted_pca, phase_secant
-from dhdt.testing.matching_tools import _test_subpixel_localization, \
-    create_sample_image_pair
+from dhdt.processing.matching_tools_frequency_subpixel import (
+    phase_difference, phase_gradient_descend, phase_hough, phase_lsq,
+    phase_pca, phase_radon, phase_ransac, phase_secant, phase_tpss,
+    phase_weighted_pca)
+from dhdt.testing.matching_tools import (_test_subpixel_localization,
+                                         create_sample_image_pair)
 
 
 # limited domain

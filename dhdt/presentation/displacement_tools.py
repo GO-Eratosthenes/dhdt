@@ -1,11 +1,11 @@
 import os
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.patches import Ellipse
 
-from .image_io import output_image
 from ..generic.mapping_tools import covar2err_ellipse
+from .image_io import output_image
 
 
 def plot_displacement_vectors(X,

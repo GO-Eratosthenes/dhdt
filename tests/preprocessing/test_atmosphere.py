@@ -1,9 +1,9 @@
 import numpy as np
 
 from dhdt.generic.unit_conversion import celsius2kelvin
-from dhdt.preprocessing.atmospheric_geometry import \
-    get_sat_vapor_press, get_water_vapor_enhancement, \
-    refractive_index_visible, refractive_index_broadband
+from dhdt.preprocessing.atmospheric_geometry import (
+    get_sat_vapor_press, get_water_vapor_enhancement,
+    refractive_index_broadband, refractive_index_visible)
 
 
 # testing functions, based on literature values

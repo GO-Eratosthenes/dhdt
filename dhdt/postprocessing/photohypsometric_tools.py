@@ -4,21 +4,22 @@ import warnings
 
 import numpy as np
 import pandas as pd
-from numpy.lib.recfunctions import stack_arrays, merge_arrays
+from numpy.lib.recfunctions import merge_arrays, stack_arrays
 from scipy import ndimage, sparse
 
 from dhdt.generic.debugging import loggg
-from dhdt.generic.mapping_tools import map2pix, pix2map
-from dhdt.generic.geometry_tools import point_distance_irt_line
 from dhdt.generic.filtering_statistical import mad_filtering
+from dhdt.generic.geometry_tools import point_distance_irt_line
 from dhdt.generic.handler_im import simple_nearest_neighbor
-from dhdt.processing.coupling_tools import \
-    pair_posts, merge_by_common_caster_id, get_elevation_difference, \
-    angles2unit
+from dhdt.generic.mapping_tools import map2pix, pix2map
+from dhdt.postprocessing.temporal_tools import (get_temporal_incidence_matrix,
+                                                get_temporal_weighting)
+from dhdt.processing.coupling_tools import (angles2unit,
+                                            get_elevation_difference,
+                                            merge_by_common_caster_id,
+                                            pair_posts)
 from dhdt.processing.matching_tools import remove_posts_pairs_outside_image
 from dhdt.processing.network_tools import get_network_indices
-from dhdt.postprocessing.temporal_tools import get_temporal_incidence_matrix, \
-    get_temporal_weighting
 
 
 def get_conn_col_header():

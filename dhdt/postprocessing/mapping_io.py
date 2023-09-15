@@ -1,7 +1,7 @@
 import os
-import numpy as np
 
-from osgeo import ogr, osr, gdal
+import numpy as np
+from osgeo import gdal, ogr, osr
 
 
 def dh_txt2shp(dh_mat, DEM_1, DEM_2, shp_name, srs):

@@ -11,13 +11,12 @@ The following acronyms are used:
 - WKT : well known text
 """
 import os
+
 import geopandas as gpd
-
 import numpy as np
-from shapely import wkt
-
-from shapely.geometry import Polygon, MultiPolygon
 from fiona.drvsupport import supported_drivers
+from shapely import wkt
+from shapely.geometry import MultiPolygon, Polygon
 
 from dhdt.generic.handler_www import get_file_from_www
 from dhdt.generic.unit_check import check_mgrs_code

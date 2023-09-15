@@ -2,17 +2,14 @@ import os
 import warnings
 
 import numpy as np
-
-# geospatial libaries
 from osgeo import ogr, osr
-
-# raster/image libraries
 from scipy import ndimage
 
 from dhdt.generic.attitude_tools import rot_mat
 from dhdt.generic.handler_im import get_grad_filters
-from dhdt.generic.unit_check import correct_geoTransform, \
-    are_two_arrays_equal, correct_floating_parameter, is_crs_an_srs
+from dhdt.generic.unit_check import (are_two_arrays_equal,
+                                     correct_floating_parameter,
+                                     correct_geoTransform, is_crs_an_srs)
 
 
 def cart2pol(x, y):

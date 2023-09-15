@@ -1,20 +1,17 @@
-import os
+import datetime
 import glob
+import os
+from xml.etree import ElementTree
 
 import numpy as np
 import pandas as pd
-
-import datetime
-
-# geospatial libaries
-from osgeo import gdal, osr, ogr
-from xml.etree import ElementTree
 from netCDF4 import Dataset, date2num
+from osgeo import gdal, ogr, osr
 
 from dhdt.__version__ import __version__
+from dhdt.generic.mapping_tools import pix_centers
 from dhdt.generic.unit_check import correct_geoTransform, is_crs_an_srs
 from dhdt.generic.unit_conversion import deg2compass
-from dhdt.generic.mapping_tools import pix_centers
 from dhdt.testing.mapping_tools import create_local_crs
 
 

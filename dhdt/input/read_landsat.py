@@ -3,7 +3,6 @@ import os
 
 import numpy as np
 import pandas as pd
-
 from PIL import Image, ImageDraw
 
 from ..generic.mapping_io import read_geo_image

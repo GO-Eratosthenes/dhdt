@@ -1,9 +1,6 @@
 # function to get the basic information from the venµs imagery data
-
-# generic libraries
 import glob
 import os
-
 from xml.etree import ElementTree
 
 import numpy as np

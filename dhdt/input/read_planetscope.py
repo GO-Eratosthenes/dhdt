@@ -1,7 +1,6 @@
 # generic libraries
-import os
 import glob
-
+import os
 from xml.etree import ElementTree
 
 import numpy as np

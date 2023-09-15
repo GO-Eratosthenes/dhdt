@@ -1,6 +1,6 @@
 import numpy as np
+from scipy.stats import spearmanr, ttest_1samp, wilcoxon
 
-from scipy.stats import spearmanr, wilcoxon, ttest_1samp
 from dhdt.generic.unit_conversion import deg2compass
 
 

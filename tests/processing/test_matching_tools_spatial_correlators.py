@@ -1,13 +1,12 @@
 import numpy as np
 
-from dhdt.testing.matching_tools import create_sample_image_pair, \
-    _test_subpixel_localization
+from dhdt.processing.matching_tools_spatial_correlators import (
+    cosine_similarity, maximum_likelihood, normalized_cross_corr, sum_sad_diff,
+    sum_sq_diff, weighted_normalized_cross_correlation)
 from dhdt.processing.matching_tools_spatial_subpixel import \
     get_integer_peak_location
-
-from dhdt.processing.matching_tools_spatial_correlators import \
-    normalized_cross_corr, sum_sad_diff, sum_sq_diff, maximum_likelihood, \
-    weighted_normalized_cross_correlation, cosine_similarity
+from dhdt.testing.matching_tools import (_test_subpixel_localization,
+                                         create_sample_image_pair)
 
 
 def test_normalized_cross_corr(d=2**5, tolerance=.4):

@@ -1,7 +1,7 @@
 import re
+import warnings
 
 import numpy as np
-import warnings
 
 from .unit_conversion import deg2arg
 

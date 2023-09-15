@@ -1,7 +1,6 @@
 # generic libraries
 import numpy as np
-
-from scipy import ndimage, linalg
+from scipy import linalg, ndimage
 from scipy.interpolate import griddata
 
 

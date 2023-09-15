@@ -1,8 +1,8 @@
 import numpy as np
 
 # from ..processing.matching_tools_frequency_subpixel import phase_jac
-from ..processing.matching_tools import \
-    get_integer_peak_location, get_peak_indices
+from ..processing.matching_tools import (get_integer_peak_location,
+                                         get_peak_indices)
 
 
 def squared_difference(A, B):

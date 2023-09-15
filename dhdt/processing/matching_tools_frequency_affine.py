@@ -1,15 +1,12 @@
 import numpy as np
-
-# image libraries
 from PIL import Image, ImageDraw
 from scipy import interpolate
 from scipy.linalg import hankel
 from scipy.optimize import fsolve
 from skimage.measure import find_contours
 
-# local functions
-from ..generic.mapping_tools import pol2cart, cart2pol
 from ..generic.attitude_tools import rot_mat
+from ..generic.mapping_tools import cart2pol, pol2cart
 from .matching_tools_frequency_filters import make_fourier_grid
 
 # radon > direction > sign > shear

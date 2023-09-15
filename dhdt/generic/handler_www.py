@@ -1,15 +1,11 @@
-# generic libraries
-import os
-
-import tarfile
-import zipfile
 import bz2
+import os
+import tarfile
 import urllib.request
+import warnings
+import zipfile
 
 import requests  # for NASA Earthdata Login
-import warnings
-
-# geospatial libaries
 from osgeo import gdal
 
 

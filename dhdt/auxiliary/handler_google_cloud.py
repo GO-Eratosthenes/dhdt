@@ -3,8 +3,8 @@ import os
 import pystac
 from stactools.core.copy import move_asset_file_to_item
 from stactools.core.io.xml import XmlElement
-from stactools.sentinel2.stac import create_item
 from stactools.sentinel2.constants import GRANULE_METADATA_ASSET_KEY
+from stactools.sentinel2.stac import create_item
 
 GCS_ROOT_URL = "https://storage.googleapis.com"
 SENTINEL2_BUCKET = "gcp-public-data-sentinel-2"

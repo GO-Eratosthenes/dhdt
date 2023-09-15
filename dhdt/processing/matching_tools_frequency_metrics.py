@@ -1,9 +1,9 @@
 import numpy as np
 
 from ..generic.filtering_statistical import mad_filtering
-
-from .matching_tools_frequency_filters import normalize_power_spectrum, \
-    construct_phase_values, cross_spectrum_to_coordinate_list
+from .matching_tools_frequency_filters import (
+    construct_phase_values, cross_spectrum_to_coordinate_list,
+    normalize_power_spectrum)
 
 
 def list_phase_metrics():

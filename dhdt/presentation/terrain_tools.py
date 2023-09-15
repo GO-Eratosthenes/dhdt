@@ -1,12 +1,11 @@
 import numpy as np
 from scipy import ndimage
-
 from skimage.filters.rank import entropy
 
-from ..generic.handler_im import get_grad_filters
 from ..generic.filtering_statistical import make_2D_Gaussian
-from ..preprocessing.image_transforms import mat_to_gray
+from ..generic.handler_im import get_grad_filters
 from ..postprocessing.solar_tools import make_shading
+from ..preprocessing.image_transforms import mat_to_gray
 
 # pre-processing tools
 

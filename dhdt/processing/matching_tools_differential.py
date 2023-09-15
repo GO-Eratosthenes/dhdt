@@ -1,17 +1,15 @@
-# general libraries
 import warnings
+
 import numpy as np
+from scipy import interpolate, ndimage
 
-# image processing libraries
-from scipy import ndimage, interpolate
-
-from ..generic.unit_check import are_two_arrays_equal
-from ..preprocessing.image_transforms import mat_to_gray, \
-    histogram_equalization
-from ..processing.matching_tools import get_peak_indices
 from ..generic.filtering_statistical import make_2D_Gaussian
-from ..generic.handler_im import get_grad_filters, \
-    nan_resistant_conv2, nan_resistant_diff2
+from ..generic.handler_im import (get_grad_filters, nan_resistant_conv2,
+                                  nan_resistant_diff2)
+from ..generic.unit_check import are_two_arrays_equal
+from ..preprocessing.image_transforms import (histogram_equalization,
+                                              mat_to_gray)
+from ..processing.matching_tools import get_peak_indices
 
 
 # spatial sub-pixel allignment functions

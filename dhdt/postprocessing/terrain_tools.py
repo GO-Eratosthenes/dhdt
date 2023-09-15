@@ -1,8 +1,8 @@
 import numpy as np
-
 from scipy import ndimage
-from ..generic.mapping_tools import map2pix
+
 from ..generic.gis_tools import get_mask_boundary
+from ..generic.mapping_tools import map2pix
 from ..processing.matching_tools import remove_posts_outside_image
 
 

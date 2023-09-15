@@ -1,13 +1,12 @@
 import numpy as np
 
-from .multispec_transforms import principle_component_analysis, \
-    pca_rgb_preparation
-from ..generic.unit_check import are_three_arrays_equal, are_two_arrays_equal
-
-from .color_transforms import \
-    rgb2ycbcr, rgb2hsi, rgb2xyz, xyz2lab, lab2lch, erdas2hsi, rgb2lms, \
-    lms2lab, rgb2hcv, rgb2yiq
 from dhdt.generic.data_tools import s_curve
+
+from ..generic.unit_check import are_three_arrays_equal, are_two_arrays_equal
+from .color_transforms import (erdas2hsi, lab2lch, lms2lab, rgb2hcv, rgb2hsi,
+                               rgb2lms, rgb2xyz, rgb2ycbcr, rgb2yiq, xyz2lab)
+from .multispec_transforms import (pca_rgb_preparation,
+                                   principle_component_analysis)
 
 
 def apply_shadow_transform(method, Blue, Green, Red, RedEdge, Near, Shw,

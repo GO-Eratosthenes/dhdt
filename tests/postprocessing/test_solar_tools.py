@@ -1,8 +1,9 @@
 import numpy as np
 
 from dhdt.generic.unit_conversion import deg2compass
-from dhdt.postprocessing.solar_tools import \
-    sun_angles_to_vector, vector_to_sun_angles, az_to_sun_vector
+from dhdt.postprocessing.solar_tools import (az_to_sun_vector,
+                                             sun_angles_to_vector,
+                                             vector_to_sun_angles)
 
 
 def test_sun_angles_to_vector():

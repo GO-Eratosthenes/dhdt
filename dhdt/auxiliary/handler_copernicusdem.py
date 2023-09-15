@@ -8,16 +8,15 @@ import pyproj
 import rioxarray
 import shapely.geometry
 import shapely.ops
-
 from affine import Affine
 from rasterio.enums import Resampling
 from rioxarray.merge import merge_arrays
 
 # import local functions
+from dhdt.auxiliary.handler_mgrs import get_geom_for_tile_code
+from dhdt.generic.handler_sentinel2 import get_generic_s2_raster
 from dhdt.generic.handler_www import get_file_from_www
 from dhdt.generic.mapping_tools import get_bbox
-from dhdt.generic.handler_sentinel2 import get_generic_s2_raster
-from dhdt.auxiliary.handler_mgrs import get_geom_for_tile_code
 
 DEM_DIR_DEFAULT = os.path.join('.', 'data', 'DEM')
 

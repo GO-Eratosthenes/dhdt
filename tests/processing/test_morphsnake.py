@@ -1,5 +1,5 @@
-import numpy as np
 import morphsnakes as ms
+import numpy as np
 
 from dhdt.testing.terrain_tools import create_artificial_morphsnake_data
 

@@ -1,17 +1,16 @@
 import os
-import numpy as np
-
-from PIL import Image, ImageDraw
-from skimage.color import hsv2rgb
-from scipy import ndimage
 
 import matplotlib.pyplot as plt
+import numpy as np
+from PIL import Image, ImageDraw
+from scipy import ndimage
+from skimage.color import hsv2rgb
 
-from dhdt.generic.mapping_tools import map2pix
 from dhdt.generic.handler_im import bilinear_interpolation
-from dhdt.preprocessing.image_transforms import mat_to_gray
+from dhdt.generic.mapping_tools import map2pix
 from dhdt.postprocessing.photohypsometric_tools import read_conn_to_df
 from dhdt.postprocessing.solar_tools import make_shading
+from dhdt.preprocessing.image_transforms import mat_to_gray
 
 
 def make_image(data, outputname, size=(1, 1), dpi=80, cmap='hot'):

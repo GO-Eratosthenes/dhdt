@@ -1,12 +1,11 @@
 import re
 
 import numpy as np
-
 from osgeo import osr
 
-from dhdt.generic.unit_check import check_mgrs_code
 from dhdt.generic.gis_tools import get_utm_zone
 from dhdt.generic.mapping_tools import ll2map
+from dhdt.generic.unit_check import check_mgrs_code
 
 
 def get_mgrs_tile(ϕ, λ):

@@ -1,6 +1,6 @@
 import numpy as np
-
 from scipy import ndimage
+
 from dhdt.generic.handler_im import get_grad_filters
 
 

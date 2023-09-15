@@ -1,10 +1,8 @@
 import numpy as np
-
-# image processing libraries
 from scipy import ndimage
 
-from .coupling_tools import \
-    create_template_at_center, create_template_off_center
+from .coupling_tools import (create_template_at_center,
+                             create_template_off_center)
 from .matching_tools import pad_radius
 
 

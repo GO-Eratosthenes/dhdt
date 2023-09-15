@@ -1,9 +1,8 @@
 import os
+
 import numpy as np
-
+from osgeo import gdal, ogr, osr
 from scipy import ndimage
-
-from osgeo import ogr, osr, gdal
 
 
 def create_crs_from_utm_zone(utm_code):

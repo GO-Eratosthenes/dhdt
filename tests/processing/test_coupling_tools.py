@@ -5,27 +5,27 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from dhdt.generic.handler_im import bilinear_interpolation
-from dhdt.generic.mapping_io import read_geo_info, read_geo_image
+from dhdt.generic.mapping_io import read_geo_image, read_geo_info
 from dhdt.generic.mapping_tools import map2pix, pix2map
-from dhdt.postprocessing.photohypsometric_tools import \
-    read_conn_files_to_stack, clean_locations_with_no_caster_id, \
-    get_casted_elevation_difference, get_hypsometric_elevation_change
-from dhdt.processing.coupling_tools import couple_pair, match_pair, \
-    get_elevation_difference
-from dhdt.processing.network_tools import get_network_indices
+from dhdt.postprocessing.photohypsometric_tools import (
+    clean_locations_with_no_caster_id, get_casted_elevation_difference,
+    get_hypsometric_elevation_change, read_conn_files_to_stack)
+from dhdt.processing.coupling_tools import (couple_pair,
+                                            get_elevation_difference,
+                                            match_pair)
 from dhdt.processing.matching_tools import get_coordinates_of_template_centers
-from dhdt.processing.matching_tools_organization import \
-    list_spatial_correlators, list_peak_estimators, list_phase_estimators, \
-    list_frequency_correlators
-
+from dhdt.processing.matching_tools_organization import (
+    list_frequency_correlators, list_peak_estimators, list_phase_estimators,
+    list_spatial_correlators)
+from dhdt.processing.network_tools import get_network_indices
 # artificial creation functions
-from dhdt.testing.matching_tools import \
-    create_sample_image_pair, _test_subpixel_localization
-from dhdt.testing.terrain_tools import \
-    create_artificial_terrain, create_artifical_sun_angles, \
-    create_shadow_caster_casted
-from dhdt.testing.mapping_tools import \
-    create_local_crs, create_artificial_geoTransform
+from dhdt.testing.mapping_tools import (create_artificial_geoTransform,
+                                        create_local_crs)
+from dhdt.testing.matching_tools import (_test_subpixel_localization,
+                                         create_sample_image_pair)
+from dhdt.testing.terrain_tools import (create_artifical_sun_angles,
+                                        create_artificial_terrain,
+                                        create_shadow_caster_casted)
 
 
 # testing functions

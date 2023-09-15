@@ -3,7 +3,6 @@
 import numpy as np
 import scipy.sparse
 import scipy.sparse.linalg
-
 from scipy import ndimage
 
 from ..postprocessing.solar_tools import az_to_sun_vector

@@ -2,24 +2,24 @@ import os
 
 import numpy as np
 from osgeo import osr
-from scipy.ndimage import label, binary_dilation, binary_erosion
+from scipy.ndimage import binary_dilation, binary_erosion, label
 
 from dhdt.generic.data_tools import gompertz_curve
 from dhdt.generic.mapping_io import make_geo_im
-from dhdt.generic.mapping_tools import pix2map, get_max_pixel_spacing, \
-    pix_centers
+from dhdt.generic.mapping_tools import (get_max_pixel_spacing, pix2map,
+                                        pix_centers)
 from dhdt.generic.terrain_tools import terrain_slope
 from dhdt.generic.unit_check import zenit_angle_check
 from dhdt.generic.unit_conversion import deg2arg
+from dhdt.postprocessing.solar_tools import make_shading, make_shadowing
 from dhdt.postprocessing.terrain_tools import d8_catchment
 from dhdt.preprocessing.image_transforms import mat_to_gray
 from dhdt.preprocessing.shadow_filters import fade_shadow_cast
 from dhdt.preprocessing.shadow_geometry import shadow_image_to_list
 from dhdt.presentation.velocity_tools import make_seeds
 from dhdt.processing.matching_tools import remove_posts_outside_image
-from dhdt.postprocessing.solar_tools import make_shadowing, make_shading
-from dhdt.testing.mapping_tools import \
-    create_local_crs, create_artificial_geoTransform
+from dhdt.testing.mapping_tools import (create_artificial_geoTransform,
+                                        create_local_crs)
 
 
 def create_artificial_terrain(m, n, step_size=.01, multi_res=(2, 4)):

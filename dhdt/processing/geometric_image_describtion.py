@@ -1,16 +1,12 @@
 import numpy as np
-
+from scipy.signal import find_peaks
+from skimage.transform import radon
 from tqdm import tqdm
 
-# image libraries
-from skimage.transform import radon
-from scipy.signal import find_peaks
-
-# local functions
 from ..generic.mapping_tools import map2pix
+from .coupling_tools import create_template_at_center
 from .matching_tools import pad_radius
 from .matching_tools_frequency_filters import low_pass_circle
-from .coupling_tools import create_template_at_center
 
 
 def get_radon_angle(Z, num_dir=1, fitting='polynomial'):

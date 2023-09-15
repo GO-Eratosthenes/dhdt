@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-
 from scipy import ndimage
 
 from dhdt.generic.terrain_tools import terrain_slope

@@ -1,9 +1,8 @@
 import numpy as np
-
 from scipy.ndimage import convolve
 
-from .handler_im import get_grad_filters, conv_2Dfilter
 from .filtering_statistical import make_2D_Laplacian
+from .handler_im import conv_2Dfilter, get_grad_filters
 
 
 def terrain_curvature(Z):

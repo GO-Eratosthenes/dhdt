@@ -1,5 +1,4 @@
 import numpy as np
-
 from sklearn.neighbors import NearestNeighbors
 
 from ..input.read_sentinel2 import read_mean_sun_angles_s2

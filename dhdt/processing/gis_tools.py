@@ -1,7 +1,7 @@
 import os
-import numpy as np
 
-from osgeo import ogr, osr, gdal
+import numpy as np
+from osgeo import gdal, ogr, osr
 
 from ..generic.mapping_io import read_geo_info
 

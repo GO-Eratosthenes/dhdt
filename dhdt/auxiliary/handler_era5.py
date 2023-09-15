@@ -1,8 +1,8 @@
 import os
 
 import numpy as np
-
 import pygrib
+
 try:
     import cdsapi
 except ImportError as err:
@@ -13,8 +13,8 @@ except ImportError as err:
 
 # local libraries
 from dhdt.generic.mapping_tools import map2ll
-from dhdt.generic.unit_conversion import \
-    datetime2calender, datenum2datetime, hpa2pascal
+from dhdt.generic.unit_conversion import (datenum2datetime, datetime2calender,
+                                          hpa2pascal)
 
 # https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-pressure-levels
 

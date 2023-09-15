@@ -1,15 +1,11 @@
-# generic libraries
 import numpy as np
 from numpy.lib.stride_tricks import as_strided
-
-# image processing libraries
 from scipy import ndimage, signal
 from skimage.filters import threshold_otsu
 from sklearn.cluster import MeanShift, estimate_bandwidth
 
 from ..generic.filtering_statistical import make_2D_Gaussian
-from ..generic.handler_im import rotated_sobel, diff_compass
-
+from ..generic.handler_im import diff_compass, rotated_sobel
 from ..processing.matching_tools_frequency_filters import perdecomp
 
 

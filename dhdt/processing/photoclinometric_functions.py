@@ -1,8 +1,7 @@
 import numpy as np
 
-from ..generic.handler_im import get_grad_filters, conv_2Dfilter
+from ..generic.handler_im import conv_2Dfilter, get_grad_filters
 from ..preprocessing.image_transforms import mat_to_gray
-
 from .matching_tools_frequency_filters import make_fourier_grid
 
 

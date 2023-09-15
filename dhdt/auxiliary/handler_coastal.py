@@ -1,16 +1,15 @@
 # functions to work with the coastal dataset
 import os
-import numpy as np
 
 import geopandas
+import numpy as np
 
-from dhdt.generic.handler_sentinel2 import \
-    get_geom_for_tile_code, get_utmzone_from_tile_code, \
-    get_epsg_from_mgrs_tile
-from dhdt.generic.unit_check import check_mgrs_code
-from dhdt.generic.handler_landsat import \
-    get_bbox_from_path_row
+from dhdt.generic.handler_landsat import get_bbox_from_path_row
+from dhdt.generic.handler_sentinel2 import (get_epsg_from_mgrs_tile,
+                                            get_geom_for_tile_code,
+                                            get_utmzone_from_tile_code)
 from dhdt.generic.handler_www import get_zip_file
+from dhdt.generic.unit_check import check_mgrs_code
 
 
 def get_gshhg_url(url_type='ftp'):

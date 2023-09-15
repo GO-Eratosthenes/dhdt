@@ -1,5 +1,5 @@
 import numpy as np
-from scipy import ndimage, fftpack
+from scipy import fftpack, ndimage
 
 from ..generic.filtering_statistical import mad_filtering
 from ..generic.handler_im import diff_compass

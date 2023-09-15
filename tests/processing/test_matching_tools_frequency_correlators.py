@@ -1,12 +1,11 @@
 import numpy as np
 
-from dhdt.processing.matching_tools_frequency_correlators import \
-    phase_corr, phase_only_corr, robust_corr, orientation_corr, \
-    cross_corr, symmetric_phase_corr, amplitude_comp_corr, \
-    upsampled_cross_corr, projected_phase_corr
-
-from dhdt.testing.matching_tools import \
-    create_sample_image_pair, _test_phase_plane_localization
+from dhdt.processing.matching_tools_frequency_correlators import (
+    amplitude_comp_corr, cross_corr, orientation_corr, phase_corr,
+    phase_only_corr, projected_phase_corr, robust_corr, symmetric_phase_corr,
+    upsampled_cross_corr)
+from dhdt.testing.matching_tools import (_test_phase_plane_localization,
+                                         create_sample_image_pair)
 
 
 def test_phase_corr(d=2**5, tolerance=.4):

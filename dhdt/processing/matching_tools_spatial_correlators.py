@@ -1,11 +1,9 @@
 # general libraries
 import numpy as np
-
-# image processing libraries
-from skimage.feature import match_template
-from skimage.util import view_as_windows
 from scipy import ndimage
 from scipy.stats import kurtosis
+from skimage.feature import match_template
+from skimage.util import view_as_windows
 
 from ..generic.handler_im import get_grad_filters
 from ..preprocessing.image_transforms import mat_to_gray

@@ -1,9 +1,8 @@
 import numpy as np
-
 from scipy import ndimage
 
-from dhdt.generic.unit_conversion import deg2arg
 from dhdt.generic.mapping_tools import get_max_pixel_spacing
+from dhdt.generic.unit_conversion import deg2arg
 
 
 # general location functions

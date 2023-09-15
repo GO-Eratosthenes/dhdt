@@ -1,9 +1,10 @@
-import pytest
 import urllib.request
+
 import geopandas as gpd
 import numpy as np
-from shapely.geometry import Polygon, MultiPolygon
+import pytest
 from shapely import wkt
+from shapely.geometry import MultiPolygon, Polygon
 
 import dhdt.generic.unit_check
 from dhdt.auxiliary import handler_mgrs

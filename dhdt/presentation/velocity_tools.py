@@ -1,13 +1,12 @@
-import numpy as np
 import matplotlib.pyplot as plt
-
+import numpy as np
 from PIL import Image
 from scipy import ndimage
 
+from dhdt.generic.gis_tools import polylines2shapefile
 from dhdt.generic.handler_im import bilinear_interpolation
 from dhdt.generic.mapping_tools import vel2pix
 from dhdt.testing.matching_tools import construct_correlation_peak
-from dhdt.generic.gis_tools import polylines2shapefile
 
 
 def make_seeds(Msk, n=1E2):

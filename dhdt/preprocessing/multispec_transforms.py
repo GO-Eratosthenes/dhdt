@@ -1,8 +1,7 @@
 import random
 
-import numpy as np
 import matplotlib.pyplot as plt
-
+import numpy as np
 from scipy.stats import siegelslopes
 from sklearn.decomposition import fastica
 

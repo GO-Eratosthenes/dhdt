@@ -1,12 +1,12 @@
-import numpy as np
 import morphsnakes as ms
-
+import numpy as np
 from scipy import ndimage
 
 from dhdt.generic.terrain_tools import terrain_curvature
+from dhdt.postprocessing.group_statistics import (
+    get_midpoint_altitude, get_stats_from_labelled_array,
+    get_stats_from_labelled_arrays)
 from dhdt.preprocessing.shadow_filters import L0_smoothing
-from dhdt.postprocessing.group_statistics import get_midpoint_altitude, \
-    get_stats_from_labelled_array, get_stats_from_labelled_arrays
 
 
 def update_glacier_mask(Z, R, iter=50, curv_max=2.):

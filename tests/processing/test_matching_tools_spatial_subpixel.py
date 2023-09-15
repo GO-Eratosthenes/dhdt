@@ -1,13 +1,12 @@
 import numpy as np
 
-from dhdt.testing.matching_tools import construct_correlation_peak, \
-    _test_subpixel_localization
-
-from dhdt.processing.matching_tools_spatial_subpixel import \
-    get_top_centroid, get_top_moment, get_top_blais, get_top_esinc, \
-    get_top_mass, get_top_ren, get_top_2d_gaussian, get_top_birchfield, \
-    get_top_equiangular, get_top_gaussian, get_top_parabolic, \
-    get_top_paraboloid, get_top_triangular
+from dhdt.processing.matching_tools_spatial_subpixel import (
+    get_top_2d_gaussian, get_top_birchfield, get_top_blais, get_top_centroid,
+    get_top_equiangular, get_top_esinc, get_top_gaussian, get_top_mass,
+    get_top_moment, get_top_parabolic, get_top_paraboloid, get_top_ren,
+    get_top_triangular)
+from dhdt.testing.matching_tools import (_test_subpixel_localization,
+                                         construct_correlation_peak)
 
 
 def test_get_top_centroid(ssize=(2**4, 2**4), tolerance=.4):

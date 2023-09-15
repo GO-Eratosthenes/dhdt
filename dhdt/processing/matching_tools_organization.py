@@ -2,31 +2,39 @@
 
 import numpy as np
 
-from .matching_tools_frequency_filters import \
-    perdecomp, thresh_masking, coherence_masking
-from .matching_tools_frequency_correlators import \
-    cosi_corr, phase_only_corr, symmetric_phase_corr, amplitude_comp_corr, \
-    orientation_corr, phase_corr, cross_corr, masked_cosine_corr, \
-    binary_orientation_corr, masked_corr, robust_corr, windrose_corr, \
-    gaussian_transformed_phase_corr, upsampled_cross_corr, \
-    projected_phase_corr, gradient_corr, normalized_gradient_corr
-from .matching_tools_frequency_subpixel import \
-    phase_tpss, phase_svd, phase_radon, phase_hough, phase_ransac, \
-    phase_weighted_pca, phase_pca, phase_lsq, phase_difference
-from .matching_tools_frequency_metrics import \
-    list_phase_metrics, get_phase_metric
-from .matching_tools_spatial_correlators import \
-    normalized_cross_corr, sum_sq_diff, sum_sad_diff, cumulative_cross_corr, \
-    maximum_likelihood, weighted_normalized_cross_correlation
-from .matching_tools_spatial_subpixel import \
-    get_top_gaussian, get_top_parabolic, get_top_moment, \
-    get_top_mass, get_top_centroid, get_top_blais, get_top_ren, \
-    get_top_birchfield, get_top_equiangular, get_top_triangular, \
-    get_top_esinc, get_top_paraboloid, get_top_2d_gaussian
-from .matching_tools_spatial_metrics import \
-    list_matching_metrics, get_correlation_metric, hessian_spread, gauss_spread
-from .matching_tools_differential import \
-    affine_optical_flow, hough_optical_flow
+from .matching_tools_differential import (affine_optical_flow,
+                                          hough_optical_flow)
+from .matching_tools_frequency_correlators import (
+    amplitude_comp_corr, binary_orientation_corr, cosi_corr, cross_corr,
+    gaussian_transformed_phase_corr, gradient_corr, masked_corr,
+    masked_cosine_corr, normalized_gradient_corr, orientation_corr, phase_corr,
+    phase_only_corr, projected_phase_corr, robust_corr, symmetric_phase_corr,
+    upsampled_cross_corr, windrose_corr)
+from .matching_tools_frequency_filters import (coherence_masking, perdecomp,
+                                               thresh_masking)
+from .matching_tools_frequency_metrics import (get_phase_metric,
+                                               list_phase_metrics)
+from .matching_tools_frequency_subpixel import (phase_difference, phase_hough,
+                                                phase_lsq, phase_pca,
+                                                phase_radon, phase_ransac,
+                                                phase_svd, phase_tpss,
+                                                phase_weighted_pca)
+from .matching_tools_spatial_correlators import (
+    cumulative_cross_corr, maximum_likelihood, normalized_cross_corr,
+    sum_sad_diff, sum_sq_diff, weighted_normalized_cross_correlation)
+from .matching_tools_spatial_metrics import (gauss_spread,
+                                             get_correlation_metric,
+                                             hessian_spread,
+                                             list_matching_metrics)
+from .matching_tools_spatial_subpixel import (get_top_2d_gaussian,
+                                              get_top_birchfield,
+                                              get_top_blais, get_top_centroid,
+                                              get_top_equiangular,
+                                              get_top_esinc, get_top_gaussian,
+                                              get_top_mass, get_top_moment,
+                                              get_top_parabolic,
+                                              get_top_paraboloid, get_top_ren,
+                                              get_top_triangular)
 
 
 # admin

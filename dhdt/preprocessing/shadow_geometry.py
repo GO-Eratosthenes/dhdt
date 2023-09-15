@@ -1,28 +1,24 @@
-import os
 import glob
+import os
+
 import numpy as np
-
+from rasterio.features import shapes  # for raster to polygon
 from scipy import ndimage  # for image filtering
-from scipy.interpolate import RegularGridInterpolator  # for interpolation
 from scipy import special  # for trigonometric functions
-
-from skimage import segmentation  # for superpixels
+from scipy.interpolate import RegularGridInterpolator  # for interpolation
+from shapely.errors import TopologicalError  # for troubleshooting
+from shapely.geometry import LineString, Point, shape
 from skimage import color  # for labeling image
+from skimage import segmentation  # for superpixels
 from skimage.morphology import \
     remove_small_objects  # opening, disk, erosion, closing
 
-from rasterio.features import shapes  # for raster to polygon
-
-from shapely.geometry import shape
-from shapely.geometry import Point, LineString
-from shapely.errors import TopologicalError  # for troubleshooting
-
-from ..generic.mapping_io import read_geo_image, read_geo_info
-from ..generic.mapping_tools import \
-    cast_orientation, make_same_size, pix_centers, map2pix, pix2map
 from ..generic.filtering_statistical import normalized_sampling_histogram
-from ..input.read_sentinel2 import \
-    read_sun_angles_s2, read_mean_sun_angles_s2, read_sensing_time_s2
+from ..generic.mapping_io import read_geo_image, read_geo_info
+from ..generic.mapping_tools import (cast_orientation, make_same_size, map2pix,
+                                     pix2map, pix_centers)
+from ..input.read_sentinel2 import (read_mean_sun_angles_s2,
+                                    read_sensing_time_s2, read_sun_angles_s2)
 
 
 def _vector_arr_2_unit(vec_arr):

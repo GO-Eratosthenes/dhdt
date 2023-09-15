@@ -1,12 +1,9 @@
-# general libraries
 import warnings
-import numpy as np
 
-# image processing libraries
-from scipy import ndimage, interpolate, fft, signal
+import numpy as np
+from scipy import fft, interpolate, ndimage, signal
 
 from ..generic.unit_conversion import deg2compass
-
 # frequency preparation
 from ..preprocessing.image_transforms import mat_to_gray
 

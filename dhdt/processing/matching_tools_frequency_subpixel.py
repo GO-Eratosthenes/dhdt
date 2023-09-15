@@ -1,17 +1,15 @@
-# general libraries
 import warnings
-import numpy as np
 
-# image processing libraries
+import numpy as np
 from scipy import ndimage
-from skimage.transform import radon
 from skimage.measure.fit import _dynamic_max_trials
+from skimage.transform import radon
 
 from ..generic.data_tools import gradient_descent, secant
 from ..preprocessing.multispec_transforms import principle_component_analysis
-from .matching_tools_frequency_filters import \
-    raised_cosine, thresh_masking, normalize_power_spectrum, local_coherence, \
-    make_fourier_grid, construct_phase_plane, cross_spectrum_to_coordinate_list
+from .matching_tools_frequency_filters import (
+    construct_phase_plane, cross_spectrum_to_coordinate_list, local_coherence,
+    make_fourier_grid, normalize_power_spectrum, raised_cosine, thresh_masking)
 
 
 def phase_jac(Q,

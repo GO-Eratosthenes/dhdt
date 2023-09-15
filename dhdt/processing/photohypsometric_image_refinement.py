@@ -2,19 +2,17 @@ import os
 
 import numpy as np
 import pandas
-
 from scipy import ndimage
-from scipy.optimize import curve_fit
 from scipy.interpolate import CubicSpline
+from scipy.optimize import curve_fit
 from skimage.filters import threshold_otsu
-
 from tqdm import tqdm
 
+from ..generic.data_tools import (four_pl_curve, hough_transf, logit,
+                                  logit_weighting)
 from ..generic.debugging import loggg
-from ..generic.mapping_tools import get_max_pixel_spacing, map2pix
 from ..generic.handler_im import simple_nearest_neighbor
-from ..generic.data_tools import \
-    four_pl_curve, logit, hough_transf, logit_weighting
+from ..generic.mapping_tools import get_max_pixel_spacing, map2pix
 from ..generic.unit_check import are_two_arrays_equal
 from .matching_tools import get_data_and_mask
 

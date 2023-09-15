@@ -1,5 +1,5 @@
-# general libraries
 import warnings
+
 import numpy as np
 
 from dhdt.generic.mapping_tools import map2pix
@@ -66,8 +66,7 @@ def get_integer_peak_location(C, metric=None):
     >>> C = np.fft.ifft2(Q)
     >>> di,dj,_,_ = get_integer_peak_location(C)
     """
-    from .matching_tools_organization import \
-        estimate_match_metric
+    from .matching_tools_organization import estimate_match_metric
 
     assert type(C) == np.ndarray, ("please provide an array")
     max_corr = np.argmax(C)

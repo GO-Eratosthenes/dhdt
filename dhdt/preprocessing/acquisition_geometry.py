@@ -1,13 +1,11 @@
 import numpy as np
-
 from scipy import ndimage
 
 from dhdt.generic.filtering_statistical import make_2D_Gaussian
-from dhdt.generic.handler_im import \
-    bilinear_interpolation
+from dhdt.generic.handler_im import bilinear_interpolation
 from dhdt.generic.mapping_tools import create_offset_grid, vel2pix
-from dhdt.processing.matching_tools import pad_radius
 from dhdt.preprocessing.shadow_geometry import estimate_surface_normals
+from dhdt.processing.matching_tools import pad_radius
 
 
 def slope_along_perp(Z, Az, spac=10):

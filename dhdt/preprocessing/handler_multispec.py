@@ -1,5 +1,5 @@
-from dhdt.input.read_sentinel2 import read_band_s2
 from dhdt.input.read_rapideye import read_band_re
+from dhdt.input.read_sentinel2 import read_band_s2
 
 
 def get_shadow_bands(satellite_name):

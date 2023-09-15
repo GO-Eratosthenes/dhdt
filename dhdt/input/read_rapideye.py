@@ -1,10 +1,9 @@
 import glob
 import os
+from xml.etree import ElementTree
 
 import numpy as np
 import pandas as pd
-
-from xml.etree import ElementTree
 
 from ..generic.mapping_io import read_geo_image
 

@@ -1,11 +1,10 @@
 import numpy as np
-
 from scipy import ndimage
 
-from dhdt.generic.handler_im import get_grad_filters
 from dhdt.generic.attitude_tools import rot_mat
-from dhdt.postprocessing.adjustment_geometric_temporal import \
-    rotate_disp_field, rot_covar, helmholtz_hodge
+from dhdt.generic.handler_im import get_grad_filters
+from dhdt.postprocessing.adjustment_geometric_temporal import (
+    helmholtz_hodge, rot_covar, rotate_disp_field)
 from dhdt.testing.terrain_tools import create_artificial_terrain
 
 

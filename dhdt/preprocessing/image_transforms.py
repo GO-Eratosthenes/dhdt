@@ -1,5 +1,4 @@
 import numpy as np
-
 from scipy import ndimage
 
 from dhdt.generic.data_tools import gompertz_curve

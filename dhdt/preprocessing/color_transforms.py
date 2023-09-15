@@ -1,8 +1,6 @@
 import numpy as np
 
-from ..generic.unit_check import \
-    are_three_arrays_equal, are_two_arrays_equal
-
+from ..generic.unit_check import are_three_arrays_equal, are_two_arrays_equal
 from .image_transforms import mat_to_gray
 
 

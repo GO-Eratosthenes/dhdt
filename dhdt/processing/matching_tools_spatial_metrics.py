@@ -1,5 +1,4 @@
 import numpy as np
-
 from skimage.morphology import extrema
 
 from ..generic.unit_check import are_two_arrays_equal

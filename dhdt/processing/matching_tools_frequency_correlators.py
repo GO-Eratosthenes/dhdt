@@ -1,17 +1,19 @@
-# general libraries
 import numpy as np
 from scipy import fftpack, ndimage
 
-from ..generic.unit_check import are_two_arrays_equal
 from ..generic.handler_im import get_grad_filters
-from .matching_tools import \
-    reposition_templates_from_center, make_templates_same_size, \
-    get_integer_peak_location, get_data_and_mask
-from .matching_tools_frequency_filters import \
-    raised_cosine, thresh_masking, normalize_power_spectrum, gaussian_mask, \
-    make_template_float
-from .matching_tools_harmonic_functions import get_sine_matrix, \
-    get_cosine_matrix, create_complex_DCT, create_complex_fftpack_DCT
+from ..generic.unit_check import are_two_arrays_equal
+from .matching_tools import (get_data_and_mask, get_integer_peak_location,
+                             make_templates_same_size,
+                             reposition_templates_from_center)
+from .matching_tools_frequency_filters import (gaussian_mask,
+                                               make_template_float,
+                                               normalize_power_spectrum,
+                                               raised_cosine, thresh_masking)
+from .matching_tools_harmonic_functions import (create_complex_DCT,
+                                                create_complex_fftpack_DCT,
+                                                get_cosine_matrix,
+                                                get_sine_matrix)
 
 
 def upsample_dft(Q, up_m=0, up_n=0, upsampling=1, i_offset=0, j_offset=0):

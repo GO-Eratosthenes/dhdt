@@ -1,19 +1,20 @@
-import os
-import pystac
 import fnmatch
+import os
 
+import pystac
 from scipy import ndimage
 
-from dhdt.generic.mapping_io import read_geo_image
-from dhdt.generic.mapping_tools import map2pix, pix_centers, make_same_size
+from dhdt.generic.handler_sentinel2 import (list_platform_metadata_s2a,
+                                            list_platform_metadata_s2b)
 from dhdt.generic.handler_xml import get_root_of_table
-from dhdt.generic.handler_sentinel2 import list_platform_metadata_s2a, \
-    list_platform_metadata_s2b
-from dhdt.generic.orbit_tools import calculate_correct_mapping, \
-    remap_observation_angles
-from dhdt.input.read_sentinel2 import get_view_angles_s2_from_root, \
-    get_crs_s2_from_root, read_detector_mask, \
-    get_geotransform_s2_from_root, read_sun_angles_s2
+from dhdt.generic.mapping_io import read_geo_image
+from dhdt.generic.mapping_tools import make_same_size, map2pix, pix_centers
+from dhdt.generic.orbit_tools import (calculate_correct_mapping,
+                                      remap_observation_angles)
+from dhdt.input.read_sentinel2 import (get_crs_s2_from_root,
+                                       get_geotransform_s2_from_root,
+                                       get_view_angles_s2_from_root,
+                                       read_detector_mask, read_sun_angles_s2)
 
 
 def read_stac_catalog(urlpath, stac_io=None):
