@@ -56,7 +56,7 @@ def get_correlation_metric(C, metric='peak_abs'):
     dhdt.processing.matching_tools_frequency_metrics.list_phase_metrics
     """
     # admin
-    assert type(C) == np.ndarray, 'please provide an array'
+    assert isinstance(C, np.ndarray), 'please provide an array'
     if C.size == 0:
         return None
 
@@ -119,7 +119,7 @@ def primary_peak_ratio(C):
     """
     from .matching_tools import get_peak_indices
 
-    assert type(C) == np.ndarray, ('please provide an array')
+    assert isinstance(C, np.ndarray), 'please provide an array'
 
     idx, val = get_peak_indices(C, num_estimates=2)
     ppr = np.divide(val[0], val[1], out=np.ones(1), where=val[1] != 0)
@@ -153,7 +153,7 @@ def primary_peak_margin(C):
     """
     from .matching_tools import get_peak_indices
 
-    assert type(C) == np.ndarray, ('please provide an array')
+    assert isinstance(C, np.ndarray), 'please provide an array'
 
     idx, val = get_peak_indices(C, num_estimates=2)
     ppm = val[0] - val[1]
@@ -185,7 +185,7 @@ def peak_winner_margin(C):
               International journal of computer vision, vol.28(2) pp.155-174,
               1998.
     """
-    assert type(C) == np.ndarray, ('please provide an array')
+    assert isinstance(C, np.ndarray), 'please provide an array'
 
     pwm = primary_peak_margin(C) / np.sum(C)
     return pwm
@@ -221,7 +221,7 @@ def num_of_peaks(C, filtering=True):
               for stereo vision" IEEE transactions on pattern analysis and
               machine intelligence, vol.34(11) pp.2121-2133, 2012.
     """
-    assert type(C) == np.ndarray, 'please provide an array'
+    assert isinstance(C, np.ndarray), 'please provide an array'
 
     if filtering:  # low pass filtering
         C -= high_pass_im(C, radius=3)
@@ -259,7 +259,7 @@ def peak_rms_ratio(C):
     .. [Ro04] Rosen et al. "Updated repeat orbit interferometry package
               released" EOS, vol.85(5) pp.47, 2004.
     """
-    assert type(C) == np.ndarray, ('please provide an array')
+    assert isinstance(C, np.ndarray), 'please provide an array'
 
     max_corr = np.amax(C)
     hlf_corr = np.divide(max_corr, 2)
@@ -296,7 +296,7 @@ def peak_corr_energy(C):
               quantification" Measurement science and technology, vol.25
               pp.115301, 2014.
     """
-    assert type(C) == np.ndarray, ('please provide an array')
+    assert isinstance(C, np.ndarray), 'please provide an array'
 
     max_corr = np.amax(C)
     E_c = np.sum(np.abs(C.flatten())**2)
@@ -333,7 +333,7 @@ def peak_to_noise(C):
               satellite imagery." Remote sensing of environment vol.118
               pp.339-355, 2012.
     """
-    assert type(C) == np.ndarray, ('please provide an array')
+    assert isinstance(C, np.ndarray), 'please provide an array'
 
     C = C.flatten()
     max_idx, max_corr = np.argmax(C), np.amax(C)
@@ -374,7 +374,7 @@ def peak_confidence(C, radius=1):
     """
     from .matching_tools import get_template
 
-    assert type(C) == np.ndarray, ('please provide an array')
+    assert isinstance(C, np.ndarray), 'please provide an array'
 
     C_max = np.argmax(C)
     ij = np.unravel_index(C_max, C.shape, order='F')
@@ -423,7 +423,7 @@ def entropy_corr(C):
     .. [St26] Sturges, "The choice of a class interval". Journal of the
               american statistical association. vol.21(153) pp.65–66, 1926.
     """
-    assert type(C) == np.ndarray, 'please provide an array'
+    assert isinstance(C, np.ndarray), 'please provide an array'
 
     sturges = 1.6 * (np.log2(C.size) + 1
                      )  # [1] uses 30, but [2] is more adaptive
@@ -483,7 +483,7 @@ def hessian_spread(C, intI, intJ):
               pixel-offset SBAS Technique" IEEE transactions in geoscience and
               remote sensing vol.49(7) pp.2752--2763, 2011.
     """
-    assert type(C) == np.ndarray, ('please provide an array')
+    assert isinstance(C, np.ndarray), 'please provide an array'
 
     if (intI == 0) or (intI + 1 == C.shape[0]) or (intJ
                                                    == 0) or (intJ + 1
@@ -577,7 +577,7 @@ def gauss_spread(C, intI, intJ, dI, dJ, est='dist'):
               estimate uncertainty of remotely sensed glacier displacements"
               The cryosphere, vol.16(6) pp.2285-2300, 2021.
     """
-    assert type(C) == np.ndarray, ('please provide an array')
+    assert isinstance(C, np.ndarray), 'please provide an array'
 
     (m, n) = C.shape
     C -= np.mean(C)
@@ -668,8 +668,8 @@ def intensity_disparity(I1, I2):
               matching" Measurement science and technology, vol.24 pp.045302,
               2013.
     """
-    assert type(I1) == np.ndarray, ('please provide an array')
-    assert type(I2) == np.ndarray, ('please provide an array')
+    assert isinstance(I1, np.ndarray), 'please provide an array'
+    assert isinstance(I2, np.ndarray), 'please provide an array'
     are_two_arrays_equal(I1, I2)
 
     I1, I2 = I1.flatten(), I2.flatten()

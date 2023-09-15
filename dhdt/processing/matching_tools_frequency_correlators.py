@@ -35,7 +35,7 @@ def upsample_dft(Q, up_m=0, up_n=0, upsampling=1, i_offset=0, j_offset=0):
 
 
 def pad_dft(Q, m_new, n_new):
-    assert type(Q) == np.ndarray, ("please provide an array")
+    assert isinstance(Q, np.ndarray), "please provide an array"
     (m, n) = Q.shape
 
     Q_ij = np.fft.fftshift(Q)  # in normal configuration
@@ -64,8 +64,8 @@ def pad_dft(Q, m_new, n_new):
 
 # frequency/spectrum matching functions
 def cosi_corr(I1, I2, beta1=.35, beta2=.50, m=1e-4):
-    assert type(I1) == np.ndarray, 'please provide an array'
-    assert type(I2) == np.ndarray, 'please provide an array'
+    assert isinstance(I1, np.ndarray), 'please provide an array'
+    assert isinstance(I2, np.ndarray), 'please provide an array'
 
     mt, nt = I1.shape[0], I1.shape[1]  # dimensions of the template
 
@@ -145,8 +145,8 @@ def cosine_corr(I1, I2):
               through stacking cross-correlation spectra from multi-channel
               imagery", Science of Remote Sensing, vol.6 pp.100070, 2022.
     """
-    assert type(I1) == np.ndarray, ('please provide an array')
-    assert type(I2) == np.ndarray, ('please provide an array')
+    assert isinstance(I1, np.ndarray), 'please provide an array'
+    assert isinstance(I2, np.ndarray), 'please provide an array'
 
     def _cosine_corr_core(I1, I2):
         C1 = create_complex_fftpack_DCT(I1)
@@ -193,14 +193,14 @@ def masked_cosine_corr(I1, I2, M1, M2):  # todo
 
 
     """
-    assert type(I1) in (np.ma.core.MaskedArray, np.array), \
-        ("please provide an array")
-    assert type(I2) in (np.ma.core.MaskedArray, np.array), \
-        ("please provide an array")
-    assert (type(M1) == np.ndarray) or (M1
-                                        is None), ('please provide an array')
-    assert (type(M2) == np.ndarray) or (M2
-                                        is None), ('please provide an array')
+    assert isinstance(I1, (np.ma.core.MaskedArray, np.array)), \
+        "please provide an array"
+    assert isinstance(I2, (np.ma.core.MaskedArray, np.array)), \
+        "please provide an array"
+    assert isinstance(M1, np.ndarray) or (M1 is None), \
+        'please provide an array'
+    assert isinstance(M2, np.ndarray) or (M2 is None), \
+        'please provide an array'
 
     # make compatible with masekd array
     I1, M1, I2, M2 = get_data_and_mask(I1, M1), get_data_and_mask(I2, M2)
@@ -336,8 +336,8 @@ def phase_only_corr(I1, I2):
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
     """
-    assert type(I1) == np.ndarray, ('please provide an array')
-    assert type(I2) == np.ndarray, ('please provide an array')
+    assert isinstance(I1, np.ndarray), 'please provide an array'
+    assert isinstance(I2, np.ndarray), 'please provide an array'
 
     def _phase_only_corr_core(I1, I2):
         S1, S2 = np.fft.fft2(I1), np.fft.fft2(I2)
@@ -411,14 +411,14 @@ def projected_phase_corr(I1, I2, M1=np.array(()), M2=np.array(())):
               proceedings of the 10th international symposium on communications
               and information technologies, 2010.
     """
-    assert type(I1) in (np.ma.core.MaskedArray, np.ndarray), \
-        ("please provide an array")
-    assert type(I2) in (np.ma.core.MaskedArray, np.ndarray), \
-        ("please provide an array")
-    assert (type(M1) == np.ndarray) or (M1
-                                        is None), ('please provide an array')
-    assert (type(M2) == np.ndarray) or (M2
-                                        is None), ('please provide an array')
+    assert isinstance(I1, (np.ma.core.MaskedArray, np.ndarray)), \
+        "please provide an array"
+    assert isinstance(I2, (np.ma.core.MaskedArray, np.ndarray)), \
+        "please provide an array"
+    assert isinstance(M1, np.ndarray) or (M1 is None), \
+        'please provide an array'
+    assert isinstance(M2, np.ndarray) or (M2 is None), \
+        'please provide an array'
 
     # make compatible with masekd array
     I1, M1 = get_data_and_mask(I1, M1)
@@ -486,8 +486,8 @@ def sign_only_corr(I1, I2):  # to do
               IEEE international conference on acoustics, speech and signal
               processing, vol. 1, 2007.
     """
-    assert type(I1) == np.ndarray, ('please provide an array')
-    assert type(I2) == np.ndarray, ('please provide an array')
+    assert isinstance(I1, np.ndarray), 'please provide an array'
+    assert isinstance(I2, np.ndarray), 'please provide an array'
 
     I1sub, I2sub = make_templates_same_size(I1, I2)
     I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
@@ -725,8 +725,8 @@ def robust_corr(I1, I2):
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
     """
-    assert type(I1) == np.ndarray, ('please provide an array')
-    assert type(I2) == np.ndarray, ('please provide an array')
+    assert isinstance(I1, np.ndarray), 'please provide an array'
+    assert isinstance(I2, np.ndarray), 'please provide an array'
 
     I1sub, I2sub = make_templates_same_size(I1, I2)
     I1sub, I2sub = make_template_float(I1sub), make_template_float(I2sub)
@@ -824,8 +824,8 @@ def gradient_corr(I1, I2):
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
     """
-    assert type(I1) == np.ndarray, ('please provide an array')
-    assert type(I2) == np.ndarray, ('please provide an array')
+    assert isinstance(I1, np.ndarray), 'please provide an array'
+    assert isinstance(I2, np.ndarray), 'please provide an array'
 
     def _gradient_corr_core(I1, I2, H_x, H_y):
         G1 = ndimage.convolve(I1, H_x) + 1j * ndimage.convolve(I1, H_y)
@@ -932,8 +932,8 @@ def normalized_gradient_corr(I1, I2):
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
     """
-    assert type(I1) == np.ndarray, ('please provide an array')
-    assert type(I2) == np.ndarray, ('please provide an array')
+    assert isinstance(I1, np.ndarray), 'please provide an array'
+    assert isinstance(I2, np.ndarray), 'please provide an array'
 
     def _normalized_gradient_corr_core(I1, I2, H_x, H_y):
         G1 = ndimage.convolve(I1, H_x) + 1j * ndimage.convolve(I1, H_y)
@@ -1054,8 +1054,8 @@ def orientation_corr(I1, I2):
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
     """
-    assert type(I1) == np.ndarray, ('please provide an array')
-    assert type(I2) == np.ndarray, ('please provide an array')
+    assert isinstance(I1, np.ndarray), 'please provide an array'
+    assert isinstance(I2, np.ndarray), 'please provide an array'
 
     def _orientation_corr_core(I1, I2, H_x, H_y):
         G1 = ndimage.convolve(I1, H_x) + 1j * ndimage.convolve(I1, H_y)
@@ -1144,8 +1144,8 @@ def windrose_corr(I1, I2):
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
     """  # noqa: E501
-    assert type(I1) == np.ndarray, 'please provide an array'
-    assert type(I2) == np.ndarray, 'please provide an array'
+    assert isinstance(I1, np.ndarray), 'please provide an array'
+    assert isinstance(I2, np.ndarray), 'please provide an array'
 
     def _windrose_corr_core(I1, I2):
         S1, S2 = np.sign(np.fft.fft2(I1)), np.sign(np.fft.fft2(I2))
@@ -1239,8 +1239,8 @@ def phase_corr(I1, I2):
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
     """
-    assert type(I1) == np.ndarray, 'please provide an array'
-    assert type(I2) == np.ndarray, 'please provide an array'
+    assert isinstance(I1, np.ndarray), 'please provide an array'
+    assert isinstance(I2, np.ndarray), 'please provide an array'
 
     def _phase_corr_core(I1, I2):
         S1, S2 = np.fft.fft2(I1), np.fft.fft2(I2)
@@ -1334,8 +1334,8 @@ def gaussian_transformed_phase_corr(I1, I2):
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
     """
-    assert type(I1) == np.ndarray, ('please provide an array')
-    assert type(I2) == np.ndarray, ('please provide an array')
+    assert isinstance(I1, np.ndarray), 'please provide an array'
+    assert isinstance(I2, np.ndarray), 'please provide an array'
 
     def _gaussian_transformed_phase_corr_core(I1, I2):
         S1, S2 = np.fft.fft2(I1), np.fft.fft2(I2)
@@ -1399,8 +1399,8 @@ def upsampled_cross_corr(S1, S2, upsampling=2):
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
     """
-    assert type(S1) == np.ndarray, ('please provide an array')
-    assert type(S2) == np.ndarray, ('please provide an array')
+    assert isinstance(S1, np.ndarray), 'please provide an array'
+    assert isinstance(S2, np.ndarray), 'please provide an array'
 
     (m, n) = S1.shape
     S1, S2 = pad_dft(S1, 2 * m, 2 * n), pad_dft(S2, 2 * m, 2 * n)
@@ -1506,8 +1506,8 @@ def cross_corr(I1, I2):
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
     """
-    assert type(I1) == np.ndarray, ('please provide an array')
-    assert type(I2) == np.ndarray, ('please provide an array')
+    assert isinstance(I1, np.ndarray), 'please provide an array'
+    assert isinstance(I2, np.ndarray), 'please provide an array'
 
     def _cross_corr_core(I1, I2):
         S1, S2 = np.fft.fft2(I1), np.fft.fft2(I2)
@@ -1588,8 +1588,8 @@ def binary_orientation_corr(I1, I2):
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
     """
-    assert type(I1) == np.ndarray, ('please provide an array')
-    assert type(I2) == np.ndarray, ('please provide an array')
+    assert isinstance(I1, np.ndarray), 'please provide an array'
+    assert isinstance(I2, np.ndarray), 'please provide an array'
 
     def _binary_orientation_corr_core(I1, I2):
         S1, S2 = np.fft.fft2(I1), np.fft.fft2(I2)
@@ -1660,14 +1660,14 @@ def masked_corr(I1, I2, M1=np.array(()), M2=np.array(())):
     >>> assert(np.isclose(ti, di, atol=1))
     >>> assert(np.isclose(ti, di, atol=1))
     """
-    assert type(I1) in (np.ma.core.MaskedArray, np.ndarray), \
-        ("please provide an array")
-    assert type(I2) in (np.ma.core.MaskedArray, np.ndarray), \
-        ("please provide an array")
-    assert (type(M1) == np.ndarray) or (M1
-                                        is None), ('please provide an array')
-    assert (type(M2) == np.ndarray) or (M2
-                                        is None), ('please provide an array')
+    assert isinstance(I1, (np.ma.core.MaskedArray, np.ndarray)), \
+        'please provide an array'
+    assert isinstance(I2, (np.ma.core.MaskedArray, np.ndarray)), \
+        'please provide an array'
+    assert isinstance(M1, np.ndarray) or (M1 is None), \
+        'please provide an array'
+    assert isinstance(M2, np.ndarray) or (M2 is None), \
+        'please provide an array'
 
     # init
     I1, M1 = get_data_and_mask(I1, M1)

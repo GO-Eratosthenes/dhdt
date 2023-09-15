@@ -129,7 +129,7 @@ def shannon_entropy(X, band_width=100):
     shannon : float
         entropy value of the total data sample
     """
-    assert type(X) == np.ndarray, ('please provide an array')
+    assert isinstance(X, np.ndarray), 'please provide an array'
 
     num_bins = np.round(np.nanmax(X) - np.nanmin(X) / band_width)
     hist, bin_edges = np.histogram(X.flatten(),

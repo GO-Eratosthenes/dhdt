@@ -200,8 +200,8 @@ def select_boi_from_stack(Z, boi):
     Z_new : np.array, size=(m,n,k), ndim={2,3}
         selection of bands, in the order given by boi.
     """
-    assert type(Z) == np.ndarray, ("please provide an array")
-    assert type(boi) == np.ndarray, ("please provide an array")
+    assert isinstance(Z, np.ndarray), 'please provide an array'
+    assert isinstance(boi, np.ndarray), 'please provide an array'
 
     if boi.shape[0] > 0:
         if Z.ndim > 2:
@@ -231,7 +231,7 @@ def get_image_subset(Z, bbox):
         sub set of the data array.
 
     """
-    assert type(Z) == np.ndarray, ("please provide an array")
+    assert isinstance(Z, np.ndarray), 'please provide an array'
     assert (bbox[0] <= bbox[1])
     assert (bbox[2] <= bbox[3])
 
@@ -353,7 +353,7 @@ def rescale_image(Z, sc, method='cubic'):
         rescaled, but not resized image
 
     """
-    assert type(Z) == np.ndarray, ("please provide an array")
+    assert isinstance(Z, np.ndarray), 'please provide an array'
     T = np.array([[sc, 0], [0, sc]])  # scaling matrix
 
     # make local coordinate system

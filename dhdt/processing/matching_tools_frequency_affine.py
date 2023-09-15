@@ -280,8 +280,8 @@ def scaling_through_power_summation(S1, S2):
               and processing. in Lecture notes in computer science, vol.1310,
               1997.
     """
-    assert type(S1) == np.ndarray, "please provide an array"
-    assert type(S2) == np.ndarray, "please provide an array"
+    assert isinstance(S1, np.ndarray), "please provide an array"
+    assert isinstance(S2, np.ndarray), "please provide an array"
 
     F_1, F_2 = make_fourier_grid(S1, indexing='ij', system='pixel')
 

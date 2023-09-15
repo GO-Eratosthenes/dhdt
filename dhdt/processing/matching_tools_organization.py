@@ -229,10 +229,10 @@ def estimate_translation_of_two_subsets(I1,
     score : float
         (dis)-similarity score
     """
-    assert type(I1) == np.ndarray, ('please provide an array')
-    assert type(I2) == np.ndarray, ('please provide an array')
-    assert type(M1) == np.ndarray, ('please provide an array')
-    assert type(M2) == np.ndarray, ('please provide an array')
+    assert isinstance(I1, np.ndarray), 'please provide an array'
+    assert isinstance(I2, np.ndarray), 'please provide an array'
+    assert isinstance(M1, np.ndarray), 'please provide an array'
+    assert isinstance(M2, np.ndarray), 'please provide an array'
 
     optical_flow_approaches = list_differential_correlators()
     assert (correlator in optical_flow_approaches), \
@@ -301,10 +301,10 @@ def match_translation_of_two_subsets(I1_sub,
     list_phase_estimators, list_peak_estimators
 
     """
-    assert type(I1_sub) == np.ndarray, ('please provide an array')
-    assert type(I2_sub) == np.ndarray, ('please provide an array')
-    assert type(M1_sub) == np.ndarray, ('please provide an array')
-    assert type(M2_sub) == np.ndarray, ('please provide an array')
+    assert isinstance(I1_sub, np.ndarray), 'please provide an array'
+    assert isinstance(I2_sub, np.ndarray), 'please provide an array'
+    assert isinstance(M1_sub, np.ndarray), 'please provide an array'
+    assert isinstance(M2_sub, np.ndarray), 'please provide an array'
     frequency_based = list_frequency_correlators()
     spatial_based = list_spatial_correlators()
 
@@ -409,8 +409,8 @@ def estimate_subpixel(QC, subpix, m0=np.zeros((1, 2)), **kwargs):
     match_translation_of_two_subsets,
     list_phase_estimators, list_peak_estimators
     """
-    assert type(QC) == np.ndarray, ('please provide an array')
-    assert type(m0) == np.ndarray, ('please provide an array')
+    assert isinstance(QC, np.ndarray), 'please provide an array'
+    assert isinstance(m0, np.ndarray), 'please provide an array'
     phase_based = list_phase_estimators()
     peak_based = list_peak_estimators()
     assert ((subpix in phase_based) or (subpix in peak_based)), \

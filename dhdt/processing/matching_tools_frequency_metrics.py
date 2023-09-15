@@ -46,7 +46,7 @@ def get_phase_metric(Q, di, dj, metric='phase_fit'):
 
     """
     # admin
-    assert type(Q) == np.ndarray, 'please provide an array'
+    assert isinstance(Q, np.ndarray), 'please provide an array'
     if Q.size == 0:
         return None
 
@@ -89,7 +89,7 @@ def phase_fitness(Q, di, dj, norm=2):
               Transactions on geoscience and remote sensing vol. 45.6 pp.
               1529-1558, 2007.
     """
-    assert type(Q) == np.ndarray, ('please provide an array')
+    assert isinstance(Q, np.ndarray), 'please provide an array'
     # admin
     data = cross_spectrum_to_coordinate_list(Q)
     C = construct_phase_values(data[:, 0:2], di, dj)
@@ -129,7 +129,7 @@ def phase_support(Q, di, dj, thres=1.4826):
               through stacking cross-correlation spectra from multi-channel
               imagery", Science of Remote Sensing, vol.6 pp.100070, 2022.
     """
-    assert type(Q) == np.ndarray, 'please provide an array'
+    assert isinstance(Q, np.ndarray), 'please provide an array'
 
     data = cross_spectrum_to_coordinate_list(Q)
     C = construct_phase_values(data[:, 0:2], di, dj)
@@ -173,8 +173,8 @@ def signal_to_noise(Q, C, norm=2):
               Transactions on geoscience and remote sensing vol. 45.6 pp.
               1529-1558, 2007.
     """
-    assert type(Q) == np.ndarray, ('please provide an array')
-    assert type(C) == np.ndarray, ('please provide an array')
+    assert isinstance(Q, np.ndarray), 'please provide an array'
+    assert isinstance(C, np.ndarray), 'please provide an array'
 
     Qn = normalize_power_spectrum(Q)
     Q_diff = np.abs(Qn - C)**norm

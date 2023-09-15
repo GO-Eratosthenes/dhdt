@@ -157,8 +157,8 @@ def helmholtz_hodge(dX, dY):
     dX_irrot, dY_irrot : numpy.ndarray, size=(m,n)
         irrotational vector field
     """
-    assert type(dX) == np.ndarray, ("please provide an array")
-    assert type(dY) == np.ndarray, ("please provide an array")
+    assert isinstance(dX, np.ndarray), 'please provide an array'
+    assert isinstance(dY, np.ndarray), 'please provide an array'
 
     # a Fourier transform can not handle nan's very well, hence mask with zeros
     Msk = np.logical_or(np.isnan(dX), np.isnan(dY))

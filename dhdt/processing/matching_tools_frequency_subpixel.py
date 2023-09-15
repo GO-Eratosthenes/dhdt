@@ -58,7 +58,7 @@ def phase_jac(Q,
     #            |                       |
     #            | j                     |
     #            v                       |
-    assert type(Q) == np.ndarray, ("please provide an array")
+    assert isinstance(Q, np.ndarray), 'please provide an array'
 
     if Q.shape[0] == Q.shape[1]:  # if Q is a cross-spectral matrix
         if W.size == 0:  # if W is not given
@@ -130,7 +130,7 @@ def phase_secant(data, W=np.array([]), x_0=np.zeros((2))):  # wip
     >>> assert(np.isclose(ti, di, atol=.2))
     >>> assert(np.isclose(tj, dj, atol=.2))
     """
-    assert type(data) == np.ndarray, ("please provide an array")
+    assert isinstance(data, np.ndarray), 'please provide an array'
 
     data = cross_spectrum_to_coordinate_list(data, W)
     J = phase_jac(data, x_0)
@@ -182,8 +182,8 @@ def phase_gradient_descend(data,
     >>> assert(np.isclose(tj, dj, atol=.2))
 
     """
-    assert type(data) == np.ndarray, ("please provide an array")
-    assert type(W) == np.ndarray, ("please provide an array")
+    assert isinstance(data, np.ndarray), 'please provide an array'
+    assert isinstance(W, np.ndarray), 'please provide an array'
 
     data = cross_spectrum_to_coordinate_list(data, W)
     x_hat, _ = gradient_descent(data[:, :-1],
@@ -319,7 +319,7 @@ def phase_slope_1d(t, rad=.1):
     --------
     phase_svd
     """
-    assert type(t) == np.ndarray, ("please provide an array")
+    assert isinstance(t, np.ndarray), 'please provide an array'
 
     idx_sub = np.arange(np.ceil((0.5 - rad) * len(t)),
                         np.ceil((0.5 + rad) * len(t)) + 1).astype(int)
@@ -371,9 +371,8 @@ def phase_svd(Q, W, rad=0.1):
     >>> assert(np.isclose(ti, di, atol=.2))
     >>> assert(np.isclose(tj, dj, atol=.2))
     """
-    assert type(Q) == np.ndarray, ("please provide an array")
-    assert type(W) == np.ndarray, ("please provide an array")
-
+    assert isinstance(Q, np.ndarray), 'please provide an array'
+    assert isinstance(W, np.ndarray), 'please provide an array'
     if np.abs(Q).ptp() > 1:
         Q = normalize_power_spectrum(Q)
 
@@ -432,8 +431,8 @@ def phase_difference_1d(Q, W=np.array([]), axis=0):
               transactions on acoustics, speech and signal processing,
               vol.37(12) pp.1987-1990, 1989.
     """
-    assert type(Q) == np.ndarray, ("please provide an array")
-    assert type(W) == np.ndarray, ("please provide an array")
+    assert isinstance(Q, np.ndarray), 'please provide an array'
+    assert isinstance(W, np.ndarray), 'please provide an array'
 
     if axis == 0:
         Q = np.transpose(Q)
@@ -497,8 +496,8 @@ def phase_difference(Q, W=np.array([])):
     >>> assert(np.isclose(tj, dj, atol=.2))
 
     """
-    assert type(Q) == np.ndarray, ("please provide an array")
-    assert type(W) == np.ndarray, ("please provide an array")
+    assert isinstance(Q, np.ndarray), 'please provide an array'
+    assert isinstance(W, np.ndarray), 'please provide an array'
 
     di = phase_difference_1d(Q, W, axis=0)
     dj = phase_difference_1d(Q, W, axis=1)
@@ -544,8 +543,8 @@ def phase_lsq(data, W=np.array([])):
     >>> assert(np.isclose(ti, di, atol=.2))
     >>> assert(np.isclose(tj, dj, atol=.2))
     """
-    assert type(data) == np.ndarray, ("please provide an array")
-    assert type(W) == np.ndarray, ("please provide an array")
+    assert isinstance(data, np.ndarray), 'please provide an array'
+    assert isinstance(W, np.ndarray), 'please provide an array'
 
     data = cross_spectrum_to_coordinate_list(data, W)
     A, y = data[:, :-1], data[:, -1]
@@ -603,8 +602,8 @@ def phase_pca(data, W=np.array([])):
     >>> assert(np.isclose(tj, dj, atol=.2))
 
     """
-    assert type(data) == np.ndarray, ("please provide an array")
-    assert type(W) == np.ndarray, ("please provide an array")
+    assert isinstance(data, np.ndarray), 'please provide an array'
+    assert isinstance(W, np.ndarray), 'please provide an array'
 
     data = cross_spectrum_to_coordinate_list(data, W)
 
@@ -658,8 +657,8 @@ def phase_weighted_pca(Q, W):  # todo
     >>> assert(np.isclose(ti, di, atol=.2))
     >>> assert(np.isclose(tj, dj, atol=.2))
     """
-    assert type(Q) == np.ndarray, ('please provide an array')
-    assert type(W) == np.ndarray, ('please provide an array')
+    assert isinstance(Q, np.ndarray), 'please provide an array'
+    assert isinstance(W, np.ndarray), 'please provide an array'
 
     data = cross_spectrum_to_coordinate_list(Q)
     weights = W.flatten()
@@ -1172,7 +1171,7 @@ def phase_ransac(data, max_displacement=1, precision_threshold=.05):
     >>> assert(np.isclose(ti, di, atol=.2))
     >>> assert(np.isclose(tj, dj, atol=.2))
     """
-    assert type(data) == np.ndarray, ('please provide an array')
+    assert isinstance(data, np.ndarray), 'please provide an array'
 
     # what type of data? either list of coordinates or a cross-spectral matrix
     if data.shape[0] == data.shape[1]:
@@ -1203,7 +1202,7 @@ def phase_hough(data,
                 param_spacing=1,
                 sample_fraction=1.,
                 W=np.array([])):
-    assert type(data) == np.ndarray, ('please provide an array')
+    assert isinstance(data, np.ndarray), 'please provide an array'
 
     # what type of data? either list of coordinates or a cross-spectral matrix
     if data.shape[0] == data.shape[1]:
@@ -1295,7 +1294,7 @@ def phase_radon(Q, coord_system='ij'):
     >>> assert(np.isclose(ti, di, atol=.2))
     >>> assert(np.isclose(tj, dj, atol=.2))
     """
-    assert type(Q) == np.ndarray, ('please provide an array')
+    assert isinstance(Q, np.ndarray), 'please provide an array'
 
     (m, n) = Q.shape
     half = m // 2

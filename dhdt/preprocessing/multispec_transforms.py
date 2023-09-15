@@ -96,7 +96,7 @@ def principle_component_analysis(X):
         vector with eigenvalues
 
     """
-    assert type(X) == np.ndarray, ('please provide an array')
+    assert isinstance(X, np.ndarray), 'please provide an array'
 
     # Data matrix X, assumes 0-centered
     n, m = X.shape

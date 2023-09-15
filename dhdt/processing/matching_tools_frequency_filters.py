@@ -128,7 +128,7 @@ def normalize_power_spectrum(Q):
     >>> Qn = normalize_spectrum(Q)
 
     """
-    assert type(Q) == np.ndarray, ("please provide an array")
+    assert isinstance(Q, np.ndarray), "please provide an array"
     Qn = np.divide(Q, abs(Q), out=np.zeros_like(Q), where=Q != 0)
     return Qn
 
@@ -171,7 +171,7 @@ def local_coherence(Q, ds=1):
     >>> plt.figure(), plt.imshow(np.angle(Q), cmap='twilight'),
     >>> plt.colorbar(), plt.show()
     """
-    assert type(Q) == np.ndarray, "please provide an array"
+    assert isinstance(Q, np.ndarray), "please provide an array"
 
     diam = 2 * ds + 1
     C = np.zeros_like(Q)
@@ -353,8 +353,8 @@ def cross_spectrum_to_coordinate_list(data, W=np.array([])):
     data_list : np.array, size=(m*n,3), dtype=float
         coordinate list with angles, in normalized ranges, i.e: -1 ... +1
     """
-    assert type(data) == np.ndarray, ("please provide an array")
-    assert type(W) == np.ndarray, ("please provide an array")
+    assert isinstance(data, np.ndarray), "please provide an array"
+    assert isinstance(W, np.ndarray), "please provide an array"
 
     if data.shape[0] == data.shape[1]:
         (m, n) = data.shape
@@ -494,7 +494,7 @@ def raised_cosine(Z, beta=0.35):
     >>> Q = (rc1*spec1) * np.conjugate((rc2*spec2)) # Fourier based image matching
     >>> Qn = normalize_spectrum(Q)    
     """  # noqa: E501
-    assert type(Z) == np.ndarray, "please provide an array"
+    assert isinstance(Z, np.ndarray), "please provide an array"
     (m, n) = Z.shape
 
     Fx, Fy = make_fourier_grid(Z, indexing='xy', system='normalized')
@@ -528,7 +528,7 @@ def hamming_window(Z):
     raised_cosine, cosine_bell, high_pass_circle, blackman_window,
     hamming_window
     """
-    assert type(Z) == np.ndarray, "please provide an array"
+    assert isinstance(Z, np.ndarray), "please provide an array"
     m, n = Z.shape
     W = np.sqrt(np.outer(np.hamming(m), np.hamming(n)))
     W = np.fft.fftshift(W)
@@ -553,7 +553,7 @@ def hanning_window(Z):
     raised_cosine, cosine_bell, high_pass_circle, blackman_window,
     hamming_window
     """
-    assert type(Z) == np.ndarray, "please provide an array"
+    assert isinstance(Z, np.ndarray), "please provide an array"
     m, n = Z.shape
     W = np.sqrt(np.outer(np.hanning(m), np.hanning(n)))
     W = np.fft.fftshift(W)
@@ -578,7 +578,7 @@ def blackman_window(Z):
     raised_cosine, cosine_bell, high_pass_circle, hamming_window,
     hanning_window
     """
-    assert type(Z) == np.ndarray, "please provide an array"
+    assert isinstance(Z, np.ndarray), "please provide an array"
     m, n = Z.shape
     W = np.sqrt(np.outer(np.blackman(m), np.blackman(n)))
     W = np.fft.fftshift(W)
@@ -608,7 +608,7 @@ def kaiser_window(Z, beta=14.):
     raised_cosine, cosine_bell, high_pass_circle, hamming_window,
     hanning_window
     """
-    assert type(Z) == np.ndarray, "please provide an array"
+    assert isinstance(Z, np.ndarray), "please provide an array"
     m, n = Z.shape
     W = np.sqrt(np.outer(np.kaiser(m, beta), np.kaiser(n, beta)))
     W = np.fft.fftshift(W)
@@ -641,7 +641,7 @@ def low_pass_rectancle(Z, r=0.50):
               electronics, communications and computer sciences, vol.86(8)
               pp.1925-1934, 2003.
     """
-    assert type(Z) == np.ndarray, "please provide an array"
+    assert isinstance(Z, np.ndarray), "please provide an array"
     Fx, Fy = make_fourier_grid(Z, indexing='xy', system='normalized')
 
     # filter formulation
@@ -676,7 +676,7 @@ def low_pass_pyramid(Z, r=0.50):
               electronics, communications and computer sciences, vol.86(8)
               pp.1925-1934, 2003.
     """
-    assert type(Z) == np.ndarray, "please provide an array"
+    assert isinstance(Z, np.ndarray), "please provide an array"
     R = low_pass_rectancle(Z, r)
     W = signal.convolve2d(R.astype(float),
                           R.astype(float),
@@ -713,7 +713,7 @@ def low_pass_bell(Z, r=0.50):
               electronics, communications and computer sciences, vol.86(8)
               pp.1925-1934, 2003.
     """
-    assert type(Z) == np.ndarray, "please provide an array"
+    assert isinstance(Z, np.ndarray), "please provide an array"
     R1 = low_pass_rectancle(Z, r)
     R2 = low_pass_pyramid(Z, r)
     W = signal.convolve2d(R1.astype(float),
@@ -780,7 +780,7 @@ def low_pass_ellipse(Z, r1=0.50, r2=0.50):
     raised_cosine, cosine_bell, high_pass_circle, low_pass_circle
     """
     sc = r1 / r2
-    assert type(Z) == np.ndarray, ("please provide an array")
+    assert isinstance(Z, np.ndarray), "please provide an array"
     Fx, Fy = make_fourier_grid(Z, indexing='xy', system='normalized')
     R = np.hypot(sc * Fx, Fy)  # radius
     # filter formulation
@@ -807,7 +807,7 @@ def high_pass_circle(Z, r=0.50):
     --------
     raised_cosine, cosine_bell, low_pass_circle
     """
-    assert type(Z) == np.ndarray, ("please provide an array")
+    assert isinstance(Z, np.ndarray), "please provide an array"
     Fx, Fy = make_fourier_grid(Z, indexing='xy', system='normalized')
     R = np.hypot(Fx, Fy)  # radius
     # filter formulation
@@ -832,7 +832,7 @@ def cosine_bell(Z):
     --------
     raised_cosine
     """
-    assert type(Z) == np.ndarray, ("please provide an array")
+    assert isinstance(Z, np.ndarray), "please provide an array"
     Fx, Fy = make_fourier_grid(Z, indexing='xy', system='normalized')
     R = np.hypot(Fx, Fy)  # radius
 
@@ -926,7 +926,7 @@ def thresh_masking(S, m=1e-4, s=10):
               Transactions on geoscience and remote sensing vol. 45.6 pp.
               1529-1558, 2007.
     """
-    assert type(S) == np.ndarray, ("please provide an array")
+    assert isinstance(S, np.ndarray), "please provide an array"
     S_bar = np.abs(S)
     th = np.max(S_bar) * m
 
@@ -938,7 +938,7 @@ def thresh_masking(S, m=1e-4, s=10):
 
 
 def perc_masking(S, m=.95, s=10):
-    assert type(S) == np.ndarray, ("please provide an array")
+    assert isinstance(S, np.ndarray), "please provide an array"
     S_bar = np.abs(S)
     th = np.percentile(S_bar, m * 100)
 
@@ -983,7 +983,7 @@ def adaptive_masking(S, m=.9):
               Transactions on geoscience and remote sensing vol. 45.6 pp.
               1529-1558, 2007.
     """
-    assert type(S) == np.ndarray, ("please provide an array")
+    assert isinstance(S, np.ndarray), "please provide an array"
     np.seterr(divide='ignore')
     LS = np.log10(np.abs(S))
     LS[np.isinf(LS)] = np.nan
@@ -1031,7 +1031,7 @@ def gaussian_mask(S):
     >>> W = gaussian_mask(Q)
     >>> C = np.fft.ifft2(W*Q)
     """
-    assert type(S) == np.ndarray, "please provide an array"
+    assert isinstance(S, np.ndarray), "please provide an array"
     (m, n) = S.shape
     Fx, Fy = make_fourier_grid(S, indexing='xy', system='normalized')
 

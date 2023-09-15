@@ -26,7 +26,7 @@ def meta_REstring(REstr):  # generic
     >>> REsat
     'RE2'
     """
-    assert type(REstr) == str, ("please provide a string")
+    assert isinstance(REstr, str), 'please provide a string'
 
     REsplit = REstr.split('_')
     REtime = '+' + REsplit[1][0:4] + '-' + REsplit[1][5:7] + '-' + REsplit[1][

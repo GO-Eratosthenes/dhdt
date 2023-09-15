@@ -491,9 +491,9 @@ def hough_optical_flow(I1,
 
     # resolve no-data or masked array
     Msk_1, Msk_2 = np.isnan(I1), np.isnan(I2)
-    if type(I1) == np.ma.core.MaskedArray:
+    if isinstance(I1, np.ma.core.MaskedArray):
         Msk_1 = np.logical_or(Msk_1, np.ma.getmaskarray(I1))
-    if type(I1) == np.ma.core.MaskedArray:
+    if isinstance(I1, np.ma.core.MaskedArray):
         Msk_1 = np.logical_or(Msk_2, np.ma.getmaskarray(I2))
     I1[Msk_1], I2[Msk_2] = np.nan, np.nan
 

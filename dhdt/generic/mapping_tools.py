@@ -576,7 +576,7 @@ def cast_orientation(Z, Az, indexing='ij'):
               transactions on pattern analysis and machine intelligence
               vol.13(9) pp.891-906, 1991.
     """
-    assert type(Z) == np.ndarray, "please provide an array"
+    assert isinstance(Z, np.ndarray), 'please provide an array'
 
     fx, fy = get_grad_filters(ftype='sobel', tsize=3, order=1)
 
@@ -872,7 +872,7 @@ def bilinear_interp_excluding_nodat(Z, i_Z, j_Z, noData=-9999):
           based      v           based       |
 
     """
-    assert type(Z) == np.ndarray, ("please provide an array")
+    assert isinstance(Z, np.ndarray), 'please provide an array'
     are_two_arrays_equal(i_Z, j_Z)
     m, n = Z.shape[0:2]
 
@@ -920,7 +920,7 @@ def bbox_boolean(img):
     c_max : integer, {x ∈ ℕ | x ≥ 0}
         maximum collumn with a true boolean.
     """
-    assert type(img) == np.ndarray, ("please provide an array")
+    assert isinstance(img, np.ndarray), 'please provide an array'
 
     rows, cols = np.any(img, axis=1), np.any(img, axis=0)
     r_min, r_max = np.where(rows)[0][[0, -1]]

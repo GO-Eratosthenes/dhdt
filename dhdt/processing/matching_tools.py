@@ -68,7 +68,7 @@ def get_integer_peak_location(C, metric=None):
     """
     from .matching_tools_organization import estimate_match_metric
 
-    assert type(C) == np.ndarray, ("please provide an array")
+    assert isinstance(C, np.ndarray), "please provide an array"
     max_corr = np.argmax(C)
 
     ij = np.unravel_index(max_corr, C.shape, order='F')  # 'C'
@@ -225,15 +225,15 @@ def pad_images_and_filter_coord_list(M1,
     ..generic.mapping_tools.ref_trans : translates geoTransform
     """
     # init
-    assert type(M1) in (np.ma.core.MaskedArray, np.ndarray), \
-        ("please provide an array")
-    assert type(M2) in (np.ma.core.MaskedArray, np.ndarray), \
-        ("please provide an array")
-    assert isinstance(geoTransform1, tuple), ('geoTransform should be a tuple')
-    assert isinstance(geoTransform2, tuple), ('geoTransform should be a tuple')
+    assert isinstance(M1, (np.ma.core.MaskedArray, np.ndarray)), \
+        "please provide an array"
+    assert isinstance(M2, (np.ma.core.MaskedArray, np.ndarray)), \
+        "please provide an array"
+    assert isinstance(geoTransform1, tuple), 'geoTransform should be a tuple'
+    assert isinstance(geoTransform2, tuple), 'geoTransform should be a tuple'
     assert (X_grd.shape == Y_grd.shape)  # should be of the same size
-    assert type(ds1) == int, ("please provide an integer")
-    assert type(ds2) == int, ("please provide an integer")
+    assert isinstance(ds1, int), "please provide an integer"
+    assert isinstance(ds2, int), "please provide an integer"
 
     if same:  # matching done at the same location
         X1_grd, X2_grd, Y1_grd, Y2_grd = X_grd, X_grd, Y_grd, Y_grd
@@ -352,9 +352,9 @@ def prepare_grids(im_stack, ds, cval=0):
         horizontal image coordinates of the template centers
 
     """
-    assert type(im_stack) in (np.ma.core.MaskedArray, np.ndarray), \
-        ("please provide an array")
-    assert type(ds) == int, ("please provide an integer")
+    assert isinstance(im_stack, (np.ma.core.MaskedArray, np.ndarray)), \
+        "please provide an array"
+    assert isinstance(ds, int), "please provide an integer"
     if im_stack.ndim == 2:
         im_stack = np.atleast_3d(im_stack)
 
@@ -550,9 +550,9 @@ def get_coordinates_of_template_centers(Grid, temp_size):
 
     """
 
-    assert type(Grid) in (np.ma.core.MaskedArray, np.ndarray, tuple), \
-        ("please provide an array or tuple")
-    assert type(temp_size) == int, ("please provide an integer")
+    assert isinstance(Grid, (np.ma.core.MaskedArray, np.ndarray, tuple)), \
+        "please provide an array or tuple"
+    assert isinstance(temp_size, int), "please provide an integer"
 
     if isinstance(Grid, tuple):
         (m, n) = Grid[-2:]
@@ -585,9 +585,9 @@ def get_value_at_template_centers(Grid, temp_size):
     --------
     dhdt.processing.matching_tools.get_coordinates_of_template_centers
     """
-    assert type(Grid) in (np.ma.core.MaskedArray, np.ndarray), \
-        ("please provide an array")
-    assert type(temp_size) == int, ("please provide an integer")
+    assert isinstance(Grid, (np.ma.core.MaskedArray, np.ndarray)), \
+        "please provide an array"
+    assert isinstance(temp_size, int), "please provide an integer"
 
     Iidx, Jidx = get_coordinates_of_template_centers(Grid, temp_size)
     if (Grid.ndim == 3):
@@ -624,11 +624,11 @@ def get_data_and_mask(Z, M=None):
         masking array, where True means data, and False neglecting elements
     """
     # make compatible with masked array
-    if type(Z) == np.ma.core.MaskedArray:
+    if isinstance(Z, np.ma.core.MaskedArray):
         if M is None:
             M = np.invert(np.ma.getmaskarray(Z))
         else:
-            if type(M) == np.ma.core.MaskedArray:
+            if isinstance(M, np.ma.core.MaskedArray):
                 M = np.ma.getdata(M)
             M = np.logical_and(M, np.invert(np.ma.getmaskarray(Z)))
         Z = np.ma.getdata(Z)
@@ -637,7 +637,7 @@ def get_data_and_mask(Z, M=None):
             M = np.ones_like(Z)
         if M.size == 0:
             M = np.ones_like(Z)
-        if type(M) == np.ma.core.MaskedArray:
+        if isinstance(M, np.ma.core.MaskedArray):
             M = np.ma.getdata(M)
         M = M.astype(dtype=bool)
     return Z, M
