@@ -255,11 +255,15 @@ def make_multispectral_vrt(df, fpath=None, fname='multispec.vrt'):
 
     Examples
     --------
+    >>> s2_df = list_central_wavelength_msi()
+    >>> s2_df = s2_df[s2_df['gsd']==10]
+    >>> s2_df, datastrip_id = get_s2_image_locations(IM_PATH, s2_df)
 
-
+    create file in directory where imagery is situated
+    >>> make_multispectral_vrt(s2_df, fname='multi_spec.vrt')
     """
     assert isinstance(df, pd.DataFrame), ('please provide a dataframe')
-    assert 'filepath' in df, ('please first run "get_S2_image_locations"'+
+    assert 'filepath' in df, ('please first run "get_s2_image_locations"'+
                                 ' to find the proper file locations')
 
     if fpath is None:
