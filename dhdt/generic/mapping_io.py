@@ -327,14 +327,14 @@ def make_nc_image(Z,
     if is_crs_an_srs(crs):
         nc_struct = ('times', 'nor', 'eas')
         nor = dsout.createDimension('nor', Y.size)
-        nor = dsout.createVariable('nor', 'f4', ('nor',))
+        nor = dsout.createVariable('nor', 'f4', ('nor', ))
         nor.standard_name = 'northing'
         nor.units = 'metres_north'
         nor.axis = "Y"
         nor[:] = Y
 
         eas = dsout.createDimension('eas', X.size)
-        eas = dsout.createVariable('eas', 'f4', ('eas',))
+        eas = dsout.createVariable('eas', 'f4', ('eas', ))
         eas.standard_name = 'easting'
         eas.units = 'metres_east'
         eas.axis = "X"
@@ -342,21 +342,21 @@ def make_nc_image(Z,
     else:
         nc_struct = nc_struct = ('times', 'lat', 'lon')
         lat = dsout.createDimension('lat', Y.size)
-        lat = dsout.createVariable('lat', 'f4', ('lat',))
+        lat = dsout.createVariable('lat', 'f4', ('lat', ))
         lat.standard_name = 'latitude'
         lat.units = 'degrees_north'
         lat.axis = "Y"
         lat[:] = Y
 
         lon = dsout.createDimension('lon', X.size)
-        lon = dsout.createVariable('lon', 'f4', ('lon',))
+        lon = dsout.createVariable('lon', 'f4', ('lon', ))
         lon.standard_name = 'longitude'
         lon.units = 'degrees_east'
         lon.axis = "X"
         lon[:] = X
 
     time = dsout.createDimension('times', 0)
-    times = dsout.createVariable('times', 'f4', ('times',))
+    times = dsout.createVariable('times', 'f4', ('times', ))
     times.standard_name = 'time'
     times.long_name = 'time'
     times.units = 'hours since 1970-01-01 00:00:00'

@@ -153,8 +153,7 @@ def get_height_tropopause(ϕ):
               vol.54, pp.360-373, 1999.
     """
     ϕ = np.deg2rad(ϕ)
-    h_t = 17786.1 - 9338.96 * np.abs(ϕ) + 1271.91 * (
-                ϕ ** 2)  # eq. A9 in [No99]_
+    h_t = 17786.1 - 9338.96 * np.abs(ϕ) + 1271.91 * (ϕ**2)  # eq. A9 in [No99]_
     return h_t
 
 
@@ -260,7 +259,7 @@ def get_water_vapor_press(T):
               pp.427-435, 2016.
     """
     t = kelvin2celsius(T)
-    P_w = (7.38E-3 * t + 0.8072) ** 8 - 1.9E-5 * (1.8 * t + 48) + 1.316E-3
+    P_w = (7.38E-3 * t + 0.8072)**8 - 1.9E-5 * (1.8 * t + 48) + 1.316E-3
     P_w *= 3386.39  # eq. 23 in [1]
     return P_w
 
@@ -293,7 +292,7 @@ def get_sat_vapor_press(T, method='IAPWS'):
     """
     if method in ('simple', 'old'):
         A, B, C, D = 1.2378847E-5, -1.9121316E-2, 33.93711047, -6.3431645E3
-        svp = np.exp(A * T ** 2 + B * T + C + D / T)  # eq.22 in [1]
+        svp = np.exp(A * T**2 + B * T + C + D / T)  # eq.22 in [1]
     else:
         k_1, k_2 = 1.16705214528E3, -7.24213167032E5
         k_3, k_4, k_5 = -1.70738469401E1, 1.20208247025E4, -3.23255503223E6
@@ -301,10 +300,10 @@ def get_sat_vapor_press(T, method='IAPWS'):
         k_9, k_10 = -2.38555575678E-1, 6.50175348448E2
 
         omega = T + np.divide(k_9, (T - k_10))
-        a = omega ** 2 + np.multiply(k_1, omega) + k_2
-        b = np.multiply(k_3, omega ** 2) + np.multiply(k_4, omega) + k_5
-        c = np.multiply(k_6, omega ** 2) + np.multiply(k_7, omega) + k_8
-        x = -b + np.sqrt(b ** 2 - (4 * a * c))
+        a = omega**2 + np.multiply(k_1, omega) + k_2
+        b = np.multiply(k_3, omega**2) + np.multiply(k_4, omega) + k_5
+        c = np.multiply(k_6, omega**2) + np.multiply(k_7, omega) + k_8
+        x = -b + np.sqrt(b**2 - (4 * a * c))
         svp = 1E6 * np.power(np.divide(2 * c, x), 4)
     return svp
 
@@ -361,7 +360,7 @@ def get_water_vapor_press_ice(T):
               research letters, vol.20(5) pp.363-366, 1993.
     """
     A, B = -2663.5, 12.537
-    P_w = 10 ** (np.divide(A, T) + B)  # eq. 1 from [1]
+    P_w = 10**(np.divide(A, T) + B)  # eq. 1 from [1]
     return P_w
 
 
@@ -390,7 +389,7 @@ def get_water_vapor_enhancement(t, p):
               air" Metrologica, vol.18, pp.33-40, 1982.
     """
     alpha, beta, gamma = 1.00062, 3.14E-8, 5.6E-7
-    f = alpha + beta * p + gamma * t ** 2  # eq.23 in [1]
+    f = alpha + beta * p + gamma * t**2  # eq.23 in [1]
     return f
 
 
@@ -437,15 +436,14 @@ def get_density_fraction(ϕ, h_0, alpha=0.0065, R=8314.36, M_t=28.825):
     g = 9.784 * (1 - (2.6E-3 * np.cos(np.deg2rad(2 * ϕ))) - (2.8E-7 * h_0))
 
     Gamma = np.divide(M_t * g, R * alpha) - 1  # eq. A6 in [No99]
-    ρ_frac_t = T_frac_0 ** Gamma  # eq. A5 in [No99]
+    ρ_frac_t = T_frac_0**Gamma  # eq. A5 in [No99]
 
     # estimate parameters of the tropopause
     h_t = get_height_tropopause(ϕ)
     T_t = h_t * alpha + T_sl
 
     ρ_frac_s = (  # eq. A7 in [1]
-        T_frac_0 ** Gamma * np.exp(h_0 - h_t) * np.divide(M_t * g, R * T_t)
-    )
+        T_frac_0**Gamma * np.exp(h_0 - h_t) * np.divide(M_t * g, R * T_t))
     return ρ_frac_t, ρ_frac_s
 
 
@@ -712,11 +710,8 @@ def ciddor_eq5(ρ_a, ρ_w, n_axs, n_ws, ρ_axs, ρ_ws):
               1967.
     """
     # eq. 4 in [1]
-    n_prop = (
-        1
-        + np.multiply(np.divide(ρ_a, ρ_axs), n_axs)
-        + np.multiply(np.divide(ρ_w, ρ_ws), n_ws)
-    )
+    n_prop = (1 + np.multiply(np.divide(ρ_a, ρ_axs), n_axs) +
+              np.multiply(np.divide(ρ_w, ρ_ws), n_ws))
     return n_prop
 
 
@@ -750,8 +745,8 @@ def ciddor_eq6(ρ_a, ρ_w, n_axs, n_ws, ρ_axs, ρ_ws):
     .. [Ci96] Ciddor, "Refractive index of air: new equations for the visible
               and near infrared", Applied optics, vol.35(9) pp.1566-1573, 1996.
     """
-    L_a = np.divide(n_axs ** 2 - 1, n_axs ** 2 + 2)  # eq.6 in [2]
-    L_w = np.divide(n_ws ** 2 - 1, n_ws ** 2 + 2)  # eq.6 in [2]
+    L_a = np.divide(n_axs**2 - 1, n_axs**2 + 2)  # eq.6 in [2]
+    L_w = np.divide(n_ws**2 - 1, n_ws**2 + 2)  # eq.6 in [2]
 
     L = np.multiply.outer(np.divide(ρ_a, ρ_axs), L_a) + \
         np.multiply.outer(np.divide(ρ_w, ρ_ws), L_w)  # eq.7 in [2]
@@ -804,17 +799,15 @@ def refractive_index_visible(df, T, P, p_w=None, CO2=None):
     assert T.size == P.size, \
         'please provide Temperature and Pressure array of the same size'
 
-    if type(df) in (pandas.core.frame.DataFrame,):
+    if type(df) in (pandas.core.frame.DataFrame, ):
         sigma = 1 / df['center_wavelength'].to_numpy()  # (vacuum) wavenumber
     else:
         sigma = np.array([1 / df])
 
     # (n-1)_s : refractivity of standard air
     n_s = (  # eq.2 in [1]
-        8342.54
-        + np.divide(15998, 38.9 - (sigma ** 2))
-        + np.divide(2406147, 130 - (sigma ** 2))
-    )
+        8342.54 + np.divide(15998, 38.9 - (sigma**2)) +
+        np.divide(2406147, 130 - (sigma**2)))
     n_s *= 1E-8
 
     if CO2 is not None:
@@ -947,7 +940,7 @@ def refractive_index_broadband(df,
               temperature and composition", Applied optics, vol.6(1) pp.51-59,
               1967.
     """
-    if type(df) in (pandas.core.frame.DataFrame,):
+    if type(df) in (pandas.core.frame.DataFrame, ):
         sigma = 1 / df['center_wavelength'].to_numpy()  # (vacuum) wavenumber
     else:
         sigma = np.array([1 / df])
@@ -964,8 +957,8 @@ def refractive_index_broadband(df,
     # amended for changes in temperature and CO2 content
     k_0, k_1, k_2, k_3 = 238.0185, 5792105., 57.362, 167917.
 
-    n_as = (np.divide(k_1, k_0 - sigma ** 2) +
-            np.divide(k_3, k_2 - sigma ** 2)) * 1E-8  # eq.1 in [1]
+    n_as = (np.divide(k_1, k_0 - sigma**2) +
+            np.divide(k_3, k_2 - sigma**2)) * 1E-8  # eq.1 in [1]
 
     n_axs = (n_as * (1 + (.534E-6 * (CO2 - 450))))  # eq.2 in [1]
     n_ws = refractive_index_broadband_vapour(sigma)  # eq.3 in [1]
@@ -1007,7 +1000,7 @@ def refractive_index_simple(p, RH, t):
     ----------
     .. [1] https://emtoolbox.nist.gov/wavelength/Documentation.asp#AppendixB
     """
-    n = 1 + 7.86E-4 * p / (273 + t) - 1.5E-11 * RH * (t ** 2 + 160)
+    n = 1 + 7.86E-4 * p / (273 + t) - 1.5E-11 * RH * (t**2 + 160)
     return n
 
 
@@ -1189,7 +1182,7 @@ def update_list_with_corr_zenith_pd(dh, file_dir, file_name='conn.txt'):
     col_frmt = ('{:+8.2f}', '{:+8.2f}', '{:+8.2f}', '{:+8.2f}', '{:+8.2f}',
                 '{:+8.2f}', '{:+3.4f}', '{:+3.4f}', '{:+3.4f}')
     assert np.all(
-        [header in dh.columns for header in col_order + ('timestamp',)])
+        [header in dh.columns for header in col_order + ('timestamp', )])
     col_order = list(col_order)
     col_order.insert(4, 'casted_X_refine')
     col_order.insert(5, 'casted_Y_refine')
@@ -1282,6 +1275,7 @@ def refraction_spherical_symmetric(zn_0, lat=None, h_0=None):
 
     zn_hat = refraction_angle_analytical(zn_0, n_0)
     return zn_hat
+
 
 # def refraction_angle_layered(df, zn_0, lat, h_0, h_interval=10000): #todo
 #    """

@@ -103,8 +103,8 @@ def make_shadowing(dem_path,
     shw_rot = np.zeros_like(dem_rot, dtype=bool)
 
     dZ = special.tandg(90 - Zn) * np.sqrt(
-        1 + min(special.tandg(Az) ** 2,
-                special.cotdg(Az) ** 2)) * geoTransform_dem[1]
+        1 + min(special.tandg(Az)**2,
+                special.cotdg(Az)**2)) * geoTransform_dem[1]
 
     cls_rot = np.bitwise_not(
         ndimage.binary_dilation(msk_rot, structure=np.ones(
@@ -192,11 +192,8 @@ def make_shading(
 
     normal = estimate_surface_normals(dem, geoTransform_im[1])
 
-    Shd = (
-        normal[:, :, 0] * sun[:, :, 0] +
-        normal[:, :, 1] * sun[:, :, 1] +
-        normal[:, :, 2] * sun[:, :, 2]
-    )
+    Shd = (normal[:, :, 0] * sun[:, :, 0] + normal[:, :, 1] * sun[:, :, 1] +
+           normal[:, :, 2] * sun[:, :, 2])
     return Shd
 
 
@@ -377,10 +374,11 @@ def shadow_image_to_suntrace_list(M, geoTransform, az, method='nearest'):
         shade_class = shade_class.astype(int)
         # remove shadowtraces that touch the boundary
         trace = np.logical_or(M_trace == -9999, shade_class)
-        start_idx = np.argmin(np.cumsum(trace) ==
-                              np.linspace(1, trace.size, trace.size))
-        end_idx = np.argmin(np.linspace(1, trace.size, trace.size) ==
-                            np.cumsum(np.flipud(trace)))
+        start_idx = np.argmin(
+            np.cumsum(trace) == np.linspace(1, trace.size, trace.size))
+        end_idx = np.argmin(
+            np.linspace(1, trace.size, trace.size) == np.cumsum(
+                np.flipud(trace)))
         shade_class[:start_idx] = 0
         shade_class[-end_idx:] = 0
 
@@ -391,11 +389,11 @@ def shadow_image_to_suntrace_list(M, geoTransform, az, method='nearest'):
 
         # (col_idx, ) = np.where(IN)
         if -90 < az < 90:
-            (shade_beg,) = np.where(shade_node[1::] == -1)
-            (shade_end,) = np.where(shade_node[2::] == +1)
+            (shade_beg, ) = np.where(shade_node[1::] == -1)
+            (shade_end, ) = np.where(shade_node[2::] == +1)
         else:
-            (shade_beg,) = np.where(shade_node[2::] == +1)
-            (shade_end,) = np.where(shade_node[1::] == -1)
+            (shade_beg, ) = np.where(shade_node[2::] == +1)
+            (shade_end, ) = np.where(shade_node[1::] == -1)
 
         if len(shade_beg) == 0:
             continue
@@ -474,14 +472,10 @@ def shadow_image_to_list(M,
         sunZn, sunAz = Zn * np.ones_like(M), Az * np.ones_like(M)
     else:
         if 'bbox' in kwargs:
-            sunZn = sunZn[
-                kwargs['bbox'][0]:kwargs['bbox'][1],
-                kwargs['bbox'][2]:kwargs['bbox'][3]
-            ]
-            sunAz = sunAz[
-                kwargs['bbox'][0]:kwargs['bbox'][1],
-                kwargs['bbox'][2]:kwargs['bbox'][3]
-            ]
+            sunZn = sunZn[kwargs['bbox'][0]:kwargs['bbox'][1],
+                          kwargs['bbox'][2]:kwargs['bbox'][3]]
+            sunAz = sunAz[kwargs['bbox'][0]:kwargs['bbox'][1],
+                          kwargs['bbox'][2]:kwargs['bbox'][3]]
 
     i, j = map2pix(geoTransform, suntrace_list[:, 0].copy(),
                    suntrace_list[:, 1].copy())

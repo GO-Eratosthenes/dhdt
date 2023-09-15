@@ -159,7 +159,7 @@ def get_as_image_locations_l3(f_path, as_df):
     for i, row in as_df.iterrows():
         spec_type = in_which_spectral_range(row['center_wavelength'])
         bid = i[1:]
-        if bid[-1] in ('N',):
+        if bid[-1] in ('N', ):
             f_name = 'data1.l3a.' + spec_type + '3n.tif'
         else:
             f_name = 'data1.l3a.' + spec_type + str(int(bid)) + '.tif'

@@ -259,7 +259,7 @@ def read_conn_files_to_stack(folder_list,
             np.tile(im_date, C.shape[0]), C[:, 0], C[:, 1], C[:, 2], C[:, 3],
             C[:, 4], C[:, 5]
         ],
-            dtype=desc)
+                               dtype=desc)
         del C, im_date
         if dh_stack is None:
             dh_stack = dh.copy()
@@ -269,8 +269,8 @@ def read_conn_files_to_stack(folder_list,
         # a unique counter, given by "caster_id"
         idx_uni = pair_posts(np.column_stack(
             [dh_stack['caster_X'], dh_stack['caster_Y']]),
-            np.column_stack([dh['caster_X'], dh['caster_Y']]),
-            thres=10)
+                             np.column_stack([dh['caster_X'], dh['caster_Y']]),
+                             thres=10)
 
         id_counter = 1
         if 'id' in dh_stack.dtype.names:
@@ -286,9 +286,8 @@ def read_conn_files_to_stack(folder_list,
                 np.arange(0, np.sum(NEW)).astype(int)
             dh_stack['id'][idx_uni[NEW, 0]] = id_counter + \
                 np.arange(0, np.sum(NEW)).astype(int)
-            id_dh = np.rec.fromarrays(
-                [id_dh], dtype=np.dtype([('caster_id', int)])
-            )
+            id_dh = np.rec.fromarrays([id_dh],
+                                      dtype=np.dtype([('caster_id', int)]))
             dh = merge_arrays((dh, id_dh), flatten=True, usemask=False)
         else:
             id_stack = np.zeros(dh_stack.shape[0], dtype=int)
@@ -444,9 +443,9 @@ def clean_locations_with_no_caster_id(dh):
     --------
     read_conn_files_to_stack, read_conn_files_to_df
     """
-    if type(dh) in (np.recarray,):
+    if type(dh) in (np.recarray, ):
         dh = clean_locations_with_no_caster_id_rec(dh)
-    elif type(dh) in (np.ndarray,):
+    elif type(dh) in (np.ndarray, ):
         dh = clean_locations_with_no_caster_id_np(dh)
     else:
         dh = clean_dh_with_no_caster_id_pd(dh)
@@ -490,8 +489,8 @@ def keep_refined_locations(dh):
             - zenith : overhead angle of the sun, unit=degrees
     """
     if np.all([
-        header in dh.columns
-        for header in ('casted_X_refine', 'casted_Y_refine')
+            header in dh.columns
+            for header in ('casted_X_refine', 'casted_Y_refine')
     ]):
         # only keep data points that we able to refine their position
         dh.drop(dh[dh['casted_X_refine'] == dh['casted_X']].index,
@@ -546,7 +545,7 @@ def update_caster_elevation(dh, Z, geoTransform):
              |   \                   |
          ----┴----+  <-- casted      └-> {X,Y}
     """
-    if type(dh) in (pd.core.frame.DataFrame,):
+    if type(dh) in (pd.core.frame.DataFrame, ):
         update_caster_elevation_pd(dh, Z, geoTransform)
     # todo : make the same function for recordarray
     return dh
@@ -615,7 +614,7 @@ def update_casted_elevation(dxyt, Z, geoTransform):
              |   \                   |
          ----┴----+  <-- casted      └-> {X,Y}
     """
-    if type(dxyt) in (pd.core.frame.DataFrame,):
+    if type(dxyt) in (pd.core.frame.DataFrame, ):
         update_casted_elevation_pd(dxyt, Z, geoTransform)
     # todo : make the same function for recordarray
     return dxyt
@@ -632,9 +631,8 @@ def update_casted_elevation_pd(dxyt, Z, geoTransform):
         x_str, y_str, z_str = 'X_' + str(i + 1), 'Y_' + str(i +
                                                             1), 'Z_' + str(i +
                                                                            1)
-        i_im, j_im = map2pix(
-            geoTransform, dxyt[x_str].to_numpy(), dxyt[y_str].to_numpy()
-        )
+        i_im, j_im = map2pix(geoTransform, dxyt[x_str].to_numpy(),
+                             dxyt[y_str].to_numpy())
         dh_Z = ndimage.map_coordinates(Z, [i_im, j_im], order=1, mode='mirror')
         if z_str not in dxyt.columns:
             dxyt.insert(len(dxyt.keys()), z_str, dh_Z)
@@ -692,7 +690,7 @@ def update_caster_view_angles(dh, view_zn, view_az, geoTransform):
              |   \                   |
          ----┴----+  <-- casted      └-> {X,Y}
     """  # noqa: W605
-    if type(dh) in (pd.core.frame.DataFrame,):
+    if type(dh) in (pd.core.frame.DataFrame, ):
         update_caster_view_angles_pd(dh, view_zn, view_az, geoTransform)
     # todo : make the same function for recordarray
     return dh
@@ -745,7 +743,7 @@ def update_glacier_id(dh, R, geoTransform):
             - azimuth : sun orientation, unit=degrees
             - zenith : overhead angle of the sun, unit=degrees
     """
-    if type(dh) in (pd.core.frame.DataFrame,):
+    if type(dh) in (pd.core.frame.DataFrame, ):
         update_glacier_id_pd(dh, R, geoTransform)
     # todo : make the same function for recordarray
     return dh
@@ -810,9 +808,9 @@ def get_casted_elevation_difference(dh):
              |   \                   |
          ----┴----+  <-- casted      └-> {X,Y}
     """  # noqa: W605
-    if type(dh) in (np.recarray,):
+    if type(dh) in (np.recarray, ):
         dxyt = get_casted_elevation_difference_rec(dh)
-    elif type(dh) in (np.ndarray,):
+    elif type(dh) in (np.ndarray, ):
         dxyt = get_casted_elevation_difference_np(dh)
     else:
         dxyt = get_casted_elevation_difference_pd(dh)
@@ -824,9 +822,7 @@ def get_casted_elevation_difference_pd(dh):
         'please couple the dataframe to other timestamps'
     # is refraction present
     if 'zenith_refrac' not in dh.columns:
-        warnings.warn(
-            'OBS: refractured zenith does not seem to be calculated'
-        )
+        warnings.warn('OBS: refractured zenith does not seem to be calculated')
         zn_name = 'zenith'
     else:
         zn_name = 'zenith_refrac'
@@ -867,9 +863,9 @@ def get_casted_elevation_difference_pd(dh):
         network_id = get_network_indices(n).T
 
         xy_1 = dh_ioi[['casted_X', 'casted_Y']].iloc[network_id[:,
-                                                     0]].to_numpy()
+                                                                0]].to_numpy()
         xy_2 = dh_ioi[['casted_X', 'casted_Y']].iloc[network_id[:,
-                                                     1]].to_numpy()
+                                                                1]].to_numpy()
         xy_t = dh_ioi[[x_name, y_name]].iloc[network_id[:, 0]].to_numpy()
         zn_1 = dh_ioi[zn_name].iloc[network_id[:, 0]].to_numpy()
         zn_2 = dh_ioi[zn_name].iloc[network_id[:, 1]].to_numpy()
@@ -882,8 +878,8 @@ def get_casted_elevation_difference_pd(dh):
                 xy_1[:, 0], xy_1[:, 1], t_1, xy_2[:, 0], xy_2[:, 1], t_2,
                 dz_ioi
             ],
-                names=names,
-                formats=formats)
+                                          names=names,
+                                          formats=formats)
         else:
             g_1 = dh_ioi['glacier_id'].iloc[network_id[:, 0]].to_numpy()
             g_2 = dh_ioi['glacier_id'].iloc[network_id[:, 1]].to_numpy()
@@ -891,8 +887,8 @@ def get_casted_elevation_difference_pd(dh):
                 xy_1[:, 0], xy_1[:, 1], t_1, g_1, xy_2[:, 0], xy_2[:, 1], t_2,
                 g_2, dz_ioi
             ],
-                names=names,
-                formats=formats)
+                                          names=names,
+                                          formats=formats)
         dxyt = pd.concat([dxyt, pd.DataFrame.from_records(dxyt_line)], axis=0)
     if dxyt is None:  # no connected elements in the dataframe
         dxyt = pd.DataFrame()
@@ -924,14 +920,14 @@ def get_casted_elevation_difference_rec(dh):
 
         dz_ioi = get_elevation_difference(sun[network_id[:, 0]],
                                           sun[network_id[:,
-                                              1]], xy_1, xy_2, xy_t)
+                                                         1]], xy_1, xy_2, xy_t)
         dxyt_line = np.rec.fromarrays([
             xy_1[:, 0], xy_1[:, 1], dh_ioi['timestamp'][network_id[:, 0]],
             xy_2[:, 0], xy_2[:, 1], dh_ioi['timestamp'][network_id[:, 1]],
             np.atleast_1d(np.squeeze(dz_ioi))
         ],
-            names=names,
-            formats=formats)
+                                      names=names,
+                                      formats=formats)
         dxyt = stack_arrays((dxyt, dxyt_line), asrecarray=True, usemask=False)
     return dxyt
 
@@ -957,7 +953,7 @@ def get_casted_elevation_difference_np(dh):
 
         dz_ioi = get_elevation_difference(sun[network_id[:, 0]],
                                           sun[network_id[:,
-                                              1]], xy_1, xy_2, xy_t)
+                                                         1]], xy_1, xy_2, xy_t)
         dxyt_line = np.hstack((xy_1, dh_ioi[:, 0][network_id[:, 0]], xy_2,
                                dh_ioi[:, 0][network_id[:, 1]], dz_ioi))
         dxyt = np.vstack((dxyt, dxyt_line))
@@ -1021,7 +1017,7 @@ def get_relative_hypsometric_network(dxyt, Z, geoTransform):
         design matrix with elevation differences
     """
 
-    if type(dxyt) in (np.recarray,):
+    if type(dxyt) in (np.recarray, ):
         i_1, j_1 = map2pix(geoTransform, dxyt['X_1'].to_numpy(),
                            dxyt['Y_1'].to_numpy())
         i_2, j_2 = map2pix(geoTransform, dxyt['X_2'].to_numpy(),
@@ -1047,7 +1043,7 @@ def get_relative_hypsometric_network(dxyt, Z, geoTransform):
     idx_y = np.concatenate(
         (np.linspace(0, m - 1, m).astype(int), np.linspace(0, m - 1,
                                                            m).astype(int)))
-    dat_A = np.concatenate((+1 * np.ones((m,)), -1 * np.ones((m,))))
+    dat_A = np.concatenate((+1 * np.ones((m, )), -1 * np.ones((m, ))))
 
     # create sparse and signed adjacency matrix
     A = sparse.csr_array((dat_A, (idx_y, idx_inv)), shape=(m, n))
@@ -1090,15 +1086,15 @@ def get_hypsometric_elevation_change(dxyt, Z=None, geoTransform=None):
     --------
     get_casted_elevation_difference
     """
-    if type(dxyt) in (np.recarray,):
+    if type(dxyt) in (np.recarray, ):
         dhdt = get_hypsometric_elevation_change_rec(dxyt,
                                                     Z=Z,
                                                     geoTransform=geoTransform)
-    elif type(dxyt) in (np.ndarray,):
+    elif type(dxyt) in (np.ndarray, ):
         dhdt = get_hypsometric_elevation_change_np(dxyt,
                                                    Z=Z,
                                                    geoTransform=geoTransform)
-    elif type(dxyt) in (pd.core.frame.DataFrame,):
+    elif type(dxyt) in (pd.core.frame.DataFrame, ):
         assert np.all([
             header in dxyt.columns
             for header in ('X_1', 'Y_1', 'X_2', 'Y_2', 'dH_12')

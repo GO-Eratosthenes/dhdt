@@ -12,7 +12,7 @@ from dhdt.testing.terrain_tools import create_artificial_terrain
 def test_rotate_disp_field(m=40, n=30):
     # initialization
     UV = np.random.random([m, n]) + 1j * np.random.random([m, n])
-    θ = np.random.uniform(low=0., high=360., size=(1,))
+    θ = np.random.uniform(low=0., high=360., size=(1, ))
 
     # forward rotation
     UV_frw = rotate_disp_field(UV, θ)
@@ -29,7 +29,7 @@ def test_rotate_disp_field(m=40, n=30):
 def test_rot_covar():
     # initialization
     eye = np.eye(2)
-    θ = np.random.uniform(low=0., high=360., size=(1,))[0]
+    θ = np.random.uniform(low=0., high=360., size=(1, ))[0]
 
     # forward rotation
     eye_frw = rot_covar(eye, rot_mat(θ))

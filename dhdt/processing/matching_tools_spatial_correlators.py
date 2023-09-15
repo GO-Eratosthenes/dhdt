@@ -176,12 +176,8 @@ def maximum_likelihood_func(I2, I1):
     I1, I2 = I1.flatten(), I2.flatten()
 
     I12 = I1 + I2
-    num = (
-        np.log(I2, where=I2 > 0) +
-        np.log(I1, where=I1 > 0) -
-        2 * np.log(I12, where=I12 > 0) -
-        np.log(I1, where=I1 > 0)
-    )
+    num = (np.log(I2, where=I2 > 0) + np.log(I1, where=I1 > 0) -
+           2 * np.log(I12, where=I12 > 0) - np.log(I1, where=I1 > 0))
     ml = np.divide(num, I1.size, out=np.zeros_like(num), where=num > 0)
     return np.sum(ml)
 
@@ -439,31 +435,33 @@ def total_gradients(I1, I2):
               processing, vol.27(3) pp.1297--1310, 2017.
     """
     assert I1.ndim == I2.ndim, 'please provide data with the same dimension'
-    assert I1.shape[0:2]<=I2.shape[0:2], \
+    assert I1.shape[0:2] <= I2.shape[0:2], \
         ('search space (I2) should be at least as big as the template (I1)')
 
     t_size = I1.shape
     y = np.lib.stride_tricks.as_strided(I2,
-                    shape=(I2.shape[0] - t_size[0] + 1,
-                           I2.shape[1] - t_size[1] + 1,) +
-                          t_size,
-                    strides=I2.strides * 2)
+                                        shape=(
+                                            I2.shape[0] - t_size[0] + 1,
+                                            I2.shape[1] - t_size[1] + 1,
+                                        ) + t_size,
+                                        strides=I2.strides * 2)
 
     Idiff = np.abs(y - I1[None, None, ...])
 
-    fx,fy = get_grad_filters(ftype='kroon', tsize=3, order=1)
+    fx, fy = get_grad_filters(ftype='kroon', tsize=3, order=1)
     # total gradients
     Igrad = np.stack((ndimage.convolve(Idiff, fx[None, None, ...]),
-                      ndimage.convolve(Idiff, fy[None, None, ...])), axis=-1)
-    Igrad = Igrad[...,1:-1,1:-1,:]
+                      ndimage.convolve(Idiff, fy[None, None, ...])),
+                     axis=-1)
+    Igrad = Igrad[..., 1:-1, 1:-1, :]
     # remove border pixels
-    m,n = Idiff.shape[:-2]
+    m, n = Idiff.shape[:-2]
 
-    Iravel = np.moveaxis(Igrad.reshape((m, n, -1)), -1, 0
-                         ).reshape((2*np.prod(np.subtract(t_size, 2)), -1))
+    Iravel = np.moveaxis(Igrad.reshape((m, n, -1)), -1, 0).reshape(
+        (2 * np.prod(np.subtract(t_size, 2)), -1))
     # estimate heavy tails/ sharpness of the distribution
     Ikurt = kurtosis(Iravel, axis=0, fisher=False)
-    tg = Ikurt.reshape((m,n))
+    tg = Ikurt.reshape((m, n))
     return tg
 
 

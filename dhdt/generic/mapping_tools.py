@@ -37,8 +37,8 @@ def cart2pol(x, y):
     """
     if type(x) in (np.ma.core.MaskedArray, np.ndarray):
         are_two_arrays_equal(x, y)
-    else: # if only a float is given
-        x,y = correct_floating_parameter(x), correct_floating_parameter(y)
+    else:  # if only a float is given
+        x, y = correct_floating_parameter(x), correct_floating_parameter(y)
 
     ρ = np.hypot(x, y)
     φ = np.arctan2(y, x)
@@ -67,8 +67,8 @@ def pol2cart(ρ, φ):
     """
     if type(ρ) in (np.ma.core.MaskedArray, np.ndarray):
         are_two_arrays_equal(ρ, φ)
-    else: # if only a float is given
-        ρ,φ = correct_floating_parameter(ρ), correct_floating_parameter(φ)
+    else:  # if only a float is given
+        ρ, φ = correct_floating_parameter(ρ), correct_floating_parameter(φ)
 
     x = ρ * np.cos(φ)
     y = ρ * np.sin(φ)
@@ -456,9 +456,8 @@ def haversine(Δlat, Δlon, lat, radius=None):
         wgs84.ImportFromEPSG(4326)
         a, b = wgs84.GetSemiMajor(), wgs84.GetSemiMinor()
         radius = np.sqrt(
-            np.divide(
-                (a ** 2 * np.cos(lat)) ** 2 + (b ** 2 * np.sin(lat)) ** 2,
-                (a * np.cos(lat)) ** 2 + (b * np.sin(lat)) ** 2))
+            np.divide((a**2 * np.cos(lat))**2 + (b**2 * np.sin(lat))**2,
+                      (a * np.cos(lat))**2 + (b * np.sin(lat))**2))
 
     a = np.sin(Δlat / 2) ** 2 + \
         np.cos(lat) * np.cos(lat + Δlat) * np.sin(Δlon / 2) ** 2
@@ -497,10 +496,10 @@ def covar2err_ellipse(sigma_1, sigma_2, ρ):
               The Crysophere, vol.16(6) pp.2285–2300, 2022.
     """
     # intermediate variables
-    s1s2_min = sigma_1 ** 2 - sigma_2 ** 2
-    s1s2_plu = sigma_1 ** 2 + sigma_2 ** 2
+    s1s2_min = sigma_1**2 - sigma_2**2
+    s1s2_plu = sigma_1**2 + sigma_2**2
     s1s2r = sigma_1 * sigma_2 * ρ
-    lamb = np.sqrt(np.divide(s1s2_min ** 2, 4) + s1s2r)
+    lamb = np.sqrt(np.divide(s1s2_min**2, 4) + s1s2r)
     lambda_1 = s1s2_plu / 2 + lamb  # eq.5 in [Al22]
     lambda_2 = s1s2_plu / 2 - lamb
     θ = np.rad2deg(np.arctan2(2 * s1s2r, s1s2_min) / 2)  # eq.6 in [Al22]
@@ -821,8 +820,8 @@ def pix_centers(geoTransform, rows=None, cols=None, make_grid=True):
     geoTransform = correct_geoTransform(geoTransform)
     if rows is None:
         assert len(geoTransform) == 8, (
-                'please provide the dimensions of the ' +
-                'imagery, or have this included in the ' + 'geoTransform.')
+            'please provide the dimensions of the ' +
+            'imagery, or have this included in the ' + 'geoTransform.')
         rows, cols = int(geoTransform[-2]), int(geoTransform[-1])
     i, j = np.linspace(0, rows - 1, rows), np.linspace(0, cols - 1, cols)
 
@@ -1216,7 +1215,7 @@ def find_overlapping_DEM_tiles(dem_path, dem_file, poly_tile):
 
         intersection = poly_tile.Intersection(geom)
         if (intersection is not None and intersection.Area() > 0):
-            url_list += (demFeature.GetField('fileurl'),)
+            url_list += (demFeature.GetField('fileurl'), )
 
     return url_list
 
@@ -1261,7 +1260,7 @@ def make_same_size(Old,
     if np.sign(dj) == -1:  # extend array by simple copy of border values
         Old = np.concatenate((np.repeat(
             np.expand_dims(Old[:, 0], axis=1), abs(dj), axis=1), Old),
-            axis=1)
+                             axis=1)
     elif np.sign(dj) == 1:  # reduce array
         Old = Old[:, abs(dj).astype(int):]
 
@@ -1270,7 +1269,7 @@ def make_same_size(Old,
     elif np.sign(di) == 1:  # extend array by simple copy of border values
         Old = np.concatenate((np.repeat(
             np.expand_dims(Old[0, :], axis=1).T, abs(di), axis=0), Old),
-            axis=0)
+                             axis=0)
 
     # as they are now alligned, look at the lower right corner
     di, dj = rows_new - Old.shape[0], cols_new - Old.shape[1]
@@ -1280,14 +1279,14 @@ def make_same_size(Old,
     elif np.sign(dj) == 1:  # extend array by simple copy of border values
         Old = np.concatenate((np.repeat(
             Old, np.expand_dims(Old[:, -1], axis=1), abs(dj), axis=1)),
-            axis=1)
+                             axis=1)
 
     if np.sign(di) == -1:  # reduce array
         Old = Old[:di, :]
     elif np.sign(di) == 1:  # extend array by simple copy of border values
         Old = np.concatenate((np.repeat(
             Old, np.expand_dims(Old[-1, :], axis=1).T, abs(di), axis=0)),
-            axis=0)
+                             axis=0)
 
     New = Old
     return New

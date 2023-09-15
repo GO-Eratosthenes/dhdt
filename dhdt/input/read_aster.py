@@ -348,7 +348,7 @@ def read_stack_as_l3(as_df):
             im_stack = np.concatenate((im_stack, band), axis=2)
 
     # create masked array, if this is not already done so
-    if type(im_stack) not in (np.ma.core.MaskedArray,):
+    if type(im_stack) not in (np.ma.core.MaskedArray, ):
         Mask = np.all(im_stack == 0, axis=2)[..., np.newaxis]
         im_stack = np.ma.array(im_stack,
                                mask=np.tile(Mask, (1, 1, im_stack.shape[2])))
@@ -428,7 +428,7 @@ def get_flight_path_as(as_path,
         })
         # estimate the altitude above the ellipsoid, and platform speed
         llh = ecef2llh(sat_xyz)
-        velo = np.sqrt(np.sum(sat_uvw ** 2, axis=1))
+        velo = np.sqrt(np.sum(sat_uvw**2, axis=1))
         as_dict.update({
             'altitude': np.squeeze(llh[:, -1]),
             'velocity': np.squeeze(velo)

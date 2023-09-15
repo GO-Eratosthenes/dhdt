@@ -22,20 +22,20 @@ def _get_file_meta(theia, vn_df, dat_dir, mtype='Image'):
 
     im_listing = None
     for child in theia:
-        if child.tag in (xtype + '_List',):
+        if child.tag in (xtype + '_List', ):
             im_listing = child
     assert (im_listing is not None), ('metadata not in xml file')
 
     im_list = None
     for child in im_listing:
-        if child.tag in (xtype,):
+        if child.tag in (xtype, ):
             if child[0][0].text == noi:
                 im_list = child
     assert (im_list is not None), ('metadata not in xml file')
 
     file_list = None
     for child in im_list:
-        if child.tag in (xtype + '_File_List',):
+        if child.tag in (xtype + '_File_List', ):
             file_list = child
     assert (file_list is not None), ('metadata not in xml file')
 
@@ -152,7 +152,7 @@ def get_vn_mean_view_angles(fname, vn_df):
         "azimuth_mean": az,
         "zentih_mean": zn
     },
-        index=det_id)
+                           index=det_id)
     vn_df_new = vn_df.merge(view_df,
                             left_on=vn_df['detector_id'],
                             right_index=True).drop(columns='key_0')

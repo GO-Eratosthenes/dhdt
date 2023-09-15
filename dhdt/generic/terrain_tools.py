@@ -115,5 +115,5 @@ def get_slope_corrected_area(Z, spac=10.):
     """
     Z_dx, Z_dy = terrain_slope(Z, spac=10.)
     Slp = np.hypot(Z_dy, Z_dx)
-    A = np.cos(Slp) * spac ** 2
+    A = np.cos(Slp) * spac**2
     return A

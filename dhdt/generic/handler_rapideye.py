@@ -30,7 +30,7 @@ def meta_REstring(REstr):  # generic
 
     REsplit = REstr.split('_')
     REtime = '+' + REsplit[1][0:4] + '-' + REsplit[1][5:7] + '-' + REsplit[1][
-                                                                   8:10]
+        8:10]
     REsat = REsplit[2]
     REtile = REsplit[0]
     return REtime, REtile, REsat

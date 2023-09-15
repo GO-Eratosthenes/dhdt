@@ -87,8 +87,11 @@ def radon_orientation(Z,
     J_grd += temp_radius
 
     for counter in tqdm(range(len(I_grd))):
-        Z_sub = create_template_at_center(Z, I_grd[counter], J_grd[counter],
-                                          temp_radius, filling='random')
+        Z_sub = create_template_at_center(Z,
+                                          I_grd[counter],
+                                          J_grd[counter],
+                                          temp_radius,
+                                          filling='random')
         idx_grd = np.unravel_index(counter, (m, n), 'C')
         if np.ptp(Z_sub) == 0:
             continue

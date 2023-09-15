@@ -18,8 +18,7 @@ def get_gshhg_url(url_type='ftp'):
         gshhg_url = 'ftp://ftp.soest.hawaii.edu/gshhg/gshhg-shp-2.3.7.zip'
     else:
         gshhg_url = (
-            'http://www.soest.hawaii.edu/pwessel/gshhg/gshhg-shp-2.3.7.zip'
-        )
+            'http://www.soest.hawaii.edu/pwessel/gshhg/gshhg-shp-2.3.7.zip')
     return gshhg_url
 
 

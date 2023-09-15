@@ -283,15 +283,15 @@ def diffusion_strength_1(Z, K):
     # admin
     if np.iscomplexobj(Z):  # support complex input
         Z_abs = np.abs(Z)
-        g_1 = np.exp(-1 * np.divide(np.abs(Z), K) ** 2)
+        g_1 = np.exp(-1 * np.divide(np.abs(Z), K)**2)
     elif Z.ndim == 3:  # support multispectral input
-        I_sum = np.sum(Z ** 2, axis=2)
+        I_sum = np.sum(Z**2, axis=2)
         Z_abs = np.sqrt(I_sum, out=np.zeros_like(I_sum), where=I_sum != 0)
     else:
         Z_abs = Z
 
     # calculation
-    g_1 = np.exp(-1 * np.divide(Z_abs, K) ** 2)
+    g_1 = np.exp(-1 * np.divide(Z_abs, K)**2)
     return g_1
 
 
@@ -321,14 +321,14 @@ def diffusion_strength_2(Z, K):
     """
     if np.iscomplexobj(Z):
         Z_abs = np.abs(Z)
-        denom = (1 + np.divide(np.abs(Z), K) ** 2)
+        denom = (1 + np.divide(np.abs(Z), K)**2)
     elif Z.ndim == 3:  # support multispectral input
-        I_sum = np.sum(Z ** 2, axis=2)
+        I_sum = np.sum(Z**2, axis=2)
         Z_abs = np.sqrt(I_sum, out=np.zeros_like(I_sum), where=I_sum != 0)
     else:
         Z_abs = Z
     # calculation
-    denom = (1 + np.divide(Z_abs, K) ** 2)
+    denom = (1 + np.divide(Z_abs, K)**2)
     g_2 = np.divide(1, denom, where=denom != 0)
     return g_2
 
@@ -459,7 +459,7 @@ def L0_smoothing(Z, lamb=2E-2, kappa=2., beta_max=1E5):
 
     Z = perdecomp(Z)[0]
     N_1 = np.fft.fft2(Z)
-    D_2 = np.abs(dx_F) ** 2 + np.abs(dy_F) ** 2
+    D_2 = np.abs(dx_F)**2 + np.abs(dy_F)**2
 
     if b > 1:
         dx, dy = np.tile(np.atleast_3d(dx), (1, 1, b)), \
@@ -473,7 +473,7 @@ def L0_smoothing(Z, lamb=2E-2, kappa=2., beta_max=1E5):
         h = np.roll(signal.fftconvolve(Z, dx, mode='same'), -1, axis=1)
         v = np.roll(signal.fftconvolve(Z, dy, mode='same'), -1, axis=0)
 
-        t = (h ** 2 + v ** 2) < (lamb / beta)
+        t = (h**2 + v**2) < (lamb / beta)
         np.putmask(h, t, 0)
         np.putmask(v, t, 0)
 

@@ -344,7 +344,7 @@ def reduce_duplicate_urls(url_list):
     """
     tiles = ()
     for i in url_list:
-        tiles += (i.split('/')[-2],)
+        tiles += (i.split('/')[-2], )
     uni_set = set(tiles)
     ids = []
     for i in range(len(uni_set)):

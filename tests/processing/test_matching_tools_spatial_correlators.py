@@ -10,7 +10,7 @@ from dhdt.processing.matching_tools_spatial_correlators import \
     weighted_normalized_cross_correlation, cosine_similarity
 
 
-def test_normalized_cross_corr(d=2 ** 5, tolerance=.4):
+def test_normalized_cross_corr(d=2**5, tolerance=.4):
     im1, im2, di, dj, im1_big = create_sample_image_pair(d=d,
                                                          max_range=np.inf,
                                                          integer=True,
@@ -21,7 +21,7 @@ def test_normalized_cross_corr(d=2 ** 5, tolerance=.4):
     return
 
 
-def test_sum_sad_diff(d=2 ** 4, tolerance=.4):
+def test_sum_sad_diff(d=2**4, tolerance=.4):
     im1, im2, di, dj, im1_big = create_sample_image_pair(d=d,
                                                          max_range=np.inf,
                                                          integer=True,
@@ -32,7 +32,7 @@ def test_sum_sad_diff(d=2 ** 4, tolerance=.4):
     return
 
 
-def test_sum_sq_diff(d=2 ** 5, tolerance=.4):
+def test_sum_sq_diff(d=2**5, tolerance=.4):
     im1, im2, di, dj, im1_big = create_sample_image_pair(d=d,
                                                          max_range=np.inf,
                                                          integer=True,
@@ -43,7 +43,7 @@ def test_sum_sq_diff(d=2 ** 5, tolerance=.4):
     return
 
 
-def test_maximum_likelihood(d=2 ** 5, tolerance=.4):
+def test_maximum_likelihood(d=2**5, tolerance=.4):
     im1, im2, di, dj, im1_big = create_sample_image_pair(d=d,
                                                          max_range=np.inf,
                                                          integer=True,
@@ -54,7 +54,7 @@ def test_maximum_likelihood(d=2 ** 5, tolerance=.4):
     return
 
 
-def test_weighted_normalized_cross_corr(d=2 ** 5, tolerance=.4):
+def test_weighted_normalized_cross_corr(d=2**5, tolerance=.4):
     im1, im2, di, dj, im1_big = create_sample_image_pair(d=d,
                                                          max_range=np.inf,
                                                          integer=True,
@@ -65,7 +65,7 @@ def test_weighted_normalized_cross_corr(d=2 ** 5, tolerance=.4):
     return
 
 
-def test_cosine_similarity(d=2 ** 5, tolerance=.4):
+def test_cosine_similarity(d=2**5, tolerance=.4):
     im1, im2, di, dj, im1_big = create_sample_image_pair(d=d,
                                                          max_range=np.inf,
                                                          integer=True,

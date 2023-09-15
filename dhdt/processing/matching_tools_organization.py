@@ -234,8 +234,7 @@ def estimate_translation_of_two_subsets(I1,
 
     if correlator in ['lucas_aff']:
         di, dj, _, score = affine_optical_flow(
-            I1, I2, model='affine', preprocessing=kwargs.get('preprocessing')
-        )
+            I1, I2, model='affine', preprocessing=kwargs.get('preprocessing'))
     if correlator in ['hough_opt_flw']:
         num_est, max_amp = 1, 1
         if kwargs.get('num_estimates') is not None:
@@ -253,12 +252,10 @@ def estimate_translation_of_two_subsets(I1,
             I2,
             num_estimates=num_est,
             preprocessing=kwargs.get('preprocessing'),
-            max_amp=max_amp
-        )
+            max_amp=max_amp)
     else:  # 'lucas_kan'
         di, dj, _, score = affine_optical_flow(
-            I1, I2, model='simple', preprocessing=kwargs.get('preprocessing')
-        )
+            I1, I2, model='simple', preprocessing=kwargs.get('preprocessing'))
 
     return di, dj, score
 

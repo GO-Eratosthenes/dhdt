@@ -331,7 +331,7 @@ def logit_weighting(Y, sigma_Y=1., sigma_0=1.):
               2011.
     """
 
-    W = np.multiply(Y ** 2, (1 - Y) ** 2) * np.divide(sigma_Y, sigma_0)
+    W = np.multiply(Y**2, (1 - Y)**2) * np.divide(sigma_Y, sigma_0)
     # from Table 9 in [1]
     return W
 
@@ -367,7 +367,7 @@ def ln_weighting(Y, sigma_Y=1., sigma_0=1.):
               Critical reviews in analytical chemistry, vol.41(1) pp. 36-69,
               2011.
     """
-    W = Y ** 2 * np.divide(sigma_Y, sigma_0)  # from Table 9 in [1]
+    W = Y**2 * np.divide(sigma_Y, sigma_0)  # from Table 9 in [1]
     return W
 
 
@@ -401,7 +401,7 @@ def reciprocal_weighting(Y, sigma_Y=1., sigma_0=1.):
               Critical reviews in analytical chemistry, vol.41(1) pp. 36-69,
               2011.
     """
-    W = Y ** 4 * np.divide(sigma_Y, sigma_0)  # from Table 9 in [As11]
+    W = Y**4 * np.divide(sigma_Y, sigma_0)  # from Table 9 in [As11]
     return W
 
 
@@ -497,7 +497,7 @@ def squared_weighting(Y, sigma_Y=1., sigma_0=1.):
               Critical reviews in analytical chemistry, vol.41(1) pp. 36-69,
               2011.
     """
-    W = np.divide(sigma_0 ** 2, np.multiply(4 * np.power(Y, 2), sigma_Y))
+    W = np.divide(sigma_0**2, np.multiply(4 * np.power(Y, 2), sigma_Y))
     # from Table 9 in [As11]
     return W
 

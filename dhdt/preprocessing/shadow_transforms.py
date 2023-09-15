@@ -244,7 +244,7 @@ def modified_shadow_fraction(Blue, Green, Red, P_S=.95):
     T_S = np.quantile(r, P_S)
     sig = np.std(r)
 
-    SF = np.exp(-np.divide((r - T_S) ** 2, 4 * sig))
+    SF = np.exp(-np.divide((r - T_S)**2, 4 * sig))
     np.putmask(SF, SF >= T_S, 1.)
     return SF
 
@@ -1263,6 +1263,7 @@ def shadow_probabilities(Blue, Green, Red, Near, ae=1e+1, be=5e-1):
 
     M = np.multiply(D, (1 - F))
     return M
+
 
 # recovery - normalized color composite
 

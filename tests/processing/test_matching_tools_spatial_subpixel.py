@@ -10,7 +10,7 @@ from dhdt.processing.matching_tools_spatial_subpixel import \
     get_top_paraboloid, get_top_triangular
 
 
-def test_get_top_centroid(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
+def test_get_top_centroid(ssize=(2**4, 2**4), tolerance=.4):
     di = np.random.random() * ssize[0] - ssize[0] // 2
     dj = np.random.random() * ssize[1] - ssize[1] // 2
 
@@ -21,7 +21,7 @@ def test_get_top_centroid(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
     return
 
 
-def test_get_top_moment(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
+def test_get_top_moment(ssize=(2**4, 2**4), tolerance=.4):
     di = np.random.random() * ssize[0] - ssize[0] // 2
     dj = np.random.random() * ssize[1] - ssize[1] // 2
 
@@ -37,7 +37,7 @@ def test_get_top_moment(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
     return
 
 
-def test_get_top_esinc(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
+def test_get_top_esinc(ssize=(2**4, 2**4), tolerance=.4):
     di = np.random.random() * ssize[0] - ssize[0] // 2
     dj = np.random.random() * ssize[1] - ssize[1] // 2
 
@@ -53,7 +53,7 @@ def test_get_top_esinc(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
     return
 
 
-def test_get_top_blais(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
+def test_get_top_blais(ssize=(2**4, 2**4), tolerance=.4):
     di = np.random.random() * ssize[0] - ssize[0] // 2
     dj = np.random.random() * ssize[1] - ssize[1] // 2
 
@@ -64,7 +64,7 @@ def test_get_top_blais(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
     return
 
 
-def test_get_top_mass(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
+def test_get_top_mass(ssize=(2**4, 2**4), tolerance=.4):
     di = np.random.random() * ssize[0] - ssize[0] // 2
     dj = np.random.random() * ssize[1] - ssize[1] // 2
 
@@ -75,7 +75,7 @@ def test_get_top_mass(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
     return
 
 
-def test_get_top_ren(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
+def test_get_top_ren(ssize=(2**4, 2**4), tolerance=.4):
     di = np.random.random() * ssize[0] - ssize[0] // 2
     dj = np.random.random() * ssize[1] - ssize[1] // 2
 
@@ -86,7 +86,7 @@ def test_get_top_ren(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
     return
 
 
-def test_get_top_2d_gaussian(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
+def test_get_top_2d_gaussian(ssize=(2**4, 2**4), tolerance=.4):
     di = np.random.random() * ssize[0] - ssize[0] // 2
     dj = np.random.random() * ssize[1] - ssize[1] // 2
 
@@ -97,7 +97,7 @@ def test_get_top_2d_gaussian(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
     return
 
 
-def test_get_top_birchfield(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
+def test_get_top_birchfield(ssize=(2**4, 2**4), tolerance=.4):
     di = np.random.random() * ssize[0] - ssize[0] // 2
     dj = np.random.random() * ssize[1] - ssize[1] // 2
 
@@ -108,7 +108,7 @@ def test_get_top_birchfield(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
     return
 
 
-def test_get_top_equiangular(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
+def test_get_top_equiangular(ssize=(2**4, 2**4), tolerance=.4):
     di = np.random.random() * ssize[0] - ssize[0] // 2
     dj = np.random.random() * ssize[1] - ssize[1] // 2
 
@@ -119,7 +119,7 @@ def test_get_top_equiangular(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
     return
 
 
-def test_get_top_gaussian(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
+def test_get_top_gaussian(ssize=(2**4, 2**4), tolerance=.4):
     di = np.random.random() * ssize[0] - ssize[0] // 2
     dj = np.random.random() * ssize[1] - ssize[1] // 2
 
@@ -130,7 +130,7 @@ def test_get_top_gaussian(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
     return
 
 
-def test_get_top_parabolic(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
+def test_get_top_parabolic(ssize=(2**4, 2**4), tolerance=.4):
     di = np.random.random() * ssize[0] - ssize[0] // 2
     dj = np.random.random() * ssize[1] - ssize[1] // 2
 
@@ -141,7 +141,7 @@ def test_get_top_parabolic(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
     return
 
 
-def test_get_top_paraboloid(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
+def test_get_top_paraboloid(ssize=(2**4, 2**4), tolerance=.4):
     di = np.random.random() * ssize[0] - ssize[0] // 2
     dj = np.random.random() * ssize[1] - ssize[1] // 2
 
@@ -152,7 +152,7 @@ def test_get_top_paraboloid(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
     return
 
 
-def test_get_top_triangular(ssize=(2 ** 4, 2 ** 4), tolerance=.4):
+def test_get_top_triangular(ssize=(2**4, 2**4), tolerance=.4):
     di = np.random.random() * ssize[0] - ssize[0] // 2
     dj = np.random.random() * ssize[1] - ssize[1] // 2
 

@@ -7,7 +7,7 @@ from dhdt.processing.matching_tools_frequency_filters import \
     normalize_power_spectrum
 
 
-def create_sample_image_pair(d=2 ** 7, max_range=1, integer=False, ndim=1):
+def create_sample_image_pair(d=2**7, max_range=1, integer=False, ndim=1):
     """ create an image pair with random offset
 
     Parameters
@@ -93,7 +93,7 @@ def create_sample_image_pair(d=2 ** 7, max_range=1, integer=False, ndim=1):
     return im1_same, im2, random_di, random_dj, im1
 
 
-def create_sheared_image_pair(d=2 ** 7, sh_i=0.00, sh_j=0.00, max_range=1):
+def create_sheared_image_pair(d=2**7, sh_i=0.00, sh_j=0.00, max_range=1):
     """ create an image pair with random offset and shearing
 
     Parameters
@@ -192,7 +192,7 @@ def create_sheared_image_pair(d=2 ** 7, sh_i=0.00, sh_j=0.00, max_range=1):
     return im1_same, im2, random_di, random_dj, im1
 
 
-def create_scaled_image_pair(d=2 ** 7, sc_x=1.00, sc_y=1.00, max_range=1):
+def create_scaled_image_pair(d=2**7, sc_x=1.00, sc_y=1.00, max_range=1):
     """ create an image pair with random offset and scaling
 
     Parameters
@@ -302,7 +302,7 @@ def construct_correlation_peak(Z, di, dj, fwhm=3., origin='center'):
     if isinstance(di, float):
         I_grd -= di
         J_grd -= dj
-        C = np.exp(-4 * np.log(2) * (I_grd ** 2 + J_grd ** 2) / fwhm ** 2)
+        C = np.exp(-4 * np.log(2) * (I_grd**2 + J_grd**2) / fwhm**2)
         return C
 
     C = np.zeros((m, n), dtype=float)
@@ -311,8 +311,8 @@ def construct_correlation_peak(Z, di, dj, fwhm=3., origin='center'):
         C = np.maximum(
             C,
             np.real(
-                np.exp(-4 * np.log(2) * ((I_grd - delta_i) ** 2 +
-                                         (J_grd - delta_j) ** 2) / fwhm ** 2)))
+                np.exp(-4 * np.log(2) * ((I_grd - delta_i)**2 +
+                                         (J_grd - delta_j)**2) / fwhm**2)))
     return C
 
 

@@ -123,7 +123,7 @@ def make_2D_Gaussian(size, fwhm=3.):
     x = np.linspace(-(size[0] - 1) / 2, +(size[0] - 1) / 2, size[0], float)
     y = np.linspace(-(size[1] - 1) / 2, +(size[1] - 1) / 2, size[0], float)
     y = y[:, np.newaxis]
-    M = np.exp(-4 * np.log(2) * (x ** 2 + y ** 2) / fwhm ** 2)
+    M = np.exp(-4 * np.log(2) * (x**2 + y**2) / fwhm**2)
     return M
 
 
@@ -197,7 +197,7 @@ def weighted_sigma_filtering(y, w, thres=3):
     sigma_filtering, mad_filtering
     """
     mean_y = np.average(y, weights=w)
-    std_y = np.sqrt(np.average((y - mean_y) ** 2, weights=w))
+    std_y = np.sqrt(np.average((y - mean_y)**2, weights=w))
 
     IN = (y > (mean_y - thres * std_y)) & \
          (y < mean_y + thres * std_y)
@@ -356,7 +356,7 @@ def cauchy_filtering(y, thres=2.385, preproc='normal'):
         r = normalize_variance(y)
     else:
         r = normalize_variance_robust(y)
-    w = 1 / (1 + r ** 2)
+    w = 1 / (1 + r**2)
     IN = w < thres
     return IN
 

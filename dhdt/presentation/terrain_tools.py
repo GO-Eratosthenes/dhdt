@@ -8,7 +8,6 @@ from ..generic.filtering_statistical import make_2D_Gaussian
 from ..preprocessing.image_transforms import mat_to_gray
 from ..postprocessing.solar_tools import make_shading
 
-
 # pre-processing tools
 
 # todo: A design of contour generation for topographic maps
@@ -201,7 +200,7 @@ def contrast_perspective(v, z, v_flat, z_thres, v_min=0, k=2):  # todo
     v_prime = v_min + ((v_flat - v_min) / v_flat) * v
 
     # (4) in [1]
-    w = 1 - (z_star / z_thres) ** k
+    w = 1 - (z_star / z_thres)**k
 
     v_pp = w * v_prime + (1 - w) * v
     return v_pp

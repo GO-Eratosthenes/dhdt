@@ -29,7 +29,7 @@ def estimate_albedo(Z, unit='angles', normalize=True):
     """
     if normalize:
         Z = mat_to_gray(Z)
-    mu_1, mu_2 = np.mean(Z.flatten()), np.mean(Z.flatten() ** 2)
+    mu_1, mu_2 = np.mean(Z.flatten()), np.mean(Z.flatten()**2)
 
     fx, fy = get_grad_filters(ftype='kroon', tsize=3, order=1, indexing='xy')
     I_dx, I_dy = conv_2Dfilter(Z, fx), conv_2Dfilter(Z, fy)
@@ -215,10 +215,9 @@ def linear_reflectance_surface_estimation(img, tilt, slant, iter=2.5E2):
             q * np.sin(tilt) * np.sin(slant) + np.cos(slant), sqroot_sq)
         R = np.max(R, 0)
         f = img - R
-        df_dZ = np.divide(
-            np.multiply(p + q, E_x * p + E_y * q + 1),
-            np.multiply(np.sqrt(pq ** 3), sqroot_E)
-        ) - np.divide(E_x + E_y, (sqroot_pq * sqroot_E))
+        df_dZ = np.divide(np.multiply(p + q, E_x * p + E_y * q + 1),
+                          np.multiply(np.sqrt(pq**3), sqroot_E)) - np.divide(
+                              E_x + E_y, (sqroot_pq * sqroot_E))
 
         # update elevation, and derivatives
         Z -= -np.divide(f, df_dZ, where=df_dZ != 0)

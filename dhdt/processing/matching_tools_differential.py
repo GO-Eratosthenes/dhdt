@@ -362,10 +362,9 @@ def affine_optical_flow(I1,
             break
 
         I2_new = interpolate.griddata(stk_ij,
-                                      I2.flatten().T,
-                                      (new_i, new_j),
+                                      I2.flatten().T, (new_i, new_j),
                                       method='cubic')
-        I2_new = ndimage.convolve(I2_new, make_2D_Gaussian((3,3 ), fwhm=3))
+        I2_new = ndimage.convolve(I2_new, make_2D_Gaussian((3, 3), fwhm=3))
 
         I_dt_new = I2_new - I1
 
@@ -602,15 +601,11 @@ def hough_sinus(φ,
     are_two_arrays_equal(φ, ρ)
 
     normalize = True
-    IN = np.logical_and.reduce((~np.isnan(φ),
-                                ~np.isnan(ρ),
-                                np.abs(ρ) < max_amp))
+    IN = np.logical_and.reduce((~np.isnan(φ), ~np.isnan(ρ), np.abs(ρ)
+                                < max_amp))
     if np.sum(IN) < 2:
-        return (
-            np.zeros(num_estimates),
-            np.zeros(num_estimates),
-            np.zeros(num_estimates)
-        )
+        return (np.zeros(num_estimates), np.zeros(num_estimates),
+                np.zeros(num_estimates))
     φ = φ[IN]
     ρ = ρ[IN]
 

@@ -29,7 +29,7 @@ from dhdt.testing.mapping_tools import \
 
 
 # testing functions
-def test_match_pair(im_size=2 ** 7, temp_size=2 ** 4, tolerance=10):
+def test_match_pair(im_size=2**7, temp_size=2**4, tolerance=10):
     # create artificial data
     Z = np.ones((im_size, im_size))
     geoTransform = create_artificial_geoTransform(Z, spac=1.)
@@ -247,9 +247,8 @@ def _test_photohypsometric_refinement(N, Z_shape, tolerance=0.1):
                             match='wght_corr')
             geoTransform = read_geo_info(file_1)[1]
             i_1, j_1 = map2pix(geoTransform, post_1[:, 0], post_1[:, 1])
-            i_2, j_2 = map2pix(
-                geoTransform, post_2_new[:, 0], post_2_new[:, 1]
-            )
+            i_2, j_2 = map2pix(geoTransform, post_2_new[:, 0], post_2_new[:,
+                                                                          1])
             h_1 = bilinear_interpolation(Z, i_1, j_1)
             h_2 = bilinear_interpolation(Z, i_2, j_2)
             dh_12 = h_2 - h_1

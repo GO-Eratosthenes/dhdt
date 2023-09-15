@@ -18,7 +18,7 @@ def estimate_strain_rates(X, Y, U, V):
 def estimate_principle_strain(E_xx, E_yy, E_xy):
     E_min, E_plu = E_xx - E_yy, E_xx + E_yy
 
-    λ = np.sqrt(np.divide(E_min, 2) ** 2 + E_xy ** 2)
+    λ = np.sqrt(np.divide(E_min, 2)**2 + E_xy**2)
     E_max, E_min = E_plu / 2 + λ, E_plu / 2 - λ
     θ = np.rad2deg(np.arctan2(2 * E_xy, E_min) / 2)
     return θ, E_max, E_min

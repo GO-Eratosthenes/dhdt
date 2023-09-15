@@ -2,6 +2,7 @@ import datetime as dt
 
 
 def loggg(f):
+
     def wrapper(df, *args, **kwargs):
         tic = dt.datetime.now()
         result = f(df, *args, **kwargs)

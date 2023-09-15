@@ -18,7 +18,7 @@ def _rolling_block(A, block=(3, 3)):
     return A_rolls
 
 
-def compute_laplacian(img, mask=None, eps=10 ** (-7), win_rad=1):
+def compute_laplacian(img, mask=None, eps=10**(-7), win_rad=1):
     """ computes matting Laplacian for a given image.
 
     Parameters
@@ -48,7 +48,7 @@ def compute_laplacian(img, mask=None, eps=10 ** (-7), win_rad=1):
               IEEE Transactions on pattern analysis and machine intelligence.
               vol.30(2) pp.228-242, 2008.
     """  # noqa: W605
-    win_size = (win_rad * 2 + 1) ** 2
+    win_size = (win_rad * 2 + 1)**2
     h, w, d = img.shape
     # Number of window centre indices in h, w axes
     c_h, c_w = h - 2 * win_rad, w - 2 * win_rad
@@ -61,8 +61,7 @@ def compute_laplacian(img, mask=None, eps=10 ** (-7), win_rad=1):
     win_inds = win_inds.reshape(c_h, c_w, win_size)
     if mask is not None:
         dil_mat = np.ones((win_diam, win_diam), dtype=bool)
-        mask = ndimage.morphology.binary_dilation(mask,
-                                                  structure=dil_mat)
+        mask = ndimage.morphology.binary_dilation(mask, structure=dil_mat)
         win_mask = np.sum(mask.ravel()[win_inds], axis=2)
         win_inds = win_inds[win_mask > 0, :]
     else:
@@ -71,10 +70,8 @@ def compute_laplacian(img, mask=None, eps=10 ** (-7), win_rad=1):
     winI = ravelImg[win_inds]
 
     win_mu = np.mean(winI, axis=1, keepdims=True)
-    win_var = (
-        np.einsum('...ji,...jk ->...ik', winI, winI) / win_size -
-        np.einsum('...ji,...jk ->...ik', win_mu, win_mu)
-    )
+    win_var = (np.einsum('...ji,...jk ->...ik', winI, winI) / win_size -
+               np.einsum('...ji,...jk ->...ik', win_mu, win_mu))
 
     inv = np.linalg.inv(win_var + (eps / win_size) * np.eye(3))
 
@@ -130,8 +127,7 @@ def closed_form_matting_with_prior(img,
         'consts_map must be 2D matrix with dimensions equal to image.'
 
     laplacian = compute_laplacian(
-        img, ~consts_map if consts_map is not None else None
-    )
+        img, ~consts_map if consts_map is not None else None)
 
     confidence = scipy.sparse.diags(prior_confidence.ravel())
 

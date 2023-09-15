@@ -38,7 +38,7 @@ def water_vapour_scale_height(T_0, alpha=0.0065, R_v=461, L=2.5E6):
     --------
     oro_precip
     """
-    H_w = np.divide(-R_v * T_0 ** 2, L * alpha)
+    H_w = np.divide(-R_v * T_0**2, L * alpha)
     return H_w
 
 
@@ -117,7 +117,7 @@ def oro_precip(Z,
 
     # pad raster
     m, n = Z.shape[0:2]
-    m_pow2, n_pow2 = 2 ** np.ceil(np.log2(m)), 2 ** np.ceil(np.log2(n))
+    m_pow2, n_pow2 = 2**np.ceil(np.log2(m)), 2**np.ceil(np.log2(n))
     dm, dn = (m_pow2 - m).astype(int), (n_pow2 - n).astype(int)
     mn_pad = ((dm // 2, dm - dm // 2), (dn // 2, dn - dn // 2))
     Z = np.pad(Z, mn_pad, 'constant')
@@ -132,8 +132,8 @@ def oro_precip(Z,
     K_Y *= 2 * np.pi
     sigma = K_X * u_wind + K_Y * v_wind  # vertical wave number, unit=m
 
-    mf_num = nm ** 2 - sigma ** 2
-    mf_den = sigma ** 2 - f_cor ** 2
+    mf_num = nm**2 - sigma**2
+    mf_den = sigma**2 - f_cor**2
 
     # numerical stability, dividing by zero is not recommended
     np.putmask(mf_num, mf_num < 0, 0.)
@@ -164,7 +164,7 @@ def annual_precip(Z, geoTransform, spatialRef, year=2018):
     ϕ, λ, U, V, Rh, T = get_era5_monthly_surface_wind(ϕ_bar, λ_bar, year)
 
     # get nearest node
-    idx_near = np.argmin(np.sqrt((ϕ - ϕ_bar) ** 2 + (λ - λ_bar) ** 2))
+    idx_near = np.argmin(np.sqrt((ϕ - ϕ_bar)**2 + (λ - λ_bar)**2))
     j_near, k_near = np.unravel_index(idx_near, U.shape[:2])
     # take lapse rate into account
     # use relative humidity as factor

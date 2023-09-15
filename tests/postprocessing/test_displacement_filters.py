@@ -7,7 +7,7 @@ from dhdt.postprocessing.displacement_filters import nan_resistant_filter
 
 
 def test_nan_resistant_filter(m=40, n=30, nan_frac=0.1, tsize=3):
-    slopes = np.random.uniform(low=-10., high=+10., size=(2,))
+    slopes = np.random.uniform(low=-10., high=+10., size=(2, ))
     grd_1, grd_2 = np.meshgrid(np.linspace(-1, 1, n), np.linspace(-1, 1, m))
     Z = grd_1 * slopes[0] + grd_2 * slopes[1]
 

@@ -54,7 +54,7 @@ def create_artificial_terrain(m, n, step_size=.01, multi_res=(2, 4)):
 
     def _fade(t):
         """ 6t^5 - 15t^4 + 10t^3 """
-        return 6 * t ** 5 - 15 * t ** 4 + 10 * t ** 3
+        return 6 * t**5 - 15 * t**4 + 10 * t**3
 
     def _gradient(h, x, y):
         """
@@ -283,9 +283,7 @@ def create_artificial_morphsnake_data(m, n, delta=10):
     alpha = 0.3
 
     Shd = mat_to_gray(Shd)  # to a range of 0...1
-    Img = np.dstack((
-        1 - (1 - alpha) * Shw + alpha * Shd,
-        (1 - alpha) * Shd + 1 - alpha * Shw
-    ))
+    Img = np.dstack((1 - (1 - alpha) * Shw + alpha * Shd,
+                     (1 - alpha) * Shd + 1 - alpha * Shw))
 
     return Shw, Img, M

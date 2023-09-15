@@ -81,9 +81,10 @@ def phase_jac(Q,
         QC = Q - C_hat  # convert complex vector difference to metric
         dXY = np.abs(np.multiply(W, QC)**rank)
 
-    dQdm = np.array(
-        [np.multiply(2 * W.flatten() * F1.flatten(), dXY.flatten()),
-         np.multiply(2 * W.flatten() * F2.flatten(), dXY.flatten())]).T
+    dQdm = np.array([
+        np.multiply(2 * W.flatten() * F1.flatten(), dXY.flatten()),
+        np.multiply(2 * W.flatten() * F2.flatten(), dXY.flatten())
+    ]).T
     return dQdm
 
 
@@ -915,9 +916,8 @@ def ransac(data,
                 potential_model.residuals(*data))
 
             # consensus set / inliers
-            potential_model_inliers = (
-                potential_model_residuals < residual_threshold
-            )
+            potential_model_inliers = (potential_model_residuals
+                                       < residual_threshold)
             potential_model_residuals_sum = np.sum(
                 potential_model_residuals**2)
 
@@ -927,10 +927,9 @@ def ransac(data,
             # more inliers
             cond_1 = potential_inlier_num > best_inlier_num
             # same number of inliers but less "error" in terms of residuals
-            cond_2 = (
-                potential_inlier_num == best_inlier_num and
-                potential_model_residuals_sum < best_inlier_residuals_sum
-            )
+            cond_2 = (potential_inlier_num == best_inlier_num
+                      and potential_model_residuals_sum
+                      < best_inlier_residuals_sum)
             if cond_1 or cond_2:
                 best_model = potential_model
                 best_inlier_num = potential_inlier_num
@@ -1054,10 +1053,8 @@ class SawtoothModel(BaseModel):
         if data.shape[0] >= 2:  # well determined
             if params_bound != 0:
                 # create multitudes of cycles
-                param_cycle = np.mgrid[
-                    -params_bound:+params_bound + 1,
-                    -params_bound:+params_bound + 1
-                ]
+                param_cycle = np.mgrid[-params_bound:+params_bound + 1,
+                                       -params_bound:+params_bound + 1]
                 cycle_0 = param_cycle[:, :,
                                       0].flatten()  # 2*np.pi() if in radians
                 cycle_1 = param_cycle[:, :, 1].flatten()  # but -.5 ... +.5
@@ -1065,8 +1062,7 @@ class SawtoothModel(BaseModel):
 
                 for val, idx in enumerate(cycle_0):
                     y = np.array([
-                        data[0, -1] + cycle_0[idx],
-                        data[1, -1] + cycle_1[idx]
+                        data[0, -1] + cycle_0[idx], data[1, -1] + cycle_1[idx]
                     ])
                     x_hat = np.linalg.lstsq(data[:, 0:2], y, rcond=None)[0]
                     x_stack[idx, 0] = x_hat[0]
@@ -1223,12 +1219,11 @@ def phase_hough(data,
         data = np.vstack((Fx.flatten(), Fy.flatten(), Q.flatten())).T
 
     # create voting space
-    (dj, di) = np.meshgrid(np.arange(-max_displacement,
-                                     +max_displacement + param_spacing,
-                                     param_spacing),
-                           np.arange(-max_displacement,
-                                     +max_displacement + param_spacing,
-                                     param_spacing))
+    (dj, di) = np.meshgrid(
+        np.arange(-max_displacement, +max_displacement + param_spacing,
+                  param_spacing),
+        np.arange(-max_displacement, +max_displacement + param_spacing,
+                  param_spacing))
 
     # create population that can vote
     sample_size = data.shape[0]

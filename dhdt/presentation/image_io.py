@@ -224,7 +224,7 @@ def output_glacier_map_background(Z,
     I_rgb = hsv2rgb(
         np.dstack((RGI.astype(float) * .55, RGI.astype(float) * .25,
                    (Shd * .2) + .8)))
-    I_rgb = np.uint8(I_rgb * 2 ** 8)
+    I_rgb = np.uint8(I_rgb * 2**8)
 
     img = Image.fromarray(I_rgb)
     img.save(outputname, quality=compress)

@@ -287,27 +287,27 @@ def list_central_wavelength_msi():
     }  # these numbers are also given in the meta-data
     d = {
         "center_wavelength":
-            pd.Series(center_wavelength, dtype=np.dtype('float')),
+        pd.Series(center_wavelength, dtype=np.dtype('float')),
         "full_width_half_max":
-            pd.Series(full_width_half_max, dtype=np.dtype('float')),
+        pd.Series(full_width_half_max, dtype=np.dtype('float')),
         "gsd":
-            pd.Series(gsd, dtype=np.dtype('float')),
+        pd.Series(gsd, dtype=np.dtype('float')),
         "across_pixel_size":
-            pd.Series(across_pixel_size, dtype=np.dtype('float')),
+        pd.Series(across_pixel_size, dtype=np.dtype('float')),
         "along_pixel_size":
-            pd.Series(along_pixel_size, dtype=np.dtype('float')),
+        pd.Series(along_pixel_size, dtype=np.dtype('float')),
         "focal_length":
-            pd.Series(focal_length, dtype=np.dtype('float')),
+        pd.Series(focal_length, dtype=np.dtype('float')),
         "common_name":
-            pd.Series(common_name, dtype=np.dtype('str')),
+        pd.Series(common_name, dtype=np.dtype('str')),
         "bandid":
-            pd.Series(bandid, dtype=np.dtype('int64')),
+        pd.Series(bandid, dtype=np.dtype('int64')),
         "field_of_view":
-            pd.Series(field_of_view, dtype=np.dtype('float')),
+        pd.Series(field_of_view, dtype=np.dtype('float')),
         "solar_illumination":
-            pd.Series(solar_illumination, dtype=np.dtype('float')),
+        pd.Series(solar_illumination, dtype=np.dtype('float')),
         "crossdetector_parallax":
-            pd.Series(crossdetector_parallax, dtype=np.dtype('float'))
+        pd.Series(crossdetector_parallax, dtype=np.dtype('float'))
     }
     df = pd.DataFrame(d)
     return df
@@ -1099,7 +1099,7 @@ def read_view_angles_s2(path,
         Zn_bnd, Az_bnd = np.zeros((mI, nI)), np.zeros((mI, nI))
         for i in range(det_grp.shape[0]):
             Zn_samp = np.squeeze(Zn_grd[:, :, idx,
-                                 np.isin(det_list, det_grp[i, :])])
+                                        np.isin(det_list, det_grp[i, :])])
             if Zn_samp.size == 0:
                 continue
 
@@ -1110,7 +1110,7 @@ def read_view_angles_s2(path,
                     Zn_samp = np.nanmax(Zn_samp, axis=2)
 
             Az_samp = np.squeeze(Az_grd[:, :, idx,
-                                 np.isin(det_list, det_grp[i, :])])
+                                        np.isin(det_list, det_grp[i, :])])
             if Az_samp.ndim == 3:
                 with warnings.catch_warnings():
                     warnings.filterwarnings(
@@ -1305,9 +1305,8 @@ def read_detector_mask(path_meta, boi, geoTransform):
     for i in range(len(boi)):
         im_id = boi.index[i]  # 'B01' | 'B8A'
         if type(im_id) is int:
-            f_meta = os.path.join(
-                path_meta, 'MSK_DETFOO_B' + f'{im_id:02.0f}' + '.gml'
-            )
+            f_meta = os.path.join(path_meta,
+                                  'MSK_DETFOO_B' + f'{im_id:02.0f}' + '.gml')
         else:
             f_meta = os.path.join(path_meta, 'MSK_DETFOO_' + im_id + '.gml')
 
@@ -1317,7 +1316,7 @@ def read_detector_mask(path_meta, boi, geoTransform):
 
             if det_stack is None:
                 msk_dim = get_msk_dim_from_gml(root, geoTransform)
-                msk_dim = msk_dim + (len(boi),)
+                msk_dim = msk_dim + (len(boi), )
                 det_stack = np.zeros(msk_dim, dtype='int8')  # create stack
 
             mask_members = root[2]
@@ -1325,12 +1324,10 @@ def read_detector_mask(path_meta, boi, geoTransform):
                 pos_arr, det_num = get_xy_poly_from_gml(mask_members, k)
 
                 # transform to image coordinates
-                i_arr, j_arr = map2pix(
-                    geoTransform, pos_arr[:, 0], pos_arr[:, 1]
-                )
-                ij_arr = np.hstack(
-                    (j_arr[:, np.newaxis], i_arr[:, np.newaxis])
-                )
+                i_arr, j_arr = map2pix(geoTransform, pos_arr[:, 0], pos_arr[:,
+                                                                            1])
+                ij_arr = np.hstack((j_arr[:, np.newaxis], i_arr[:,
+                                                                np.newaxis]))
                 # make mask
                 msk = Image.new("L",
                                 [np.size(det_stack, 1),
@@ -1479,9 +1476,9 @@ def get_timing_mask(s2_df, geoTransform, spatialRef):
 
     det_bias = np.pad(np.mean(
         (np.diff(det_time, axis=0) / np.timedelta64(1, 's'))[:, 0::2], axis=1),
-        (1, 0),
-        'constant',
-        constant_values=(0))
+                      (1, 0),
+                      'constant',
+                      constant_values=(0))
     for b in range(dT.shape[2]):
         dT[:, :, b] += det_bias[b] + t_grd
 

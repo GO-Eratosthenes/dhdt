@@ -30,9 +30,9 @@ def update_glacier_mask(Z, R, iter=50, curv_max=2.):
         grid with refined glacier labels
 
     """
-    if type(Z) in (np.ma.core.MaskedArray,):
+    if type(Z) in (np.ma.core.MaskedArray, ):
         Z = Z.data
-    if type(R) in (np.ma.core.MaskedArray,):
+    if type(R) in (np.ma.core.MaskedArray, ):
         maskedArray = True
         R = R.data
     else:
@@ -69,7 +69,7 @@ def update_glacier_mask(Z, R, iter=50, curv_max=2.):
 def _create_ela_grid(R, r_id, ela):
     lookup = np.empty((np.max(r_id) + 1), dtype=int)
     lookup[r_id] = np.arange(len(r_id))
-    if type(R) in (np.ma.core.MaskedArray,):
+    if type(R) in (np.ma.core.MaskedArray, ):
         np.putmask(R.data, R.mask, 0)
         indices = np.take(lookup, R.data)
     else:
@@ -137,8 +137,7 @@ def volume2icemass(V, Z=None, RGI=None, ela=None, distinction='Kaeaeb'):
 
 def mass_change2specific_glaciers(dM, RGI):
     labels, mb, count = get_stats_from_labelled_array(
-        RGI, dM, lambda x: np.quantile(x, 0.5)
-    )
+        RGI, dM, lambda x: np.quantile(x, 0.5))
 
     IN = ~np.isnan(mb[..., 0])
     labels, mb, count = labels[IN], mb[IN], count[IN]
@@ -185,8 +184,8 @@ def mass_changes2specific_glacier_hypsometries(dM,
 
     Z_bin = (Z // interval).astype(int)
     Mb, rgi, z_bin, Count = get_stats_from_labelled_arrays(
-        RGI, Z_bin, dM, lambda x: np.quantile(x, 0.5) if x.size > 0 else np.nan
-    )
+        RGI, Z_bin, dM, lambda x: np.quantile(x, 0.5)
+        if x.size > 0 else np.nan)
 
     # sort array, so biggest glacier is first
     new_idx = np.flip(np.argsort(np.sum(Count, axis=1)))
@@ -223,7 +222,7 @@ def hypsometric_void_interpolation(z, dz, Z, deg=3):
     .. [Mc19] McNabb et al. "Sensitivity of glacier volume estimation to DEM
               void interpolation", The cryosphere, vol.13 pp.895-910, 2019.
     """
-    if type(Z) in (np.ma.core.MaskedArray,):
+    if type(Z) in (np.ma.core.MaskedArray, ):
         Z = Z.data
     f = np.poly1d(np.polyfit(z, dz, deg=deg))
     dZ = f(Z)

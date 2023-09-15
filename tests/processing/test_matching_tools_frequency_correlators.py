@@ -9,7 +9,7 @@ from dhdt.testing.matching_tools import \
     create_sample_image_pair, _test_phase_plane_localization
 
 
-def test_phase_corr(d=2 ** 5, tolerance=.4):
+def test_phase_corr(d=2**5, tolerance=.4):
     for bands in [1, 3]:  # testing both grayscale and multi-spectral data
         im1, im2, di, dj, _ = create_sample_image_pair(d=d,
                                                        max_range=np.inf,
@@ -20,7 +20,7 @@ def test_phase_corr(d=2 ** 5, tolerance=.4):
     return
 
 
-def test_phase_only_corr(d=2 ** 5, tolerance=.4):
+def test_phase_only_corr(d=2**5, tolerance=.4):
     for bands in [1, 3]:  # testing both grayscale and multi-spectral data
         im1, im2, di, dj, _ = create_sample_image_pair(d=d,
                                                        max_range=np.inf,
@@ -31,7 +31,7 @@ def test_phase_only_corr(d=2 ** 5, tolerance=.4):
     return
 
 
-def test_robust_corr(d=2 ** 5, tolerance=.4):
+def test_robust_corr(d=2**5, tolerance=.4):
     for bands in [1, 3]:  # testing both grayscale and multi-spectral data
         im1, im2, di, dj, _ = create_sample_image_pair(d=d,
                                                        max_range=np.inf,
@@ -42,7 +42,7 @@ def test_robust_corr(d=2 ** 5, tolerance=.4):
     return
 
 
-def test_orientation_corr(d=2 ** 5, tolerance=.4):
+def test_orientation_corr(d=2**5, tolerance=.4):
     for bands in [1, 3]:  # testing both grayscale and multi-spectral data
         im1, im2, di, dj, _ = create_sample_image_pair(d=d,
                                                        max_range=np.inf,
@@ -53,7 +53,7 @@ def test_orientation_corr(d=2 ** 5, tolerance=.4):
     return
 
 
-def test_cross_corr(d=2 ** 5, tolerance=.4):
+def test_cross_corr(d=2**5, tolerance=.4):
     for bands in [1, 3]:  # testing both grayscale and multi-spectral data
         im1, im2, di, dj, _ = create_sample_image_pair(d=d,
                                                        max_range=np.inf,
@@ -64,7 +64,7 @@ def test_cross_corr(d=2 ** 5, tolerance=.4):
     return
 
 
-def test_symmetric_phase_corr(d=2 ** 5, tolerance=.4):
+def test_symmetric_phase_corr(d=2**5, tolerance=.4):
     for bands in [1, 3]:  # testing both grayscale and multi-spectral data
         im1, im2, di, dj, _ = create_sample_image_pair(d=d,
                                                        max_range=np.inf,
@@ -75,7 +75,7 @@ def test_symmetric_phase_corr(d=2 ** 5, tolerance=.4):
     return
 
 
-def test_amplitude_comp_corr(d=2 ** 5, tolerance=.4):
+def test_amplitude_comp_corr(d=2**5, tolerance=.4):
     for bands in [1, 3]:  # testing both grayscale and multi-spectral data
         im1, im2, di, dj, _ = create_sample_image_pair(d=d,
                                                        max_range=np.inf,
@@ -86,7 +86,7 @@ def test_amplitude_comp_corr(d=2 ** 5, tolerance=.4):
     return
 
 
-def test_upsampled_cross_corr(d=2 ** 5, tolerance=.1):
+def test_upsampled_cross_corr(d=2**5, tolerance=.1):
     for bands in [1, 3]:  # testing both grayscale and multi-spectral data
         im1, im2, di, dj, _ = create_sample_image_pair(d=d,
                                                        max_range=np.inf,
@@ -97,7 +97,7 @@ def test_upsampled_cross_corr(d=2 ** 5, tolerance=.1):
     return
 
 
-def test_projected_phase_corr(d=2 ** 5, tolerance=.1):
+def test_projected_phase_corr(d=2**5, tolerance=.1):
     for bands in [1, 3]:  # testing both grayscale and multi-spectral data
         im1, im2, di, dj, _ = create_sample_image_pair(d=d,
                                                        max_range=np.inf,

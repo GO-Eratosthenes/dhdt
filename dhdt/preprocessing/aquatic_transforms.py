@@ -250,8 +250,7 @@ def modified_soil_adjusted_vegetation_index(Red, Near):
     .. [Qi94] Qi et al., "A modified soil vegetation adjusted index" Remote
               sensing of environment, vol.48, pp.119–126, 1994.
     """
-    MSAVI = .5 * (
-                2 * Near + 1 - np.sqrt((2 * Near + 1) ** 2 - 8 * (Near - Red)))
+    MSAVI = .5 * (2 * Near + 1 - np.sqrt((2 * Near + 1)**2 - 8 * (Near - Red)))
     return MSAVI
 
 

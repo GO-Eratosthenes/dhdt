@@ -66,9 +66,9 @@ def casting_pairs_mat2shp(xy_1, caster, xy_2, shp_name, srs):
     ds = driver.CreateDataSource(shp_name)  # create the data source
 
     # create the layer
-    layer = ds.CreateLayer(
-        'photohypso_pairs', srs, geom_type=ogr.wkbLineString
-    )
+    layer = ds.CreateLayer('photohypso_pairs',
+                           srs,
+                           geom_type=ogr.wkbLineString)
 
     # Process the text file and add attributes and features to the shapefile
     for j in range(caster.shape[0]):

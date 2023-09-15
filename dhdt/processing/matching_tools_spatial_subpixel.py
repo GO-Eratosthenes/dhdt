@@ -176,14 +176,12 @@ def get_top_gaussian(C, top=np.array([])):
         return 0, 0, i_int, j_int
 
     # estimate sub-pixel along each axis
-    ddi = (
-        (np.log(C[di + 1, dj]) - np.log(C[di - 1, dj])) / 2 *
-        (2 * np.log(C[di, dj]) - np.log(C[di - 1, dj]) - np.log(C[di + 1, dj]))
-    )
-    ddj = (
-        (np.log(C[di, dj + 1]) - np.log(C[di, dj - 1])) / 2 *
-        (2 * np.log(C[di, dj]) - np.log(C[di, dj - 1]) - np.log(C[di, dj + 1]))
-    )
+    ddi = ((np.log(C[di + 1, dj]) - np.log(C[di - 1, dj])) / 2 *
+           (2 * np.log(C[di, dj]) - np.log(C[di - 1, dj]) -
+            np.log(C[di + 1, dj])))
+    ddj = ((np.log(C[di, dj + 1]) - np.log(C[di, dj - 1])) / 2 *
+           (2 * np.log(C[di, dj]) - np.log(C[di, dj - 1]) -
+            np.log(C[di, dj + 1])))
     return ddi, ddj, i_int, j_int
 
 
@@ -227,14 +225,12 @@ def get_top_centroid(C, top=np.array([])):
         return 0, 0, i_int, j_int
 
     # estimate sub-pixel along each axis
-    ddi = (
-        ((i_int - 1) * C[di - 1, dj] + i_int * C[di, dj] + (i_int + 1) * C[di + 1, dj]) /  # noqa: E501
-        (C[di - 1, dj] + C[di, dj] + C[di + 1, dj])
-    )
-    ddj = (
-        ((j_int - 1) * C[di, dj - 1] + j_int * C[di, dj] + (j_int + 1) * C[di, dj + 1]) /  # noqa: E501
-        (C[di, dj - 1] + C[di, dj] + C[di, dj + 1])
-    )
+    ddi = (((i_int - 1) * C[di - 1, dj] + i_int * C[di, dj] +
+            (i_int + 1) * C[di + 1, dj]) /  # noqa: E501
+           (C[di - 1, dj] + C[di, dj] + C[di + 1, dj]))
+    ddj = (((j_int - 1) * C[di, dj - 1] + j_int * C[di, dj] +
+            (j_int + 1) * C[di, dj + 1]) /  # noqa: E501
+           (C[di, dj - 1] + C[di, dj] + C[di, dj + 1]))
     ddi -= i_int
     ddj -= j_int
 
@@ -799,8 +795,11 @@ def get_top_paraboloid(C, top=np.array([])):
     a_2, a_3 = C[di + 1, dj + 0], C[di - 1, dj + 0]
     a_4, a_5 = C[di + 1, dj + 0], C[di - 1, dj + 0]
 
-    a_6 = np.max(np.array([C[di + 1, dj + 1], C[di - 1, dj + 1],
-                           C[di + 1, dj - 1], C[di - 1, dj - 1]]))
+    a_6 = np.max(
+        np.array([
+            C[di + 1, dj + 1], C[di - 1, dj + 1], C[di + 1, dj - 1], C[di - 1,
+                                                                       dj - 1]
+        ]))
 
     a = a_6 + a_1 - a_2 - a_4
     b = a_4 + a_5 - a_1 - a_1

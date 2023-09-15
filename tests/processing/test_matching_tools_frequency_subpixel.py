@@ -12,7 +12,7 @@ from dhdt.testing.matching_tools import _test_subpixel_localization, \
 
 
 # limited domain
-def test_phase_pca(d=2 ** 5, max_range=1., tolerance=.1):
+def test_phase_pca(d=2**5, max_range=1., tolerance=.1):
     im1, im2, di, dj, _ = create_sample_image_pair(d=d,
                                                    max_range=max_range,
                                                    integer=False)
@@ -28,7 +28,7 @@ def test_phase_pca(d=2 ** 5, max_range=1., tolerance=.1):
     return
 
 
-def test_phase_tpss(d=2 ** 5, max_range=1., tolerance=.1):
+def test_phase_tpss(d=2**5, max_range=1., tolerance=.1):
     im1, im2, di, dj, _ = create_sample_image_pair(d=d,
                                                    max_range=max_range,
                                                    integer=False)
@@ -45,7 +45,7 @@ def test_phase_tpss(d=2 ** 5, max_range=1., tolerance=.1):
     return
 
 
-def test_phase_lsq(d=2 ** 5, max_range=1., tolerance=.1):
+def test_phase_lsq(d=2**5, max_range=1., tolerance=.1):
     im1, im2, di, dj, _ = create_sample_image_pair(d=d,
                                                    max_range=max_range,
                                                    integer=False)
@@ -61,7 +61,7 @@ def test_phase_lsq(d=2 ** 5, max_range=1., tolerance=.1):
     return
 
 
-def test_gradient_descend(d=2 ** 5, max_range=1., tolerance=.1):
+def test_gradient_descend(d=2**5, max_range=1., tolerance=.1):
     im1, im2, di, dj, _ = create_sample_image_pair(d=d,
                                                    max_range=max_range,
                                                    integer=False)
@@ -78,7 +78,7 @@ def test_gradient_descend(d=2 ** 5, max_range=1., tolerance=.1):
 
 
 # extended domain, i.e.: more than one pixel displacement
-def test_phase_difference(d=2 ** 5, max_range=10., tolerance=.1):
+def test_phase_difference(d=2**5, max_range=10., tolerance=.1):
     im1, im2, di, dj, _ = create_sample_image_pair(d=d,
                                                    max_range=max_range,
                                                    integer=False)
@@ -94,7 +94,7 @@ def test_phase_difference(d=2 ** 5, max_range=10., tolerance=.1):
     return
 
 
-def test_phase_ransac(d=2 ** 5, max_range=10., tolerance=.1):
+def test_phase_ransac(d=2**5, max_range=10., tolerance=.1):
     im1, im2, di, dj, _ = create_sample_image_pair(d=d,
                                                    max_range=max_range,
                                                    integer=False)
@@ -110,7 +110,7 @@ def test_phase_ransac(d=2 ** 5, max_range=10., tolerance=.1):
     return
 
 
-def test_phase_randon(d=2 ** 5, max_range=10., tolerance=.1):
+def test_phase_randon(d=2**5, max_range=10., tolerance=.1):
     im1, im2, di, dj, _ = create_sample_image_pair(d=d,
                                                    max_range=max_range,
                                                    integer=False)
@@ -126,7 +126,7 @@ def test_phase_randon(d=2 ** 5, max_range=10., tolerance=.1):
     return
 
 
-def test_phase_hough(d=2 ** 5, max_range=10., tolerance=.1):
+def test_phase_hough(d=2**5, max_range=10., tolerance=.1):
     im1, im2, di, dj, _ = create_sample_image_pair(d=d,
                                                    max_range=max_range,
                                                    integer=False)

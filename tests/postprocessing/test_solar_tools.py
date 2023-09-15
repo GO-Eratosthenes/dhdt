@@ -6,8 +6,8 @@ from dhdt.postprocessing.solar_tools import \
 
 
 def test_sun_angles_to_vector():
-    az = np.random.uniform(low=0., high=360., size=(1,))[0]
-    zn = np.random.uniform(low=0., high=90., size=(1,))[0]
+    az = np.random.uniform(low=0., high=360., size=(1, ))[0]
+    zn = np.random.uniform(low=0., high=90., size=(1, ))[0]
     coord_sys = ['xy', 'ij']
     for idx in coord_sys:
         s = sun_angles_to_vector(az, zn, indexing=idx)
@@ -19,10 +19,10 @@ def test_sun_angles_to_vector():
 
 
 def test_az_to_sun_vector():
-    az = np.random.uniform(low=0., high=360., size=(1,))[0]
+    az = np.random.uniform(low=0., high=360., size=(1, ))[0]
     coord_sys = ['xy', 'ij']
     for idx in coord_sys:
-        s = np.zeros((3,))
+        s = np.zeros((3, ))
         s[:2] = np.squeeze(az_to_sun_vector(az, indexing=idx))
         # reverse format
         az_r = vector_to_sun_angles(s, indexing=idx)[0]

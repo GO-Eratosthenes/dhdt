@@ -239,7 +239,7 @@ def get_era5_atmos_profile(date, x, y, spatialRef, z=None, era5_dir=None):
     if isinstance(y, float):
         y = np.array([y])
     if z is None:
-        z = 10 ** np.linspace(0, 5, 100)
+        z = 10**np.linspace(0, 5, 100)
     if era5_dir is None:
         era5_dir = ERA5_DIR_DEFAULT
 
@@ -263,18 +263,18 @@ def get_era5_atmos_profile(date, x, y, spatialRef, z=None, era5_dir=None):
     if not os.path.isfile(fpath):
         request = {
             'product_type':
-                'reanalysis',
+            'reanalysis',
             'format':
-                'grib',
+            'grib',
             'variable': [
                 'geopotential',
                 'relative_humidity',
                 'temperature',
             ],
             'pressure_level':
-                np.ndarray.tolist(pres_levels.astype(str)),
+            np.ndarray.tolist(pres_levels.astype(str)),
             'date':
-                np.ndarray.tolist(np.datetime_as_string(date, unit='D')),
+            np.ndarray.tolist(np.datetime_as_string(date, unit='D')),
             'time': [
                 str(hour - 1).zfill(2) + ':00',
                 str(hour + 1).zfill(2) + ':00',
@@ -326,9 +326,9 @@ def get_era5_monthly_surface_wind(ϕ, λ, year, era5_dir=None):
         deg_xtr = .5
         request = {
             'product_type':
-                'monthly_averaged_reanalysis',
+            'monthly_averaged_reanalysis',
             'format':
-                'grib',
+            'grib',
             'variable': [
                 'u_component_of_wind',
                 'v_component_of_wind',
@@ -336,9 +336,9 @@ def get_era5_monthly_surface_wind(ϕ, λ, year, era5_dir=None):
                 'temperature',
             ],
             'pressure_level':
-                '1000',
+            '1000',
             'year':
-                str(year),
+            str(year),
             'month': [
                 '01',
                 '02',
@@ -354,7 +354,7 @@ def get_era5_monthly_surface_wind(ϕ, λ, year, era5_dir=None):
                 '12',
             ],
             'time':
-                '00:00',
+            '00:00',
             'area': [ϕ + deg_xtr, λ - deg_xtr, ϕ - deg_xtr, λ + deg_xtr],
         }
         download_era5(name, request, fpath)
