@@ -33,7 +33,8 @@ def get_network_indices(n):
     grid_idxs = np.vstack((grid_1, grid_2))
     return grid_idxs
 
-def get_network_indices_constrained(idx,d,d_max,n_max, double_direction=True):
+def get_network_indices_constrained(idx, d, d_max,
+                                    n_max=None, double_direction=True):
     """ Generate a list with all matchable combinations within a certain range
 
     Parameters
@@ -59,7 +60,10 @@ def get_network_indices_constrained(idx,d,d_max,n_max, double_direction=True):
     get_network_indices : same version, but more generic
     get_adjacency_matrix_from_netwrok : construct design matrix from edge list
     """
-    n_max = min(len(idx) - 1, n_max)
+    if n_max is None:
+        n_max = len(idx) - 1
+    else:
+        n_max = min(len(idx) - 1, n_max)
 
     if d.ndim==1: d = d.reshape(-1, 1)
     nbrs = NearestNeighbors(n_neighbors=n_max+1, algorithm='auto').fit(d)
