@@ -180,9 +180,9 @@ def pad_images_and_filter_coord_list(M1, M2, geoTransform1, geoTransform2,
         affine transformation coefficients of array M1
     geoTransform2 : tuple
         affine transformation coefficients of array M2
-    X_grd : np.array, size=(k,l), type=float
+    X_grd : numpy.ndarray, size=(k,l), type=float
         horizontal map coordinates of matching centers of array M1
-    Y_grd : np.array, size=(k,l), type=float
+    Y_grd : numpy.ndarray, size=(k,l), type=float
         vertical map coordinates of matching centers of array M2
     ds1 : TYPE
         extra boundary to be added to the first data array
@@ -194,19 +194,19 @@ def pad_images_and_filter_coord_list(M1, M2, geoTransform1, geoTransform2,
 
     Returns
     -------
-    M1_new : np.array, size=(m+2*ds1,n+2*ds1), ndim={2,3}
+    M1_new : numpy.ndarray, size=(m+2*ds1,n+2*ds1), ndim={2,3}
         extended data array
-    M2_new : np.array, size=(m+2*ds2,n+2*ds2), ndim={2,3}
+    M2_new : numpy.ndarray, size=(m+2*ds2,n+2*ds2), ndim={2,3}
         extended data array
-    i1 : np.array, size=(_,1), dtype=integer
+    i1 : numpy.ndarray, size=(_,1), dtype=integer
         vertical image coordinates of the template centers of first image
-    j1 : np.array, size=(_,1), dtype=integer
+    j1 : numpy.ndarray, size=(_,1), dtype=integer
         horizontal image coordinates of the template centers of first image
-    i2 : np.array, size=(_,1), dtype=integer
+    i2 : numpy.ndarray, size=(_,1), dtype=integer
         vertical image coordinates of the template centers of second image
-    j2 : np.array, size=(_,1), dtype=integer
+    j2 : numpy.array, size=(_,1), dtype=integer
         horizontal image coordinates of the template centers of second image
-    IN : np.array, size=(k,l), dtype=boolean
+    IN : numpy.ndarray, size=(k,l), dtype=boolean
         classification of the grid, which are in and out
 
     See Also
@@ -233,15 +233,9 @@ def pad_images_and_filter_coord_list(M1, M2, geoTransform1, geoTransform2,
 
     # map transformation to pixel domain
     I1_grd,J1_grd = map2pix(geoTransform1, X1_grd, Y1_grd)
-#    I1_grd = np.round(I1_grd).astype(np.int64)
-#    J1_grd = np.round(J1_grd).astype(np.int64)
-
     i1,j1 = I1_grd.flatten(), J1_grd.flatten()
 
     I2_grd,J2_grd = map2pix(geoTransform2, X2_grd, Y2_grd)
-#    I2_grd = np.round(I2_grd).astype(np.int64)
-#    J2_grd = np.round(J2_grd).astype(np.int64)
-
     i2,j2 = I2_grd.flatten(), J2_grd.flatten()
 
     i1,j1,i2,j2,IN = remove_posts_pairs_outside_image(M1,i1,j1, M2,i2,j2)
