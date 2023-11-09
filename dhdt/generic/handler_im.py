@@ -230,10 +230,8 @@ def get_image_subset(I, bbox):
 
     if I.ndim==2:
         sub_I = I[bbox[0]:bbox[1],bbox[2]:bbox[3]]
-    elif I.ndim==3:
-        sub_I = I[bbox[0]:bbox[1],bbox[2]:bbox[3],:]
-    elif I.ndim==4:
-        sub_I = I[bbox[0]:bbox[1],bbox[2]:bbox[3],:,:]
+    elif I.ndim>=3:
+        sub_I = I[bbox[0]:bbox[1],bbox[2]:bbox[3],...]
     return sub_I
 
 def bilinear_interpolation(I, di, dj):
