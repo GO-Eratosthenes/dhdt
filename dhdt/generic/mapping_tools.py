@@ -956,6 +956,13 @@ def get_bbox(geoTransform, rows=None, cols=None):
 #    bbox += np.array([-spacing_x, +spacing_x, -spacing_y, +spacing_y])
     return bbox
 
+def get_geoTransform(bbox, dx, dy):
+    dx, dy = float(dx), float(dy)
+    geoTransform = (bbox[0], +dx, 0., bbox[3], 0., -dy,
+                    int(np.floor((bbox[3] - bbox[2]) / dy)),
+                    int(np.floor((bbox[1] - bbox[0]) / dx)))
+    return geoTransform
+
 def get_shape_extent(bbox, geoTransform):
     """ given geographic meta data of array, calculate its shape
 
