@@ -18,6 +18,10 @@ from dhdt.generic.unit_conversion import \
 
 # https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-pressure-levels
 
+
+ERA5_DIR_DEFAULT = os.path.join('.', 'data', 'ERA5')
+
+
 def get_space_time_id(date, ϕ, λ, full=True):
     """
 
@@ -173,7 +177,7 @@ def get_wind_from_grib_file(fname='download.grib'):
     grbs.close()
     return ϕ, λ, U, V, Rh, T
 
-def get_era5_atmos_profile(date, x, y, spatialRef, z=None):
+def get_era5_atmos_profile(date, x, y, spatialRef, z=None, era5_dir=None):
     """
 
     Parameters
@@ -186,6 +190,9 @@ def get_era5_atmos_profile(date, x, y, spatialRef, z=None):
         projection system describtion
     z : numpy.ndarray, unit=meter
         altitudes of interest
+    era5_dir : str
+        directory for ERA5 data
+
 
     Returns
     -------
@@ -230,11 +237,13 @@ def get_era5_atmos_profile(date, x, y, spatialRef, z=None):
     if isinstance(x, float): x = np.array([x])
     if isinstance(y, float): y = np.array([y])
     if z is None: z = 10**np.linspace(0,5,100)
+    if era5_dir is None: era5_dir = ERA5_DIR_DEFAULT
+
     pres_levels = get_era5_pressure_levels()
 
     hour = 11
-    #year,month,day = datetime2calender(date)
-    if isinstance(date, np.int64):
+
+    if isinstance(date, np.datetime64):
         date = np.array([date])
 
     # convert from mapping coordinates to lat, lon
@@ -243,14 +252,12 @@ def get_era5_atmos_profile(date, x, y, spatialRef, z=None):
     ϕ_min, λ_min = np.min(ll[:,0]), np.min(ll[:,1])
     ϕ_max, λ_max = np.max(ll[:,0]), np.max(ll[:,1])
 
-    fname = get_space_time_id(date, np.mean(ll[:,0]), np.mean(ll[:,1]))
-    fname += '.grib' # using grib-data format
+    name = 'reanalysis-era5-pressure-levels'
+    id = get_space_time_id(date, np.mean(ll[:,0]), np.mean(ll[:,1]))
+    fpath = f'{era5_dir}/{name}-{id}.grib'  # using grib-data format
 
-    # retrieve data
-    c = cdsapi.Client()
-    c.retrieve(
-        'reanalysis-era5-pressure-levels',
-        {
+    if not os.path.isfile(fpath):
+        request = {
             'product_type': 'reanalysis',
             'format': 'grib',
             'variable': [
@@ -265,11 +272,10 @@ def get_era5_atmos_profile(date, x, y, spatialRef, z=None):
             'area': [
                 ϕ_max, λ_min, ϕ_min, λ_max,
             ],
-        },
-        fname)
+        }
+        download_era5(name, request, fpath)
 
-    ϕ, λ, G, Rh, T, t = get_pressure_from_grib_file(fname=fname)
-    os.remove(fname)
+    ϕ, λ, G, Rh, T, t = get_pressure_from_grib_file(fname=fpath)
 
     # extract atmospheric profile, see also
     # https://confluence.ecmwf.int/pages/viewpage.action?pageId=111155328
@@ -292,22 +298,18 @@ def get_era5_atmos_profile(date, x, y, spatialRef, z=None):
     t = datenum2datetime(t)
     return ϕ, λ, z, Temp, Pres, fracHum, t
 
-def get_era5_monthly_surface_wind(ϕ,λ,year):
+def get_era5_monthly_surface_wind(ϕ,λ,year, era5_dir=None):
 
-    fname = get_space_time_id(np.array([year-1970]).astype('datetime64[Y]')[0],
-                              ϕ, λ, full=False)
-    fname += '.grib' # using grib-data format
+    era5_dir = ERA5_DIR_DEFAULT if era5_dir is None else era5_dir
 
-    # era5 reanalysis grid is in .25[deg]
-    deg_xtr = .5
-    ϕ_min, ϕ_max = ϕ-deg_xtr, ϕ+deg_xtr
-    λ_min, λ_max = λ-deg_xtr, λ+deg_xtr
+    name = 'reanalysis-era5-pressure-levels-monthly-means'
+    id = get_space_time_id(np.datetime64(str(year)), ϕ, λ, full=False)
+    fpath = f'{era5_dir}/{name}-{id}.grib'  # using grib-data format
 
-    # retrieve data
-    c = cdsapi.Client()
-    c.retrieve(
-        'reanalysis-era5-pressure-levels-monthly-means',
-        {
+    if not os.path.isfile(fpath):
+        # era5 reanalysis grid is in .25[deg]
+        deg_xtr = .5
+        request = {
             'product_type': 'monthly_averaged_reanalysis',
             'format': 'grib',
             'variable': [
@@ -319,12 +321,28 @@ def get_era5_monthly_surface_wind(ϕ,λ,year):
             'month': ['01', '02', '03', '04', '05', '06',
                       '07', '08', '09', '10', '11', '12', ],
             'time': '00:00',
-            'area': [
-                ϕ_max, λ_min, ϕ_min, λ_max,
-            ],
-        },
-        fname)
-    ϕ, λ, U, V, Rh, T = get_wind_from_grib_file(fname=fname)
-    os.remove(fname)
+            'area': [ϕ+deg_xtr, λ-deg_xtr, ϕ-deg_xtr, λ+deg_xtr],
+        }
+        download_era5(name, request, fpath)
+    ϕ, λ, U, V, Rh, T = get_wind_from_grib_file(fname=fpath)
 
     return ϕ, λ, U, V, Rh, T
+
+def download_era5(name, request, target=None):
+    """
+    Retrieve ERA5 data via the CDS API
+
+    Parameters
+    ----------
+    name : str
+        name of the product
+    request : dict
+        request body
+    target : str, optional
+        output filepath
+    """
+    if target is not None:
+        folder, _ = os.path.split(target)
+        os.makedirs(folder, exist_ok=True)
+    c = cdsapi.Client()
+    c.retrieve(name, request, target)
