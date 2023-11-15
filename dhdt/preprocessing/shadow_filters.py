@@ -269,7 +269,6 @@ def diffusion_strength_1(I,K):
     # admin
     if np.iscomplexobj(I): # support complex input
         I_abs = np.abs(I)
-        g_1 = np.exp(-1 * np.divide(np.abs(I),K)**2)
     elif I.ndim==3: # support multispectral input
         I_sum = np.sum(I**2,axis=2)
         I_abs = np.sqrt(I_sum,
