@@ -282,8 +282,8 @@ def diffusion_strength_1(I,K):
     return g_1
 
 def diffusion_strength_2(I,K):
-    """ second diffusion function, proposed by [1], when a complex array is
-    provided the absolute magnitude is used, following [2]
+    """ second diffusion function, proposed by [PM87]_, when a complex array is
+    provided the absolute magnitude is used, following [Ge82]_.
 
     Parameters
     ----------
@@ -301,13 +301,12 @@ def diffusion_strength_2(I,K):
     ----------
     .. [PM87] Perona & Malik "Scale space and edge detection using anisotropic
               diffusion" Proceedings of the IEEE workshop on computer vision,
-              pp.16-22, 1987
+              pp.16-22, 1987.
     .. [Ge92] Gerig et al. "Nonlinear anisotropic filtering of MRI data" IEEE
-              transactions on medical imaging, vol.11(2), pp.221-232, 1992
+              transactions on medical imaging, vol.11(2), pp.221-232, 1992.
     """
     if np.iscomplexobj(I):
         I_abs = np.abs(I)
-        denom = (1 + np.divide(np.abs(I), K) ** 2)
     elif I.ndim==3: # support multispectral input
         I_sum = np.sum(I**2,axis=2)
         I_abs = np.sqrt(I_sum,
