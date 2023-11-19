@@ -1038,7 +1038,8 @@ def get_refraction_angle(dh,
                          spatialRef,
                          central_wavelength,
                          h,
-                         simple_refraction=True):
+                         simple_refraction=True,
+                         era5_dir=None):
     """ estimate the refraction angle
 
     Parameters
@@ -1063,6 +1064,8 @@ def get_refraction_angle(dh,
     simple_refraction : boolean, deault=True
         - True : estimate refraction in the visible range
         - False : more precise in a broader spectral range
+    era5_dir : str
+        directory for ERA5 data
 
     Returns
     -------
@@ -1079,7 +1082,13 @@ def get_refraction_angle(dh,
     ])
 
     lat, lon, z, Temp, Pres, fracHum, t_era = get_era5_atmos_profile(
-        dh['timestamp'].unique().to_numpy(), x_bar, y_bar, spatialRef, z=h)
+        dh['timestamp'].unique().to_numpy(),
+        x_bar,
+        y_bar,
+        spatialRef,
+        z=h,
+        era5_dir=era5_dir,
+    )
 
     # calculate refraction for individual dates
     for timestamp in dh['timestamp'].unique():

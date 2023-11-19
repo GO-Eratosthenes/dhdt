@@ -21,11 +21,11 @@ affiliations:
          Department of Physics, Faculty of Science, Utrecht University,
          Utrecht, the Netherlands
    index: 1
- - name: Space Accountants, Utrecht, the Netherlands
+ - name: Space Accountants, Beetsterzwaag, the Netherlands
    index: 2
  - name: Netherlands eScience Center, Amsterdam, the Netherlands
    index: 3
-date: 14 November 2022
+date: 10 November 2023
 bibliography: paper.bib
 
 ---
@@ -34,9 +34,10 @@ bibliography: paper.bib
 Extracting historical and present day measurements of mountain glacier change is
 challenging. Their locations are remote and their population is vast[^1].
 Consequently, satellite Earth observation are an ideal means to collect
-information about their geometry and surface characteristics. Such information
-can be used for contemporary climate reconstruction and improve future
-projection of fresh water availability or their contribution to sea-level.
+information about their geometry and surface characteristics on a global scale.
+Such information can be used for contemporary climate reconstruction and improve
+future projection of fresh water availability or their contribution to
+sea-level.
 
 The archive of satellite missions with geometric three dimensional mapping
 capabilities is very limited in space and time. While optical missions with a
@@ -52,15 +53,16 @@ a [readthedocs](https://dhdt.readthedocs.io/).
 
 # Statement of need
 Regional or global scale surface mass-balance modeling is mainly forced through
-atmospheric circulation models [@lenaerts2019observing; @zekollari2022ice].
-Where in-situ stake measurements are used for calibration, or validation. While
-remote sensing data is able to provide additional observations of the
-(sub)-surface.
+atmospheric circulation models [@lenaerts2019observing; @zekollari2022ice],
+providing local temperature, humidity and precipitation. In-situ stake
+measurements are used for calibration, or validation. While remote sensing
+data is able to provide additional observations of the (sub)-surface, in the
+form of elevation, displacement and surface albedo.
 
 Such remote sensing observations can be for longer time periods, where the
 length changes from glacier outlines, can sometimes date back upto a century or
 more. While at decadal timescales the use of elevation models can help to
-constrain a time-spans, as it delivers an estimate of volume changes (a.k.a.
+constrain a time-span, as it delivers an estimate of volume changes (a.k.a.
 geodetic mass balance) [@hugonnet2021accelerated]. While, velocity fields can
 be used to infer current ice thickness [@millan2022ice]. At annual time scales,
 the transient snowline can be linked to the surface mass balance
@@ -73,8 +75,8 @@ exploiting real world data. Here we have dubbed this technique photohypsometry,
 but other terms like shape-from-shadowing [@daum1998threed] and heliometric
 stereo [@abrams2012heliometric] have also been used for this methodology.
 This methodology has gotten some interest in the cryospheric research community
-[@rada2022high; @dematteis2022measuring], though up to now it has stayed at the
-level of a proof of concept.
+[@rada2022high; @dematteis2022measuring; @pfau2023cast], though up to now it
+has stayed at the level of a proof of concept.
 
 Here, we present a Python library that includes a complete and highly automated
 processing pipeline. The procedures of such a photohypsometic pipeline are
@@ -85,8 +87,8 @@ illustrated in \autoref{fig:pipeline}.
 
 # Design and data sources
 The data structure of the `dhdt` library follows a data processing pipeline,
-where general functions call more detailed and refactured components. The
-top level structure is as follows:
+where general functions call more detailed components. The top level structure
+is as follows:
 
 ```
 dhdt
@@ -409,14 +411,6 @@ while artificial terrain and terrain masks are situated in functions given by
 ``terrain_tools``. Metadata about the geo reference of the imagery, can be
 created via functions in ``mapping_tools``.
 
-# Functionality
-
-##### Surface displacement estimation
-nice glacier velocity plot...?
-
-##### Spatial temporal elevation change
-geodetic mass balance, maybe get some CryoSAT data?
-
 # Other software
 Dissemination of satellite imagery is typically provided at different processing
 levels. The nomenclature is not standardised, but mostly level-0 data is raw
@@ -474,11 +468,6 @@ such as CryoSAT, are able to cope with complex mountain terrain [@gourmelen2018c
 Products from such satellites are ideal for flatter upper regions of glaciers
 and ice caps. Data from such satellites are currently available via the
 [CryoTEMPO-EOLIS](https://cryotempo-eolis.org/point-product/) project.
-
-
-# Description of software
-
-`dhdt` has other important dependencies, namely
 
 # Acknowledgements
 

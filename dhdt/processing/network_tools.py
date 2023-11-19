@@ -37,7 +37,7 @@ def get_network_indices(n):
 def get_network_indices_constrained(idx,
                                     d,
                                     d_max,
-                                    n_max,
+                                    n_max=None,
                                     double_direction=True):
     """ Generate a list with all matchable combinations within a certain range
 
@@ -64,7 +64,10 @@ def get_network_indices_constrained(idx,
     get_network_indices : same version, but more generic
     get_adjacency_matrix_from_netwrok : construct design matrix from edge list
     """
-    n_max = min(len(idx) - 1, n_max)
+    if n_max is None:
+        n_max = len(idx) - 1
+    else:
+        n_max = min(len(idx) - 1, n_max)
 
     if d.ndim == 1:
         d = d.reshape(-1, 1)

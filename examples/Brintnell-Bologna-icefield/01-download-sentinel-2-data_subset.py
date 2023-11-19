@@ -6,14 +6,15 @@ import datetime
 
 from sentinelsat import SentinelAPI
 
-from dhdt.auxiliary.handler_google_cloud import \
+from dhdt.auxilary.handler_google_cloud import \
     create_stac_catalog, download_assets
 
 MGRS_TILE = "09VWJ"
+YOIS = [2016, 2022]
 ROOT_DIR = os.getenv("ROOT_DIR", os.getcwd())
 DATA_DIR = os.path.join(ROOT_DIR, "data")
-STAC_L1C_PATH = os.path.join(DATA_DIR, "SEN2", "sentinel2-l1c")
-STAC_L2A_PATH = os.path.join(DATA_DIR, "SEN2", "sentinel2-l2a")
+STAC_L1C_PATH = os.path.join(DATA_DIR, "SEN2", "sentinel2-l1c-small")
+STAC_L2A_PATH = os.path.join(DATA_DIR, "SEN2", "sentinel2-l2a-small")
 STAC_DESCRIPTION = (
     "Sentinel-2 data catalog containing MGRS tiles that include the ",
     "Brintnell-Bologna icefield (Rugged Range, Canada) as retrieved ",
@@ -51,31 +52,38 @@ def _get_matching_L2A_granules(scenes_L1C, scenes_L2A):
 
 
 def main():
-    
-    api = SentinelAPI(
-        user=COPERNICUS_HUB_USERNAME,
-        password=COPERNICUS_HUB_PASSWORD,
-        api_url=COPERNICUS_API_URL,
-        show_progressbars=False,
-    )
+    granules_l1c = []
+    granules_l2a = []
+    for year in YOIS:
+        # create selection criteria such as timespan and other specifics
+        toi = (datetime.date(year, 10, 1), datetime.date(year+1, 4, 1))
 
-    scenes_L1C = api.query(
-        platformname="Sentinel-2",
-        producttype="S2MSI1C",
-        raw=f'filename:*_T{MGRS_TILE}_*',
-        cloudcoverpercentage=(0, 70),
-    )
-    scenes_L1C = api.to_geodataframe(scenes_L1C)
+        api = SentinelAPI(
+            user=COPERNICUS_HUB_USERNAME,
+            password=COPERNICUS_HUB_PASSWORD,
+            api_url=COPERNICUS_API_URL,
+            show_progressbars=False,
+        )
 
-    scenes_L2A = api.query(
-        platformname="Sentinel-2",
-        producttype="S2MSI2A",
-        raw=f'filename:*_T{MGRS_TILE}_*',
-    )
-    scenes_L2A = api.to_geodataframe(scenes_L2A)
+        scenes_L1C = api.query(
+            platformname="Sentinel-2",
+            producttype="S2MSI1C",
+            raw=f'filename:*_T{MGRS_TILE}_*',
+            date=toi,
+            cloudcoverpercentage=(0, 70),
+        )
+        scenes_L1C = api.to_geodataframe(scenes_L1C)
 
-    granules_l1c = scenes_L1C["filename"].to_list()
-    granules_l2a = _get_matching_L2A_granules(scenes_L1C, scenes_L2A)
+        scenes_L2A = api.query(
+            platformname="Sentinel-2",
+            producttype="S2MSI2A",
+            raw=f'filename:*_T{MGRS_TILE}_*',
+            date=toi,
+        )
+        scenes_L2A = api.to_geodataframe(scenes_L2A)
+
+        granules_l1c.extend(scenes_L1C["filename"].to_list())
+        granules_l2a.extend(_get_matching_L2A_granules(scenes_L1C, scenes_L2A))
 
     # download from Google Cloud Storage
     create_stac_catalog(STAC_L1C_PATH, STAC_DESCRIPTION, granules_l1c)

@@ -279,7 +279,6 @@ def diffusion_strength_1(Z, K):
     # admin
     if np.iscomplexobj(Z):  # support complex input
         Z_abs = np.abs(Z)
-        g_1 = np.exp(-1 * np.divide(np.abs(Z), K)**2)
     elif Z.ndim == 3:  # support multispectral input
         I_sum = np.sum(Z**2, axis=2)
         Z_abs = np.sqrt(I_sum, out=np.zeros_like(I_sum), where=I_sum != 0)
@@ -292,8 +291,8 @@ def diffusion_strength_1(Z, K):
 
 
 def diffusion_strength_2(Z, K):
-    """ second diffusion function, proposed by [1], when a complex array is
-    provided the absolute magnitude is used, following [2]
+    """ second diffusion function, proposed by [PM87]_, when a complex array is
+    provided the absolute magnitude is used, following [Ge82]_.
 
     Parameters
     ----------
@@ -311,13 +310,12 @@ def diffusion_strength_2(Z, K):
     ----------
     .. [PM87] Perona & Malik "Scale space and edge detection using anisotropic
               diffusion" Proceedings of the IEEE workshop on computer vision,
-              pp.16-22, 1987
+              pp.16-22, 1987.
     .. [Ge92] Gerig et al. "Nonlinear anisotropic filtering of MRI data" IEEE
-              transactions on medical imaging, vol.11(2), pp.221-232, 1992
+              transactions on medical imaging, vol.11(2), pp.221-232, 1992.
     """
     if np.iscomplexobj(Z):
         Z_abs = np.abs(Z)
-        denom = (1 + np.divide(np.abs(Z), K)**2)
     elif Z.ndim == 3:  # support multispectral input
         I_sum = np.sum(Z**2, axis=2)
         Z_abs = np.sqrt(I_sum, out=np.zeros_like(I_sum), where=I_sum != 0)

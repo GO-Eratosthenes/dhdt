@@ -237,10 +237,8 @@ def get_image_subset(Z, bbox):
 
     if Z.ndim == 2:
         sub_Z = Z[bbox[0]:bbox[1], bbox[2]:bbox[3]]
-    elif Z.ndim == 3:
-        sub_Z = Z[bbox[0]:bbox[1], bbox[2]:bbox[3], :]
-    elif Z.ndim == 4:
-        sub_Z = Z[bbox[0]:bbox[1], bbox[2]:bbox[3], :, :]
+    elif Z.ndim >= 3:
+        sub_Z = Z[bbox[0]:bbox[1], bbox[2]:bbox[3], ...]
     return sub_Z
 
 

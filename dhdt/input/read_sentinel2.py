@@ -413,11 +413,19 @@ def read_stack_s2(s2_df):
     See Also
     --------
     list_central_wavelength_msi : creates a dataframe for the MSI instrument
-    get_S2_image_locations : provides dataframe with specific file locations
+    get_s2_image_locations : provides dataframe with specific file locations
     read_band_s2 : reading a single Sentinel-2 band
+
+    Examples
+    --------
+    >>> s2_df = list_central_wavelength_msi()
+    >>> s2_df = s2_df[s2_df['gsd'] == 10]
+    >>> s2_df,_ = get_s2_image_locations(IM_PATH, s2_df)
+
+    >>> im_stack, spatialRef, geoTransform, targetprj = read_stack_s2(s2_df)
     """
     assert isinstance(s2_df, pd.DataFrame), ('please provide a dataframe')
-    assert 'filepath' in s2_df, ('please first run "get_S2_image_locations"' +
+    assert 'filepath' in s2_df, ('please first run "get_s2_image_locations"' +
                                  ' to find the proper file locations')
 
     roi = np.min(s2_df['gsd'].array)  # resolution of interest
@@ -1407,7 +1415,7 @@ def read_sensing_time_s2(path, fname='MTD_TL.xml'):
     >>> sname = 'S2A_MSIL1C_20200923T163311_N0209_R140_T15MXV_20200923T200821.SAFE'
     >>> fname = 'MTD_MSIL1C.xml'
     >>> s2_path = os.path.join(fpath, sname, fname)
-    >>> s2_df,_ = get_S2_image_locations(fname, s2_df)
+    >>> s2_df,_ = get_s2_image_locations(fname, s2_df)
     >>> s2_df['filepath']
     B02 'GRANULE/L1C_T15MXV_A027450_20200923T163313/IMG_DATA/T115MXV...'
     B03 'GRANULE/L1C_T15MXV_A027450_20200923T163313/IMG_DATA/T15MXV...'
@@ -1828,7 +1836,7 @@ def get_flight_path_s2(ds_path, fname='MTD_DS.xml', s2_dict=None):
     >>> fname = os.path.join(S2_dir, S2_name, 'MTD_MSIL1C.xml')
     >>> s2_df = list_central_wavelength_s2()
 
-    >>> s2_df, datastrip_id = get_S2_image_locations(fname, s2_df)
+    >>> s2_df, datastrip_id = get_s2_image_locations(fname, s2_df)
     >>> path_det = os.path.join(S2_dir, S2_name, 'DATASTRIP', datastrip_id[17:-7])
 
     >>> sat_tim, sat_xyz, sat_err, sat_uvw = get_flight_path_s2(path_det)
