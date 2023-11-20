@@ -607,8 +607,8 @@ def orbital_calculation(ltime, radius, inclination, period, ω_0, λ_0):
     return Px
 
 
-def observation_calculation(ltime, Sat, Gx, radius, inclination,
-                            period, ω_0, λ_0):
+def observation_calculation(ltime, Sat, Gx, radius, inclination, period, ω_0,
+                            λ_0):
     """
 
     Parameters
@@ -679,37 +679,44 @@ def partial_obs(ltime, Sat, Gx, ϕ, λ, radius, inclination, period):
     are_two_arrays_equal(Sat, Gx)
     P_0 = np.zeros((3, 4, ltime.size))
     ω_0, λ_0 = _omega_lon_calculation(ϕ, λ, inclination)
-    Dx = observation_calculation(ltime, Sat, Gx, radius, inclination,
-                                 period, ω_0, λ_0)
+    Dx = observation_calculation(ltime, Sat, Gx, radius, inclination, period,
+                                 ω_0, λ_0)
     pert_var = ['lat', 'lon', 'radius', 'inclination']
     Pert = np.array([1E-5, 1E-5, 1E+1, 1E-4])
     for idx, pert in enumerate(Pert):
-        (ϕ, λ, radius, inclination) = _pert_param(idx, +pert, ϕ, λ,
-                                                  radius, inclination)
+        (ϕ, λ, radius, inclination) = _pert_param(idx, +pert, ϕ, λ, radius,
+                                                  inclination)
 
         ω_0, λ_0 = _omega_lon_calculation(ϕ, λ, inclination)
-        Dp = observation_calculation(ltime, Sat, Gx, radius,
-                                     inclination, period, ω_0, λ_0)
+        Dp = observation_calculation(ltime, Sat, Gx, radius, inclination,
+                                     period, ω_0, λ_0)
         P_0[0, idx, :] = np.divide(Dp[:, 0] - Dx[:, 0], pert)
         P_0[1, idx, :] = np.divide(Dp[:, 1] - Dx[:, 1], pert)
         P_0[2, idx, :] = np.divide(Dp[:, 2] - Dx[:, 2], pert)
-        (ϕ, λ, radius, inclination) = _pert_param(idx, -pert, ϕ, λ,
-                                                  radius, inclination)
+        (ϕ, λ, radius, inclination) = _pert_param(idx, -pert, ϕ, λ, radius,
+                                                  inclination)
     return P_0
 
 
-def partial_tim(ltime, Sat, Gx, ϕ, λ, radius, inclination, period,
+def partial_tim(ltime,
+                Sat,
+                Gx,
+                ϕ,
+                λ,
+                radius,
+                inclination,
+                period,
                 pertubation=.1):
     are_two_arrays_equal(Sat, Gx)
     P_1 = np.zeros((3, 1, ltime.size))
     ω_0, λ_0 = _omega_lon_calculation(ϕ, λ, inclination)
-    Dx = observation_calculation(ltime, Sat, Gx, radius, inclination,
-                                 period, ω_0, λ_0)
+    Dx = observation_calculation(ltime, Sat, Gx, radius, inclination, period,
+                                 ω_0, λ_0)
 
     # pertubation in the time domain
     ltime += pertubation
-    Dp = observation_calculation(ltime, Sat, Gx, radius, inclination,
-                                 period, ω_0, λ_0)
+    Dp = observation_calculation(ltime, Sat, Gx, radius, inclination, period,
+                                 ω_0, λ_0)
     ltime -= pertubation
 
     P_1[0, 0, ...] = np.divide(Dp[..., 0] - Dx[..., 0], pertubation)

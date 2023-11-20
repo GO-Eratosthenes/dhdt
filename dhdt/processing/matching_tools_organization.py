@@ -26,15 +26,11 @@ from .matching_tools_spatial_metrics import (gauss_spread,
                                              get_correlation_metric,
                                              hessian_spread,
                                              list_matching_metrics)
-from .matching_tools_spatial_subpixel import (get_top_2d_gaussian,
-                                              get_top_birchfield,
-                                              get_top_blais, get_top_centroid,
-                                              get_top_equiangular,
-                                              get_top_esinc, get_top_gaussian,
-                                              get_top_mass, get_top_moment,
-                                              get_top_parabolic,
-                                              get_top_paraboloid, get_top_ren,
-                                              get_top_triangular)
+from .matching_tools_spatial_subpixel import (
+    get_top_2d_gaussian, get_top_birchfield, get_top_blais, get_top_centroid,
+    get_top_equiangular, get_top_esinc, get_top_gaussian, get_top_mass,
+    get_top_moment, get_top_parabolic, get_top_paraboloid, get_top_ren,
+    get_top_triangular)
 
 
 # admin

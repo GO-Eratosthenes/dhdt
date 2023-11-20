@@ -989,16 +989,9 @@ def get_bbox(geoTransform, rows=None, cols=None):
 def get_geoTransform(bbox, dx, dy):
     dx = float(dx)
     dy = float(dy)
-    geoTransform = (
-        bbox[0],
-        +dx,
-        0.,
-        bbox[3],
-        0.,
-        -dy,
-        int(np.floor((bbox[3] - bbox[2]) / dy)),
-        int(np.floor((bbox[1] - bbox[0]) / dx))
-    )
+    geoTransform = (bbox[0], +dx, 0., bbox[3], 0., -dy,
+                    int(np.floor((bbox[3] - bbox[2]) / dy)),
+                    int(np.floor((bbox[1] - bbox[0]) / dx)))
     return geoTransform
 
 

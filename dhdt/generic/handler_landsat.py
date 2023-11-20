@@ -17,7 +17,9 @@ def get_wrs_url(version=2):
     """  # noqa: E501
     assert isinstance(version, int), 'please provide an integer'
     assert 0 < version < 3, 'please provide a correct version, i.e.: {1,2}'
-    wrs_url = 'https://d9-wret.s3.us-west-2.amazonaws.com/assets/palladium/production/s3fs-public/atoms/files/WRS' + str(version) + '_descending_0.zip'  # noqa: E501
+    wrs_url = (
+        'https://d9-wret.s3.us-west-2.amazonaws.com/assets/palladium/production/s3fs-public/atoms/files/WRS'  # noqa: E501
+        + str(version) + '_descending_0.zip')
     return wrs_url
 
 

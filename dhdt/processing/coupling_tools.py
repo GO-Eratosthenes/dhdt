@@ -312,10 +312,20 @@ def match_pair(I1,
     return X2_grd, Y2_grd, match_metric
 
 
-def match_image(Z, M, D, geoTransform, id_1, id_2, X_grd, Y_grd,
-                temp_radius=2**3, search_radius=2**4,
-                correlator='robu_corr', subpix='moment',
-                metric='peak_abs', **kwargs):
+def match_image(Z,
+                M,
+                D,
+                geoTransform,
+                id_1,
+                id_2,
+                X_grd,
+                Y_grd,
+                temp_radius=2**3,
+                search_radius=2**4,
+                correlator='robu_corr',
+                subpix='moment',
+                metric='peak_abs',
+                **kwargs):
     # combating import loops
     from .matching_tools_organization import (list_differential_correlators,
                                               list_frequency_correlators,
@@ -334,17 +344,23 @@ def match_image(Z, M, D, geoTransform, id_1, id_2, X_grd, Y_grd,
     I_grd, J_grd = map2pix(geoTransform, X_grd, Y_grd)
 
     # inside selection and padding
-    IN = np.logical_and.reduce((I_grd >= 0, I_grd < (Z.shape[0] - 1),
-                                J_grd >= 0, J_grd < (Z.shape[1] - 1)))
+    IN = np.logical_and.reduce((I_grd >= 0, I_grd < (Z.shape[0] - 1), J_grd
+                                >= 0, J_grd < (Z.shape[1] - 1)))
 
     M2_new = pad_radius(M2, ds2)
     i2 += ds2
     j2 += ds2
 
     I1, I2, i1, j1, i2, j2, IN = pad_images_and_filter_coord_list(
-        I1, I2, geoTransform1, geoTransform2, X_grd, Y_grd,
-        temp_radius, search_radius, same=True
-    )
+        I1,
+        I2,
+        geoTransform1,
+        geoTransform2,
+        X_grd,
+        Y_grd,
+        temp_radius,
+        search_radius,
+        same=True)
 
     return
 
