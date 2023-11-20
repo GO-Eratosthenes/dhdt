@@ -317,9 +317,9 @@ def match_image(Z, M, D, geoTransform, id_1, id_2, X_grd, Y_grd,
                 correlator='robu_corr', subpix='moment',
                 metric='peak_abs', **kwargs):
     # combating import loops
-    from .matching_tools_organization import \
-        list_differential_correlators, list_peak_estimators, \
-        list_frequency_correlators
+    from .matching_tools_organization import (list_differential_correlators,
+                                              list_frequency_correlators,
+                                              list_peak_estimators)
 
     Z, M = get_data_and_mask(Z, M)
     X_grd, Y_grd = np.atleast_2d(X_grd), np.atleast_2d(Y_grd)
