@@ -497,10 +497,9 @@ def rotate_variance(θ, qii, qjj, ρ):
     for iy, ix in np.ndindex(θ.shape):
         if ~np.isnan(θ[iy,ix]) and ~np.isnan(ρ[iy,ix]):
             # construct co-variance matrix
-            try:
-                qij = ρ[iy,ix]*np.sqrt(qii[iy,ix])*np.sqrt(qjj[iy,ix])
-            except:
-                breakpoint
+            qij = ρ[iy,ix] *\
+                  np.sqrt(np.maximum(qii[iy,ix], 0)) *\
+                  np.sqrt(np.maximum(qjj[iy,ix], 0))
             V = np.array([[qjj[iy,ix], qij],
                           [qij, qii[iy,ix]]])
             R = rot_mat(θ[iy, ix])

@@ -7,7 +7,6 @@ from dhdt.generic.mapping_tools import pix_centers, map2ll, ecef2llh, ll2map
 from dhdt.generic.unit_check import \
     correct_geoTransform, are_two_arrays_equal, are_three_arrays_equal, \
     lat_lon_angle_check, is_crs_an_srs
-from dhdt.postprocessing.solar_tools import vector_to_sun_angles
 
 def wgs84_param():
     wgs84 = osr.SpatialReference()
@@ -27,78 +26,17 @@ def earth_axes():
     minor_axis = major_axis * np.sqrt(1 - eccentricity)
     return major_axis, minor_axis
 
-def semi_latus_rectum(a, e):
-    p = np.multiply(a, 1 - e**2)
-    return p
-
-def zonal_harmonic_coeff():
-    J2 = 0.00108263
-    return J2
-
-def gravitational_constant():
-    g = 9.80665
-    return g
-
 def standard_gravity():
     """
     provide value for the standard gravitational parameter of the Earth
 
     Returns
     -------
-    mu : float, unit: m**3 * s**-2
+    μ : float, unit: m**3 * s**-2
         standard gravity
     """
-    mu = 3.986004418E14
-    return mu
-
-def mean_motion(mu, a):
-    """
-
-    Parameters
-    ----------
-    mu :
-    a : semi-major axis
-
-    Returns
-    -------
-
-    """
-    n = np.sqrt(np.divide(mu, a**3))
-    return n
-
-def nodal_rate_of_precession(i, a=None):
-    if a is None:
-        a= wgs84_param()[0]
-    e = earth_eccentricity()
-    J2 = zonal_harmonic_coeff()
-    mu = standard_gravity()
-    n = mean_motion(mu, a)
-    p = semi_latus_rectum(a, e)
-    omega = -3/2 * J2 * np.power(np.divide(a,p) ,2) * n * np.cos(np.rad2deg(i))
-    return omega
-
-def get_principle_axis_frame(J):
-    P = np.linalg.eig(J)[1]
-    return P
-
-def angular_momentum(xyz, uvw):
-    """
-
-    Parameters
-    ----------
-    xyz : numpy.array, unit=m
-        position vector
-    uvw : numpy.array, unit=m·s**-1
-        velocity vecotr
-
-    Returns
-    -------
-    h : numpy.array, unit=N·m·s
-        angular momentum
-    """
-    are_two_arrays_equal(xyz, uvw)
-    h = np.cross(xyz, uvw)
-    return h
+    μ = 3.986004418E14
+    return μ
 
 def transform_rpy_xyz2ocs(xyz, uvw, roll, pitch, yaw, xyz_time, ang_time):
     x,y,z = np.interp(ang_time, xyz_time, xyz[...,0]), \
@@ -466,7 +404,7 @@ def time_fitting(Ltime, Az, Zn, bnd, det, X, Y, geoTransform):
         A_sca,L_sca = _make_timing_system(IN, dX, dY, Ltime)
         try:
             np.linalg.inv(A_sca)
-        except:
+        except np.linalg.LinAlgError:
             if 'A_bnd' not in locals():
                 IN = bnd == pair[0]
                 A_bnd, L_bnd = _make_timing_system(IN, dX, dY, Ltime)
@@ -603,7 +541,7 @@ def orbital_fitting(Sat, Gx, lat=None, lon=None, radius=None, inclination=None,
     lat_bar, lon_bar = np.rad2deg(lat_bar[0]), np.rad2deg(lon_bar[0])
     return Ltime, lat_bar, lon_bar, radius, inclination, period
 
-def _omega_lon_calculation(lat, lon, inclination):
+def _omega_lon_calculation(ϕ, λ, inclination):
     """
 
     Parameters
@@ -613,23 +551,22 @@ def _omega_lon_calculation(lat, lon, inclination):
     inclination : {float, numpy.array}, unit=radians
         angle of the orbital plane i.r.t. the equator
     """
-    omega_0 = np.arcsin(np.divide(np.sin(lat), np.sin(inclination)))
-    lon_0 = lon - np.arcsin(np.divide(np.tan(lat), -np.tan(inclination)))
-    return omega_0,lon_0
+    ω_0 = np.arcsin(np.divide(np.sin(ϕ), np.sin(inclination)))
+    λ_0 = λ - np.arcsin(np.divide(np.tan(ϕ), -np.tan(inclination)))
+    return ω_0, λ_0
 
-def _gc_calculation(ltime,period,inclination, omega_0, lon_0):
-    cta = omega_0 - np.divide(2 * np.pi * ltime, period)
+def _gc_calculation(ltime,period,inclination, ω_0, λ_0):
+    cta = ω_0 - np.divide(2 * np.pi * ltime, period)
     gclat = np.arcsin(np.sin(cta) * np.sin(inclination))
-    gclon = lon_0 + np.arcsin(np.tan(gclat) / -np.tan(inclination)) - \
+    gclon = λ_0 + np.arcsin(np.tan(gclat) / -np.tan(inclination)) - \
         2*np.pi*ltime / (24*60*60)
-    return cta,gclat,gclon
+    return cta, gclat, gclon
 
 def orbital_calculation(ltime,radius,inclination,period,
-                        omega_0, lon_0):
-    ltime, omega_0, lon_0 = np.squeeze(ltime), np.squeeze(omega_0), \
-                            np.squeeze(lon_0)
+                        ω_0, λ_0):
+    ltime, ω_0, λ_0 = np.squeeze(ltime), np.squeeze(ω_0), np.squeeze(λ_0)
     cta, gclat, gclon = _gc_calculation(ltime, period, inclination,
-                                        omega_0, lon_0)
+                                        ω_0, λ_0)
     Px = np.stack((np.multiply(np.cos(gclat), np.cos(gclon)),
                    np.multiply(np.cos(gclat), np.sin(gclon)),
                    np.sin(gclat)), axis=1)
@@ -637,7 +574,7 @@ def orbital_calculation(ltime,radius,inclination,period,
     return Px
 
 def observation_calculation(ltime, Sat, Gx, radius, inclination,
-                            period, omega_0, lon_0):
+                            period, ω_0, λ_0):
     """
 
     Parameters
@@ -653,9 +590,9 @@ def observation_calculation(ltime, Sat, Gx, radius, inclination,
         inclination of the orbital plane with the equator
     period : float, unit=seconds
         time it takes to revolve one time around the Earth
-    omega_0 : float, unit=degrees
+    ω_0 : float, unit=degrees
         angle towards ascending node, one of the orbit Euler angles
-    lon_0 : float, unit=degrees
+    λ_0 : float, unit=degrees
         ephemeris longitude
 
     Returns
@@ -664,8 +601,7 @@ def observation_calculation(ltime, Sat, Gx, radius, inclination,
     """
     are_two_arrays_equal(Sat, Gx)
 
-    cta, gclat, gclon = _gc_calculation(ltime, period, inclination,
-                                        omega_0, lon_0)
+    cta, gclat, gclon = _gc_calculation(ltime, period, inclination, ω_0, λ_0)
     Vx = np.atleast_2d(np.zeros_like(Sat))
     Gx = np.atleast_2d(Gx)
     Vx[...,0] = np.squeeze(radius * np.multiply(np.cos(gclat), np.cos(gclon)))
@@ -678,7 +614,7 @@ def observation_calculation(ltime, Sat, Gx, radius, inclination,
     Vx -= Sat
     return Vx
 
-def pert_param(idx, pert, *args):
+def _pert_param(idx, pert, *args):
     """ perterp one of the arguments
 
     Parameters
@@ -701,45 +637,45 @@ def pert_param(idx, pert, *args):
     args = tuple(args)
     return args
 
-def partial_obs(ltime, Sat, Gx, lat, lon, radius, inclination, period):
+def partial_obs(ltime, Sat, Gx, ϕ, λ, radius, inclination, period):
     """ numerical differentiation, via pertubation of the observation vector
     """
     are_two_arrays_equal(Sat, Gx)
     P_0 = np.zeros((3, 4, ltime.size))
-    omega_0,lon_0 = _omega_lon_calculation(lat, lon, inclination)
+    ω_0, λ_0 = _omega_lon_calculation(ϕ, λ, inclination)
     Dx = observation_calculation(ltime, Sat, Gx, radius, inclination,
-                            period, omega_0, lon_0)
+                                 period, ω_0, λ_0)
     pert_var = ['lat', 'lon', 'radius', 'inclination']
     Pert = np.array([1E-5, 1E-5, 1E+1, 1E-4])
     for idx,pert in enumerate(Pert):
-        (lat, lon, radius, inclination) = pert_param(idx, +pert, lat, lon,
-                                                     radius, inclination)
+        (ϕ, λ, radius, inclination) = _pert_param(idx, +pert, ϕ, λ,
+                                                      radius, inclination)
 
-        omega_0, lon_0 = _omega_lon_calculation(lat, lon, inclination)
+        ω_0, λ_0 = _omega_lon_calculation(ϕ, λ, inclination)
         Dp = observation_calculation(ltime, Sat, Gx, radius,
-                                     inclination, period, omega_0, lon_0)
+                                     inclination, period, ω_0, λ_0)
         P_0[0,idx,:] = np.divide(Dp[:,0] - Dx[:,0],pert)
         P_0[1,idx,:] = np.divide(Dp[:,1] - Dx[:,1],pert)
         P_0[2,idx,:] = np.divide(Dp[:,2] - Dx[:,2],pert)
-        (lat, lon, radius, inclination) = pert_param(idx, -pert, lat, lon,
-                                                     radius, inclination)
+        (ϕ, λ, radius, inclination) = _pert_param(idx, -pert, ϕ, λ,
+                                                      radius, inclination)
     return P_0
 
-def partial_tim(ltime, Sat, Gx, lat, lon, radius, inclination, period):
+def partial_tim(ltime, Sat, Gx, ϕ, λ, radius, inclination, period,
+                pertubation=.1):
     are_two_arrays_equal(Sat, Gx)
     P_1 = np.zeros((3, 1, ltime.size))
-    omega_0,lon_0 = _omega_lon_calculation(lat, lon, inclination)
+    ω_0, λ_0 = _omega_lon_calculation(ϕ, λ, inclination)
     Dx = observation_calculation(ltime, Sat, Gx, radius, inclination,
-                            period, omega_0, lon_0)
+                            period, ω_0, λ_0)
 
     # pertubation in the time domain
-    pert = .1
-    ltime += pert
+    ltime += pertubation
     Dp = observation_calculation(ltime, Sat, Gx, radius, inclination,
-                            period, omega_0, lon_0)
-    ltime -= pert
+                            period, ω_0, λ_0)
+    ltime -= pertubation
 
-    P_1[0,0,...] = np.divide(Dp[...,0] - Dx[...,0], pert)
-    P_1[1,0,...] = np.divide(Dp[...,1] - Dx[...,1], pert)
-    P_1[2,0,...] = np.divide(Dp[...,2] - Dx[...,2], pert)
+    P_1[0,0,...] = np.divide(Dp[...,0] - Dx[...,0], pertubation)
+    P_1[1,0,...] = np.divide(Dp[...,1] - Dx[...,1], pertubation)
+    P_1[2,0,...] = np.divide(Dp[...,2] - Dx[...,2], pertubation)
     return P_1

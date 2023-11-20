@@ -183,7 +183,7 @@ def phase_gradient_descend(data, W=np.array([]), x_0=np.zeros((2)),
     di,dj = x_hat[1], x_hat[0]
     return di,dj
 
-def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
+def phase_tpss(Q, W, m, p=1e-4, k=4, j=5, n=3): #wip
     """get phase plane of cross-spectrum through two point step size iteration
 
     find slope of the phase plane through
@@ -198,7 +198,7 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
         initial displacement estimate
     p : float, default=1e4
         closing error threshold
-    l : integer, default=4
+    k : integer, default=4
         number of refinements in iteration
     j : integer, default=5
         number of sub routines during an estimation
@@ -240,8 +240,8 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
     g_min = np.sum(J_min, axis=0)
 
     #print('di:{:+.4f}'.format(m[0])+' dj:{:+.4f}'.format(m[1]))
-    for i in range(l):
-        k = 1
+    for i in range(k):
+        p = 1
         while True:
 
             J = phase_jac(Q, m, W=W)
@@ -264,7 +264,7 @@ def phase_tpss(Q, W, m, p=1e-4, l=4, j=5, n=3): #wip
             #else:
             #    m -= alpha*dg
             print('di:{:+.4f}'.format(m[0])+' dj:{:+.4f}'.format(m[1]))
-            k += 1
+            p += 1
 
         # optimize weighting matrix
         #φ = np.abs(QC*np.conjugate(QC))/2
@@ -368,7 +368,7 @@ def phase_svd(Q, W, rad=0.1):
     n_elements = 1
     try:
         u,s,v = np.linalg.svd(W*Q) # singular-value decomposition
-    except:
+    except np.linalg.LinAlgError:
         return 0, 0
     sig = np.zeros((m,n))
     sig[:m,:m] = np.diag(s)
@@ -648,7 +648,7 @@ def phase_weighted_pca(Q, W): #todo
         e3 = eigen_vecs[:,np.argmin(eigen_vals)] # normal vector
         di = (-2*e3[0]/e3[-1])
         dj = (-2*e3[1]/e3[-1])
-    except:
+    except np.linalg.LinAlgError:
         di, dj = 0, 0
     return di, dj
 
