@@ -311,7 +311,8 @@ def match_pair(I1,
         X2_grd, Y2_grd = np.squeeze(X2_grd), np.squeeze(Y2_grd)
     return X2_grd, Y2_grd, match_metric
 
-def match_image(I, M, D, geoTransform, id_1, id_2, X_grd, Y_grd,
+
+def match_image(Z, M, D, geoTransform, id_1, id_2, X_grd, Y_grd,
                 temp_radius=2**3, search_radius=2**4,
                 correlator='robu_corr', subpix='moment',
                 metric='peak_abs', **kwargs):
@@ -320,29 +321,30 @@ def match_image(I, M, D, geoTransform, id_1, id_2, X_grd, Y_grd,
         list_differential_correlators, list_peak_estimators, \
         list_frequency_correlators
 
-    I, M = get_data_and_mask(I, M)
-    X_grd,Y_grd = np.atleast_2d(X_grd), np.atleast_2d(Y_grd)
+    Z, M = get_data_and_mask(Z, M)
+    X_grd, Y_grd = np.atleast_2d(X_grd), np.atleast_2d(Y_grd)
 
     correlator = correlator.lower()
-    if (subpix is not None): subpix=subpix.lower()
+    subpix = subpix.lower() if subpix is not None else subpix
 
     frequency_based = list_frequency_correlators()
     differential_based = list_differential_correlators()
     peak_based = list_peak_estimators()
 
-    I_grd,J_grd = map2pix(geoTransform, X_grd, Y_grd)
+    I_grd, J_grd = map2pix(geoTransform, X_grd, Y_grd)
 
     # inside selection and padding
-    IN = np.logical_and.reduce((I_grd>=0, I_grd<(I.shape[0]-1),
-                                J_grd>=0, J_grd<(I.shape[1]-1)))
+    IN = np.logical_and.reduce((I_grd >= 0, I_grd < (Z.shape[0] - 1),
+                                J_grd >= 0, J_grd < (Z.shape[1] - 1)))
 
     M2_new = pad_radius(M2, ds2)
     i2 += ds2
     j2 += ds2
 
-    I1,I2,i1,j1,i2,j2,IN = pad_images_and_filter_coord_list(
+    I1, I2, i1, j1, i2, j2, IN = pad_images_and_filter_coord_list(
         I1, I2, geoTransform1, geoTransform2, X_grd, Y_grd,
-        temp_radius, search_radius, same=True)
+        temp_radius, search_radius, same=True
+    )
 
     return
 
