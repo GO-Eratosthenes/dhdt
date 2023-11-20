@@ -142,7 +142,7 @@ def refine_cast_location(Z,
             y_lsq = four_pl_curve(local_x, *a_hat)
             infl_point = np.interp(a_hat[2], local_x, rng)
             point_cov = a_cov[2, 2] * steps
-        except:
+        except RuntimeError:
             infl_point, point_cov = 0, 0
     elif method in ('spline', 'cubic_spline'):
         # qnt = 0.5 if kwargs.get('quantile') is None else \

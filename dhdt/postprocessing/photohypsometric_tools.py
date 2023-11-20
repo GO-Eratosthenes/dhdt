@@ -1253,8 +1253,8 @@ def get_mass_balance_per_elev(dhdt, spac=100.):
             x_hat = np.linalg.lstsq(np.dot(W, A),
                                     np.dot(df_sub['dZ_12'].to_numpy(), W),
                                     rcond=None)[0]
-        except:
-            print('.')
+        except np.linalg.LinAlgError:
+            x_hat = np.zeros(A.shape[1])
         belev[idx, :] = x_hat
 
     elev = labels * spac

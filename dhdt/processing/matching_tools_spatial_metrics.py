@@ -623,12 +623,12 @@ def gauss_spread(C, intI, intJ, dI, dJ, est='dist'):
         yw = y * np.sqrt(W)
         try:
             hess = np.linalg.lstsq(Aw, yw, rcond=None)[0]
-        except:
+        except np.linalg.LinAlgError:
             hess = np.zeros(4)
     else:
         try:
             hess = np.linalg.lstsq(A, y, rcond=None)[0]
-        except:
+        except np.linalg.LinAlgError:
             hess = np.zeros(4)
 
     # convert to parameters

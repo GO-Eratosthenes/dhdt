@@ -43,7 +43,7 @@ def get_top_moment(C, ds=1, top=np.array([])):
               toolbox: ImGRAFT" Geoscientific instrumentation, methods and data
               systems, vol.4(1) pp.23-34, 2015.
     """
-
+    assert ds > 0, 'please provide positive integer'
     (subJ, subI) = np.meshgrid(np.linspace(-ds, +ds, 2 * ds + 1),
                                np.linspace(-ds, +ds, 2 * ds + 1))
     subI, subJ = subI.ravel(), subJ.ravel()
@@ -60,10 +60,8 @@ def get_top_moment(C, ds=1, top=np.array([])):
 
         i_sub = C.shape[0] // 2 + np.arange(-ds, +ds + 1) + di
         j_sub = C.shape[1] // 2 + np.arange(-ds, +ds + 1) + dj
-        try:
-            Csub = C[i_sub[:, None], j_sub[None, :]].ravel()
-        except:
-            print('iets mis')
+
+        Csub = C[i_sub[:, None], j_sub[None, :]].ravel()
         Csub = Csub - np.mean(np.hstack((Csub[0:idx_mid], Csub[idx_mid + 1:])))
 
         IN = Csub > 0

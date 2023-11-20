@@ -204,8 +204,8 @@ def shadow_hsv_fraction(Blue, Green, Red):
     """
     are_three_arrays_equal(Blue, Green, Red)
 
-    H, _, I = rgb2hsi(Red, Green, Blue)  # noqa: E741
-    SF = np.divide(H + 1, I + 1, where=I != -1)
+    H, _, Int = rgb2hsi(Red, Green, Blue)
+    SF = np.divide(H + 1, Int + 1, where=Int != -1)
     return SF
 
 
@@ -238,8 +238,8 @@ def modified_shadow_fraction(Blue, Green, Red, P_S=.95):
     """
     are_three_arrays_equal(Blue, Green, Red)
 
-    H, S, I = rgb2hsi(Red, Green, Blue)  # noqa: E741
-    r = np.divide(H, I + 1, where=I != -1)
+    Hue, _, Int = rgb2hsi(Red, Green, Blue)
+    r = np.divide(Hue, Int + 1, where=Int != -1)
     T_S = np.quantile(r, P_S)
     sig = np.std(r)
 
@@ -477,9 +477,9 @@ def false_color_shadow_difference_index(Green, Red, Near):
     """
     are_three_arrays_equal(Green, Red, Near)
 
-    _, S, I = rgb2hsi(Near, Red, Green)  # create HSI bands  # noqa: E741
-    denom = S + I
-    FCSI = np.divide(S - I, denom, where=denom != 0)
+    _, Sat, Int = rgb2hsi(Near, Red, Green)  # create HSI bands
+    denom = Sat + Int
+    FCSI = np.divide(Sat - Int, denom, where=denom != 0)
     return FCSI
 
 
@@ -715,9 +715,9 @@ def normalized_sat_value_difference_index(Blue, Green, Red):
     """
     are_three_arrays_equal(Blue, Green, Red)
 
-    (H, S, I) = rgb2hsi(Red, Green, Blue)  # create HSI bands
-    denom = S + I
-    NSVDI = np.divide(S - I, denom, where=denom != 0)
+    _, Sat, Int = rgb2hsi(Red, Green, Blue)  # create HSI bands
+    denom = Sat + Int
+    NSVDI = np.divide(Sat - Int, denom, where=denom != 0)
     return NSVDI
 
 
@@ -755,8 +755,8 @@ def shadow_identification(Blue, Green, Red):
     """
     are_three_arrays_equal(Blue, Green, Red)
 
-    _, S, I = rgb2hsi(Red, Green, Blue)  # create HSI bands  # noqa: E741
-    SI = S - I
+    _, Sat, Int = rgb2hsi(Red, Green, Blue)  # create HSI bands
+    SI = Sat - Int
     return SI
 
 
@@ -790,15 +790,15 @@ def shadow_index_liu(Blue, Green, Red):
     """
     are_three_arrays_equal(Blue, Green, Red)
 
-    _, S, I = rgb2hsi(Red, Green, Blue)  # noqa: E741
+    _, Sat, Int = rgb2hsi(Red, Green, Blue)
 
     X = pca_rgb_preparation(Red, Green, Blue, min_samp=1e4)
     e, lamb = principle_component_analysis(X)
     del X
     PC1 = e[0, 0] * Red + e[0, 1] * Green + e[0, 2] * Blue
 
-    denom = (PC1 + I + S)
-    SI = np.divide((PC1 - I) * (1 + S), denom, where=denom != 0)
+    denom = (PC1 + Int + Sat)
+    SI = np.divide((PC1 - Int) * (1 + Sat), denom, where=denom != 0)
     return SI
 
 
@@ -901,8 +901,8 @@ def sat_int_shadow_detector_index(Blue, RedEdge, Near):
     """
     are_three_arrays_equal(Blue, RedEdge, Near)
 
-    _, S, I = erdas2hsi(Blue, RedEdge, Near)  # noqa: E741
-    SISDI = S - (2 * I)
+    _, Sat, Int = erdas2hsi(Blue, RedEdge, Near)
+    SISDI = Sat - (2 * Int)
     return SISDI
 
 
@@ -932,8 +932,8 @@ def mixed_property_based_shadow_index(Blue, Green, Red):
     """
     are_three_arrays_equal(Blue, Green, Red)
 
-    H, _, I = rgb2hsi(Red, Green, Blue)  # create HSI bands  # noqa: E741
-    MPSI = np.multiply(H - I, Green - Blue)
+    Hue, _, Int = rgb2hsi(Red, Green, Blue)  # create HSI bands
+    MPSI = np.multiply(Hue - Int, Green - Blue)
     return MPSI
 
 

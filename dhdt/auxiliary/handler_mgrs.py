@@ -23,9 +23,11 @@ from dhdt.generic.unit_check import check_mgrs_code
 
 supported_drivers['KML'] = 'rw'
 
-MGRS_TILING_URL = ("https://sentinels.copernicus.eu/documents/247904/1955685/"
-                   "S2A_OPER_GIP_TILPAR_MPC__20151209T095117_V20150622T000000"
-                   "_21000101T000000_B00.kml")
+MGRS_TILING_URL = (
+    "https://sentinels.copernicus.eu/documents/247904/1955685/"
+    "S2A_OPER_GIP_TILPAR_MPC__20151209T095117_V20150622T000000"
+    "_21000101T000000_B00.kml"
+)
 
 MGRS_TILING_FILENAME = 'sentinel2_tiles_world.geojson'
 MGRS_TILING_DIR_DEFAULT = os.path.join('.', 'data', 'MGRS')

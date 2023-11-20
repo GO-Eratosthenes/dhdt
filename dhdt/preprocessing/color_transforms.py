@@ -122,20 +122,20 @@ def rgb2yiq(Red, Green, Blue):
 
     RGB = np.dstack((Red, Green, Blue))
     YIQ = np.einsum('ij,klj->kli', L, RGB)
-    Y, I, Q = YIQ[:, :, 0], YIQ[:, :, 1], YIQ[:, :, 2]
-    return Y, I, Q
+    Y, Inph, Quadr = YIQ[..., 0], YIQ[..., 1], YIQ[..., 2]
+    return Y, Inph, Quadr
 
 
-def yiq2rgb(Y, I, Q):
+def yiq2rgb(Y, Inph, Quadr):
     """transform luminance, inphase, quadrature values to red, green, blue
 
     Parameters
     ----------
     Y : numpy.array, size=(m,n)
         luminance
-    I : numpy.array, size=(m,n)
+    Inph : numpy.array, size=(m,n)
         inphase
-    Q : numpy.array, size=(m,n)
+    Quadr : numpy.array, size=(m,n)
         quadrature
 
     Returns
@@ -155,14 +155,14 @@ def yiq2rgb(Y, I, Q):
     ----------
     .. [GW92] Gonzalez & Woods "Digital image processing", 1992.
     """
-    are_three_arrays_equal(Y, I, Q)  # noqa: E741
+    are_three_arrays_equal(Y, Inph, Quadr)
 
     L = np.array([(+0.299, +0.587, +0.114), (+0.596, -0.275, -0.321),
                   (+0.212, -0.523, +0.311)])
     Linv = np.linalg.inv(L)
-    YIQ = np.dstack((Y, I, Q))
+    YIQ = np.dstack((Y, Inph, Quadr))
     RGB = np.einsum('ij,klj->kli', Linv, YIQ)
-    R, G, B = RGB[:, :, 0], RGB[:, :, 1], RGB[:, :, 2]
+    R, G, B = RGB[..., 0], RGB[..., 1], RGB[..., 2]
     return R, G, B
 
 
