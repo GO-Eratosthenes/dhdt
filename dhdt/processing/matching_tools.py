@@ -69,9 +69,11 @@ def get_integer_peak_location(C, metric=None):
     from .matching_tools_organization import estimate_match_metric
 
     assert isinstance(C, np.ndarray), "please provide an array"
+    C = np.atleast_2d(C)
     max_corr = np.argmax(C)
 
-    ij = np.unravel_index(max_corr, C.shape, order='F')  # 'C'
+    ij = np.unravel_index(max_corr, C.shape, order='F') # 'C'
+    if C.ndim >= 3: ij = ij[:2]
     di, dj = ij[::-1]
     di -= C.shape[0] // 2
     dj -= C.shape[1] // 2
