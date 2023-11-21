@@ -8,6 +8,27 @@ from .color_transforms import (erdas2hsi, lab2lch, lms2lab, rgb2hcv, rgb2hsi,
 from .multispec_transforms import (pca_rgb_preparation,
                                    principle_component_analysis)
 
+def _get_shadow_transforms():
+    methods_dict = {
+        'siz' : 'shadow index first version',
+        'isi' : 'improved shadow index',
+        'sei' : 'shadow enhancement index',
+        'fcsdi' : 'false color shadow difference index',
+        'csi' : 'combinational shadow index',
+        'nsvdi' : 'normalized saturation value difference index',
+        'sil' : 'shadow index second',
+        'sr' : 'specthem ratio',
+        'sdi' : 'shadow detector index',
+        'sisdi' : 'saturation intensity shadow detector index',
+        'mixed' : 'mixed property based shadow index',
+        'msf' : 'modified shadow fraction',
+        'c3' : 'color invariant',
+        'entropy' : 'entropy shade removal',
+        'shi' : 'shade index',
+        'sp' : 'shadow probabilities',
+        'nri' : 'normalized range shadow index'
+    }
+    return methods_dict
 
 def apply_shadow_transform(method, Blue, Green, Red, RedEdge, Near, Shw,
                            **kwargs):
@@ -62,6 +83,9 @@ def apply_shadow_transform(method, Blue, Green, Red, RedEdge, Near, Shw,
         reads the specific bands given
     """
     method = method.lower()
+    methods = _get_shadow_transforms()
+    assert method in list(methods.keys()), \
+        'please provide correct method string'
 
     if method == 'siz':
         M = shadow_index_zhou(Blue, Green, Red)

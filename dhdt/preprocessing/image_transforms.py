@@ -6,7 +6,7 @@ from dhdt.generic.handler_im import get_grad_filters
 
 
 def mat_to_gray(Z, notZ=None, vmin=None, vmax=None):
-    """ transform matix array  to float, omitting nodata values
+    """ transform matix array to float, omitting nodata values
 
     Parameters
     ----------

@@ -221,7 +221,7 @@ def get_shadow_polygon(M, t_siz):
 
 
 # threshholding and classification functions
-def sturge(M):
+def sturge(M, neighbors=2):
     """ Transform intensity array to labelled image
 
     Parameters
@@ -235,7 +235,7 @@ def sturge(M):
         array with numbered labels
     """
     values, base = normalized_sampling_histogram(M)
-    dips = find_valley(values, base, 2)
+    dips = find_valley(values, base, neighbors=neighbors)[0]
     val = max(dips)
     imSeparation = M > val  # or <
 
@@ -280,11 +280,11 @@ def find_valley(values, base, neighbors=2):
     wall_plu = np.vstack((values, wall_plu))
     wall_min = np.vstack((values, wall_min))
 
+    concav_plu = np.sign(np.diff(wall_plu, n=1, axis=0)) == +1
+    concav_min = np.sign(np.diff(wall_min, n=1, axis=0)) == +1
     if neighbors > 1:
-        concav_plu = np.all(np.sign(np.diff(wall_plu, n=1, axis=0)) == +1,
-                            axis=0)
-        concav_min = np.all(np.sign(np.diff(wall_min, n=1, axis=0)) == +1,
-                            axis=0)
+        concav_plu = np.all(concav_plu, axis=0)
+        concav_min = np.all(concav_min, axis=0)
 
     # select the dips
     selec = np.all(np.vstack((concav_plu, concav_min)), axis=0)
