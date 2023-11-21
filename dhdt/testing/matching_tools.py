@@ -3,7 +3,8 @@ from scipy.interpolate import RegularGridInterpolator
 
 from dhdt.preprocessing.image_transforms import mat_to_gray
 from dhdt.processing.matching_tools import get_integer_peak_location
-from dhdt.processing.matching_tools_frequency_filters import normalize_power_spectrum
+from dhdt.processing.matching_tools_frequency_filters import \
+    normalize_power_spectrum
 
 
 def create_sample_image_pair(d=2**7, max_range=1, integer=False, ndim=1):
@@ -63,10 +64,10 @@ def create_sample_image_pair(d=2**7, max_range=1, integer=False, ndim=1):
         ndim = np.maximum(im1.shape[-1], ndim)
     m, n = im1.shape[0:2]
 
-    scalar_mul = 2*np.minimum(d // 2, max_range)
+    scalar_mul = 2 * np.minimum(d // 2, max_range)
 
-    random_di = (np.random.random()-.5)*scalar_mul
-    random_dj = (np.random.random()-.5)*scalar_mul  # random translation
+    random_di = (np.random.random() - .5) * scalar_mul
+    random_dj = (np.random.random() - .5) * scalar_mul  # random translation
 
     if integer:
         random_di, random_dj = np.round(random_di), np.round(random_dj)
@@ -76,20 +77,23 @@ def create_sample_image_pair(d=2**7, max_range=1, integer=False, ndim=1):
     interp = RegularGridInterpolator((grd_i1, grd_j1, grd_k1), im1)
 
     # define new grid by applying offset
-    grd_i2, grd_j2, grd_k2 = np.meshgrid(grd_i1, grd_j1, grd_k1,
-                                         indexing='ij', sparse=True)
+    grd_i2, grd_j2, grd_k2 = np.meshgrid(grd_i1,
+                                         grd_j1,
+                                         grd_k1,
+                                         indexing='ij',
+                                         sparse=True)
     grd_i2 = grd_i2 + random_di
     grd_j2 = grd_j2 + random_dj
 
     # extract subregion and evaluate image on new grid
-    i_slice = slice(m//2-d//2, m//2+d//2)
-    j_slice = slice(n//2-d//2, n//2+d//2)
+    i_slice = slice(m // 2 - d // 2, m // 2 + d // 2)
+    j_slice = slice(n // 2 - d // 2, n // 2 + d // 2)
     im1_same = im1[i_slice, j_slice, :]
     im2 = interp((grd_i2[i_slice, :, :], grd_j2[:, j_slice, :], grd_k2))
     return im1_same, im2, random_di, random_dj, im1
 
 
-def create_sheared_image_pair(d=2**7,sh_i=0.00, sh_j=0.00, max_range=1):
+def create_sheared_image_pair(d=2**7, sh_i=0.00, sh_j=0.00, max_range=1):
     """ create an image pair with random offset and shearing
 
     Parameters
@@ -146,48 +150,49 @@ def create_sheared_image_pair(d=2**7,sh_i=0.00, sh_j=0.00, max_range=1):
             |        |  /        /
             +--------+ +--------+
 
-    The shear parameter is based upon a centered unit image domain, that is, the
-    image extent spans -1...+1
+    The shear parameter is based upon a centered unit image domain, that is,
+    the image extent spans -1...+1
     """
     from skimage import data
 
-    scalar_mul = 2*np.minimum(d // 2, max_range)
+    scalar_mul = 2 * np.minimum(d // 2, max_range)
 
-    random_di = (np.random.random()-.5)*scalar_mul
-    random_dj = (np.random.random()-.5)*scalar_mul # random tranlation
+    random_di = (np.random.random() - .5) * scalar_mul
+    random_dj = (np.random.random() - .5) * scalar_mul  # random tranlation
 
     im1 = data.astronaut()
-    im1 = mat_to_gray(im1[:,:,0], im1[:,:,0]==0)
-    (mI,nI) = im1.shape
+    im1 = mat_to_gray(im1[:, :, 0], im1[:, :, 0] == 0)
+    (mI, nI) = im1.shape
 
-    A = np.array([[1, sh_i], [sh_j, 1]]) # transformation matrix
-    (mI,nI) = im1.shape
+    A = np.array([[1, sh_i], [sh_j, 1]])  # transformation matrix
+    (mI, nI) = im1.shape
 
-    (grd_i1,grd_j1) = np.meshgrid(np.linspace(-1, 1, mI),
-                                  np.linspace(-1, 1, nI),
-                                  indexing='ij')
+    (grd_i1, grd_j1) = np.meshgrid(np.linspace(-1, 1, mI),
+                                   np.linspace(-1, 1, nI),
+                                   indexing='ij')
 
     stk_1 = np.column_stack([grd_i1.flatten(), grd_j1.flatten()])
 
     grd_2 = np.matmul(A, stk_1.T)
     # calculate new interpolation grid
-    grd_i2 = np.reshape(grd_2[0,:], (mI, nI))
-    grd_j2 = np.reshape(grd_2[1,:], (mI, nI))
+    grd_i2 = np.reshape(grd_2[0, :], (mI, nI))
+    grd_j2 = np.reshape(grd_2[1, :], (mI, nI))
 
     # introduce offset
-    grd_i2 += random_di/mI
-    grd_j2 += random_dj/nI
+    grd_i2 += random_di / mI
+    grd_j2 += random_dj / nI
 
     # do sheared interpolation
-    im2 = griddata(stk_1, im1.flatten().T,
-                   (grd_i2[mI//2-d:mI//2+d,nI//2-d:nI//2+d],
-                    grd_j2[mI//2-d:mI//2+d,nI//2-d:nI//2+d]),
+    im2 = griddata(stk_1,
+                   im1.flatten().T,
+                   (grd_i2[mI // 2 - d:mI // 2 + d, nI // 2 - d:nI // 2 + d],
+                    grd_j2[mI // 2 - d:mI // 2 + d, nI // 2 - d:nI // 2 + d]),
                    method='cubic')
-    im1_same = im1[mI//2-d:mI//2+d,nI//2-d:nI//2+d]
+    im1_same = im1[mI // 2 - d:mI // 2 + d, nI // 2 - d:nI // 2 + d]
     return im1_same, im2, random_di, random_dj, im1
 
 
-def create_scaled_image_pair(d=2**7,sc_x=1.00, sc_y=1.00, max_range=1):
+def create_scaled_image_pair(d=2**7, sc_x=1.00, sc_y=1.00, max_range=1):
     """ create an image pair with random offset and scaling
 
     Parameters
@@ -231,45 +236,46 @@ def create_scaled_image_pair(d=2**7,sc_x=1.00, sc_y=1.00, max_range=1):
     """
     from skimage import data
 
-    scalar_mul = 2*np.minimum(d // 2, max_range)
+    scalar_mul = 2 * np.minimum(d // 2, max_range)
 
-    random_di = (np.random.random()-.5)*scalar_mul
-    random_dj = (np.random.random()-.5)*scalar_mul # random tranlation
+    random_di = (np.random.random() - .5) * scalar_mul
+    random_dj = (np.random.random() - .5) * scalar_mul  # random tranlation
 
     im1 = data.astronaut()
-    im1 = mat_to_gray(im1[:,:,0], im1[:,:,0]==0)
-    (mI,nI) = im1.shape
+    im1 = mat_to_gray(im1[:, :, 0], im1[:, :, 0] == 0)
+    (mI, nI) = im1.shape
 
-    A = np.array([[1/sc_x, 0], [0, 1/sc_y]]) # transformation matrix
-    (mI,nI) = im1.shape
+    A = np.array([[1 / sc_x, 0], [0, 1 / sc_y]])  # transformation matrix
+    (mI, nI) = im1.shape
 
-    (grd_i1,grd_j1) = np.meshgrid(np.linspace(-1, 1, mI), np.linspace(-1, 1, nI))
+    (grd_i1, grd_j1) = np.meshgrid(np.linspace(-1, 1, mI),
+                                   np.linspace(-1, 1, nI))
 
     stk_1 = np.column_stack([grd_i1.flatten(), grd_j1.flatten()])
 
     grd_2 = np.matmul(A, stk_1.T)
     # calculate new interpolation grid
-    grd_i2 = np.reshape(grd_2[0,:], (mI, nI))
-    grd_j2 = np.reshape(grd_2[1,:], (mI, nI))
+    grd_i2 = np.reshape(grd_2[0, :], (mI, nI))
+    grd_j2 = np.reshape(grd_2[1, :], (mI, nI))
 
     # introduce offset
-    grd_i2 += random_di/mI
-    grd_j2 += random_dj/nI
+    grd_i2 += random_di / mI
+    grd_j2 += random_dj / nI
 
     # do shearing
-    im2 = griddata(stk_1, im1.flatten().T,
-                   (grd_i2[d:-d,d:-d],grd_j2[d:-d,d:-d]),
+    im2 = griddata(stk_1,
+                   im1.flatten().T, (grd_i2[d:-d, d:-d], grd_j2[d:-d, d:-d]),
                    method='cubic')
-    im1_same = im1[d:-d,d:-d]
+    im1_same = im1[d:-d, d:-d]
     return im1_same, im2, random_di, random_dj, im1
 
 
-def construct_correlation_peak(I, di, dj, fwhm=3., origin='center'):
+def construct_correlation_peak(Z, di, dj, fwhm=3., origin='center'):
     """given a displacement, create a gaussian peak
 
     Parameters
     ----------
-    I : numpy.ndarray, size=(m,n)
+    Z : numpy.ndarray, size=(m,n)
         image domain
     di : {float, np.array}
         displacement along the vertical axis
@@ -283,29 +289,30 @@ def construct_correlation_peak(I, di, dj, fwhm=3., origin='center'):
     C : np.array, size=(m,n), complex
         array with correlation peak in the form of a circular Gaussian
     """
-    m,n = I.shape[:2]
+    m, n = Z.shape[:2]
 
     (I_grd, J_grd) = np.meshgrid(np.arange(0, m),
                                  np.arange(0, n),
                                  indexing='ij')
     if origin in ('center'):
-        I_grd -= m//2
-        J_grd -= n//2
-    I_grd,J_grd = I_grd.astype('float64'), J_grd.astype('float64')
+        I_grd -= m // 2
+        J_grd -= n // 2
+    I_grd, J_grd = I_grd.astype('float64'), J_grd.astype('float64')
 
     if isinstance(di, float):
         I_grd -= di
         J_grd -= dj
-        C = np.exp(-4*np.log(2) * (I_grd**2 + J_grd**2) / fwhm**2)
+        C = np.exp(-4 * np.log(2) * (I_grd**2 + J_grd**2) / fwhm**2)
         return C
 
-    C = np.zeros((m,n), dtype=float)
-    for idx,delta_i in enumerate(di):
+    C = np.zeros((m, n), dtype=float)
+    for idx, delta_i in enumerate(di):
         delta_j = dj[idx]
-        C = np.maximum(C,
-                       np.real(
-                       np.exp(-4*np.log(2) * ((I_grd-delta_i)**2 +
-                                              (J_grd-delta_j)**2) / fwhm**2)))
+        C = np.maximum(
+            C,
+            np.real(
+                np.exp(-4 * np.log(2) * ((I_grd - delta_i)**2 +
+                                         (J_grd - delta_j)**2) / fwhm**2)))
     return C
 
 
@@ -322,16 +329,18 @@ def _test_phase_plane_localization(Q, di, dj, tolerance=1.):
         absolute tolerance that is allowed
     """
     C = np.fft.fftshift(np.real(np.fft.ifft2(Q)))
-    di_hat,dj_hat,_,_ = get_integer_peak_location(C)
+    di_hat, dj_hat, _, _ = get_integer_peak_location(C)
 
     assert np.isclose(np.round(di), di_hat, tolerance)
     assert np.isclose(np.round(dj), dj_hat, tolerance)
     return
 
+
 def _test_subpixel_localization(di_hat, dj_hat, di, dj, tolerance=.1):
     assert np.isclose(di, di_hat, tolerance)
     assert np.isclose(dj, dj_hat, tolerance)
     return
+
 
 def _test_phase_direction(θ, di, dj, tolerance=5):
     tolerance = np.deg2radrad(tolerance)
@@ -339,18 +348,19 @@ def _test_phase_direction(θ, di, dj, tolerance=5):
     θ_tilde = np.arctan2(di, dj)
 
     # convert to complex domain, so angular difference can be done
-    a,b = 1j*np.sin(θ), 1j*np.sin(θ_tilde)
+    a, b = 1j * np.sin(θ), 1j * np.sin(θ_tilde)
     a += np.cos(θ)
     b += np.cos(θ_tilde)
-    assert np.isclose(a,b, tolerance)
+    assert np.isclose(a, b, tolerance)
     return
+
 
 def _test_normalize_power_spectrum(Q, tolerance=.001):
     # trigonometric version
-    Qn = 1j*np.sin(np.angle(Q))
+    Qn = 1j * np.sin(np.angle(Q))
     Qn += np.cos(np.angle(Q))
-    np.putmask(Qn, Q==0, 0)
+    np.putmask(Qn, Q == 0, 0)
 
     Qd = normalize_power_spectrum(Q)
-    assert np.all(np.isclose(Qd,Qn, tolerance))
+    assert np.all(np.isclose(Qd, Qn, tolerance))
     return

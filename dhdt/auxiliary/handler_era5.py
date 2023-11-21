@@ -1,8 +1,8 @@
 import os
 
 import numpy as np
-
 import pygrib
+
 try:
     import cdsapi
 except ImportError as err:
@@ -13,11 +13,10 @@ except ImportError as err:
 
 # local libraries
 from dhdt.generic.mapping_tools import map2ll
-from dhdt.generic.unit_conversion import \
-    datetime2calender, datenum2datetime, hpa2pascal
+from dhdt.generic.unit_conversion import (datenum2datetime, datetime2calender,
+                                          hpa2pascal)
 
 # https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-pressure-levels
-
 
 ERA5_DIR_DEFAULT = os.path.join('.', 'data', 'ERA5')
 
@@ -44,11 +43,11 @@ def get_space_time_id(date, ϕ, λ, full=True):
 
     # construct part of string about the location
     fname = str(np.floor(np.abs(ϕ)).astype(int)).zfill(2)
-    fname += 'S' if ϕ<0 else 'N'
-    fname += f'{1 - ϕ%1:.3f}'[2:]
+    fname += 'S' if ϕ < 0 else 'N'
+    fname += f'{1 - ϕ % 1:.3f}'[2:]
 
     fname += '-' + str(np.floor(np.abs(λ)).astype(int)).zfill(3)
-    fname += 'W' if λ<0 else 'E'
+    fname += 'W' if λ < 0 else 'E'
     fname += f'{1 - λ % 1:.3f}'[2:]
 
     # construct part of string about the date
@@ -59,10 +58,11 @@ def get_space_time_id(date, ϕ, λ, full=True):
     fname += '-' + str(month).zfill(2) + '-' + str(day).zfill(2)
     return fname
 
+
 def get_amount_of_timestamps(name_str):
-    """ Reanalysis data from ERA5 can have different timestamps. These are given
-    in the name, separtated by an indent. This function counts these indents,
-    so the file does not need to be read.
+    """ Reanalysis data from ERA5 can have different timestamps. These are
+    given in the name, separtated by an indent. This function counts these
+    indents, so the file does not need to be read.
 
     Parameters
     ----------
@@ -85,13 +85,15 @@ def get_amount_of_timestamps(name_str):
     nmbr = len(name_str.split('-')[2].split(' '))
     return nmbr
 
+
 def get_era5_pressure_levels():
-    pres_levels = np.array([1, 2, 3, 5, 7, 10, 20, 30, 50,
-                            70, 100, 125, 150, 175, 200, 225,
-                            250, 300, 350, 400, 450, 500, 550,
-                            600, 650, 700, 750, 775, 800, 825,
-                            850, 875, 900, 925, 950, 975, 1000])
+    pres_levels = np.array([
+        1, 2, 3, 5, 7, 10, 20, 30, 50, 70, 100, 125, 150, 175, 200, 225, 250,
+        300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 775, 800, 825, 850,
+        875, 900, 925, 950, 975, 1000
+    ])
     return pres_levels
+
 
 # "General Regularly distributed Information in Binary form"
 def get_pressure_from_grib_file(fname='download.grib'):
@@ -116,49 +118,49 @@ def get_pressure_from_grib_file(fname='download.grib'):
     G, Rh, T, t = None, None, None, None
 
     grbs = pygrib.open(fname)
-    for i in np.linspace(1,grbs.messages,grbs.messages, dtype=int):
+    for i in np.linspace(1, grbs.messages, grbs.messages, dtype=int):
         grb = grbs.message(i)
-        idx = np.where(pres_levels==grb['level'])[0][0]
-        toi = grb['dataDate'] # time of interest
+        idx = np.where(pres_levels == grb['level'])[0][0]
+        toi = grb['dataDate']  # time of interest
 
         # initial admin
         if G is None:
-            m,n = len(pres_levels), grb['numberOfDataPoints']
-            G = np.zeros((m,n,1),
-                         dtype=np.float64)
+            m, n = len(pres_levels), grb['numberOfDataPoints']
+            G = np.zeros((m, n, 1), dtype=np.float64)
             Rh, T = np.zeros_like(G), np.zeros_like(G)
             ϕ, λ = grb['latitudes'], grb['longitudes']
             t = np.array([toi])
 
-        t_IN = t==toi # is date already visited before
+        t_IN = t == toi  # is date already visited before
         if np.any(t_IN):
             idx_t = np.where(t_IN)[0][0]
-        else: #update with new data entry for a specific time stamp
+        else:  # update with new data entry for a specific time stamp
             t = np.append(t, toi)
-            idx_t = t.size-1
+            idx_t = t.size - 1
             G = np.dstack((G, np.zeros((m, n, 1))))
             Rh = np.dstack((G, np.zeros((m, n, 1))))
             T = np.dstack((G, np.zeros((m, n, 1))))
 
-        if grb['parameterName']=='Geopotential':
-            G[idx,:,idx_t] = grb['values']
-        elif grb['parameterName']=='Relative humidity':
-            Rh[idx,:,idx_t] = grb['values']
-        elif grb['parameterName']=='Temperature':
-            T[idx,:,idx_t] = grb['values']
+        if grb['parameterName'] == 'Geopotential':
+            G[idx, :, idx_t] = grb['values']
+        elif grb['parameterName'] == 'Relative humidity':
+            Rh[idx, :, idx_t] = grb['values']
+        elif grb['parameterName'] == 'Temperature':
+            T[idx, :, idx_t] = grb['values']
     grbs.close()
 
-#    if t.size==1:
-#        G, Rh, T = np.squeeze(G), np.squeeze(Rh), np.squeeze(T)
+    #    if t.size==1:
+    #        G, Rh, T = np.squeeze(G), np.squeeze(Rh), np.squeeze(T)
     return ϕ, λ, G, Rh, T, t
+
 
 def get_wind_from_grib_file(fname='download.grib'):
     U, V, Rh, T = None, None, None, None
 
     grbs = pygrib.open(fname)
-    for i in np.linspace(1,grbs.messages,grbs.messages, dtype=int):
+    for i in np.linspace(1, grbs.messages, grbs.messages, dtype=int):
         grb = grbs.message(i)
-        idx = int(str(grb['date'])[4:-2])-1
+        idx = int(str(grb['date'])[4:-2]) - 1
 
         # initial admin
         if T is None:
@@ -166,16 +168,17 @@ def get_wind_from_grib_file(fname='download.grib'):
             Rh, U, V = np.zeros_like(T), np.zeros_like(T), np.zeros_like(T)
             ϕ, λ = grb['latitudes'], grb['longitudes']
 
-        if grb['parameterName']=='U component of wind':
-            U[idx,...] = grb['values']
-        elif grb['parameterName']=='V component of wind':
-            V[idx,...] = grb['values']
-        elif grb['parameterName']=='Relative humidity':
-            Rh[idx,...] = grb['values']
-        elif grb['parameterName']=='Temperature':
-            T[idx,...] = grb['values']
+        if grb['parameterName'] == 'U component of wind':
+            U[idx, ...] = grb['values']
+        elif grb['parameterName'] == 'V component of wind':
+            V[idx, ...] = grb['values']
+        elif grb['parameterName'] == 'Relative humidity':
+            Rh[idx, ...] = grb['values']
+        elif grb['parameterName'] == 'Temperature':
+            T[idx, ...] = grb['values']
     grbs.close()
     return ϕ, λ, U, V, Rh, T
+
 
 def get_era5_atmos_profile(date, x, y, spatialRef, z=None, era5_dir=None):
     """
@@ -233,11 +236,15 @@ def get_era5_atmos_profile(date, x, y, spatialRef, z=None, era5_dir=None):
     >>> ax2.plot(Pres,z,'g'), ax2.set_title('Pressure [Pa]'), ax2.set_yscale('log')
     >>> ax3.plot(fracHum,z,'b'), ax3.set_title('Humidity [%]'), ax3.set_yscale('log')
     >>> plt.show()
-    """
-    if isinstance(x, float): x = np.array([x])
-    if isinstance(y, float): y = np.array([y])
-    if z is None: z = 10**np.linspace(0,5,100)
-    if era5_dir is None: era5_dir = ERA5_DIR_DEFAULT
+    """  # noqa: E501
+    if isinstance(x, float):
+        x = np.array([x])
+    if isinstance(y, float):
+        y = np.array([y])
+    if z is None:
+        z = 10**np.linspace(0, 5, 100)
+    if era5_dir is None:
+        era5_dir = ERA5_DIR_DEFAULT
 
     pres_levels = get_era5_pressure_levels()
 
@@ -249,28 +256,37 @@ def get_era5_atmos_profile(date, x, y, spatialRef, z=None, era5_dir=None):
     # convert from mapping coordinates to lat, lon
     ll = map2ll(np.stack((x, y)).T, spatialRef)
 
-    ϕ_min, λ_min = np.min(ll[:,0]), np.min(ll[:,1])
-    ϕ_max, λ_max = np.max(ll[:,0]), np.max(ll[:,1])
+    ϕ_min, λ_min = np.min(ll[:, 0]), np.min(ll[:, 1])
+    ϕ_max, λ_max = np.max(ll[:, 0]), np.max(ll[:, 1])
 
     name = 'reanalysis-era5-pressure-levels'
-    id = get_space_time_id(date, np.mean(ll[:,0]), np.mean(ll[:,1]))
+    id = get_space_time_id(date, np.mean(ll[:, 0]), np.mean(ll[:, 1]))
     fpath = f'{era5_dir}/{name}-{id}.grib'  # using grib-data format
 
     if not os.path.isfile(fpath):
         request = {
-            'product_type': 'reanalysis',
-            'format': 'grib',
+            'product_type':
+            'reanalysis',
+            'format':
+            'grib',
             'variable': [
-                'geopotential', 'relative_humidity', 'temperature',
+                'geopotential',
+                'relative_humidity',
+                'temperature',
             ],
-            'pressure_level': np.ndarray.tolist(pres_levels.astype(str)),
-            'date': np.ndarray.tolist(np.datetime_as_string(date, unit='D')),
+            'pressure_level':
+            np.ndarray.tolist(pres_levels.astype(str)),
+            'date':
+            np.ndarray.tolist(np.datetime_as_string(date, unit='D')),
             'time': [
-                str(hour-1).zfill(2)+':00',
-                str(hour+1).zfill(2)+':00',
+                str(hour - 1).zfill(2) + ':00',
+                str(hour + 1).zfill(2) + ':00',
             ],
             'area': [
-                ϕ_max, λ_min, ϕ_min, λ_max,
+                ϕ_max,
+                λ_min,
+                ϕ_min,
+                λ_max,
             ],
         }
         download_era5(name, request, fpath)
@@ -279,27 +295,29 @@ def get_era5_atmos_profile(date, x, y, spatialRef, z=None, era5_dir=None):
 
     # extract atmospheric profile, see also
     # https://confluence.ecmwf.int/pages/viewpage.action?pageId=111155328
-    g_wmo = 9.80665 # gravity constant defined by WMO
-    z_G = G/g_wmo
+    g_wmo = 9.80665  # gravity constant defined by WMO
+    z_G = G / g_wmo
 
-    posts = 1 if z_G.ndim==1 else z_G.shape[1]
+    posts = 1 if z_G.ndim == 1 else z_G.shape[1]
     stamps = t.size
     Temp = np.zeros((len(z), posts, stamps), dtype=np.float64)
     Pres, RelHum = np.zeros_like(Temp), np.zeros_like(Temp)
     for i in range(posts):
         for j in range(stamps):
-            Pres[:,i,j] = np.interp(z, np.flip(z_G[:,i,j]),
-                                np.flip(pres_levels.astype(float)))
-            Temp[:,i,j] = np.interp(z, np.flip(z_G[:,i,j]), np.flip(T[:,i,j]))
-            RelHum[:,i,j] = np.interp(z, np.flip(z_G[:,i,j]), np.flip(Rh[:,i,j]))
+            Pres[:, i, j] = np.interp(z, np.flip(z_G[:, i, j]),
+                                      np.flip(pres_levels.astype(float)))
+            Temp[:, i, j] = np.interp(z, np.flip(z_G[:, i, j]),
+                                      np.flip(T[:, i, j]))
+            RelHum[:, i, j] = np.interp(z, np.flip(z_G[:, i, j]),
+                                        np.flip(Rh[:, i, j]))
 
     Pres = hpa2pascal(Pres)
-    fracHum = RelHum/100
+    fracHum = RelHum / 100
     t = datenum2datetime(t)
     return ϕ, λ, z, Temp, Pres, fracHum, t
 
-def get_era5_monthly_surface_wind(ϕ,λ,year, era5_dir=None):
 
+def get_era5_monthly_surface_wind(ϕ, λ, year, era5_dir=None):
     era5_dir = ERA5_DIR_DEFAULT if era5_dir is None else era5_dir
 
     name = 'reanalysis-era5-pressure-levels-monthly-means'
@@ -310,23 +328,43 @@ def get_era5_monthly_surface_wind(ϕ,λ,year, era5_dir=None):
         # era5 reanalysis grid is in .25[deg]
         deg_xtr = .5
         request = {
-            'product_type': 'monthly_averaged_reanalysis',
-            'format': 'grib',
+            'product_type':
+            'monthly_averaged_reanalysis',
+            'format':
+            'grib',
             'variable': [
-                'u_component_of_wind', 'v_component_of_wind',
-                'relative_humidity', 'temperature',
+                'u_component_of_wind',
+                'v_component_of_wind',
+                'relative_humidity',
+                'temperature',
             ],
-            'pressure_level': '1000',
-            'year': str(year),
-            'month': ['01', '02', '03', '04', '05', '06',
-                      '07', '08', '09', '10', '11', '12', ],
-            'time': '00:00',
-            'area': [ϕ+deg_xtr, λ-deg_xtr, ϕ-deg_xtr, λ+deg_xtr],
+            'pressure_level':
+            '1000',
+            'year':
+            str(year),
+            'month': [
+                '01',
+                '02',
+                '03',
+                '04',
+                '05',
+                '06',
+                '07',
+                '08',
+                '09',
+                '10',
+                '11',
+                '12',
+            ],
+            'time':
+            '00:00',
+            'area': [ϕ + deg_xtr, λ - deg_xtr, ϕ - deg_xtr, λ + deg_xtr],
         }
         download_era5(name, request, fpath)
     ϕ, λ, U, V, Rh, T = get_wind_from_grib_file(fname=fpath)
 
     return ϕ, λ, U, V, Rh, T
+
 
 def download_era5(name, request, target=None):
     """

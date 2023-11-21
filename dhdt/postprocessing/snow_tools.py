@@ -31,19 +31,19 @@ def drift_profile(Z, geoTransform, θ):
     # get scaling
     spac = np.hypot(geoTransform[1], geoTransform[2])
 
-    dx_1, dx_2, dx_3, dx_4 = 45., 15./2, (15+30)/2, (30+45)/2
+    dx_1, dx_2, dx_3, dx_4 = 45., 15. / 2, (15 + 30) / 2, (30 + 45) / 2
 
-    dx_1, dx_2, dx_3, dx_4 = dx_1/spac, dx_2/spac, dx_3/spac, dx_4/spac
-    Z_n = np.divide(Z, spac) # normalize from metric to pixel scale
+    dx_1, dx_2, dx_3, dx_4 = dx_1 / spac, dx_2 / spac, dx_3 / spac, dx_4 / spac
+    Z_n = np.divide(Z, spac)  # normalize from metric to pixel scale
 
     # steerable filters
-    dZdi_1,dZdj_1 = gradient_fourier(np.divide(Z_n, dx_1))
+    dZdi_1, dZdj_1 = gradient_fourier(np.divide(Z_n, dx_1))
     X_1 = []
 
     dZdi_2, dZdj_2 = gradient_fourier(np.divide(Z_n, dx_2), scaling=dx_2)
 
     # cut-off
 
-    Y = X_1 # eq.(1) in [1]
+    Y = X_1  # eq.(1) in [1]
 
     return Y

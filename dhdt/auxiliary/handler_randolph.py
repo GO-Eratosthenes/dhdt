@@ -8,40 +8,30 @@ import rasterio.features
 import shapely.geometry
 import xarray as xr
 
-from .handler_mgrs import get_tile_codes_from_geom, get_geom_for_tile_code
-from ..generic.handler_www import get_file_from_www, get_file_and_extract
 from ..generic.handler_sentinel2 import get_generic_s2_raster
-
+from ..generic.handler_www import get_file_and_extract, get_file_from_www
+from .handler_mgrs import get_geom_for_tile_code, get_tile_codes_from_geom
 
 # RGI version 6
 RGI_V6_ROOT_URL = 'https://www.glims.org/RGI/rgi60_files'
 RGI_V6_INDEX_URL = f'{RGI_V6_ROOT_URL}/00_rgi60_regions.zip'
 RGI_V6_REGION_FILENAMES = [
-    '01_rgi60_Alaska.zip',
-    '02_rgi60_WesternCanadaUS.zip',
-    '03_rgi60_ArcticCanadaNorth.zip',
-    '04_rgi60_ArcticCanadaSouth.zip',
-    '05_rgi60_GreenlandPeriphery.zip',
-    '06_rgi60_Iceland.zip',
-    '07_rgi60_Svalbard.zip',
-    '08_rgi60_Scandinavia.zip',
-    '09_rgi60_RussianArctic.zip',
-    '10_rgi60_NorthAsia.zip',
-    '11_rgi60_CentralEurope.zip',
-    '12_rgi60_CaucasusMiddleEast.zip',
-    '13_rgi60_CentralAsia.zip',
-    '14_rgi60_SouthAsiaWest.zip',
-    '15_rgi60_SouthAsiaEast.zip',
-    '16_rgi60_LowLatitudes.zip',
-    '17_rgi60_SouthernAndes.zip',
-    '18_rgi60_NewZealand.zip',
+    '01_rgi60_Alaska.zip', '02_rgi60_WesternCanadaUS.zip',
+    '03_rgi60_ArcticCanadaNorth.zip', '04_rgi60_ArcticCanadaSouth.zip',
+    '05_rgi60_GreenlandPeriphery.zip', '06_rgi60_Iceland.zip',
+    '07_rgi60_Svalbard.zip', '08_rgi60_Scandinavia.zip',
+    '09_rgi60_RussianArctic.zip', '10_rgi60_NorthAsia.zip',
+    '11_rgi60_CentralEurope.zip', '12_rgi60_CaucasusMiddleEast.zip',
+    '13_rgi60_CentralAsia.zip', '14_rgi60_SouthAsiaWest.zip',
+    '15_rgi60_SouthAsiaEast.zip', '16_rgi60_LowLatitudes.zip',
+    '17_rgi60_SouthernAndes.zip', '18_rgi60_NewZealand.zip',
     '19_rgi60_AntarcticSubantarctic.zip'
 ]
 
 
 def _get_rgi_v6_region_urls(rgi_regions):
     rgi_codes = rgi_regions['RGI_CODE']
-    filenames = [RGI_V6_REGION_FILENAMES[code-1] for code in rgi_codes]
+    filenames = [RGI_V6_REGION_FILENAMES[code - 1] for code in rgi_codes]
     return [f'{RGI_V6_ROOT_URL}/{fname}' for fname in filenames]
 
 
@@ -51,11 +41,9 @@ def _get_rgi_v6_ids(rgi_glaciers):
 
 # RGI version 7
 RGI_V7_ROOT_URL = (
-    'https://cluster.klima.uni-bremen.de/~fmaussion/misc/rgi7_data'
-)
+    'https://cluster.klima.uni-bremen.de/~fmaussion/misc/rgi7_data')
 RGI_V7_INDEX_URL = (
-    f'{RGI_V7_ROOT_URL}/00_rgi70_regions/00_rgi70_O1Regions.zip'
-)
+    f'{RGI_V7_ROOT_URL}/00_rgi70_regions/00_rgi70_O1Regions.zip')
 
 
 def _get_rgi_v7_region_urls(rgi_regions):
@@ -81,7 +69,6 @@ RGI_DATASETS = {
     },
 }
 
-
 RGI_DIR_DEFAULT = os.path.join('.', 'data', 'RGI')
 
 
@@ -99,9 +86,7 @@ def _get_rgi_shapes(rgi_paths, version):
     return glaciers.geometry
 
 
-def which_rgi_regions(
-        aoi=None, version=7, rgi_path=None, tile_path=None
-):
+def which_rgi_regions(aoi=None, version=7, rgi_path=None, tile_path=None):
     """
     Discover which Randolph Glacier Inventory (RGI) regions are used
     for a given region.
@@ -134,9 +119,8 @@ def which_rgi_regions(
     assert isinstance(version, int), 'please provide an integer'
     assert version in RGI_DATASETS.keys(), f'version {version} not supported'
     if rgi_path is None:
-        rgi_path = os.path.join(
-            RGI_DIR_DEFAULT, _get_rgi_index_filename(version)
-        )
+        rgi_path = os.path.join(RGI_DIR_DEFAULT,
+                                _get_rgi_index_filename(version))
     assert os.path.isfile(rgi_path), 'file does not seem to be present'
 
     rgi_reg = gpd.read_file(rgi_path)
@@ -156,7 +140,10 @@ def which_rgi_regions(
         return get_rgi_region_urls(rgi_reg)
 
 
-def download_rgi(aoi=None, version=7, rgi_dir=None, tile_path=None,
+def download_rgi(aoi=None,
+                 version=7,
+                 rgi_dir=None,
+                 tile_path=None,
                  overwrite=False):
     """
     Download the relevant Randolph Glacier Inventory (RGI) files. If a region
@@ -196,10 +183,11 @@ def download_rgi(aoi=None, version=7, rgi_dir=None, tile_path=None,
     index_file = get_file_from_www(index_url, rgi_dir, overwrite)
 
     # determine relevant region(s)
-    rgi_region_urls = which_rgi_regions(
-        aoi, version, rgi_path=os.path.join(rgi_dir, index_file),
-        tile_path=tile_path
-    )
+    rgi_region_urls = which_rgi_regions(aoi,
+                                        version,
+                                        rgi_path=os.path.join(
+                                            rgi_dir, index_file),
+                                        tile_path=tile_path)
 
     # download region files
     shapefiles = []
@@ -251,14 +239,17 @@ def create_rgi_raster(rgi_shapes, geoTransform, crs, raster_path=None):
     raster.rio.write_transform(transform, inplace=True)
 
     os.makedirs(os.path.dirname(raster_path), exist_ok=True)
-    raster.rio.to_raster(
-        raster_path, tiled=True, compress='LZW', dtype="uint32"
-    )
+    raster.rio.to_raster(raster_path,
+                         tiled=True,
+                         compress='LZW',
+                         dtype="uint32")
 
 
-def create_rgi_tile_s2(
-        aoi, version=7, rgi_dir=None, out_dir=None, tile_path=None
-):
+def create_rgi_tile_s2(aoi,
+                       version=7,
+                       rgi_dir=None,
+                       out_dir=None,
+                       tile_path=None):
     """
     Creates a raster file with the extent of a generic Sentinel-2 tile, that is
     situated at a specific location
@@ -301,7 +292,9 @@ def create_rgi_tile_s2(
 
     # search in which region the glacier is situated, and download its
     # geometric data, if this in not present on the local machine
-    rgi_paths = download_rgi(aoi=aoi, version=version, rgi_dir=rgi_dir,
+    rgi_paths = download_rgi(aoi=aoi,
+                             version=version,
+                             rgi_dir=rgi_dir,
                              tile_path=tile_path)
 
     if isinstance(aoi, str):
@@ -312,9 +305,8 @@ def create_rgi_tile_s2(
 
     rgi_raster_paths = []
     for mgrs_code in mgrs_codes:
-        geoTransform, crs = get_generic_s2_raster(
-            mgrs_code, tile_path=tile_path
-        )
+        geoTransform, crs = get_generic_s2_raster(mgrs_code,
+                                                  tile_path=tile_path)
         rgi_raster_path = os.path.join(out_dir, f'{mgrs_code}.tif')
         rgi_shapes = _get_rgi_shapes(rgi_paths, version)
         create_rgi_raster(rgi_shapes, geoTransform, crs, rgi_raster_path)

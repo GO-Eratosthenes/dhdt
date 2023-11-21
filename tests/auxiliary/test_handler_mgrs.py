@@ -1,12 +1,13 @@
-import pytest
 import urllib.request
+
 import geopandas as gpd
 import numpy as np
-from shapely.geometry import Polygon, MultiPolygon
+import pytest
 from shapely import wkt
+from shapely.geometry import MultiPolygon, Polygon
 
 import dhdt.generic.unit_check
-from dhdt.auxilary import handler_mgrs
+from dhdt.auxiliary import handler_mgrs
 
 # A subset of original MGRS, sampling every 1500 entries
 TESTDATA_KML = 'testdata/MGRS/mgrs_tiles_tiny.kml'
@@ -19,7 +20,9 @@ TILE_CODE = '51GWL'  # tile code
 POINT_WITHIN = 'POINT (123.69324 -44.74430)'  # A point within the tile
 POINT_OUTSIDE = 'POINT (-53.1 1.5)'  # A point outside tile
 # A polygon within the tile
-POLYGON_WITHIN = 'POLYGON ((123.199 -44.451, 124.179 -44.445, 124.193 -45.034, 123.199 -45.040, 123.199 -44.451))'
+POLYGON_WITHIN = (
+    'POLYGON ((123.199 -44.451, 124.179 -44.445, 124.193 -45.034, 123.199 '
+    '-45.040, 123.199 -44.451))')
 # A polygon overlaps but larger than the tile
 POLYGON_LARGER = 'POLYGON ((0.0 -10, 125.0 -10, 125.0 -45, 0.0 -45, 0.0 -10))'
 # A ploygon outside
@@ -30,10 +33,12 @@ def geom_types(wkt_text):
     """
         Make all types of geom from wkt
     """
-    return [wkt_text,
-            wkt.loads(wkt_text),
-            gpd.GeoSeries.from_wkt([wkt_text]),
-            gpd.GeoDataFrame(geometry=gpd.GeoSeries.from_wkt([wkt_text]))]
+    return [
+        wkt_text,
+        wkt.loads(wkt_text),
+        gpd.GeoSeries.from_wkt([wkt_text]),
+        gpd.GeoDataFrame(geometry=gpd.GeoSeries.from_wkt([wkt_text]))
+    ]
 
 
 # Data retrieval tests
@@ -69,16 +74,16 @@ def test_mgrs_to_search_geometry_range():
 
 
 def test_get_bbox_from_tile_code_bbox_equal():
-    bbox = handler_mgrs.get_bbox_from_tile_code(
-        TILE_CODE, tile_path=TESTDATA_GEOJSON)
+    bbox = handler_mgrs.get_bbox_from_tile_code(TILE_CODE,
+                                                tile_path=TESTDATA_GEOJSON)
     assert bbox == pytest.approx(
         np.array([122.999, 124.398, -45.241, -44.244]), 0.001)
 
 
 def test_get_geom_for_tile_code_geometry():
     # geom from query equals to directly read geom
-    geom = handler_mgrs.get_geom_for_tile_code(
-        TILE_CODE, tile_path=TESTDATA_GEOJSON)
+    geom = handler_mgrs.get_geom_for_tile_code(TILE_CODE,
+                                               tile_path=TESTDATA_GEOJSON)
     gdf = gpd.read_file(TESTDATA_GEOJSON)
     geom_read = gdf.loc[gdf["Name"] == TILE_CODE]["geometry"]
     assert geom.equals(geom_read.squeeze())
@@ -86,44 +91,44 @@ def test_get_geom_for_tile_code_geometry():
 
 def test_get_geom_for_tile_code_crossing_antimeridian():
     # geom of tiles crossing the antimeridian should be multipolygons
-    geom = handler_mgrs.get_geom_for_tile_code(
-        "01CCV", tile_path=TESTDATA_GEOJSON)
+    geom = handler_mgrs.get_geom_for_tile_code("01CCV",
+                                               tile_path=TESTDATA_GEOJSON)
     assert isinstance(geom, MultiPolygon)
 
 
 @pytest.mark.parametrize("geom", geom_types(POINT_WITHIN))
 def test_get_tile_codes_from_geom_point_within(geom):
-    code = handler_mgrs.get_tile_codes_from_geom(
-        geom, tile_path=TESTDATA_GEOJSON)
+    code = handler_mgrs.get_tile_codes_from_geom(geom,
+                                                 tile_path=TESTDATA_GEOJSON)
     assert len(code) == 1
     assert code[0] == TILE_CODE
 
 
 @pytest.mark.parametrize("geom", geom_types(POINT_OUTSIDE))
 def test_get_tile_codes_from_geom_point_outside(geom):
-    code = handler_mgrs.get_tile_codes_from_geom(
-        geom, tile_path=TESTDATA_GEOJSON)
+    code = handler_mgrs.get_tile_codes_from_geom(geom,
+                                                 tile_path=TESTDATA_GEOJSON)
     assert len(code) == 0
 
 
 @pytest.mark.parametrize("geom", geom_types(POLYGON_WITHIN))
 def test_get_tile_codes_from_geom_polygon_within(geom):
-    code = handler_mgrs.get_tile_codes_from_geom(
-        geom, tile_path=TESTDATA_GEOJSON)
+    code = handler_mgrs.get_tile_codes_from_geom(geom,
+                                                 tile_path=TESTDATA_GEOJSON)
     assert len(code) == 1
     assert code[0] == TILE_CODE
 
 
 @pytest.mark.parametrize("geom", geom_types(POLYGON_LARGER))
 def test_get_tile_codes_from_geom_polygon_overlap(geom):
-    code = handler_mgrs.get_tile_codes_from_geom(
-        geom, tile_path=TESTDATA_GEOJSON)
+    code = handler_mgrs.get_tile_codes_from_geom(geom,
+                                                 tile_path=TESTDATA_GEOJSON)
     assert len(code) > 1
     assert TILE_CODE in code
 
 
 @pytest.mark.parametrize("geom", geom_types(POLYGON_OUTSIDE))
 def test_get_tile_codes_from_geom_polygon_outside(geom):
-    code = handler_mgrs.get_tile_codes_from_geom(
-        geom, tile_path=TESTDATA_GEOJSON)
+    code = handler_mgrs.get_tile_codes_from_geom(geom,
+                                                 tile_path=TESTDATA_GEOJSON)
     assert len(code) == 0

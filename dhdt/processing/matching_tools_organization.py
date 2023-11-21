@@ -2,31 +2,36 @@
 
 import numpy as np
 
-from .matching_tools_frequency_filters import \
-    perdecomp, thresh_masking, coherence_masking
-from .matching_tools_frequency_correlators import \
-    cosi_corr, phase_only_corr, symmetric_phase_corr, amplitude_comp_corr, \
-    orientation_corr, phase_corr, cross_corr, masked_cosine_corr, \
-    binary_orientation_corr, masked_corr, robust_corr, windrose_corr, \
-    gaussian_transformed_phase_corr, upsampled_cross_corr, \
-    projected_phase_corr, gradient_corr, normalized_gradient_corr
-from .matching_tools_frequency_subpixel import \
-    phase_tpss, phase_svd, phase_radon, phase_hough, phase_ransac, \
-    phase_weighted_pca, phase_pca, phase_lsq, phase_difference
-from .matching_tools_frequency_metrics import \
-    list_phase_metrics, get_phase_metric
-from .matching_tools_spatial_correlators import \
-    normalized_cross_corr, sum_sq_diff, sum_sad_diff, cumulative_cross_corr, \
-    maximum_likelihood, weighted_normalized_cross_correlation
-from .matching_tools_spatial_subpixel import \
-    get_top_gaussian, get_top_parabolic, get_top_moment, \
-    get_top_mass, get_top_centroid, get_top_blais, get_top_ren, \
-    get_top_birchfield, get_top_equiangular, get_top_triangular, \
-    get_top_esinc, get_top_paraboloid, get_top_2d_gaussian
-from .matching_tools_spatial_metrics import \
-    list_matching_metrics, get_correlation_metric, hessian_spread, gauss_spread
-from .matching_tools_differential import \
-    affine_optical_flow, hough_optical_flow
+from .matching_tools_differential import (affine_optical_flow,
+                                          hough_optical_flow)
+from .matching_tools_frequency_correlators import (
+    amplitude_comp_corr, binary_orientation_corr, cosi_corr, cross_corr,
+    gaussian_transformed_phase_corr, gradient_corr, masked_corr,
+    masked_cosine_corr, normalized_gradient_corr, orientation_corr, phase_corr,
+    phase_only_corr, projected_phase_corr, robust_corr, symmetric_phase_corr,
+    upsampled_cross_corr, windrose_corr)
+from .matching_tools_frequency_filters import (coherence_masking, perdecomp,
+                                               thresh_masking)
+from .matching_tools_frequency_metrics import (get_phase_metric,
+                                               list_phase_metrics)
+from .matching_tools_frequency_subpixel import (phase_difference, phase_hough,
+                                                phase_lsq, phase_pca,
+                                                phase_radon, phase_ransac,
+                                                phase_svd, phase_tpss,
+                                                phase_weighted_pca)
+from .matching_tools_spatial_correlators import (
+    cumulative_cross_corr, maximum_likelihood, normalized_cross_corr,
+    sum_sad_diff, sum_sq_diff, weighted_normalized_cross_correlation)
+from .matching_tools_spatial_metrics import (gauss_spread,
+                                             get_correlation_metric,
+                                             hessian_spread,
+                                             list_matching_metrics)
+from .matching_tools_spatial_subpixel import (
+    get_top_2d_gaussian, get_top_birchfield, get_top_blais, get_top_centroid,
+    get_top_equiangular, get_top_esinc, get_top_gaussian, get_top_mass,
+    get_top_moment, get_top_parabolic, get_top_paraboloid, get_top_ren,
+    get_top_triangular)
+
 
 # admin
 def list_frequency_correlators(unique=False):
@@ -53,23 +58,27 @@ def list_frequency_correlators(unique=False):
     -------
     correlator_list : list of strings
     """
-    correlator_list = ['cosi_corr', 'phas_only', 'symm_phas', 'ampl_comp',
-                       'orie_corr', 'grad_corr', 'grad_norm', 'bina_phas',
-                       'wind_corr', 'gaus_phas', 'cros_corr', 'robu_corr',
-                       'proj_phas', 'phas_corr']
+    correlator_list = [
+        'cosi_corr', 'phas_only', 'symm_phas', 'ampl_comp', 'orie_corr',
+        'grad_corr', 'grad_norm', 'bina_phas', 'wind_corr', 'gaus_phas',
+        'cros_corr', 'robu_corr', 'proj_phas', 'phas_corr'
+    ]
     if unique:
         aka_list = []
     else:
-        aka_list = ['CC',           # cross-correlation
-                    'OC',           # orientation correlation
-                    'PC',           # phase-only correlation
-                    'GC',           # gradient correlation
-                    'RC',           # robust correlation
-                    'SPOF', 'SCOT', # symmetric phase correlation
-                    'ACMF',         # amplitude compensation phase correlation
-                    ]
+        aka_list = [
+            'CC',  # cross-correlation
+            'OC',  # orientation correlation
+            'PC',  # phase-only correlation
+            'GC',  # gradient correlation
+            'RC',  # robust correlation
+            'SPOF',
+            'SCOT',  # symmetric phase correlation
+            'ACMF',  # amplitude compensation phase correlation
+        ]
         aka_list = [x.lower() for x in aka_list]
     return correlator_list + aka_list
+
 
 def list_spatial_correlators(unique=False):
     """ list the abbreviations of the different implemented correlators.
@@ -87,16 +96,19 @@ def list_spatial_correlators(unique=False):
     correlator_list : list of strings
 
     """
-    correlator_list = ['norm_corr', 'sq_diff', 'sad_diff',
-                       'max_like', 'wght_corr']
+    correlator_list = [
+        'norm_corr', 'sq_diff', 'sad_diff', 'max_like', 'wght_corr'
+    ]
     if unique:
         aka_list = []
     else:
-        aka_list = ['ncc',       # 'normalized cross correlation',
-                    'wncc'       # weighted normalized cross correlation
-                   ]
+        aka_list = [
+            'ncc',  # 'normalized cross correlation',
+            'wncc'  # weighted normalized cross correlation
+        ]
         aka_list = [x.lower() for x in aka_list]
     return correlator_list + aka_list
+
 
 def list_differential_correlators():
     """" list the abbreviations of the different implemented differential
@@ -118,6 +130,7 @@ def list_differential_correlators():
     """
     correlator_list = ['lucas_kan', 'lucas_aff', 'hough_opt_flw']
     return correlator_list
+
 
 def list_phase_estimators():
     """ list the abbreviations of the different implemented phase plane
@@ -144,13 +157,15 @@ def list_phase_estimators():
     --------
     list_peak_estimators, list_differential_correlators
     """
-    subpix_list = ['tpss','svd','radon', 'hough', 'ransac', 'wpca',
-                   'pca', 'lsq', 'diff']
+    subpix_list = [
+        'tpss', 'svd', 'radon', 'hough', 'ransac', 'wpca', 'pca', 'lsq', 'diff'
+    ]
     return subpix_list
 
+
 def list_peak_estimators():
-    """ list the abbreviations of the different implemented for the peak fitting
-    of the similarity function.
+    """ list the abbreviations of the different implemented for the peak
+    fitting of the similarity function.
 
     The following methods are implemented:
 
@@ -177,13 +192,20 @@ def list_peak_estimators():
     --------
     list_phase_estimators, list_differential_correlators
     """
-    subpix_list = ['gauss_1', 'parab_1', 'moment', 'mass', 'centroid',
-                  'blais', 'ren', 'birch', 'eqang', 'trian', 'esinc',
-                  'gauss_2', 'parab_2', 'optical_flow']
+    subpix_list = [
+        'gauss_1', 'parab_1', 'moment', 'mass', 'centroid', 'blais', 'ren',
+        'birch', 'eqang', 'trian', 'esinc', 'gauss_2', 'parab_2',
+        'optical_flow'
+    ]
     return subpix_list
 
+
 # todo: include masks
-def estimate_translation_of_two_subsets(I1, I2, M1, M2, correlator='lucas_kan',
+def estimate_translation_of_two_subsets(I1,
+                                        I2,
+                                        M1,
+                                        M2,
+                                        correlator='lucas_kan',
                                         **kwargs):
     """
 
@@ -203,52 +225,58 @@ def estimate_translation_of_two_subsets(I1, I2, M1, M2, correlator='lucas_kan',
     score : float
         (dis)-similarity score
     """
-    assert type(I1) == np.ndarray, ('please provide an array')
-    assert type(I2) == np.ndarray, ('please provide an array')
-    assert type(M1) == np.ndarray, ('please provide an array')
-    assert type(M2) == np.ndarray, ('please provide an array')
+    assert isinstance(I1, np.ndarray), 'please provide an array'
+    assert isinstance(I2, np.ndarray), 'please provide an array'
+    assert isinstance(M1, np.ndarray), 'please provide an array'
+    assert isinstance(M2, np.ndarray), 'please provide an array'
 
     optical_flow_approaches = list_differential_correlators()
     assert (correlator in optical_flow_approaches), \
-            ('please provide a valid optical flow approach. ' +
-             'this can be one of the following:'+
-             f' { {*optical_flow_approaches} }')
+        ('please provide a valid optical flow approach. ' +
+         'this can be one of the following:' +
+         f' { {*optical_flow_approaches} }')
 
     if correlator in ['lucas_aff']:
-        di,dj,_,score = affine_optical_flow(I1, I2, model='affine',
-                                            preprocessing=
-                                            kwargs.get('preprocessing'))
+        di, dj, _, score = affine_optical_flow(
+            I1, I2, model='affine', preprocessing=kwargs.get('preprocessing'))
     if correlator in ['hough_opt_flw']:
         num_est, max_amp = 1, 1
-        if kwargs.get('num_estimates') != None:
+        if kwargs.get('num_estimates') is not None:
             num_est = kwargs.get('num_estimates')
-        if kwargs.get('max_amp') != None:
+        if kwargs.get('max_amp') is not None:
             max_amp = kwargs.get('max_amp')
 
-        if M1.size!=0: I1[M1] = np.nan # set data outside mask to NaN
-        if M2.size!=0: I2[M2] = np.nan  # set data outside mask to NaN
+        if M1.size != 0:
+            I1[M1] = np.nan  # set data outside mask to NaN
+        if M2.size != 0:
+            I2[M2] = np.nan  # set data outside mask to NaN
 
-        di,dj,score = hough_optical_flow(I1, I2,
-                                         num_estimates=num_est,
-                                         preprocessing=kwargs.get('preprocessing'),
-                                         max_amp=max_amp)
-    else: #'lucas_kan'
-        di,dj,_,score = affine_optical_flow(I1, I2, model='simple',
-                                            preprocessing=
-                                            kwargs.get('preprocessing')
-                                            )
+        di, dj, score = hough_optical_flow(
+            I1,
+            I2,
+            num_estimates=num_est,
+            preprocessing=kwargs.get('preprocessing'),
+            max_amp=max_amp)
+    else:  # 'lucas_kan'
+        di, dj, _, score = affine_optical_flow(
+            I1, I2, model='simple', preprocessing=kwargs.get('preprocessing'))
 
     return di, dj, score
 
-def match_translation_of_two_subsets(I1_sub,I2_sub,correlator,subpix,
-                                     M1_sub=np.array([]), M2_sub=np.array([]) ):
+
+def match_translation_of_two_subsets(I1_sub,
+                                     I2_sub,
+                                     correlator,
+                                     subpix,
+                                     M1_sub=np.array([]),
+                                     M2_sub=np.array([])):
     """
 
     Parameters
     ----------
-    I1_sub : numpy.ndarray, size={(m,n),(k,l)}, dtype={float,integer}, ndim={2,3}
+    I1_sub : numpy.ndarray, size={(m,n),(k,l)}, dtype={float,int}, ndim={2,3}
         grid with intensities, a.k.a. template to locate
-    I2_sub : numpy.ndarray, size=(m,n), dtype={float,integer}, ndim={2,3}
+    I2_sub : numpy.ndarray, size=(m,n), dtype={float,int}, ndim={2,3}
         grid with intensities, a.k.a. search space
     correlator : string
         methodology to use to correlate I1 and I2
@@ -269,10 +297,10 @@ def match_translation_of_two_subsets(I1_sub,I2_sub,correlator,subpix,
     list_phase_estimators, list_peak_estimators
 
     """
-    assert type(I1_sub)==np.ndarray, ('please provide an array')
-    assert type(I2_sub)==np.ndarray, ('please provide an array')
-    assert type(M1_sub)==np.ndarray, ('please provide an array')
-    assert type(M2_sub)==np.ndarray, ('please provide an array')
+    assert isinstance(I1_sub, np.ndarray), 'please provide an array'
+    assert isinstance(I2_sub, np.ndarray), 'please provide an array'
+    assert isinstance(M1_sub, np.ndarray), 'please provide an array'
+    assert isinstance(M2_sub, np.ndarray), 'please provide an array'
     frequency_based = list_frequency_correlators()
     spatial_based = list_spatial_correlators()
 
@@ -282,13 +310,14 @@ def match_translation_of_two_subsets(I1_sub,I2_sub,correlator,subpix,
     peak_based = list_peak_estimators()
 
     assert ((correlator in frequency_based) or
-        (correlator in spatial_based)), ('please provide a valid correlation '+
-                                     'method. it can be one of the following:'+
-                                     f' { {*frequency_based,*spatial_based} }')
+            (correlator
+             in spatial_based)), ('please provide a valid correlation ' +
+                                  'method. it can be one of the following:' +
+                                  f' { {*frequency_based, *spatial_based} }')
 
     # reduce edge effects in frequency space
     if correlator in frequency_based:
-        I1_sub,I2_sub = perdecomp(I1_sub)[0], perdecomp(I2_sub)[0]
+        I1_sub, I2_sub = perdecomp(I1_sub)[0], perdecomp(I2_sub)[0]
 
     # translational matching/estimation
     if correlator in frequency_based:
@@ -311,7 +340,8 @@ def match_translation_of_two_subsets(I1_sub,I2_sub,correlator,subpix,
             Q = normalized_gradient_corr(I1_sub, I2_sub)
         elif correlator in ['mask_corr']:
             C = masked_corr(I1_sub, I2_sub, M1_sub, M2_sub)
-            if subpix in phase_based: Q = np.fft.fft2(C)
+            if subpix in phase_based:
+                Q = np.fft.fft2(C)
         elif correlator in ['bina_phas']:
             Q = binary_orientation_corr(I1_sub, I2_sub)
         elif correlator in ['wind_corr']:
@@ -326,7 +356,8 @@ def match_translation_of_two_subsets(I1_sub,I2_sub,correlator,subpix,
             Q = robust_corr(I1_sub, I2_sub)
         elif correlator in ['proj_phas']:
             C = projected_phase_corr(I1_sub, I2_sub, M1_sub, M2_sub)
-            if subpix in phase_based: Q = np.fft.fft2(C)
+            if subpix in phase_based:
+                Q = np.fft.fft2(C)
         if (subpix in peak_based) and ('Q' in locals()):
             C = np.fft.fftshift(np.real(np.fft.ifft2(Q)))
     else:
@@ -349,6 +380,7 @@ def match_translation_of_two_subsets(I1_sub,I2_sub,correlator,subpix,
         return C
     else:
         return Q
+
 
 def estimate_subpixel(QC, subpix, m0=np.zeros((1, 2)), **kwargs):
     """ estimate the sub-pixel translational displacement, present in a
@@ -373,70 +405,72 @@ def estimate_subpixel(QC, subpix, m0=np.zeros((1, 2)), **kwargs):
     match_translation_of_two_subsets,
     list_phase_estimators, list_peak_estimators
     """
-    assert type(QC)==np.ndarray, ('please provide an array')
-    assert type(m0)==np.ndarray, ('please provide an array')
+    assert isinstance(QC, np.ndarray), 'please provide an array'
+    assert isinstance(m0, np.ndarray), 'please provide an array'
     phase_based = list_phase_estimators()
     peak_based = list_peak_estimators()
     assert ((subpix in phase_based) or (subpix in peak_based)), \
         ('please provide a valid subpixel method.' +
          'it can be one of the following:' +
-         f' { {*peak_based,*phase_based} }')
+         f' { {*peak_based, *phase_based} }')
 
     ds = 1
-    if kwargs.get('ds') != None: ds = kwargs.get('num_estimates')
+    if kwargs.get('ds') is not None:
+        ds = kwargs.get('num_estimates')
 
-    if subpix in peak_based: # correlation surface
+    if subpix in peak_based:  # correlation surface
         if subpix in ['gauss_1']:
-            ddi,ddj,_,_ = get_top_gaussian(QC, top=m0)
+            ddi, ddj, _, _ = get_top_gaussian(QC, top=m0)
         elif subpix in ['parab_1']:
-            ddi,ddj,_,_= get_top_parabolic(QC, top=m0)
+            ddi, ddj, _, _ = get_top_parabolic(QC, top=m0)
         elif subpix in ['moment']:
-            ddi,ddj,_,_= get_top_moment(QC, ds=ds, top=m0)
+            ddi, ddj, _, _ = get_top_moment(QC, ds=ds, top=m0)
         elif subpix in ['mass']:
-            ddi,ddj,_,_= get_top_mass(QC, top=m0)
+            ddi, ddj, _, _ = get_top_mass(QC, top=m0)
         elif subpix in ['centroid']:
-            ddi,ddj,_,_= get_top_centroid(QC, top=m0)
+            ddi, ddj, _, _ = get_top_centroid(QC, top=m0)
         elif subpix in ['blais']:
-            ddi,ddj,_,_= get_top_blais(QC, top=m0)
+            ddi, ddj, _, _ = get_top_blais(QC, top=m0)
         elif subpix in ['ren']:
-            ddi,ddj,_,_= get_top_ren(QC, top=m0)
+            ddi, ddj, _, _ = get_top_ren(QC, top=m0)
         elif subpix in ['birch']:
-            ddi,ddj,_,_= get_top_birchfield(QC, top=m0)
+            ddi, ddj, _, _ = get_top_birchfield(QC, top=m0)
         elif subpix in ['eqang']:
-            ddi,ddj,_,_= get_top_equiangular(QC, top=m0)
+            ddi, ddj, _, _ = get_top_equiangular(QC, top=m0)
         elif subpix in ['trian']:
-            ddi,ddj,_,_= get_top_triangular(QC, top=m0)
+            ddi, ddj, _, _ = get_top_triangular(QC, top=m0)
         elif subpix in ['esinc']:
-            ddi,ddj,_,_= get_top_esinc(QC, ds=ds, top=m0)
+            ddi, ddj, _, _ = get_top_esinc(QC, ds=ds, top=m0)
         elif subpix in ['gauss_2']:
-            ddi,ddj,_,_= get_top_2d_gaussian(QC, ds=ds, top=m0)
+            ddi, ddj, _, _ = get_top_2d_gaussian(QC, ds=ds, top=m0)
         elif subpix in ['parab_2t']:
-            ddi,ddj,_,_= get_top_paraboloid(QC, ds=ds, top=m0)
+            ddi, ddj, _, _ = get_top_paraboloid(QC, ds=ds, top=m0)
 
-    elif subpix in phase_based: #cross-spectrum
+    elif subpix in phase_based:  # cross-spectrum
         if subpix in ['tpss']:
             W = thresh_masking(QC)
-            ddi,ddj,snr = phase_tpss(QC, W, m0)
+            ddi, ddj, snr = phase_tpss(QC, W, m0)
         elif subpix in ['svd']:
             W = coherence_masking(QC)
-            ddi,ddj = phase_svd(QC, W, rad=0.4)
+            ddi, ddj = phase_svd(QC, W, rad=0.4)
         elif subpix in ['radon']:
-            ddi,ddj = phase_radon(QC)
+            ddi, ddj = phase_radon(QC)
         elif subpix in ['hough']:
-            ddi,ddj = phase_hough(QC)
+            ddi, ddj = phase_hough(QC)
         elif subpix in ['ransac']:
-            ddi,ddj = phase_ransac(QC)
+            ddi, ddj = phase_ransac(QC)
         elif subpix in ['wpca']:
             W = thresh_masking(QC)
-            ddi,ddj = phase_weighted_pca(QC, W)
+            ddi, ddj = phase_weighted_pca(QC, W)
         elif subpix in ['pca']:
-            ddi,ddj = phase_pca(QC)
+            ddi, ddj = phase_pca(QC)
         elif subpix in ['lsq']:
-            ddi,ddj = phase_lsq(QC)
+            ddi, ddj = phase_lsq(QC)
         elif subpix in ['diff']:
-            ddi,ddj = phase_difference(QC)
+            ddi, ddj = phase_difference(QC)
 
     return ddi, ddj
+
 
 def estimate_match_metric(QC, di=None, dj=None, metric='snr'):
     peak_metric = list_matching_metrics()
@@ -447,6 +481,7 @@ def estimate_match_metric(QC, di=None, dj=None, metric='snr'):
     elif metric in phase_metric:
         score = get_phase_metric(QC, di, dj, metric=metric)
     return score
+
 
 def estimate_precision(C, di, dj, method='gaussian'):
     """ given a similarity surface, estimate its matching dispersion.
@@ -496,12 +531,15 @@ def estimate_precision(C, di, dj, method='gaussian'):
               The cryosphere, vol.16(6) pp.2285-2300, 2021.
     """
     if method in ['hessian']:
-        cov_ii,cov_jj,cov_ij = hessian_spread(C,
-           C.shape[0] // 2 + np.round(di).astype(int),
-           C.shape[1] // 2 + np.round(dj).astype(int))
+        cov_ii, cov_jj, cov_ij = hessian_spread(
+            C, C.shape[0] // 2 + np.round(di).astype(int),
+            C.shape[1] // 2 + np.round(dj).astype(int))
     else:
-        cov_ii,cov_jj,cov_ij,_,_ = gauss_spread(C,
-            C.shape[0]//2 + np.round(di).astype(int),
-            C.shape[1]//2 + np.round(dj).astype(int),
-            di-np.round(di), dj-np.round(dj), est='dist')
+        cov_ii, cov_jj, cov_ij, _, _ = gauss_spread(
+            C,
+            C.shape[0] // 2 + np.round(di).astype(int),
+            C.shape[1] // 2 + np.round(dj).astype(int),
+            di - np.round(di),
+            dj - np.round(dj),
+            est='dist')
     return cov_ii, cov_jj, cov_ij

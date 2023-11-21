@@ -1,8 +1,9 @@
 from scipy.signal import convolve2d
 
-def spatial_temporal_evolution(C_12,C_23):
+
+def spatial_temporal_evolution(C_12, C_23):
     r""" convolve displacement estimates in the spatial domain, see [AK17]_
-    
+
     Parameters
     ----------
     C_12 : numpy.array, size=(m,n), ndim={2,3}
@@ -18,9 +19,9 @@ def spatial_temporal_evolution(C_12,C_23):
     See Also
     --------
     spatial_temporal_evolution
-    
+
     Notes
-    ----- 
+    -----
     The matching equations are as follows:
 
     .. math:: \mathbf{C}_{12} = \mathbf{I}_1 \circledast \mathbf{1}_{2}
@@ -38,13 +39,14 @@ def spatial_temporal_evolution(C_12,C_23):
     References
     ----------
     .. [AK17] Altena & Kääb. "Elevation change and improved velocity retrieval
-              using orthorectified optical satellite data from different orbits"
-              Remote sensing vol.9(3) pp.300, 2017.
+              using orthorectified optical satellite data from different
+              orbits" Remote sensing vol.9(3) pp.300, 2017.
     """
-    C_13 = convolve2d(C_12,C_23, mode='same')
+    C_13 = convolve2d(C_12, C_23, mode='same')
     return C_13
 
-def frequency_temporal_evolution(Q_12,Q_23):
+
+def frequency_temporal_evolution(Q_12, Q_23):
     r""" convolve displacement estimates in the frequency domain, see [AK17]_.
     
     Parameters
@@ -62,7 +64,7 @@ def frequency_temporal_evolution(Q_12,Q_23):
     See Also
     --------
     spatial_temporal_evolution
-    
+
     Notes
     ----- 
     The matching equations are as follows:
@@ -85,10 +87,11 @@ def frequency_temporal_evolution(Q_12,Q_23):
     References
     ----------
     .. [AK17] Altena & Kääb. "Elevation change and improved velocity retrieval
-              using orthorectified optical satellite data from different orbits"
-              Remote sensing vol.9(3) pp.300, 2017.
-    """
-    Q_13 = Q_12*Q_23
-    return Q_13 
+              using orthorectified optical satellite data from different
+              orbits" Remote sensing vol.9(3) pp.300, 2017.
+    """  # noqa: E501
+    Q_13 = Q_12 * Q_23
+    return Q_13
+
 
 # def find_peak_along_flightline(C,e):

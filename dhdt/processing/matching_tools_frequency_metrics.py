@@ -1,15 +1,17 @@
 import numpy as np
 
 from ..generic.filtering_statistical import mad_filtering
+from .matching_tools_frequency_filters import (
+    construct_phase_values, cross_spectrum_to_coordinate_list,
+    normalize_power_spectrum)
 
-from .matching_tools_frequency_filters import normalize_power_spectrum, \
-    construct_phase_values, cross_spectrum_to_coordinate_list
 
 def list_phase_metrics():
     """ list the abbreviations of the different implemented phase metrics,
     there are:
         * :func:`'phase_fit' <phase_fitness>` : the absolute score
-        * :func:`'phase_sup' <phase_support>` : the primary peak ratio i.r.t. the second peak
+        * :func:`'phase_sup' <phase_support>` : the primary peak ratio i.r.t.
+          the second peak
 
     See Also
     --------
@@ -17,6 +19,7 @@ def list_phase_metrics():
     """
     metrics_list = ['phase_fit', 'phase_sup']
     return metrics_list
+
 
 def get_phase_metric(Q, di, dj, metric='phase_fit'):
     """ redistribution function, to get a metric from a matching score surface
@@ -43,8 +46,9 @@ def get_phase_metric(Q, di, dj, metric='phase_fit'):
 
     """
     # admin
-    assert type(Q) == np.ndarray, ('please provide an array')
-    if Q.size==0: return None
+    assert isinstance(Q, np.ndarray), 'please provide an array'
+    if Q.size == 0:
+        return None
 
     # redistribute correlation surface to the different functions
     if metric in ['phase_fit', 'phase_fitness', 'snr']:
@@ -54,6 +58,7 @@ def get_phase_metric(Q, di, dj, metric='phase_fit'):
     else:
         score = None
     return score
+
 
 def phase_fitness(Q, di, dj, norm=2):
     """ estimate the goodness of fit of the phase diffence
@@ -80,23 +85,25 @@ def phase_fitness(Q, di, dj, norm=2):
     ----------
     .. [Le07] Leprince, et.al. "Automatic and precise orthorectification,
               coregistration, and subpixel correlation of satellite images,
-              application to ground deformation measurements", IEEE Transactions
-              on geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.
+              application to ground deformation measurements", IEEE
+              Transactions on geoscience and remote sensing vol. 45.6 pp.
+              1529-1558, 2007.
     """
-    assert type(Q) == np.ndarray, ('please provide an array')
+    assert isinstance(Q, np.ndarray), 'please provide an array'
     # admin
     data = cross_spectrum_to_coordinate_list(Q)
-    C = construct_phase_values(data[:,0:2], di, dj)
+    C = construct_phase_values(data[:, 0:2], di, dj)
 
     # calculation
-    QC = (data[:,-1] - C) ** norm
+    QC = (data[:, -1] - C)**norm
     dXY = np.abs(QC)
-    fitness = (1-np.divide(np.sum(dXY) , 2*norm*dXY.size))**norm
+    fitness = (1 - np.divide(np.sum(dXY), 2 * norm * dXY.size))**norm
     return fitness
 
+
 def phase_support(Q, di, dj, thres=1.4826):
-    """ estimate the support of the fit for the phase differences, following the
-    implementation by [AL22]_.
+    """ estimate the support of the fit for the phase differences, following
+    the implementation by [AL22]_.
 
     Parameters
     ----------
@@ -118,22 +125,23 @@ def phase_support(Q, di, dj, thres=1.4826):
 
     References
     ----------
-    .. [AL22] Altena & Leinss, "Improved surface displacement estimation through
-              stacking cross-correlation spectra from multi-channel imagery",
-              Science of Remote Sensing, vol.6 pp.100070, 2022.
+    .. [AL22] Altena & Leinss, "Improved surface displacement estimation
+              through stacking cross-correlation spectra from multi-channel
+              imagery", Science of Remote Sensing, vol.6 pp.100070, 2022.
     """
-    assert type(Q) == np.ndarray, ('please provide an array')
+    assert isinstance(Q, np.ndarray), 'please provide an array'
 
     data = cross_spectrum_to_coordinate_list(Q)
-    C = construct_phase_values(data[:,0:2], di, dj)
+    C = construct_phase_values(data[:, 0:2], di, dj)
 
     # calculation
-    QC = (data[:,-1] - C) ** 2
+    QC = (data[:, -1] - C)**2
     dXY = np.abs(QC)
     IN = mad_filtering(dXY, thres=thres)
 
     support = np.divide(np.sum(IN), np.prod(IN.shape))
     return support
+
 
 def signal_to_noise(Q, C, norm=2):
     """ calculate the signal to noise from a theoretical and an experimental
@@ -161,13 +169,14 @@ def signal_to_noise(Q, C, norm=2):
     ----------
     .. [Le07] Leprince, et.al. "Automatic and precise orthorectification,
               coregistration, and subpixel correlation of satellite images,
-              application to ground deformation measurements", IEEE Transactions
-              on geoscience and remote sensing vol. 45.6 pp. 1529-1558, 2007.
+              application to ground deformation measurements", IEEE
+              Transactions on geoscience and remote sensing vol. 45.6 pp.
+              1529-1558, 2007.
     """
-    assert type(Q) == np.ndarray, ('please provide an array')
-    assert type(C) == np.ndarray, ('please provide an array')
+    assert isinstance(Q, np.ndarray), 'please provide an array'
+    assert isinstance(C, np.ndarray), 'please provide an array'
 
     Qn = normalize_power_spectrum(Q)
-    Q_diff = np.abs(Qn-C)**norm
-    snr = 1 - (np.sum(Q_diff) / (2*norm*np.prod(C.shape)))
+    Q_diff = np.abs(Qn - C)**norm
+    snr = 1 - (np.sum(Q_diff) / (2 * norm * np.prod(C.shape)))
     return snr

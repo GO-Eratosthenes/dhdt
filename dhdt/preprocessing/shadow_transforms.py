@@ -1,12 +1,13 @@
 import numpy as np
 
-from .multispec_transforms import principle_component_analysis, pca_rgb_preparation
-from ..generic.unit_check import are_three_arrays_equal, are_two_arrays_equal
-
-from .color_transforms import \
-    rgb2ycbcr, rgb2hsi, rgb2xyz, xyz2lab, lab2lch, erdas2hsi, rgb2lms, lms2lab, \
-    rgb2hcv, rgb2yiq
 from dhdt.generic.data_tools import s_curve
+
+from ..generic.unit_check import are_three_arrays_equal, are_two_arrays_equal
+from .color_transforms import (erdas2hsi, lab2lch, lms2lab, rgb2hcv, rgb2hsi,
+                               rgb2lms, rgb2xyz, rgb2ycbcr, rgb2yiq, xyz2lab)
+from .multispec_transforms import (pca_rgb_preparation,
+                                   principle_component_analysis)
+
 
 def apply_shadow_transform(method, Blue, Green, Red, RedEdge, Near, Shw,
                            **kwargs):
@@ -62,53 +63,58 @@ def apply_shadow_transform(method, Blue, Green, Red, RedEdge, Near, Shw,
     """
     method = method.lower()
 
-    if method=='siz':
+    if method == 'siz':
         M = shadow_index_zhou(Blue, Green, Red)
-    elif method=='isi':
+    elif method == 'isi':
         M = improved_shadow_index(Blue, Green, Red, Near)
-    elif method=='sei':
-        M = shadow_enhancement_index(Blue,Green,Red,Near)
-    elif method=='fcsdi':
-        M = false_color_shadow_difference_index(Green,Red,Near)
-    elif method=='csi':
-        M = combinational_shadow_index(Blue,Green,Red,Near)
-    elif method=='nsvdi':
+    elif method == 'sei':
+        M = shadow_enhancement_index(Blue, Green, Red, Near)
+    elif method == 'fcsdi':
+        M = false_color_shadow_difference_index(Green, Red, Near)
+    elif method == 'csi':
+        M = combinational_shadow_index(Blue, Green, Red, Near)
+    elif method == 'nsvdi':
         M = normalized_sat_value_difference_index(Blue, Green, Red)
-    elif method=='sil':
+    elif method == 'sil':
         M = shadow_index_liu(Blue, Green, Red)
-    elif method=='sr':
+    elif method == 'sr':
         M = specthem_ratio(Blue, Green, Red)
-    elif method=='sdi':
+    elif method == 'sdi':
         M = shadow_detector_index(Blue, Green, Red)
-    elif method=='sisdi':
+    elif method == 'sisdi':
         M = sat_int_shadow_detector_index(Blue, RedEdge, Near)
-    elif method=='mixed':
+    elif method == 'mixed':
         M = mixed_property_based_shadow_index(Blue, Green, Red)
-    elif method=='msf':
+    elif method == 'msf':
         p_s = kwargs['P_S'] if 'P_S' in kwargs else .95
         M = modified_shadow_fraction(Blue, Green, Red, P_S=p_s)
-    elif method=='c3':
+    elif method == 'c3':
         M = color_invariant(Blue, Green, Red)
-    elif method=='entropy':
+    elif method == 'entropy':
         a = kwargs['a'] if 'a' in kwargs else 138.
-        M,R = entropy_shade_removal(Green, Red, Near, a=a)
-        return M,R
-    elif method=='shi':
+        M, R = entropy_shade_removal(Green, Red, Near, a=a)
+        return M, R
+    elif method == 'shi':
         M = shade_index(Blue, Green, Red, Near)
-    elif method=='sp':
+    elif method == 'sp':
         ae = kwargs['ae'] if 'ae' in kwargs else 1e+1
         be = kwargs['be'] if 'be' in kwargs else 5e-1
         M = shadow_probabilities(Blue, Green, Red, Near, ae=ae, be=be)
-    elif method in ('nri','normalized_range_shadow_index',):
-         M = normalized_range_shadow_index(Blue, Green, Red, Near)
+    elif method in (
+            'nri',
+            'normalized_range_shadow_index',
+    ):
+        M = normalized_range_shadow_index(Blue, Green, Red, Near)
     else:
         M = None
     return M
 
+
 # generic transforms
 
+
 # generic metrics
-def shannon_entropy(X,band_width=100):
+def shannon_entropy(X, band_width=100):
     """ calculate shanon entropy from data sample
 
     Parameters
@@ -123,15 +129,16 @@ def shannon_entropy(X,band_width=100):
     shannon : float
         entropy value of the total data sample
     """
-    assert type(X)==np.ndarray, ('please provide an array')
+    assert isinstance(X, np.ndarray), 'please provide an array'
 
-    num_bins = np.round(np.nanmax(X)-np.nanmin(X)/band_width)
+    num_bins = np.round(np.nanmax(X) - np.nanmin(X) / band_width)
     hist, bin_edges = np.histogram(X.flatten(),
                                    bins=num_bins.astype(int),
                                    density=True)
-    hist = hist[hist!=0]
+    hist = hist[hist != 0]
     shannon = -np.sum(hist * np.log2(hist))
     return shannon
+
 
 # color-based shadow functions
 def shadow_index_zhou(Blue, Green, Red):
@@ -157,14 +164,15 @@ def shadow_index_zhou(Blue, Green, Red):
 
     References
     ----------
-    .. [Zh21] Zhou et al. "Shadow detection and compensation from remote sensing
-              images under complex urban conditions", 2021.
+    .. [Zh21] Zhou et al. "Shadow detection and compensation from remote
+              sensing images under complex urban conditions", 2021.
     """
-    are_three_arrays_equal(Blue,Green,Red)
+    are_three_arrays_equal(Blue, Green, Red)
 
     Y, Cb, Cr = rgb2ycbcr(Red, Green, Blue)
-    SI = np.divide(Cb-Y, Cb+Y)
+    SI = np.divide(Cb - Y, Cb + Y)
     return SI
+
 
 def shadow_hsv_fraction(Blue, Green, Red):
     """transform red, green, blue arrays to shadow index. Based upon [Ts06].
@@ -194,11 +202,12 @@ def shadow_hsv_fraction(Blue, Green, Red):
        images in invariant color models." IEEE Transactions on geoscience and
        remote sensing vol.44 pp.1661–1671, 2006.
     """
-    are_three_arrays_equal(Blue,Green,Red)
+    are_three_arrays_equal(Blue, Green, Red)
 
     H, _, Int = rgb2hsi(Red, Green, Blue)
-    SF = np.divide(H+1, Int+1, where=Int!=-1)
+    SF = np.divide(H + 1, Int + 1, where=Int != -1)
     return SF
+
 
 def modified_shadow_fraction(Blue, Green, Red, P_S=.95):
     """transform red, green, blue arrays to shadow index. Based upon [Ch09].
@@ -224,19 +233,20 @@ def modified_shadow_fraction(Blue, Green, Red, P_S=.95):
     References
     ----------
     .. [Ch09] Chung, et al. "Efficient shadow detection of color aerial images
-       based on successive thresholding scheme." IEEE transactions on geoscience
-       and remote sensing vol.47, pp.671–682, 2009.
+       based on successive thresholding scheme." IEEE transactions on
+       geoscience and remote sensing vol.47, pp.671–682, 2009.
     """
-    are_three_arrays_equal(Blue,Green,Red)
+    are_three_arrays_equal(Blue, Green, Red)
 
     Hue, _, Int = rgb2hsi(Red, Green, Blue)
-    r = np.divide(Hue, Int+1, where=Int!=-1)
+    r = np.divide(Hue, Int + 1, where=Int != -1)
     T_S = np.quantile(r, P_S)
     sig = np.std(r)
 
-    SF = np.exp(-np.divide((r-T_S)**2, 4*sig))
-    np.putmask(SF, SF>=T_S, 1.)
+    SF = np.exp(-np.divide((r - T_S)**2, 4 * sig))
+    np.putmask(SF, SF >= T_S, 1.)
     return SF
+
 
 def shadow_hcv_fraction(Blue, Green, Red):
     """transform red, green, blue arrays to shadow index. Based upon [Ts06].
@@ -265,11 +275,12 @@ def shadow_hcv_fraction(Blue, Green, Red):
        images in invariant color models." IEEE Transactions on geoscience and
        remote sensing vol.44 pp.1661–1671, 2006.
     """
-    are_three_arrays_equal(Blue,Green,Red)
+    are_three_arrays_equal(Blue, Green, Red)
 
-    H,_,V = rgb2hcv(Red, Green, Blue)
-    SF = np.divide(H+1, V+1, where=V!=-1)
+    H, _, V = rgb2hcv(Red, Green, Blue)
+    SF = np.divide(H + 1, V + 1, where=V != -1)
     return SF
+
 
 def shadow_ycbcr_fraction(Blue, Green, Red):
     """transform red, green, blue arrays to shadow index. Based upon [Ts06].
@@ -298,11 +309,12 @@ def shadow_ycbcr_fraction(Blue, Green, Red):
        images in invariant color models." IEEE Transactions on geoscience and
        remote sensing vol.44 pp.1661–1671, 2006.
     """
-    are_three_arrays_equal(Blue,Green,Red)
+    are_three_arrays_equal(Blue, Green, Red)
 
-    Y,_,Cr = rgb2ycbcr(Red, Green, Blue)
-    SF = np.divide(Cr+1, Y+1, where=Y!=-1)
+    Y, _, Cr = rgb2ycbcr(Red, Green, Blue)
+    SF = np.divide(Cr + 1, Y + 1, where=Y != -1)
     return SF
+
 
 def shadow_yiq_fraction(Blue, Green, Red):
     """transform red, green, blue arrays to shadow index. Based upon [Ts06].
@@ -331,14 +343,19 @@ def shadow_yiq_fraction(Blue, Green, Red):
        images in invariant color models." IEEE Transactions on geoscience and
        remote sensing vol.44 pp.1661–1671, 2006.
     """
-    are_three_arrays_equal(Blue,Green,Red)
+    are_three_arrays_equal(Blue, Green, Red)
 
-    Y,_,Q = rgb2yiq(Red, Green, Blue)
-    SF = np.divide(Q+1, Y+1, where=Y!=-1)
+    Y, _, Q = rgb2yiq(Red, Green, Blue)
+    SF = np.divide(Q + 1, Y + 1, where=Y != -1)
     return SF
 
-#def shadow_quantifier_index
-# Polidorio, A. M., Flores F. C., Imai N. N., Tommaselli, A. M. G. and Franco, C. 2003. Automatic Shadow Segmentation in Aerial Color Images. In: Proceedings of the XVI SIBGRAPI. XVI Brazilian Symposium on Computer Graphics and Image Processing. São Carlos, Brasil, 12-15 October 2003. doi:10.1109/SIBGRA.2003.1241019.
+
+# def shadow_quantifier_index
+# Polidorio, A. M., Flores F. C., Imai N. N., Tommaselli, A. M. G. and Franco,
+# C. 2003. Automatic Shadow Segmentation in Aerial Color Images. In:
+# Proceedings of the XVI SIBGRAPI. XVI Brazilian Symposium on Computer Graphics
+# and Image Processing. São Carlos, Brasil, 12-15 October 2003.
+# doi:10.1109/SIBGRA.2003.1241019.
 def improved_shadow_index(Blue, Green, Red, Near):
     """transform red, green, blue arrays to improved shadow index. Based upon
     [Zh21].
@@ -369,18 +386,19 @@ def improved_shadow_index(Blue, Green, Red, Near):
 
     References
     ----------
-    .. [Zh21] Zhou et al. "Shadow detection and compensation from remote sensing
-       images under complex urban conditions", 2021.
+    .. [Zh21] Zhou et al. "Shadow detection and compensation from remote
+              sensing images under complex urban conditions", 2021.
     """
-    are_three_arrays_equal(Blue,Green,Red)
-    are_two_arrays_equal(Blue,Near)
+    are_three_arrays_equal(Blue, Green, Red)
+    are_two_arrays_equal(Blue, Near)
 
     SI = shadow_index_zhou(Blue, Green, Red)
-    ISI = np.divide( SI + (1 - Near), SI + (1 + Near))
+    ISI = np.divide(SI + (1 - Near), SI + (1 + Near))
 
     return ISI
 
-def shadow_enhancement_index(Blue,Green,Red,Near):
+
+def shadow_enhancement_index(Blue, Green, Red, Near):
     """ transform red, green, blue arrays to SEI index. See also [Su19].
 
     Parameters
@@ -418,14 +436,15 @@ def shadow_enhancement_index(Blue,Green,Red,Near):
        journal of applied earth observation and geoinformation, vol.78
        pp.53--65, 2019.
     """
-    are_three_arrays_equal(Blue,Green,Red)
-    are_two_arrays_equal(Blue,Near)
+    are_three_arrays_equal(Blue, Green, Red)
+    are_two_arrays_equal(Blue, Near)
 
-    denom = (Blue + Near)+(Green + Red)
-    SEI = np.divide( (Blue + Near)-(Green + Red), denom, where=denom!=0)
+    denom = (Blue + Near) + (Green + Red)
+    SEI = np.divide((Blue + Near) - (Green + Red), denom, where=denom != 0)
     return SEI
 
-def false_color_shadow_difference_index(Green,Red,Near):
+
+def false_color_shadow_difference_index(Green, Red, Near):
     """transform red and near infrared arrays to shadow index. See also [Te11].
 
     Parameters
@@ -456,12 +475,13 @@ def false_color_shadow_difference_index(Green,Red,Near):
        Proceedings of the ISPRS conference on photogrammetric image analysis,
        pp.109-119, 2011.
     """
-    are_three_arrays_equal(Green,Red,Near)
+    are_three_arrays_equal(Green, Red, Near)
 
     _, Sat, Int = rgb2hsi(Near, Red, Green)  # create HSI bands
     denom = Sat + Int
-    FCSI = np.divide(Sat - Int, denom, where=denom!=0)
+    FCSI = np.divide(Sat - Int, denom, where=denom != 0)
     return FCSI
+
 
 def normalized_difference_water_index(Green, Near):
     """transform green and near infrared arrays NDW-index. See also [Ga96].
@@ -490,12 +510,15 @@ def normalized_difference_water_index(Green, Near):
        sensing of vegetation liquid water from space" Remote sensing of
        environonment, vol.58 pp.257–266, 1996
     """
-    are_two_arrays_equal(Green,Near)
+    are_two_arrays_equal(Green, Near)
 
     denom = (Green + Near)
-    NDWI = np.divide( (Green - Near), denom,
-                      out=np.zeros_like(denom), where=denom!=0)
+    NDWI = np.divide((Green - Near),
+                     denom,
+                     out=np.zeros_like(denom),
+                     where=denom != 0)
     return NDWI
+
 
 def modified_normalized_difference_water_index(Green, Short):
     """transform green and shortwave infrared arrays to modified NDW-index.
@@ -527,12 +550,15 @@ def modified_normalized_difference_water_index(Green, Short):
               International journal of remote sensing, vol.27(14) pp.3025–3033,
               2006.
     """
-    are_two_arrays_equal(Green,Short)
+    are_two_arrays_equal(Green, Short)
 
     denom = (Green + Short)
-    MNDWI = np.divide( (Green - Short), denom,
-                      out=np.zeros_like(denom), where=denom!=0)
+    MNDWI = np.divide((Green - Short),
+                      denom,
+                      out=np.zeros_like(denom),
+                      where=denom != 0)
     return MNDWI
+
 
 def normalized_difference_moisture_index(Near, Short):
     """transform near and shortwave infrared arrays to NDM-index.
@@ -562,12 +588,15 @@ def normalized_difference_moisture_index(Near, Short):
               Landsat TM imagery" Remote sensing of environment, vol.80
               pp.385–396, 2002.
     """
-    are_two_arrays_equal(Near,Short)
+    are_two_arrays_equal(Near, Short)
 
     denom = (Near + Short)
-    NDMI = np.divide( (Near - Short), denom,
-                     out=np.zeros_like(denom), where=denom!=0)
+    NDMI = np.divide((Near - Short),
+                     denom,
+                     out=np.zeros_like(denom),
+                     where=denom != 0)
     return NDMI
+
 
 def normalized_difference_blue_water_index(Blue, Near):
     """transform green and near infrared arrays NDW-index. See also [Qu11].
@@ -596,14 +625,17 @@ def normalized_difference_blue_water_index(Blue, Near):
        wetlands on HJU satellite CCD images" Remote sensing information,
        vol.4 pp.28–33, 2011
     """
-    are_two_arrays_equal(Blue,Near)
+    are_two_arrays_equal(Blue, Near)
 
     denom = (Blue + Near)
-    NDBWI = np.divide( (Blue - Near), denom,
-                      out=np.zeros_like(denom), where=denom!=0)
+    NDBWI = np.divide((Blue - Near),
+                      denom,
+                      out=np.zeros_like(denom),
+                      where=denom != 0)
     return NDBWI
 
-def combinational_shadow_index(Blue,Green,Red,Near):
+
+def combinational_shadow_index(Blue, Green, Red, Near):
     """transform red, green, blue arrays to combined shadow index. See also
     [Su19].
 
@@ -634,19 +666,20 @@ def combinational_shadow_index(Blue,Green,Red,Near):
        journal of applied earth observation and geoinformation, vol.78
        pp.53--65, 2019.
     """
-    are_three_arrays_equal(Blue,Green,Red)
-    are_two_arrays_equal(Blue,Near)
+    are_three_arrays_equal(Blue, Green, Red)
+    are_two_arrays_equal(Blue, Near)
 
-    SEI = shadow_enhancement_index(Blue,Green,Red,Near)
+    SEI = shadow_enhancement_index(Blue, Green, Red, Near)
     NDWI = normalized_difference_water_index(Green, Near)
 
-    option_1 = SEI-Near
-    option_2 = SEI-NDWI
+    option_1 = SEI - Near
+    option_2 = SEI - NDWI
     IN_1 = Near >= NDWI
 
     CSI = option_2
     CSI[IN_1] = option_1[IN_1]
     return CSI
+
 
 def normalized_sat_value_difference_index(Blue, Green, Red):
     """ transform red, green, blue arrays to normalized sat-value difference.
@@ -676,16 +709,17 @@ def normalized_sat_value_difference_index(Blue, Green, Red):
 
     References
     ----------
-    .. [Ma08] Ma et al. "Shadow segmentation and compensation in high resolution
-       satellite images", Proceedings of IEEE IGARSS, pp.II-1036--II-1039,
-       2008.
+    .. [Ma08] Ma et al. "Shadow segmentation and compensation in high
+       resolution satellite images", Proceedings of IEEE IGARSS,
+       pp.II-1036--II-1039, 2008.
     """
-    are_three_arrays_equal(Blue,Green,Red)
+    are_three_arrays_equal(Blue, Green, Red)
 
     _, Sat, Int = rgb2hsi(Red, Green, Blue)  # create HSI bands
     denom = Sat + Int
-    NSVDI = np.divide(Sat - Int, denom, where=denom!=0)
+    NSVDI = np.divide(Sat - Int, denom, where=denom != 0)
     return NSVDI
+
 
 def shadow_identification(Blue, Green, Red):
     """ transform red, green, blue arrays to sat-value difference, following
@@ -716,17 +750,19 @@ def shadow_identification(Blue, Green, Red):
     References
     ----------
     .. [Po03] Polidorio et al. "Automatic shadow segmentation in aerial color
-       images", Proceedings of the 16th Brazilian symposium on computer graphics
-       and image processing, pp.270-277, 2003.
+       images", Proceedings of the 16th Brazilian symposium on computer
+       graphics and image processing, pp.270-277, 2003.
     """
-    are_three_arrays_equal(Blue,Green,Red)
+    are_three_arrays_equal(Blue, Green, Red)
 
     _, Sat, Int = rgb2hsi(Red, Green, Blue)  # create HSI bands
     SI = Sat - Int
     return SI
 
+
 def shadow_index_liu(Blue, Green, Red):
-    """transform red, green, blue arrays to shadow index, see [LX13] and [Su19].
+    """transform red, green, blue arrays to shadow index, see [LX13] and
+    [Su19].
 
     Parameters
     ----------
@@ -752,18 +788,19 @@ def shadow_index_liu(Blue, Green, Red):
        journal of applied earth observation and geoinformation, vol.78
        pp.53--65, 2019.
     """
-    are_three_arrays_equal(Blue,Green,Red)
+    are_three_arrays_equal(Blue, Green, Red)
 
     _, Sat, Int = rgb2hsi(Red, Green, Blue)
 
     X = pca_rgb_preparation(Red, Green, Blue, min_samp=1e4)
     e, lamb = principle_component_analysis(X)
     del X
-    PC1 = e[0,0]*Red + e[0,1]*Green + e[0,2]*Blue
+    PC1 = e[0, 0] * Red + e[0, 1] * Green + e[0, 2] * Blue
 
     denom = (PC1 + Int + Sat)
-    SI = np.divide((PC1 - Int) * (1 + Sat), denom, where=denom!=0)
+    SI = np.divide((PC1 - Int) * (1 + Sat), denom, where=denom != 0)
     return SI
+
 
 def specthem_ratio(Blue, Green, Red):
     """transform red, green, blue arrays to specthem ratio, see [Si18].
@@ -790,17 +827,18 @@ def specthem_ratio(Blue, Green, Red):
 
     References
     ----------
-    .. [Si18] Silva et al. "Near real-time shadow detection and removal in aerial
-       motion imagery application" ISPRS journal of photogrammetry and remote
-       sensing, vol.140 pp.104--121, 2018.
+    .. [Si18] Silva et al. "Near real-time shadow detection and removal in
+       aerial motion imagery application" ISPRS journal of photogrammetry and
+       remote sensing, vol.140 pp.104--121, 2018.
     """
-    are_three_arrays_equal(Blue,Green,Red)
+    are_three_arrays_equal(Blue, Green, Red)
 
-    X,Y,Z = rgb2xyz(Red, Green, Blue, method='Ford')
-    L,a,b = xyz2lab(X,Y,Z)
-    h = lab2lch(L,a,b)[1]
-    Sr = np.divide(h+1 , L+1)
+    X, Y, Z = rgb2xyz(Red, Green, Blue, method='Ford')
+    L, a, b = xyz2lab(X, Y, Z)
+    h = lab2lch(L, a, b)[1]
+    Sr = np.divide(h + 1, L + 1)
     return Sr
+
 
 def shadow_detector_index(Blue, Green, Red):
     """transform red, green, blue arrays to shadow detector index, see [MA17].
@@ -825,16 +863,17 @@ def shadow_detector_index(Blue, Green, Red):
        high-resolution satellite images" IEEE geoscience and remote sensing
        letters, vol.14(4) pp.494--498, 2017.
     """
-    are_three_arrays_equal(Blue,Green,Red)
+    are_three_arrays_equal(Blue, Green, Red)
 
     X = pca_rgb_preparation(Red, Green, Blue, min_samp=1e4)
     e, lamb = principle_component_analysis(X)
     del X
-    PC1 = e[0,0]*Red + e[0,1]*Green + e[0,2]*Blue
+    PC1 = e[0, 0] * Red + e[0, 1] * Green + e[0, 2] * Blue
 
     denom = ((Green - Blue) * Red) + 1
-    SDI = np.divide((1 - PC1) + 1, denom, where=denom!=0)
+    SDI = np.divide((1 - PC1) + 1, denom, where=denom != 0)
     return SDI
+
 
 def sat_int_shadow_detector_index(Blue, RedEdge, Near):
     """ transform red, green, blue arrays to sat-int shadow detector index, see
@@ -856,15 +895,16 @@ def sat_int_shadow_detector_index(Blue, RedEdge, Near):
 
     References
     ----------
-    .. [MA18] Mustafa & Abedelwahab. "Corresponding regions for shadow restoration
-       in satellite high-resolution images" International journal of remote
-       sensing, vol.39(20) pp.7014--7028, 2018.
+    .. [MA18] Mustafa & Abedelwahab. "Corresponding regions for shadow
+       restoration in satellite high-resolution images" International journal
+       of remote sensing, vol.39(20) pp.7014--7028, 2018.
     """
-    are_three_arrays_equal(Blue,RedEdge,Near)
+    are_three_arrays_equal(Blue, RedEdge, Near)
 
     _, Sat, Int = erdas2hsi(Blue, RedEdge, Near)
-    SISDI = Sat - (2*Int)
+    SISDI = Sat - (2 * Int)
     return SISDI
+
 
 def mixed_property_based_shadow_index(Blue, Green, Red):
     """ transform red, green, blue arrays to Mixed property-based shadow index,
@@ -890,11 +930,12 @@ def mixed_property_based_shadow_index(Blue, Green, Red):
        approach for VHR multispectral remote sensing images" Applied sciences
        vol.8(10) pp.1883, 2018.
     """
-    are_three_arrays_equal(Blue,Green,Red)
+    are_three_arrays_equal(Blue, Green, Red)
 
     Hue, _, Int = rgb2hsi(Red, Green, Blue)  # create HSI bands
     MPSI = np.multiply(Hue - Int, Green - Blue)
     return MPSI
+
 
 def color_invariant(Blue, Green, Red):
     """ transform red, green, blue arrays to color invariant (c3), see also
@@ -922,12 +963,13 @@ def color_invariant(Blue, Green, Red):
        high‐resolution satellite images" International journal of remote
        sensing, vol.29(7) pp.1945--1963, 2008
     """
-    are_three_arrays_equal(Blue,Green,Red)
+    are_three_arrays_equal(Blue, Green, Red)
 
-    c3 = np.arctan2( Blue, np.amax( np.dstack((Red, Green))))
+    c3 = np.arctan2(Blue, np.amax(np.dstack((Red, Green))))
     return c3
 
-def modified_color_invariant(Blue, Green, Red, Near): #wip
+
+def modified_color_invariant(Blue, Green, Red, Near):  # wip
     """ transform red, green, blue arrays to color invariant (c3), see also
     [GS99] and [BA15].
 
@@ -955,8 +997,8 @@ def modified_color_invariant(Blue, Green, Red, Near): #wip
        detection" International journal of remote sensing, vol.36(24)
        pp.6214--6223, 2015.
     """
-    are_three_arrays_equal(Blue,Green,Red)
-    are_two_arrays_equal(Blue,Near)
+    are_three_arrays_equal(Blue, Green, Red)
+    are_two_arrays_equal(Blue, Near)
 
     C3 = color_invariant(Blue, Green, Red)
     NDWI = normalized_difference_water_index(Green, Near)
@@ -965,6 +1007,7 @@ def modified_color_invariant(Blue, Green, Red, Near): #wip
     # but here multiplication is used, so a float is constructed
     MCI = np.multiply(C3, NDWI)
     return MCI
+
 
 def reinhard(Blue, Green, Red):
     """ transform red, green, blue arrays to luminance, see also [Re01].
@@ -988,14 +1031,15 @@ def reinhard(Blue, Green, Red):
     .. [Re01] Reinhard et al. "Color transfer between images" IEEE Computer
        graphics and applications vol.21(5) pp.34-41, 2001.
     """
-    are_three_arrays_equal(Blue,Green,Red)
+    are_three_arrays_equal(Blue, Green, Red)
 
-    (L,M,S) = rgb2lms(Red, Green, Blue)
+    (L, M, S) = rgb2lms(Red, Green, Blue)
     L = np.log10(L)
     M = np.log10(M)
     S = np.log10(S)
-    l,_,_ = lms2lab(L, M, S)
+    l, _, _ = lms2lab(L, M, S)
     return l
+
 
 def entropy_shade_removal(Ia, Ib, Ic, a=None):
     """ Make use of Wiens' law to get illumination component, see also [Fi09].
@@ -1021,36 +1065,38 @@ def entropy_shade_removal(Ia, Ib, Ic, a=None):
     .. [Fi09] Finlayson et al. "Entropy minimization for shadow removal"
        International journal of computer vision vol.85(1) pp.35-57 2009.
     """
-    are_three_arrays_equal(Ia,Ib,Ic)
+    are_three_arrays_equal(Ia, Ib, Ic)
 
-    Ia[Ia==0], Ib[Ib==0] = 1E-6, 1E-6
-    sqIc = np.power(Ic, 1./2)
+    Ia[Ia == 0], Ib[Ib == 0] = 1E-6, 1E-6
+    sqIc = np.power(Ic, 1. / 2)
 
-    chi1 = np.log(np.divide( Ia, sqIc, out=np.zeros_like(Ic), where=sqIc!=0),
-                  where=sqIc!=0)
-    chi2 = np.log(np.divide( Ib, sqIc, out=np.zeros_like(Ic), where=sqIc!=0),
-                  where=sqIc!=0)
+    chi1 = np.log(np.divide(Ia, sqIc, out=np.zeros_like(Ic), where=sqIc != 0),
+                  where=sqIc != 0)
+    chi2 = np.log(np.divide(Ib, sqIc, out=np.zeros_like(Ic), where=sqIc != 0),
+                  where=sqIc != 0)
 
-    if isinstance(a, type(None)): # estimate angle from data if angle is not given
-        (m,n) = chi1.shape
-        mn = np.power((m*n),-1./3)
+    if isinstance(
+            a, type(None)):  # estimate angle from data if angle is not given
+        (m, n) = chi1.shape
+        mn = np.power((m * n), -1. / 3)
         # loop through angles
-        angl = np.arange(0,180)
+        angl = np.arange(0, 180)
         shan = np.zeros(angl.shape)
         for i in angl:
-            chi_rot = np.cos(np.radians(i))*chi1 + \
-                np.sin(np.radians(i))*chi2
-            band_w = 3.5*np.std(chi_rot)*mn
+            chi_rot = np.cos(np.radians(i)) * chi1 + \
+                      np.sin(np.radians(i)) * chi2
+            band_w = 3.5 * np.std(chi_rot) * mn
             shan[i] = shannon_entropy(chi_rot, band_w)
 
         a = angl[np.argmin(shan)]
 
     # create imagery
-    S = np.cos(np.radians(a))*chi1 + np.sin(np.radians(a))*chi2
+    S = np.cos(np.radians(a)) * chi1 + np.sin(np.radians(a)) * chi2
     b = a - 90
-    #b = angl[np.argmax(shan)]
-    R = np.cos(np.radians(b))*chi1 + np.sin(np.radians(b))*chi2
-    return S,R
+    # b = angl[np.argmax(shan)]
+    R = np.cos(np.radians(b)) * chi1 + np.sin(np.radians(b)) * chi2
+    return S, R
+
 
 def shade_index(*args):
     """ transform multi-spectral arrays to shade index, see also [HS10] and
@@ -1083,6 +1129,7 @@ def shade_index(*args):
     im_stack = np.stack(args, axis=2)
     SI = np.prod(1 - im_stack, axis=2)
     return SI
+
 
 def normalized_range_shadow_index(*args):
     """transform multi-spectral arrays to shadow index
@@ -1121,10 +1168,13 @@ def normalized_range_shadow_index(*args):
 
     im_stack = np.stack(args, axis=2)
     im_min, im_max = np.min(im_stack, axis=2), np.max(im_stack, axis=2)
-    im_dif, im_rng = im_max-im_min, im_max+im_min
-    SI = np.divide(im_dif, im_rng,
-                   out=np.zeros_like(im_rng), where=np.abs(im_rng) != 0)
+    im_dif, im_rng = im_max - im_min, im_max + im_min
+    SI = np.divide(im_dif,
+                   im_rng,
+                   out=np.zeros_like(im_rng),
+                   where=np.abs(im_rng) != 0)
     return SI
+
 
 def fractional_range_shadow_index(*args):
     """transform multi-spectral arrays to shadow index
@@ -1161,11 +1211,14 @@ def fractional_range_shadow_index(*args):
 
     im_stack = np.stack(args, axis=2)
     im_min, im_max = np.min(im_stack, axis=2), np.max(im_stack, axis=2)
-    SI = np.divide(im_min, im_max,
-                   out=np.zeros_like(im_max), where=np.abs(im_max) != 0)
+    SI = np.divide(im_min,
+                   im_max,
+                   out=np.zeros_like(im_max),
+                   where=np.abs(im_max) != 0)
     return SI
 
-def shadow_probabilities(Blue, Green, Red, Near, ae = 1e+1, be = 5e-1):
+
+def shadow_probabilities(Blue, Green, Red, Near, ae=1e+1, be=5e-1):
     """transform blue, green, red and near infrared to shade probabilities, see
     also [FS10] and [Rü13].
 
@@ -1194,21 +1247,22 @@ def shadow_probabilities(Blue, Green, Red, Near, ae = 1e+1, be = 5e-1):
        near-infrared information" IEEE transactions on pattern analysis and
        machine intelligence, vol.36(8) pp.1672-1678, 2013.
     """
-    are_three_arrays_equal(Blue,Green,Red)
-    are_two_arrays_equal(Blue,Near)
+    are_three_arrays_equal(Blue, Green, Red)
+    are_two_arrays_equal(Blue, Near)
 
     Fk = np.amax(np.stack((Red, Green, Blue), axis=2), axis=2)
-    F = np.divide(np.clip(Fk, 0, 2), 2)     # (10) in [FS10]
-    L = np.divide(Red + Green + Blue, 3)    # (4) in [FS10]
+    F = np.divide(np.clip(Fk, 0, 2), 2)  # (10) in [FS10]
+    L = np.divide(Red + Green + Blue, 3)  # (4) in [FS10]
     del Red, Green, Blue, Fk
 
     Dvis = s_curve(1 - L, ae, be)
-    Dnir = s_curve(1 - Near, ae, be)        # (5) in [FS10]
-    D = np.multiply(Dvis, Dnir)             # (6) in [FS10]
+    Dnir = s_curve(1 - Near, ae, be)  # (5) in [FS10]
+    D = np.multiply(Dvis, Dnir)  # (6) in [FS10]
     del L, Near, Dvis, Dnir
 
     M = np.multiply(D, (1 - F))
     return M
+
 
 # recovery - normalized color composite
 

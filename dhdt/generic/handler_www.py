@@ -1,16 +1,13 @@
-# generic libraries
-import os
-
-import tarfile
-import zipfile
 import bz2
+import os
+import tarfile
 import urllib.request
-
-import requests # for NASA Earthdata Login
 import warnings
+import zipfile
 
-# geospatial libaries
+import requests  # for NASA Earthdata Login
 from osgeo import gdal
+
 
 def _check_surfdrive(url):
     """
@@ -21,6 +18,7 @@ def _check_surfdrive(url):
         return '{}/download'.format(url)
 
     return url
+
 
 def get_file_name_of_url_without_extension(url):
     req = urllib.request.Request(url, method='HEAD')
@@ -69,8 +67,10 @@ def get_file_from_www(full_url, dump_dir=os.getcwd(), overwrite=False):
     return file_name
 
 
-def get_file_from_protected_www(full_url, dump_dir=os.getcwd(),
-                                user=None, password=None):
+def get_file_from_protected_www(full_url,
+                                dump_dir=os.getcwd(),
+                                user=None,
+                                password=None):
     """ Some data is situated in password protected repositories, this function
 
     Parameters
@@ -90,7 +90,8 @@ def get_file_from_protected_www(full_url, dump_dir=os.getcwd(),
     """
     assert user is not None, 'please provide username'
     assert password is not None, 'please provide a password'
-    if not os.path.isdir(dump_dir): os.makedirs(dump_dir)
+    if not os.path.isdir(dump_dir):
+        os.makedirs(dump_dir)
 
     file_name = os.path.basename(full_url)
     with requests.Session() as session:
@@ -103,6 +104,7 @@ def get_file_from_protected_www(full_url, dump_dir=os.getcwd(),
             warnings.warn("Something might have gone wrong while downloading")
             return
     return
+
 
 def url_exist(file_url):
     """ Check if an url exist
@@ -232,13 +234,16 @@ def get_file_and_extract(full_url, dump_dir=os.getcwd(), overwrite=False):
     return f(full_url, dump_dir, overwrite)
 
 
-
-def bulk_download_and_mosaic(url_list, dem_path, sat_tile, bbox, crs, new_res=10):
-
+def bulk_download_and_mosaic(url_list,
+                             dem_path,
+                             sat_tile,
+                             bbox,
+                             crs,
+                             new_res=10):
     for i in range(len(url_list)):
         gran_url = url_list[i]
-        gran_url_new = change_url_resolution(gran_url,new_res)
-        
+        gran_url_new = change_url_resolution(gran_url, new_res)
+
         # download and integrate DEM data into tile
         print('starting download of DEM tile')
         if url_exist(gran_url_new):
@@ -246,37 +251,40 @@ def bulk_download_and_mosaic(url_list, dem_path, sat_tile, bbox, crs, new_res=10
         else:
             tar_names = get_tar_file(gran_url, dem_path)
         print('finished download of DEM tile')
-            
+
         # load data, interpolate into grid
         dem_name = [s for s in tar_names if 'dem.tif' in s]
-        if i ==0:
+        if i == 0:
             dem_new_name = sat_tile + '_DEM.tif'
         else:
-            dem_new_name = dem_name[0][:-4]+'_utm.tif'
-        
-        ds = gdal.Warp(os.path.join(dem_path, dem_new_name), 
-                       os.path.join(dem_path, dem_name[0]), 
+            dem_new_name = dem_name[0][:-4] + '_utm.tif'
+
+        ds = gdal.Warp(os.path.join(dem_path, dem_new_name),
+                       os.path.join(dem_path, dem_name[0]),
                        dstSRS=crs,
                        outputBounds=(bbox[0], bbox[2], bbox[1], bbox[3]),
-                       xRes=new_res, yRes=new_res,
+                       xRes=new_res,
+                       yRes=new_res,
                        outputType=gdal.GDT_Float64)
         ds = None
-        
-        if i>0: # mosaic tiles togehter
-            merge_command = ['python', 'gdal_merge.py', 
-                             '-o', os.path.join(dem_path, sat_tile + '_DEM.tif'), 
-                             os.path.join(dem_path, sat_tile + '_DEM.tif'), 
-                             os.path.join(dem_path, dem_new_name)]
+
+        if i > 0:  # mosaic tiles togehter
+            merge_command = [
+                'python', 'gdal_merge.py', '-o',
+                os.path.join(dem_path, sat_tile + '_DEM.tif'),
+                os.path.join(dem_path, sat_tile + '_DEM.tif'),
+                os.path.join(dem_path, dem_new_name)
+            ]
             my_env = os.environ['CONDA_DEFAULT_ENV']
-            os.system('conda run -n ' + my_env + ' '+
+            os.system('conda run -n ' + my_env + ' ' +
                       ' '.join(merge_command[1:]))
-            os.remove(os.path.join(dem_path,dem_new_name))
-            
+            os.remove(os.path.join(dem_path, dem_new_name))
+
         for fn in tar_names:
-            os.remove(os.path.join(dem_path,fn))
+            os.remove(os.path.join(dem_path, fn))
 
 
-def change_url_resolution(url_string,new_res):
+def change_url_resolution(url_string, new_res):
     """ the file name can have the spatail resolution within, this function
     replaces this string
 
@@ -292,26 +300,26 @@ def change_url_resolution(url_string,new_res):
     url_string : string
         url of new world wide web location
     """
-    
+
     # get resolution
     props = url_string.split('_')
-    for i in range(1,len(props)):
+    for i in range(1, len(props)):
         if props[i][-1] == 'm':
             old_res = props[i]
-            props[i] = str(new_res)+'m'
-    
-    if (old_res=='2m') & (new_res==10):
+            props[i] = str(new_res) + 'm'
+
+    if (old_res == '2m') & (new_res == 10):
         # the files are subdivided in quads
-        props = props[:-4]+props[-2:]
-    
+        props = props[:-4] + props[-2:]
+
     url_string_2 = '_'.join(props)
-    
+
     folders = url_string_2.split('/')
     for i in range(len(folders)):
         print
         if folders[i] == old_res:
-            folders[i] = str(new_res)+'m'
-    
+            folders[i] = str(new_res) + 'm'
+
     gran_url_new = '/'.join(folders)
     return gran_url_new
 
@@ -331,13 +339,13 @@ def reduce_duplicate_urls(url_list):
         reduced list of strings with url's of www location
     """
     tiles = ()
-    for i in url_list: 
-        tiles += (i.split('/')[-2],)
+    for i in url_list:
+        tiles += (i.split('/')[-2], )
     uni_set = set(tiles)
     ids = []
     for i in range(len(uni_set)):
         idx = tiles.index(uni_set.pop())
         ids.append(idx)
-    url_list = [url_list[i] for i in ids]    
-#    print('reduced to '+str(len(url_list))+ ' elevation chips')
+    url_list = [url_list[i] for i in ids]
+    #    print('reduced to '+str(len(url_list))+ ' elevation chips')
     return url_list

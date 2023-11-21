@@ -3,7 +3,6 @@ import os
 
 import numpy as np
 import pandas as pd
-
 from PIL import Image, ImageDraw
 
 from ..generic.mapping_io import read_geo_image
@@ -18,34 +17,39 @@ def list_platform_metadata_l7():
         'launch': '1999-04-15',
         'constellation': 'landsat',
         'orbit': 'sso',
-        'revolutions_per_day': 14 + 9/16,
+        'revolutions_per_day': 14 + 9 / 16,
     }
     return l7_dict
+
 
 def list_platform_metadata_l8():
     # following https://github.com/stac-extensions/sat
     l8_dict = {
-        'COSPAR': '2013-008A', # sat:platform_international_designator
+        'COSPAR': '2013-008A',  # sat:platform_international_designator
         'NORAD': 39084,
-        'instruments': {'OLI','TIRS'},
+        'instruments': {'OLI', 'TIRS'},
         'constellation': 'landsat',
         'launch': '2013-02-11',
         'orbit': 'sso',
-        'revolutions_per_day': 14 + 9/16,
-        'equatorial_crossing_time': '10:11'}
+        'revolutions_per_day': 14 + 9 / 16,
+        'equatorial_crossing_time': '10:11'
+    }
     return l8_dict
+
 
 def list_platform_metadata_l9():
     l9_dict = {
         'COSPAR': '2021-088A',
         'NORAD': 49260,
-        'instruments': {'OLI','TIRS'},
+        'instruments': {'OLI', 'TIRS'},
         'constellation': 'landsat',
         'launch': '2021-09-27',
         'orbit': 'sso',
-        'revolutions_per_day': 14 + 9/16,
-        'equatorial_crossing_time': '10:00'}
+        'revolutions_per_day': 14 + 9 / 16,
+        'equatorial_crossing_time': '10:00'
+    }
     return l9_dict
+
 
 def list_central_wavelength_oli():
     """ create dataframe with metadata about OLI on Landsat8 or Landsat9
@@ -75,10 +79,10 @@ def list_central_wavelength_oli():
     Notes
     -----
     The time lag between panchromatic and red is 0.52 seconds, while the time
-    difference between panchromatic and the green band is 0.65 sec.,see [dM16]_.
-    The detector samping time is 4.2 msec, while the total staring time is 1.2
-    seconds. The detector arrays (or senso chip assemblies: SCA) of landsat are
-    configured as follows:
+    difference between panchromatic and the green band is 0.65 sec., see
+    [dM16]_. The detector samping time is 4.2 msec, while the total staring
+    time is 1.2 seconds. The detector arrays (or senso chip assemblies: SCA) of
+    landsat are configured as follows:
 
         .. code-block:: text
 
@@ -131,72 +135,128 @@ def list_central_wavelength_oli():
     # following the naming of pystac.extensions.eo???
     # https://stac-extensions.github.io/eo/v1.0.0/schema.json
     # center_wavelength = (min_wavelength + max_wavelength) / 2
-    center_wavelength = {"B1": 443, "B2": 482, "B3": 561, "B4": 655,
-                         "B5": 865, "B6":1609, "B7":2201, "B8": 590,
-                         "B9":1373, "B10":10896,"B11": 12001,
-                        }
+    center_wavelength = {
+        "B1": 443,
+        "B2": 482,
+        "B3": 561,
+        "B4": 655,
+        "B5": 865,
+        "B6": 1609,
+        "B7": 2201,
+        "B8": 590,
+        "B9": 1373,
+        "B10": 10896,
+        "B11": 12001,
+    }
     # convert from nm to µm
-    center_wavelength = {k: v/1E3 for k, v in center_wavelength.items()}
+    center_wavelength = {k: v / 1E3 for k, v in center_wavelength.items()}
 
     # full_width_half_max = max_wavelength - min_wavelength
-    full_width_half_max = {"B1": 0.016, "B2": 0.060, "B3": 0.057, "B4": 0.037,
-                 "B5": 0.028, "B6": 0.085, "B7": 0.187, "B8": 0.172,
-                 "B9": 0.020, "B10": .588, "B11":1.011,
-                 }
+    full_width_half_max = {
+        "B1": 0.016,
+        "B2": 0.060,
+        "B3": 0.057,
+        "B4": 0.037,
+        "B5": 0.028,
+        "B6": 0.085,
+        "B7": 0.187,
+        "B8": 0.172,
+        "B9": 0.020,
+        "B10": .588,
+        "B11": 1.011,
+    }
     # convert from nm to µm
-    full_width_half_max = {k: v*1E3 for k, v in full_width_half_max.items()}
+    full_width_half_max = {k: v * 1E3 for k, v in full_width_half_max.items()}
 
-    bandid = {"B1": 1, "B2": 2,  "B3": 3, "B4": 4,
-              "B5": 5, "B6": 6,  "B7": 7, "B8": 8,
-              "B9": 9, "B10":10, "B11":11,
-                  }
+    bandid = {
+        "B1": 1,
+        "B2": 2,
+        "B3": 3,
+        "B4": 4,
+        "B5": 5,
+        "B6": 6,
+        "B7": 7,
+        "B8": 8,
+        "B9": 9,
+        "B10": 10,
+        "B11": 11,
+    }
 
-    gsd = {"B1": 30, "B2": 30,  "B3": 30, "B4": 30,
-           "B5": 30, "B6": 30,  "B7": 30, "B8": 15,
-           "B9": 30, "B10":100, "B11":100,
-          }
-    field_of_view = {"B1": 15., "B2" : 15., "B3" : 15., "B4": 15.,
-                     "B5": 15., "B6" : 15., "B7" : 15., "B8": 15.,
-                     "B9": 15., "B10": 15., "B11": 15.}
-    common_name = {"B1": 'coastal',       "B2" : 'blue',
-            "B3" : 'green',        "B4" : 'red',
-            "B5" : 'nir08',        "B6" : 'swir16',
-            "B7" : 'swir22',       "B8" : 'pan',
-            "B9" : 'cirrus',       "B10": 'lwir11',
-            "B11": 'lwir12',
-            }
+    gsd = {
+        "B1": 30,
+        "B2": 30,
+        "B3": 30,
+        "B4": 30,
+        "B5": 30,
+        "B6": 30,
+        "B7": 30,
+        "B8": 15,
+        "B9": 30,
+        "B10": 100,
+        "B11": 100,
+    }
+    field_of_view = {
+        "B1": 15.,
+        "B2": 15.,
+        "B3": 15.,
+        "B4": 15.,
+        "B5": 15.,
+        "B6": 15.,
+        "B7": 15.,
+        "B8": 15.,
+        "B9": 15.,
+        "B10": 15.,
+        "B11": 15.
+    }
+    common_name = {
+        "B1": 'coastal',
+        "B2": 'blue',
+        "B3": 'green',
+        "B4": 'red',
+        "B5": 'nir08',
+        "B6": 'swir16',
+        "B7": 'swir22',
+        "B8": 'pan',
+        "B9": 'cirrus',
+        "B10": 'lwir11',
+        "B11": 'lwir12',
+    }
     d = {
-         "center_wavelength": pd.Series(center_wavelength,
-                                        dtype=np.dtype('float')),
-         "full_width_half_max": pd.Series(full_width_half_max,
-                                          dtype=np.dtype('float')),
-         "gsd": pd.Series(gsd,
-                          dtype=np.dtype('float')),
-         "common_name": pd.Series(common_name,
-                                  dtype=np.dtype('str')),
-         "field_of_view": pd.Series(field_of_view,
-                                    dtype=np.dtype('float')),
-         "bandid": pd.Series(bandid,
-                             dtype=np.dtype('int64'))
-         }
+        "center_wavelength":
+        pd.Series(center_wavelength, dtype=np.dtype('float')),
+        "full_width_half_max":
+        pd.Series(full_width_half_max, dtype=np.dtype('float')),
+        "gsd":
+        pd.Series(gsd, dtype=np.dtype('float')),
+        "common_name":
+        pd.Series(common_name, dtype=np.dtype('str')),
+        "field_of_view":
+        pd.Series(field_of_view, dtype=np.dtype('float')),
+        "bandid":
+        pd.Series(bandid, dtype=np.dtype('int64'))
+    }
     df = pd.DataFrame(d)
     return df
 
+
 def get_oli_relative_band_time():
-    relative_timing = {"B1": np.datetime64(00, 'ms'),
-                       "B2": np.datetime64(52, 'ms'),
-                       "B3": np.datetime64(00, 'ms'),
-                       "B4": np.datetime64(13, 'ms'),
-                       "B5": np.datetime64(26, 'ms'),
-                       "B6": np.datetime64(00, 'ms'),
-                       "B7": np.datetime64(00, 'ms'),
-                       "B8": np.datetime64(65, 'ms'),
-                       "B9": np.datetime64(00, 'ms'),
-                       "B10":np.datetime64(00, 'ms'),
-                       "B11":np.datetime64(00, 'ms'),}
+    relative_timing = {
+        "B1": np.datetime64(00, 'ms'),
+        "B2": np.datetime64(52, 'ms'),
+        "B3": np.datetime64(00, 'ms'),
+        "B4": np.datetime64(13, 'ms'),
+        "B5": np.datetime64(26, 'ms'),
+        "B6": np.datetime64(00, 'ms'),
+        "B7": np.datetime64(00, 'ms'),
+        "B8": np.datetime64(65, 'ms'),
+        "B9": np.datetime64(00, 'ms'),
+        "B10": np.datetime64(00, 'ms'),
+        "B11": np.datetime64(00, 'ms'),
+    }
     d = {"relative_timing": pd.Series(relative_timing)}
     df = pd.DataFrame(d)
     return df
+
 
 def read_band_ls(path, band='B8'):
     """ read landsat image from path
@@ -236,37 +296,38 @@ def read_band_ls(path, band='B8'):
     >>> targetprj
     <osgeo.osr.SpatialReference; proxy of <Swig Object of type 'OSRSpatial ...
     """
-    if band!='0':
-        if len(band)==2: #when band : 'BX'
+    if band != '0':
+        if len(band) == 2:  # when band : 'BX'
             fname = os.path.join(path, '*' + band + '.TIF')
-        else: # when band: '0X'
+        else:  # when band: '0X'
             fname = os.path.join(path, '*' + band + '.TIF')
     else:
         fname = path
-    assert len(glob.glob(fname))!=0, ('file does not seem to be present')
+    assert len(glob.glob(fname)) != 0, ('file does not seem to be present')
 
     data, spatialRef, geoTransform, targetprj = \
         read_geo_image(glob.glob(fname)[0])
     return data, spatialRef, geoTransform, targetprj
 
-def read_stack_ls(path, ls_df):
 
+def read_stack_ls(path, ls_df):
     for idx, val in enumerate(ls_df.index):
-        if idx==0:
+        if idx == 0:
             im_stack, spatialRef, geoTransform, targetprj = read_band_ls(
                 path, band=val)
-        else: # stack others bands
-            if im_stack.ndim==2:
+        else:  # stack others bands
+            if im_stack.ndim == 2:
                 im_stack = np.atleast_3d(im_stack)
             band = np.atleast_3d(read_band_ls(path, band=val)[0])
             im_stack = np.concatenate((im_stack, band), axis=2)
     return im_stack, spatialRef, geoTransform, targetprj
 
-def read_view_angles_ls(path):
 
+def read_view_angles_ls(path):
     # ANGLE_SENSOR_AZIMUTH_BAND_4
     fname = os.path.join(path, '*VAA.TIF')
-    assert len(glob.glob(fname))!=0, ('Azimuth file does not seem to be present')
+    assert len(
+        glob.glob(fname)) != 0, ('Azimuth file does not seem to be present')
 
     Az = read_geo_image(glob.glob(fname)[0])[0]
     # data is given in units of hundredths of degrees
@@ -274,12 +335,14 @@ def read_view_angles_ls(path):
 
     # ANGLE_SENSOR_ZENITH_BAND_4
     fname = os.path.join(path, '*VZA.TIF')
-    assert len(glob.glob(fname))!=0, ('Zenith file does not seem to be present')
+    assert len(
+        glob.glob(fname)) != 0, ('Zenith file does not seem to be present')
 
     Zn = read_geo_image(glob.glob(fname)[0])[0]
     # data is given in units of hundredths of degrees
     Zn = np.divide(Zn, 1e2)
     return Zn, Az
+
 
 def get_sca_numbering_ls(ang, boi='BAND04'):
     """
@@ -313,7 +376,7 @@ def get_sca_numbering_ls(ang, boi='BAND04'):
     --------
     read_metadata_ls
 
-    """
+    """  # noqa: E501
     # https://www.usgs.gov/media/files/lsds-1928-landsat-8-olitirs-solar-view-angle-generation-add
     det_cross, det_num, det_len = 28, 14, 494
 
@@ -321,62 +384,64 @@ def get_sca_numbering_ls(ang, boi='BAND04'):
     m, n = int(ang[boi + '_NUM_L1T_LINES']), int(ang[boi + '_NUM_L1T_SAMPS'])
 
     # lines a.k.a. rows, i or -y
-    str_lines = ang[boi+'_L1T_IMAGE_CORNER_LINES']
-    lst_lines = str_lines.replace("(","").replace(")","")
+    str_lines = ang[boi + '_L1T_IMAGE_CORNER_LINES']
+    lst_lines = str_lines.replace("(", "").replace(")", "")
     arr_lines = np.fromstring(lst_lines, dtype=float, sep=',')
     # samps a.k.a. collumns, j or x
-    str_samps = ang[boi+'_L1T_IMAGE_CORNER_SAMPS']
-    lst_samps = str_samps.replace("(","").replace(")","")
+    str_samps = ang[boi + '_L1T_IMAGE_CORNER_SAMPS']
+    lst_samps = str_samps.replace("(", "").replace(")", "")
     arr_samps = np.fromstring(lst_samps, dtype=float, sep=',')
 
-    mean_boi = ang[boi+'_MEAN_L1T_LINE_SAMP']
+    mean_boi = ang[boi + '_MEAN_L1T_LINE_SAMP']
     mean_boi = mean_boi.replace("(", "").replace(")", "")
     mean_boi = np.fromstring(mean_boi, dtype=float, sep=',')
 
-    mean_sca = np.zeros((det_num,2))
-    det_list = np.linspace(1,det_num,det_num).astype(int)
+    mean_sca = np.zeros((det_num, 2))
+    det_list = np.linspace(1, det_num, det_num).astype(int)
     for i in det_list:
         str_sca = ang[boi + '_SCA' + str(i).zfill(2) + '_MEAN_L1T_LINE_SAMP']
-        lst_sca = str_sca.replace("(","").replace(")","")
+        lst_sca = str_sca.replace("(", "").replace(")", "")
         arr_sca = np.fromstring(lst_sca, dtype=float, sep=',')
-        mean_sca[i-1,:] = arr_sca
+        mean_sca[i - 1, :] = arr_sca
         del str_sca, lst_sca, arr_sca
 
     # find overlap
-    over_sca = (mean_sca[:-1,:]+mean_sca[1:,:])/2
+    over_sca = (mean_sca[:-1, :] + mean_sca[1:, :]) / 2
 
     # extent overlap
-    e_para = np.array([arr_lines[0]-arr_lines[-1], arr_samps[0]-arr_samps[-1]])
+    e_para = np.array(
+        [arr_lines[0] - arr_lines[-1], arr_samps[0] - arr_samps[-1]])
     e_para /= np.sqrt(np.sum(e_para**2))
-    e_perp = np.array([arr_lines[0]-arr_lines[+1], arr_samps[0]-arr_samps[+1]])
-    e_perp /= np.sqrt(np.sum(e_perp ** 2))
+    e_perp = np.array(
+        [arr_lines[0] - arr_lines[+1], arr_samps[0] - arr_samps[+1]])
+    e_perp /= np.sqrt(np.sum(e_perp**2))
 
     # label array
     bbox_left = np.array([[arr_lines[0], arr_samps[0]],
                           [arr_lines[-1], arr_samps[-1]]])
-    bbox_up =np.array([[arr_lines[0], arr_samps[0]],
-                          [arr_lines[1], arr_samps[1]]])
-    bbox_right =np.array([[arr_lines[1], arr_samps[1]],
-                          [arr_lines[2], arr_samps[2]]])
+    bbox_up = np.array([[arr_lines[0], arr_samps[0]],
+                        [arr_lines[1], arr_samps[1]]])
+    bbox_right = np.array([[arr_lines[1], arr_samps[1]],
+                           [arr_lines[2], arr_samps[2]]])
     bbox_down = np.array([[arr_lines[2], arr_samps[2]],
                           [arr_lines[-1], arr_samps[-1]]])
 
     img = Image.new("L", [n, m], 0)
-    for idx,det in enumerate(det_list):
-        if idx==0:
+    for idx, det in enumerate(det_list):
+        if idx == 0:
             left_bor = bbox_left
         else:
-            left_det = over_sca[idx-1,:].copy()
-            left_det -= (det_cross/2)*e_perp
-            up_det = left_det + 5e3*e_para
-            down_det = left_det - 5e3*e_para
+            left_det = over_sca[idx - 1, :].copy()
+            left_det -= (det_cross / 2) * e_perp
+            up_det = left_det + 5e3 * e_para
+            down_det = left_det - 5e3 * e_para
 
-            left_bor = get_intersection(np.stack((bbox_up[0,:], bbox_down[0,:])),
-                                        np.stack((bbox_up[1,:], bbox_down[1,:])),
-                                        np.stack((up_det, up_det)),
-                                        np.stack((down_det, down_det)))
+            left_bor = get_intersection(
+                np.stack((bbox_up[0, :], bbox_down[0, :])),
+                np.stack((bbox_up[1, :], bbox_down[1, :])),
+                np.stack((up_det, up_det)), np.stack((down_det, down_det)))
             del left_det, up_det, down_det
-        if det==det_num:
+        if det == det_num:
             righ_bor = bbox_right
         else:
             righ_det = over_sca[idx, :].copy()
@@ -384,10 +449,10 @@ def get_sca_numbering_ls(ang, boi='BAND04'):
             up_det = righ_det + 5e3 * e_para
             down_det = righ_det - 5e3 * e_para
 
-            righ_bor = get_intersection(np.stack((bbox_up[0, :], bbox_down[0, :])),
-                                        np.stack((bbox_up[1, :], bbox_down[1, :])),
-                                        np.stack((up_det, up_det)),
-                                        np.stack((down_det, down_det)))
+            righ_bor = get_intersection(
+                np.stack((bbox_up[0, :], bbox_down[0, :])),
+                np.stack((bbox_up[1, :], bbox_down[1, :])),
+                np.stack((up_det, up_det)), np.stack((down_det, down_det)))
             del righ_det, up_det, down_det
 
         # label mask
@@ -397,25 +462,28 @@ def get_sca_numbering_ls(ang, boi='BAND04'):
     Sca = np.array(img)
     return Sca
 
-def read_sun_angles_ls(path):
 
+def read_sun_angles_ls(path):
     # ANGLE_SOLAR_AZIMUTH_BAND_4
     fname = os.path.join(path, '*SAA.TIF')
-    assert len(glob.glob(fname))!=0, ('Azimuth file does not seem to be present')
+    assert len(
+        glob.glob(fname)) != 0, ('Azimuth file does not seem to be present')
 
     Az = read_geo_image(glob.glob(fname)[0])[0]
 
     # ANGLE_SOLAR_ZENITH_BAND_4
     fname = os.path.join(path, '*SZA.TIF')
-    assert len(glob.glob(fname))!=0, ('Zenith file does not seem to be present')
+    assert len(
+        glob.glob(fname)) != 0, ('Zenith file does not seem to be present')
 
     Zn = read_geo_image(glob.glob(fname)[0])[0]
     return Zn, Az
 
+
 def read_metadata_ls(dir_path, suffix='MTL.txt'):
     """ Convert Landsat MTL file to dictionary of metadata values """
 
-    full_path = glob.glob(os.path.join(dir_path, '*'+suffix))[0]
+    full_path = glob.glob(os.path.join(dir_path, '*' + suffix))[0]
     with open(full_path) as f:
         mtl_text = f.readlines()
 

@@ -2,17 +2,15 @@ import os
 import warnings
 
 import numpy as np
-
-# geospatial libaries
 from osgeo import ogr, osr
-
-# raster/image libraries
 from scipy import ndimage
 
 from dhdt.generic.attitude_tools import rot_mat
 from dhdt.generic.handler_im import get_grad_filters
-from dhdt.generic.unit_check import correct_geoTransform, \
-    are_two_arrays_equal, correct_floating_parameter, is_crs_an_srs
+from dhdt.generic.unit_check import (are_two_arrays_equal,
+                                     correct_floating_parameter,
+                                     correct_geoTransform, is_crs_an_srs)
+
 
 def cart2pol(x, y):
     """ transform Cartesian coordinate(s) to polar coordinate(s)
@@ -36,12 +34,13 @@ def cart2pol(x, y):
     """
     if type(x) in (np.ma.core.MaskedArray, np.ndarray):
         are_two_arrays_equal(x, y)
-    else: # if only a float is given
-        x,y = correct_floating_parameter(x), correct_floating_parameter(y)
+    else:  # if only a float is given
+        x, y = correct_floating_parameter(x), correct_floating_parameter(y)
 
     ρ = np.hypot(x, y)
     φ = np.arctan2(y, x)
     return ρ, φ
+
 
 def pol2cart(ρ, φ):
     """ transform polar coordinate(s) to Cartesian coordinate(s)
@@ -65,12 +64,13 @@ def pol2cart(ρ, φ):
     """
     if type(ρ) in (np.ma.core.MaskedArray, np.ndarray):
         are_two_arrays_equal(ρ, φ)
-    else: # if only a float is given
-        ρ,φ = correct_floating_parameter(ρ), correct_floating_parameter(φ)
+    else:  # if only a float is given
+        ρ, φ = correct_floating_parameter(ρ), correct_floating_parameter(φ)
 
     x = ρ * np.cos(φ)
     y = ρ * np.sin(φ)
     return x, y
+
 
 def pol2xyz(Az, Zn):
     """ transform from angles to unit vector in 3D
@@ -119,10 +119,11 @@ def pol2xyz(Az, Zn):
 
     """
     Az, Zn = are_two_arrays_equal(Az, Zn)
-    X = np.sin(np.deg2rad(Az))*np.sin(np.deg2rad(Zn))
-    Y = np.cos(np.deg2rad(Az))*np.sin(np.deg2rad(Zn))
+    X = np.sin(np.deg2rad(Az)) * np.sin(np.deg2rad(Zn))
+    Y = np.cos(np.deg2rad(Az)) * np.sin(np.deg2rad(Zn))
     Z = np.cos(np.deg2rad(Zn))
     return X, Y, Z
+
 
 def pix2map(geoTransform, i, j):
     """ transform local image coordinates to map coordinates
@@ -167,8 +168,8 @@ def pix2map(geoTransform, i, j):
     geoTransform = correct_geoTransform(geoTransform)
     if type(i) in (np.ma.core.MaskedArray, np.ndarray):
         are_two_arrays_equal(i, j)
-    else: # if only a float is given
-        i,j = correct_floating_parameter(i), correct_floating_parameter(j)
+    else:  # if only a float is given
+        i, j = correct_floating_parameter(i), correct_floating_parameter(j)
 
     x = geoTransform[0] + \
         np.multiply(geoTransform[1], j) + np.multiply(geoTransform[2], i)
@@ -180,6 +181,7 @@ def pix2map(geoTransform, i, j):
     # x += geoTransform[1] / 2.0
     # y += geoTransform[5] / 2.0
     return x, y
+
 
 def map2pix(geoTransform, x, y):
     """ transform map coordinates to local image coordinates
@@ -224,8 +226,8 @@ def map2pix(geoTransform, x, y):
     geoTransform = correct_geoTransform(geoTransform)
     if type(x) in (np.ma.core.MaskedArray, np.ndarray):
         are_two_arrays_equal(x, y)
-    else: # if only a float is given
-        x,y = correct_floating_parameter(x), correct_floating_parameter(y)
+    else:  # if only a float is given
+        x, y = correct_floating_parameter(x), correct_floating_parameter(y)
 
     A = np.array(geoTransform[:-2]).reshape(2, 3)[:, 1:]
     A_inv = np.linalg.inv(A)
@@ -236,9 +238,10 @@ def map2pix(geoTransform, x, y):
     x_loc = x - geoTransform[0]
     y_loc = y - geoTransform[3]
 
-    j = np.multiply(x_loc, A_inv[0,0]) + np.multiply(y_loc, A_inv[0,1])
-    i = np.multiply(x_loc, A_inv[1,0]) + np.multiply(y_loc, A_inv[1,1])
-    return i,j
+    j = np.multiply(x_loc, A_inv[0, 0]) + np.multiply(y_loc, A_inv[0, 1])
+    i = np.multiply(x_loc, A_inv[1, 0]) + np.multiply(y_loc, A_inv[1, 1])
+    return i, j
+
 
 def vel2pix(geoTransform, dx, dy):
     """ transform map displacements to local image displacements
@@ -280,7 +283,7 @@ def vel2pix(geoTransform, dx, dy):
     if type(dx) in (np.ma.core.MaskedArray, np.ndarray):
         are_two_arrays_equal(dx, dy)
     else:
-        dx,dy = correct_floating_parameter(dx), correct_floating_parameter(dy)
+        dx, dy = correct_floating_parameter(dx), correct_floating_parameter(dy)
 
     if geoTransform[2] == 0:
         dj = dx / geoTransform[1]
@@ -293,6 +296,7 @@ def vel2pix(geoTransform, dx, dy):
         di = (dx / geoTransform[4] + dy / geoTransform[5])
 
     return di, dj
+
 
 def ecef2llh(xyz):
     """ transform 3D cartesian Earth Centered Earth fixed coordinates, to
@@ -322,8 +326,10 @@ def ecef2llh(xyz):
     llh = np.stack(llh, axis=0)
     return llh
 
+
 def get_utm_zone_simple(λ):
     return ((np.floor((λ + 180) / 6) % 60) + 1).astype(int)
+
 
 def ll2map(ll, spatialRef):
     """ transforms angles to map coordinates (that is 2D) in a projection frame
@@ -370,6 +376,7 @@ def ll2map(ll, spatialRef):
     xy = np.stack(xy, axis=0)
     return xy
 
+
 def map2ll(xy, spatialRef):
     """ transforms map coordinates (that is 2D) in a projection frame to angles
 
@@ -397,7 +404,8 @@ def map2ll(xy, spatialRef):
     coordTrans = osr.CoordinateTransformation(spatialRef, llSpatialRef)
     ll = coordTrans.TransformPoints(list(xy))
     ll = np.stack(ll, axis=0)
-    return ll[:,:-1]
+    return ll[:, :-1]
+
 
 def ecef2map(xyz, spatialRef):
     """ transform 3D cartesian Earth Centered Earth fixed coordinates, to
@@ -421,9 +429,10 @@ def ecef2map(xyz, spatialRef):
         spatialRef = osr.SpatialReference()
         spatialRef.ImportFromWkt(spatialStr)
 
-    llh = ecef2llh(xyz) # get spherical coordinates and height
+    llh = ecef2llh(xyz)  # get spherical coordinates and height
     xy = ll2map(llh[:, :-1], spatialRef)
     return xy
+
 
 def haversine(Δlat, Δlon, lat, radius=None):
     """ calculate the distance along a great-circle
@@ -442,21 +451,22 @@ def haversine(Δlat, Δlon, lat, radius=None):
     if radius is None:
         wgs84 = osr.SpatialReference()
         wgs84.ImportFromEPSG(4326)
-        a,b = wgs84.GetSemiMajor(), wgs84.GetSemiMinor()
-        radius = np.sqrt(np.divide((a**2*np.cos(lat))**2 +
-                                   (b**2*np.sin(lat))**2,
-                                   (a*np.cos(lat))**2 + (b*np.sin(lat))**2)
-                         )
+        a, b = wgs84.GetSemiMajor(), wgs84.GetSemiMinor()
+        radius = np.sqrt(
+            np.divide((a**2 * np.cos(lat))**2 + (b**2 * np.sin(lat))**2,
+                      (a * np.cos(lat))**2 + (b * np.sin(lat))**2))
 
     a = np.sin(Δlat / 2) ** 2 + \
-        np.cos(lat) * np.cos(lat+Δlat) * np.sin(Δlon / 2) ** 2
-    c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a)) # great circle distance
+        np.cos(lat) * np.cos(lat + Δlat) * np.sin(Δlon / 2) ** 2
+    c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))  # great circle distance
     d = radius * c
     return d
+
 
 def rot_covar(V, R):
     V_r = R @ V @ np.transpose(R)
     return V_r
+
 
 def covar2err_ellipse(sigma_1, sigma_2, ρ):
     """ parameter transform from co-variance matrix to standard error-ellipse
@@ -486,35 +496,36 @@ def covar2err_ellipse(sigma_1, sigma_2, ρ):
     s1s2_min = sigma_1**2 - sigma_2**2
     s1s2_plu = sigma_1**2 + sigma_2**2
     s1s2r = sigma_1 * sigma_2 * ρ
-    lamb = np.sqrt(np.divide(s1s2_min**2,4) + s1s2r)
-    lambda_1 = s1s2_plu/2 + lamb                            # eq.5 in [Al22]
-    lambda_2 = s1s2_plu/2 - lamb
-    θ = np.rad2deg(np.arctan2(2*s1s2r, s1s2_min) / 2)   # eq.6 in [Al22]
+    lamb = np.sqrt(np.divide(s1s2_min**2, 4) + s1s2r)
+    lambda_1 = s1s2_plu / 2 + lamb  # eq.5 in [Al22]
+    lambda_2 = s1s2_plu / 2 - lamb
+    θ = np.rad2deg(np.arctan2(2 * s1s2r, s1s2_min) / 2)  # eq.6 in [Al22]
     return lambda_1, lambda_2, θ
+
 
 def rotate_variance(θ, qii, qjj, ρ):
     qii_r, qjj_r = np.zeros_like(qii), np.zeros_like(qjj)
     for iy, ix in np.ndindex(θ.shape):
-        if ~np.isnan(θ[iy,ix]) and ~np.isnan(ρ[iy,ix]):
+        if ~np.isnan(θ[iy, ix]) and ~np.isnan(ρ[iy, ix]):
             # construct co-variance matrix
-            qij = ρ[iy,ix] *\
-                  np.sqrt(np.maximum(qii[iy,ix], 0)) *\
-                  np.sqrt(np.maximum(qjj[iy,ix], 0))
-            V = np.array([[qjj[iy,ix], qij],
-                          [qij, qii[iy,ix]]])
+            qij = ρ[iy, ix] *\
+                  np.sqrt(np.maximum(qii[iy, ix], 0)) *\
+                  np.sqrt(np.maximum(qjj[iy, ix], 0))
+            V = np.array([[qjj[iy, ix], qij], [qij, qii[iy, ix]]])
             R = rot_mat(θ[iy, ix])
             V_r = rot_covar(V, R)
             qii_r[iy, ix], qjj_r[iy, ix] = V_r[1][1], V_r[0][0]
         else:
-            qii_r[iy,ix], qjj_r[iy,ix] = np.nan, np.nan
+            qii_r[iy, ix], qjj_r[iy, ix] = np.nan, np.nan
     return qii_r, qjj_r
 
-def cast_orientation(I, Az, indexing='ij'):
+
+def cast_orientation(Z, Az, indexing='ij'):
     """ emphasises intensities within a certain direction, following [Fr91]_.
 
     Parameters
     ----------
-    I : np.array, size=(m,n)
+    Z : np.array, size=(m,n)
         array with intensity values
     Az : {float,np.array}, size{(m,n),1}, unit=degrees
         band of azimuth values or single azimuth angle.
@@ -524,7 +535,7 @@ def cast_orientation(I, Az, indexing='ij'):
 
     Returns
     -------
-    Ican : np.array, size=(m,n)
+    Zcan : np.array, size=(m,n)
         array with intensity variation in the preferred direction.
 
     See Also
@@ -564,34 +575,36 @@ def cast_orientation(I, Az, indexing='ij'):
               transactions on pattern analysis and machine intelligence
               vol.13(9) pp.891-906, 1991.
     """
-    assert type(I)==np.ndarray, ("please provide an array")
+    assert isinstance(Z, np.ndarray), 'please provide an array'
 
-    fx,fy = get_grad_filters(ftype='sobel', tsize=3, order=1)
+    fx, fy = get_grad_filters(ftype='sobel', tsize=3, order=1)
 
-    Idx = ndimage.convolve(I, fx)  # steerable filters
-    Idy = ndimage.convolve(I, fy)
+    Zdx = ndimage.convolve(Z, fx)  # steerable filters
+    Zdy = ndimage.convolve(Z, fy)
 
-    if indexing=='ij':
-        Ican = (np.multiply(np.cos(np.radians(Az)), Idy)
-                - np.multiply(np.sin(np.radians(Az)), Idx))
+    if indexing == 'ij':
+        Zcan = (np.multiply(np.cos(np.radians(Az)), Zdy) -
+                np.multiply(np.sin(np.radians(Az)), Zdx))
     else:
-        Ican = (np.multiply(np.cos(np.radians(Az)), Idy)
-                    + np.multiply(np.sin(np.radians(Az)), Idx))
-    return Ican
+        Zcan = (np.multiply(np.cos(np.radians(Az)), Zdy) +
+                np.multiply(np.sin(np.radians(Az)), Zdx))
+    return Zcan
 
-def estimate_geoTransform(I,J,X,Y, samp=10):
-    m,n = I.shape[:2]
-    y = np.vstack([X[::samp,::samp].reshape(-1,1),
-                   Y[::samp,::samp].reshape(-1,1)])
+
+def estimate_geoTransform(Z, J, X, Y, samp=10):
+    m, n = Z.shape[:2]
+    y = np.vstack(
+        [X[::samp, ::samp].reshape(-1, 1), Y[::samp, ::samp].reshape(-1, 1)])
     # design matrix
-    A_sub = np.hstack([I[::samp,::samp].reshape(-1,1),
-                       J[::samp,::samp].reshape(-1,1)])
-    A_sub = np.pad(A_sub, ((0,0),(1,0)), constant_values=1.)
+    A_sub = np.hstack(
+        [Z[::samp, ::samp].reshape(-1, 1), J[::samp, ::samp].reshape(-1, 1)])
+    A_sub = np.pad(A_sub, ((0, 0), (1, 0)), constant_values=1.)
     A = np.kron(np.eye(2), A_sub)
 
     x_hat = np.linalg.lstsq(A, y, rcond=None)[0]
-    geoTransform = tuple(np.squeeze(x_hat))+(m,n)
+    geoTransform = tuple(np.squeeze(x_hat)) + (m, n)
     return geoTransform
+
 
 def ref_trans(geoTransform, dI, dJ):
     """ translate reference transform
@@ -633,13 +646,14 @@ def ref_trans(geoTransform, dI, dJ):
     geoTransform = correct_geoTransform(geoTransform)
     dI, dJ = correct_floating_parameter(dI), correct_floating_parameter(dJ)
 
-    newTransform = (geoTransform[0]+ dJ*geoTransform[1] + dI*geoTransform[2],
-                    geoTransform[1], geoTransform[2],
-                    geoTransform[3]+ dJ*geoTransform[4] + dI*geoTransform[5],
-                    geoTransform[4], geoTransform[5])
-    if len(geoTransform) == 8: # also include info of image extent
+    newTransform = (geoTransform[0] + dJ * geoTransform[1] +
+                    dI * geoTransform[2], geoTransform[1], geoTransform[2],
+                    geoTransform[3] + dJ * geoTransform[4] +
+                    dI * geoTransform[5], geoTransform[4], geoTransform[5])
+    if len(geoTransform) == 8:  # also include info of image extent
         newTransform = newTransform + geoTransform[-2:]
     return newTransform
+
 
 def ref_scale(geoTransform, scaling):
     """
@@ -662,19 +676,21 @@ def ref_scale(geoTransform, scaling):
     ref_trans, ref_update, ref_rotate
     """
     geoTransform = correct_geoTransform(geoTransform)
-    if len(geoTransform)==8: # sometimes the image dimensions are also included
+    if len(geoTransform
+           ) == 8:  # sometimes the image dimensions are also included
         geoTransform = geoTransform[:-2]
         # these will not be included in the newTransform, since the pixel
         # size has changed, so this will likely be due to the generation of
         # a grid based on a group of pixels or some sort of kernel
 
     # not using center of pixel
-    A = np.asarray(geoTransform).reshape((2,3)).T
-    A[0,:] += np.diag(A[1:,:]*scaling/2)
-    A[1:,:] = A[1:,:]*float(scaling)
-    newTransform = tuple(map(tuple, np.transpose(A).reshape((1,6))))
+    A = np.asarray(geoTransform).reshape((2, 3)).T
+    A[0, :] += np.diag(A[1:, :] * scaling / 2)
+    A[1:, :] = A[1:, :] * float(scaling)
+    newTransform = tuple(map(tuple, np.transpose(A).reshape((1, 6))))
 
     return newTransform[0]
+
 
 def ref_rotate(geoTransform, θ):
     """
@@ -700,32 +716,37 @@ def ref_rotate(geoTransform, θ):
     dhdt.generic.attitude_tools.rot_mat
     """
     geoTransform = correct_geoTransform(geoTransform)
-    m,n = geoTransform[-2:]
+    m, n = geoTransform[-2:]
     A = np.asarray(geoTransform[:-2]).reshape((2, 3)).T
-    A[1:,:] = A[1:,:]@rot_mat(θ)
+    A[1:, :] = A[1:, :] @ rot_mat(θ)
 
-    newTransform = tuple(float(x) for x in
-                         np.squeeze(np.transpose(A).ravel())) + tuple((m,n))
+    newTransform = tuple(
+        float(x) for x in np.squeeze(np.transpose(A).ravel())) + tuple((m, n))
     return newTransform
+
 
 def ref_update(geoTransform, rows, cols):
     geoTransform = correct_geoTransform(geoTransform)
     rows, cols = int(rows), int(cols)
-    if len(geoTransform)==6:
-        geoTransform = geoTransform + (rows, cols,)
-    elif len(geoTransform)==8: # replace last elements
+    if len(geoTransform) == 6:
+        geoTransform = geoTransform + (
+            rows,
+            cols,
+        )
+    elif len(geoTransform) == 8:  # replace last elements
         gt_list = list(geoTransform)
         gt_list[-2:] = [rows, cols]
         geoTransform = tuple(gt_list)
     return geoTransform
 
+
 def aff_trans_template_coord(A, t_radius, fourier=False):
     if not fourier:
-        x = np.arange(-t_radius, t_radius+1)
-        y = np.arange(-t_radius, t_radius+1)
+        x = np.arange(-t_radius, t_radius + 1)
+        y = np.arange(-t_radius, t_radius + 1)
     else:
-        x = np.linspace(-t_radius+.5, t_radius-.5, 2*t_radius)
-        y = np.linspace(-t_radius+.5, t_radius-.5, 2*t_radius)
+        x = np.linspace(-t_radius + .5, t_radius - .5, 2 * t_radius)
+        y = np.linspace(-t_radius + .5, t_radius - .5, 2 * t_radius)
 
     X = np.repeat(x[np.newaxis, :], y.shape[0], axis=0)
     Y = np.repeat(y[:, np.newaxis], x.shape[0], axis=1)
@@ -733,6 +754,7 @@ def aff_trans_template_coord(A, t_radius, fourier=False):
     X_aff = X * A[0, 0] + Y * A[0, 1]
     Y_aff = X * A[1, 0] + Y * A[1, 1]
     return X_aff, Y_aff
+
 
 def rot_trans_template_coord(θ, t_radius):
     x = np.arange(-t_radius, t_radius + 1)
@@ -745,6 +767,7 @@ def rot_trans_template_coord(θ, t_radius):
     X_r = +np.cos(θ) * X + np.sin(θ) * Y
     Y_r = -np.sin(θ) * X + np.cos(θ) * Y
     return X_r, Y_r
+
 
 def pix_centers(geoTransform, rows=None, cols=None, make_grid=True):
     """ provide the pixel coordinate from the axis, or the whole grid
@@ -792,31 +815,32 @@ def pix_centers(geoTransform, rows=None, cols=None, make_grid=True):
     """
     geoTransform = correct_geoTransform(geoTransform)
     if rows is None:
-        assert len(geoTransform)==8, ('please provide the dimensions of the ' +
-                                      'imagery, or have this included in the ' +
-                                      'geoTransform.')
-        rows,cols = int(geoTransform[-2]), int(geoTransform[-1])
-    i,j = np.linspace(0, rows-1, rows), np.linspace(0, cols-1, cols)
+        assert len(geoTransform) == 8, (
+            'please provide the dimensions of the ' +
+            'imagery, or have this included in the ' + 'geoTransform.')
+        rows, cols = int(geoTransform[-2]), int(geoTransform[-1])
+    i, j = np.linspace(0, rows - 1, rows), np.linspace(0, cols - 1, cols)
 
     if make_grid:
-        J,I = np.meshgrid(j, i)
-        X,Y = pix2map(geoTransform, I, J)
+        jj, ii = np.meshgrid(j, i)
+        X, Y = pix2map(geoTransform, ii, jj)
         return X, Y
     else:
-        x,y_dummy = pix2map(geoTransform, np.repeat(i[0], len(j)), j)
-        x_dummy,y = pix2map(geoTransform, i, np.repeat(j[0], len(i)))
+        x, y_dummy = pix2map(geoTransform, np.repeat(i[0], len(j)), j)
+        x_dummy, y = pix2map(geoTransform, i, np.repeat(j[0], len(i)))
         return x, y
 
-def bilinear_interp_excluding_nodat(I, i_I, j_I, noData=-9999):
+
+def bilinear_interp_excluding_nodat(Z, i_Z, j_Z, noData=-9999):
     """ do simple bi-linear interpolation, taking care of nodata
 
     Parameters
     ----------
-    I : np.array, size=(m,n), ndim={2,3}
+    Z : np.array, size=(m,n), ndim={2,3}
         data array.
-    i_I : np.array, size=(k,l), ndim=2
+    i_Z : np.array, size=(k,l), ndim=2
         horizontal locations, within local image frame.
-    j_I : np.array, size=(k,l), ndim=2
+    j_Z : np.array, size=(k,l), ndim=2
         vertical locations, within local image frame.
     noData : TYPE, optional
         DESCRIPTION. The default is -9999.
@@ -847,30 +871,33 @@ def bilinear_interp_excluding_nodat(I, i_I, j_I, noData=-9999):
           based      v           based       |
 
     """
-    assert type(I)==np.ndarray, ("please provide an array")
-    are_two_arrays_equal(i_I, j_I)
-    m, n = I.shape[0:2]
+    assert isinstance(Z, np.ndarray), 'please provide an array'
+    are_two_arrays_equal(i_Z, j_Z)
+    m, n = Z.shape[0:2]
 
-    i_prio, i_post = np.floor(i_I).astype(int), np.ceil(i_I).astype(int)
-    j_prio,j_post = np.floor(j_I).astype(int), np.ceil(j_I).astype(int)
+    i_prio, i_post = np.floor(i_Z).astype(int), np.ceil(i_Z).astype(int)
+    j_prio, j_post = np.floor(j_Z).astype(int), np.ceil(j_Z).astype(int)
 
-    wi,wj = np.remainder(i_I,1), np.remainder(j_I,1)
+    wi, wj = np.remainder(i_Z, 1), np.remainder(j_Z, 1)
 
     # make resistant to locations outside the bounds of the array
-    I_1, I_2 = np.ones_like(i_prio)*noData, np.ones_like(i_prio)*noData
-    I_3, I_4 = np.ones_like(i_prio)*noData, np.ones_like(i_prio)*noData
+    Z_1, Z_2 = np.ones_like(i_prio) * noData, np.ones_like(i_prio) * noData
+    Z_3, Z_4 = np.ones_like(i_prio) * noData, np.ones_like(i_prio) * noData
 
-    IN = np.logical_and.reduce(((i_prio >= 0), (i_post <= (m-1)),
-                                (j_prio >= 0), (j_post <= (n-1))))
+    IN = np.logical_and.reduce(
+        ((i_prio >= 0), (i_post <= (m - 1)), (j_prio >= 0), (j_post
+                                                             <= (n - 1))))
 
-    I_1[IN],I_2[IN] = I[i_prio[IN],j_prio[IN]], I[i_prio[IN],j_post[IN]]
-    I_3[IN],I_4[IN] = I[i_post[IN],j_post[IN]], I[i_post[IN],j_prio[IN]]
+    Z_1[IN], Z_2[IN] = Z[i_prio[IN], j_prio[IN]], Z[i_prio[IN], j_post[IN]]
+    Z_3[IN], Z_4[IN] = Z[i_post[IN], j_post[IN]], Z[i_post[IN], j_prio[IN]]
 
-    no_dat = np.any(np.vstack((I_1,I_2,I_3,I_4))==noData, axis=0)
+    no_dat = np.any(np.vstack((Z_1, Z_2, Z_3, Z_4)) == noData, axis=0)
 
-    DEM_new = wj*(wi*I_1 + (1-wi)*I_4) + (1-wj)*(wi*I_2 + (1-wi)*I_3)
+    DEM_new = wj * (wi * Z_1 + (1 - wi) * Z_4) + (1 - wj) * (wi * Z_2 +
+                                                             (1 - wi) * Z_3)
     DEM_new[no_dat] = noData
     return DEM_new
+
 
 def bbox_boolean(img):
     """ get image coordinates of maximum bounding box extent of True values
@@ -892,12 +919,13 @@ def bbox_boolean(img):
     c_max : integer, {x ∈ ℕ | x ≥ 0}
         maximum collumn with a true boolean.
     """
-    assert type(img)==np.ndarray, ("please provide an array")
+    assert isinstance(img, np.ndarray), 'please provide an array'
 
-    rows,cols = np.any(img, axis=1), np.any(img, axis=0)
+    rows, cols = np.any(img, axis=1), np.any(img, axis=0)
     r_min, r_max = np.where(rows)[0][[0, -1]]
     c_min, c_max = np.where(cols)[0][[0, -1]]
     return r_min, r_max, c_min, c_max
+
 
 def get_bbox(geoTransform, rows=None, cols=None):
     """ given array meta data, calculate the bounding box
@@ -938,29 +966,34 @@ def get_bbox(geoTransform, rows=None, cols=None):
 
     """
     geoTransform = correct_geoTransform(geoTransform)
-    if rows==None:
-        assert len(geoTransform)>=8, ('please provide raster information')
+    if rows is None:
+        assert len(geoTransform) >= 8, ('please provide raster information')
         rows, cols = geoTransform[6], geoTransform[7]
 
     X = geoTransform[0] + \
-        np.array([0, cols])*geoTransform[1] + np.array([0, rows])*geoTransform[2]
+        np.array([0, cols]) * geoTransform[1] + np.array([0, rows]) * \
+        geoTransform[2]
 
     Y = geoTransform[3] + \
-        np.array([0, cols])*geoTransform[4] + np.array([0, rows])*geoTransform[5]
+        np.array([0, cols]) * geoTransform[4] + np.array([0, rows]) * \
+        geoTransform[5]
 
     bbox = np.hstack((np.sort(X), np.sort(Y)))
-#    # get extent not pixel centers
-#    spacing_x = np.sqrt(geoTransform[1]**2 + geoTransform[2]**2)/2
-#    spacing_y = np.sqrt(geoTransform[4]**2 + geoTransform[5]**2)/2
-#    bbox += np.array([-spacing_x, +spacing_x, -spacing_y, +spacing_y])
+    #    # get extent not pixel centers
+    #    spacing_x = np.sqrt(geoTransform[1]**2 + geoTransform[2]**2)/2
+    #    spacing_y = np.sqrt(geoTransform[4]**2 + geoTransform[5]**2)/2
+    #    bbox += np.array([-spacing_x, +spacing_x, -spacing_y, +spacing_y])
     return bbox
 
+
 def get_geoTransform(bbox, dx, dy):
-    dx, dy = float(dx), float(dy)
+    dx = float(dx)
+    dy = float(dy)
     geoTransform = (bbox[0], +dx, 0., bbox[3], 0., -dy,
                     int(np.floor((bbox[3] - bbox[2]) / dy)),
                     int(np.floor((bbox[1] - bbox[0]) / dx)))
     return geoTransform
+
 
 def get_shape_extent(bbox, geoTransform):
     """ given geographic meta data of array, calculate its shape
@@ -1004,13 +1037,12 @@ def get_shape_extent(bbox, geoTransform):
     bbox_swap = bbox.reshape((2,2)).T.ravel()
     """
     geoTransform = correct_geoTransform(geoTransform)
-    rows = np.divide(bbox[3]-bbox[2],
-                      np.hypot(geoTransform[4], geoTransform[5])
-                     ).astype(int)
-    cols = np.divide(bbox[1]-bbox[0],
-                      np.hypot(geoTransform[1], geoTransform[2])
-                     ).astype(int)
+    rows = np.divide(bbox[3] - bbox[2],
+                     np.hypot(geoTransform[4], geoTransform[5])).astype(int)
+    cols = np.divide(bbox[1] - bbox[0],
+                     np.hypot(geoTransform[1], geoTransform[2])).astype(int)
     return (rows, cols)
+
 
 def get_max_pixel_spacing(geoTransform):
     """ calculate the maximum spacing between pixels
@@ -1030,6 +1062,7 @@ def get_max_pixel_spacing(geoTransform):
                       np.hypot(geoTransform[4], geoTransform[5]))
     return spac
 
+
 def get_pixel_spacing(geoTransform, spatialRef):
     """ provide the pixel spacing of an image in meters
 
@@ -1043,6 +1076,7 @@ def get_pixel_spacing(geoTransform, spatialRef):
         d_1 = haversine(geoTransform[2], geoTransform[1], geoTransform[3])
         d_2 = haversine(geoTransform[5], geoTransform[4], geoTransform[3])
         return d_1, d_2
+
 
 def get_map_extent(bbox):
     """ generate coordinate list in counterclockwise direction from boundingbox
@@ -1077,9 +1111,10 @@ def get_map_extent(bbox):
           image      | j         map         |
           based      v           based       |
     """
-    xB = np.array([[ bbox[0], bbox[0], bbox[1], bbox[1], bbox[0] ]]).T
-    yB = np.array([[ bbox[3], bbox[2], bbox[2], bbox[3], bbox[3] ]]).T
+    xB = np.array([[bbox[0], bbox[0], bbox[1], bbox[1], bbox[0]]]).T
+    yB = np.array([[bbox[3], bbox[2], bbox[2], bbox[3], bbox[3]]]).T
     return xB, yB
+
 
 def get_mean_map_location(geoTransform, spatialRef, rows=None, cols=None):
     """ estimate the central location of a geo-referenced image
@@ -1100,9 +1135,10 @@ def get_mean_map_location(geoTransform, spatialRef, rows=None, cols=None):
     """
     geoTransform = correct_geoTransform(geoTransform)
     bbox = get_bbox(geoTransform, rows=rows, cols=cols)
-    x_bbox,y_bbox = get_map_extent(bbox)
+    x_bbox, y_bbox = get_map_extent(bbox)
     x_bar, y_bar = np.mean(x_bbox), np.mean(y_bbox)
     return x_bar, y_bar
+
 
 def get_mean_map_lat_lon(geoTransform, spatialRef, rows=None, cols=None):
     """ estimate the central latitude and longitude of a geo-referenced image
@@ -1127,10 +1163,11 @@ def get_mean_map_lat_lon(geoTransform, spatialRef, rows=None, cols=None):
     if is_crs_an_srs(spatialRef):
         x_bbox, y_bbox = get_map_extent(bbox)
         ll = map2ll(np.concatenate((x_bbox, y_bbox), axis=1), spatialRef)
-        lat_bar,lon_bar = np.mean(ll[:,0]), np.mean(ll[:,1])
-        return lat_bar,lon_bar
+        lat_bar, lon_bar = np.mean(ll[:, 0]), np.mean(ll[:, 1])
+        return lat_bar, lon_bar
     else:
         return np.mean(bbox[-2:]), np.mean(bbox[:2])
+
 
 def get_bbox_polygon(geoTransform, rows, cols):
     """ given array meta data, create bounding polygon
@@ -1156,16 +1193,17 @@ def get_bbox_polygon(geoTransform, rows, cols):
     # build tile polygon
     geoTransform = correct_geoTransform(geoTransform)
     bbox = get_bbox(geoTransform, rows, cols)
-    xB,yB = get_map_extent(bbox)
+    xB, yB = get_map_extent(bbox)
     ring = ogr.Geometry(ogr.wkbLinearRing)
     for i in range(5):
-        ring.AddPoint(float(xB[i]),float(yB[i]))
+        ring.AddPoint(float(xB[i]), float(yB[i]))
     poly = ogr.Geometry(ogr.wkbPolygon)
     poly.AddGeometry(ring)
     # poly_tile.ExportToWkt()
     return poly
 
-def find_overlapping_DEM_tiles(dem_path,dem_file, poly_tile):
+
+def find_overlapping_DEM_tiles(dem_path, dem_file, poly_tile):
     '''
     loop through a shapefile of tiles, to find overlap with a given geometry
     '''
@@ -1181,13 +1219,17 @@ def find_overlapping_DEM_tiles(dem_path,dem_file, poly_tile):
         geom = demFeature.GetGeometryRef()
 
         intersection = poly_tile.Intersection(geom)
-        if(intersection is not None and intersection.Area()>0):
-            url_list += (demFeature.GetField('fileurl'),)
+        if (intersection is not None and intersection.Area() > 0):
+            url_list += (demFeature.GetField('fileurl'), )
 
     return url_list
 
-def make_same_size(Old, geoTransform_old, geoTransform_new,
-                   rows_new=None, cols_new=None):
+
+def make_same_size(Old,
+                   geoTransform_old,
+                   geoTransform_new,
+                   rows_new=None,
+                   cols_new=None):
     """ clip array to the same size as another array
 
     Parameters
@@ -1211,51 +1253,60 @@ def make_same_size(Old, geoTransform_old, geoTransform_new,
     geoTransform_old = correct_geoTransform(geoTransform_old)
     geoTransform_new = correct_geoTransform(geoTransform_new)
 
-    if len(geoTransform_new)==8:
+    if len(geoTransform_new) == 8:
         rows_new, cols_new = geoTransform_new[-2], geoTransform_new[-1]
 
     # look at upper left coordinate
-    dj = np.round((geoTransform_new[0]-geoTransform_old[0])/geoTransform_new[1])
-    di = np.round((geoTransform_new[3]-geoTransform_old[3])/geoTransform_new[1])
+    dj = np.round(
+        (geoTransform_new[0] - geoTransform_old[0]) / geoTransform_new[1])
+    di = np.round(
+        (geoTransform_new[3] - geoTransform_old[3]) / geoTransform_new[1])
 
-    if np.sign(dj)==-1: # extend array by simple copy of border values
-        Old = np.concatenate((np.repeat(np.expand_dims(Old[:,0], axis = 1),
-                                        abs(dj), axis=1), Old), axis = 1)
-    elif np.sign(dj)==1: # reduce array
-        Old = Old[:,abs(dj).astype(int):]
+    if np.sign(dj) == -1:  # extend array by simple copy of border values
+        Old = np.concatenate((np.repeat(
+            np.expand_dims(Old[:, 0], axis=1), abs(dj), axis=1), Old),
+                             axis=1)
+    elif np.sign(dj) == 1:  # reduce array
+        Old = Old[:, abs(dj).astype(int):]
 
-    if np.sign(di)==-1: # reduce array
-        Old = Old[abs(di).astype(int):,:]
-    elif np.sign(di)==1: # extend array by simple copy of border values
-        Old = np.concatenate((np.repeat(np.expand_dims(Old[0,:], axis = 1).T,
-                                        abs(di), axis=0), Old), axis = 0)
+    if np.sign(di) == -1:  # reduce array
+        Old = Old[abs(di).astype(int):, :]
+    elif np.sign(di) == 1:  # extend array by simple copy of border values
+        Old = np.concatenate((np.repeat(
+            np.expand_dims(Old[0, :], axis=1).T, abs(di), axis=0), Old),
+                             axis=0)
 
     # as they are now alligned, look at the lower right corner
-    di,dj = rows_new - Old.shape[0], cols_new - Old.shape[1]
+    di, dj = rows_new - Old.shape[0], cols_new - Old.shape[1]
 
-    if np.sign(dj)==-1: # reduce array
-        Old = Old[:,:dj]
-    elif np.sign(dj)==1: # extend array by simple copy of border values
-        Old = np.concatenate((np.repeat(Old, np.expand_dims(Old[:,-1], axis=1),
-                                        abs(dj), axis=1)), axis = 1)
+    if np.sign(dj) == -1:  # reduce array
+        Old = Old[:, :dj]
+    elif np.sign(dj) == 1:  # extend array by simple copy of border values
+        Old = np.concatenate((np.repeat(
+            Old, np.expand_dims(Old[:, -1], axis=1), abs(dj), axis=1)),
+                             axis=1)
 
-    if np.sign(di)==-1: # reduce array
-        Old = Old[:di,:]
-    elif np.sign(di)==1: # extend array by simple copy of border values
-        Old = np.concatenate((np.repeat(Old, np.expand_dims(Old[-1,:], axis=1).T,
-                                        abs(di), axis=0)), axis = 0)
+    if np.sign(di) == -1:  # reduce array
+        Old = Old[:di, :]
+    elif np.sign(di) == 1:  # extend array by simple copy of border values
+        Old = np.concatenate((np.repeat(
+            Old, np.expand_dims(Old[-1, :], axis=1).T, abs(di), axis=0)),
+                             axis=0)
 
     New = Old
     return New
 
-def create_offset_grid(I, dx, dy, geoTransform):
+
+def create_offset_grid(Z, dx, dy, geoTransform):
     geoTransform = correct_geoTransform(geoTransform)
     dx, dy = correct_floating_parameter(dx), correct_floating_parameter(dy)
     di, dj = vel2pix(geoTransform, dx, dy)
-    if len(geoTransform)==8: # sometimes the image dimensions are also included
+    if len(geoTransform) == 8:
+        # sometimes the image dimensions are also included
         mI, nI = geoTransform[-2], geoTransform[-1]
     else:
-        mI, nI = I.shape[0:2]
-    dI_grd, dJ_grd = np.meshgrid(np.linspace(0, mI-1, mI)+di,
-                                 np.linspace(0, nI-1, nI)+dj, indexing='ij')
+        mI, nI = Z.shape[0:2]
+    dI_grd, dJ_grd = np.meshgrid(np.linspace(0, mI - 1, mI) + di,
+                                 np.linspace(0, nI - 1, nI) + dj,
+                                 indexing='ij')
     return dI_grd, dJ_grd

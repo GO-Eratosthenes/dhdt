@@ -11,30 +11,27 @@ The following acronyms are used:
 - WKT : well known text
 """
 import os
+
 import geopandas as gpd
-
 import numpy as np
-from shapely import wkt
-
-from shapely.geometry import Polygon, MultiPolygon
 from fiona.drvsupport import supported_drivers
+from shapely import wkt
+from shapely.geometry import MultiPolygon, Polygon
 
 from dhdt.generic.handler_www import get_file_from_www
 from dhdt.generic.unit_check import check_mgrs_code
 
 supported_drivers['KML'] = 'rw'
 
-MGRS_TILING_URL = (
-    "https://sentinels.copernicus.eu/documents/247904/1955685/"
-    "S2A_OPER_GIP_TILPAR_MPC__20151209T095117_V20150622T000000"
-    "_21000101T000000_B00.kml"
-)
+MGRS_TILING_URL = ("https://sentinels.copernicus.eu/documents/247904/1955685/"
+                   "S2A_OPER_GIP_TILPAR_MPC__20151209T095117_V20150622T000000"
+                   "_21000101T000000_B00.kml")
 
 MGRS_TILING_FILENAME = 'sentinel2_tiles_world.geojson'
 MGRS_TILING_DIR_DEFAULT = os.path.join('.', 'data', 'MGRS')
 
-def download_mgrs_tiling(tile_dir=None, tile_file=None,
-                         overwrite=False):
+
+def download_mgrs_tiling(tile_dir=None, tile_file=None, overwrite=False):
     """
     Retrieve MGRS tiling polygons, and extract geometries to a vector file (by
     default GeoJSON)
@@ -62,7 +59,7 @@ def download_mgrs_tiling(tile_dir=None, tile_file=None,
     References
     ----------
     .. [1] https://sentinels.copernicus.eu/web/sentinel/missions/sentinel-2/data-products
-    """
+    """  # noqa: E501
 
     tile_dir = MGRS_TILING_DIR_DEFAULT if tile_dir is None else tile_dir
     tile_file = MGRS_TILING_FILENAME if tile_file is None else tile_file
@@ -76,6 +73,7 @@ def download_mgrs_tiling(tile_dir=None, tile_file=None,
         gdf = _kml_to_gdf(os.path.join(tile_dir, f_kml))
         gdf.to_file(tile_path)
     return tile_path
+
 
 def _kml_to_gdf(tile_path):
     """
@@ -106,6 +104,7 @@ def _kml_to_gdf(tile_path):
 
     return gdf_out
 
+
 def get_geom_for_tile_code(tile_code, tile_path=None):
     """
     Get the geometry of a certain MGRS tile
@@ -123,9 +122,7 @@ def get_geom_for_tile_code(tile_code, tile_path=None):
         Geometry of the MGRS tile, in lat/lon
     """
     if tile_path is None:
-        tile_path = os.path.join(
-            MGRS_TILING_DIR_DEFAULT, MGRS_TILING_FILENAME
-        )
+        tile_path = os.path.join(MGRS_TILING_DIR_DEFAULT, MGRS_TILING_FILENAME)
 
     tile_code = check_mgrs_code(tile_code)
 
@@ -141,6 +138,7 @@ def get_geom_for_tile_code(tile_code, tile_path=None):
         raise ValueError('MGRS tile code does not seem to exist')
 
     return geom.unary_union
+
 
 def get_bbox_from_tile_code(tile_code, tile_path=None):
     """
@@ -164,6 +162,7 @@ def get_bbox_from_tile_code(tile_code, tile_path=None):
     toi = geom.bounds
     bbox = np.array([toi[0], toi[2], toi[1], toi[3]])
     return bbox
+
 
 def get_tile_codes_from_geom(geom, tile_path=None):
     """
@@ -189,9 +188,7 @@ def get_tile_codes_from_geom(geom, tile_path=None):
     """
 
     if tile_path is None:
-        tile_path = os.path.join(
-            MGRS_TILING_DIR_DEFAULT, MGRS_TILING_FILENAME
-        )
+        tile_path = os.path.join(MGRS_TILING_DIR_DEFAULT, MGRS_TILING_FILENAME)
 
     # If a wkt str, convert to shapely geometry
     if isinstance(geom, str):
@@ -210,6 +207,7 @@ def get_tile_codes_from_geom(geom, tile_path=None):
 
     return codes
 
+
 def _mgrs_to_search_geometry(tile_code):
     """
     Get a geometry from the tile code. The search geometry is a 6-deg longitude
@@ -227,8 +225,8 @@ def _mgrs_to_search_geometry(tile_code):
         geometry to restrict the search area
     """
     nr_lon = int(tile_code[0:2])  # first two letters indicates longitude range
-    min_lon = -180.+(nr_lon-1)*6.
-    max_lon = -180.+nr_lon*6.
+    min_lon = -180. + (nr_lon - 1) * 6.
+    max_lon = -180. + nr_lon * 6.
     geom = Polygon.from_bounds(min_lon, -90.0, max_lon, 90.0)
     extra = None
     if nr_lon == 1:

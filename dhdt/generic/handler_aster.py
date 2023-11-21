@@ -1,8 +1,10 @@
 import os
 import warnings
+
 import pandas as pd
 
 from dhdt.generic.handler_dat import get_list_files
+
 
 def list_platform_metadata_tr():
     as_dict = {
@@ -12,19 +14,21 @@ def list_platform_metadata_tr():
         'constellation': 'terra',
         'launch_date': '+1999-12-18',
         'orbit': 'sso',
-        'mass': 4864., # [kg]
-        'inclination': 98.1054, # https://www.n2yo.com/satellite/?s=25994
+        'mass': 4864.,  # [kg]
+        'inclination': 98.1054,  # https://www.n2yo.com/satellite/?s=25994
         'equatorial_crossing_time': '10:30'
-        }
+    }
     return as_dict
 
+
 def in_which_spectral_range(wavelength):
-    if wavelength<1000:
+    if wavelength < 1000:
         return 'vnir'
-    if wavelength<3000:
+    if wavelength < 3000:
         return 'swir'
     else:
         return 'tir'
+
 
 def get_as_image_locations(f_path, as_df):
     """
@@ -39,8 +43,8 @@ def get_as_image_locations(f_path, as_df):
 
     Notes
     -----
-    The file structure of ASTER can be in different forms. For L1A in tif-format
-    this looks like:
+    The file structure of ASTER can be in different forms. For L1A in
+    tif-format this looks like:
 
     .. code-block:: text
 
@@ -73,26 +77,27 @@ def get_as_image_locations(f_path, as_df):
         └ data1.l3a.vnir3n.tif
 
     """
-    if os.path.isdir(f_path): # level-3 data is in a folder
+    if os.path.isdir(f_path):  # level-3 data is in a folder
         file_list = get_list_files(f_path, '.tif')
         if file_list[0].startswith('data1.l3a'):
             as_df_new = get_as_image_locations_l3(f_path, as_df)
     as_df_new = get_as_image_locations_l1(f_path, as_df)
     return as_df_new
 
+
 def get_as_image_locations_l1(f_path, as_df):
     assert os.path.isdir(f_path), 'directory does not seem to exist'
 
     im_paths, band_id = [], []
     if f_path.endswith('.hdf'):
-        for i,_ in as_df.iterrows():
+        for i, _ in as_df.iterrows():
             im_paths.append(f_path)
             band_id.append(i)
     else:
-        for i,_ in as_df.iterrows():
+        for i, _ in as_df.iterrows():
             ending = 'Band' + i[1:].lstrip('0') + '.ImageData.tif'
             as_list = get_list_files(f_path, ending)
-            if len(as_list)==1:
+            if len(as_list) == 1:
                 im_paths.append(os.path.join(f_path, as_list[0]))
                 band_id.append(i)
             else:
@@ -101,6 +106,7 @@ def get_as_image_locations_l1(f_path, as_df):
     band_path = pd.Series(data=im_paths, index=band_id, name="filepath")
     as_df_new = pd.concat([as_df, band_path], axis=1, join="inner")
     return as_df_new
+
 
 def get_as_image_locations_l3(f_path, as_df):
     """
@@ -154,10 +160,10 @@ def get_as_image_locations_l3(f_path, as_df):
     for i, row in as_df.iterrows():
         spec_type = in_which_spectral_range(row['center_wavelength'])
         bid = i[1:]
-        if bid[-1] in ('N',):
-            f_name = 'data1.l3a.'+spec_type+'3n.tif'
+        if bid[-1] in ('N', ):
+            f_name = 'data1.l3a.' + spec_type + '3n.tif'
         else:
-            f_name = 'data1.l3a.'+spec_type+str(int(bid))+'.tif'
+            f_name = 'data1.l3a.' + spec_type + str(int(bid)) + '.tif'
 
         f_full = os.path.join(f_path, f_name)
         assert os.path.isfile(f_full), \

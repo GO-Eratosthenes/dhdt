@@ -2,6 +2,7 @@ import numpy as np
 
 from dhdt.preprocessing.image_transforms import mat_to_gray
 
+
 def get_temporal_incidence_matrix(T_1, T_2, T_step, open_network=True):
     """
 
@@ -35,7 +36,7 @@ def get_temporal_incidence_matrix(T_1, T_2, T_step, open_network=True):
               using temporal closure of fractions of displacements", IEEE
               geoscience and remote sensing letters, vol.19 pp.1-5, 2022.
     """
-    m, n = T_1.size, T_step.size-1
+    m, n = T_1.size, T_step.size - 1
 
     # convert to integer values, at daily resolution
     T_1 = T_1.astype('datetime64[D]').astype(int)
@@ -44,13 +45,12 @@ def get_temporal_incidence_matrix(T_1, T_2, T_step, open_network=True):
     T_start, T_end = T_int[:-1], T_int[1:]
     dT_step = np.diff(T_int)
 
-    A_start, A_end = np.tile(T_start, (m,1)), np.tile(T_end, (m,1))
-    A_step = np.tile(dT_step, (m,1))
-    dT_start = np.tile(np.atleast_2d(T_2).T, (1,n)) - A_start
+    A_start, A_end = np.tile(T_start, (m, 1)), np.tile(T_end, (m, 1))
+    A_step = np.tile(dT_step, (m, 1))
+    dT_start = np.tile(np.atleast_2d(T_2).T, (1, n)) - A_start
     dT_end = A_end - np.tile(np.atleast_2d(T_1).T, (1, n))
 
-    OUT = np.logical_or(np.sign(dT_start) == -1,
-                        np.sign(dT_end) == -1)
+    OUT = np.logical_or(np.sign(dT_start) == -1, np.sign(dT_end) == -1)
     np.putmask(dT_start, OUT, 0.)
     np.putmask(dT_end, OUT, 0.)
 
@@ -59,12 +59,13 @@ def get_temporal_incidence_matrix(T_1, T_2, T_step, open_network=True):
 
     if open_network:
         dT_end = A_step - dT_end
-        np.putmask(dT_end, dT_end==A_step, 0)
-        A = np.divide(dT_start-dT_end, A_step)
+        np.putmask(dT_end, dT_end == A_step, 0)
+        A = np.divide(dT_start - dT_end, A_step)
     else:
-        IN = np.logical_and(dT_start==A_step, dT_end==A_step)
+        IN = np.logical_and(dT_start == A_step, dT_end == A_step)
         A = IN.astype(float)
     return A
+
 
 def get_temporal_weighting(T_1, T_2, covariance=False, corr_coef=.5):
     """
@@ -97,19 +98,20 @@ def get_temporal_weighting(T_1, T_2, covariance=False, corr_coef=.5):
     T_2 = T_2.astype('datetime64[D]').astype(int)
 
     m = T_1.size
-    W = np.zeros((m,m), dtype=float)
+    W = np.zeros((m, m), dtype=float)
     dT = T_2 - T_1
-    dT = mat_to_gray(dT, vmin=0.1) # normalize weights to 0.1 ... 1.0
+    dT = mat_to_gray(dT, vmin=0.1)  # normalize weights to 0.1 ... 1.0
     np.fill_diagonal(W, dT)
 
     if covariance:
         instances = np.unique(np.stack((T_1, T_2)))
         for instance in instances:
-            i, j = np.where(T_1==instance)[0], np.where(T_2==instance)[0]
-            ij = np.concatenate([np.atleast_1d(i),np.atleast_1d(j)])
-            if ij.size>1:
-                I,J = np.meshgrid(ij,ij)
-                I,J = I.flatten(), J.flatten()
+            i, j = np.where(T_1 == instance)[0], np.where(T_2 == instance)[0]
+            ij = np.concatenate([np.atleast_1d(i), np.atleast_1d(j)])
+            if ij.size > 1:
+                I, J = np.meshgrid(ij, ij)
+                I, J = I.flatten(), J.flatten()
                 for c in range(I.size):
-                    if I[c]!=J[c]: W[I[c],J[c]] = corr_coef
+                    if I[c] != J[c]:
+                        W[I[c], J[c]] = corr_coef
     return W

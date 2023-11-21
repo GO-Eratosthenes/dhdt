@@ -9,10 +9,10 @@ import os
 
 import numpy as np
 
-from dhdt.auxilary.handler_mgrs import download_mgrs_tiling
-from dhdt.auxilary.handler_randolph import create_rgi_tile_s2
-from dhdt.auxilary.handler_copernicusdem import make_copDEM_mgrs_tile
-from dhdt.auxilary.handler_era5 import get_era5_atmos_profile
+from dhdt.auxiliary.handler_mgrs import download_mgrs_tiling
+from dhdt.auxiliary.handler_randolph import create_rgi_tile_s2
+from dhdt.auxiliary.handler_copernicusdem import make_copDEM_mgrs_tile
+from dhdt.auxiliary.handler_era5 import get_era5_atmos_profile
 
 from dhdt.generic.handler_stac import read_stac_catalog
 from dhdt.generic.mapping_io import read_geo_image
