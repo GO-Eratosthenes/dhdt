@@ -1,12 +1,36 @@
 import numpy as np
 
-from dhdt.generic.data_tools import s_curve
+from inspect import signature
 
+from ..generic.data_tools import s_curve
 from ..generic.unit_check import are_three_arrays_equal, are_two_arrays_equal
 from .color_transforms import (erdas2hsi, lab2lch, lms2lab, rgb2hcv, rgb2hsi,
                                rgb2lms, rgb2xyz, rgb2ycbcr, rgb2yiq, xyz2lab)
 from .multispec_transforms import (pca_rgb_preparation,
                                    principle_component_analysis)
+
+
+def _get_shadow_transforms():
+    methods_dict = {
+        'siz': 'shadow index first version',
+        'isi': 'improved shadow index',
+        'sei': 'shadow enhancement index',
+        'fcsdi': 'false color shadow difference index',
+        'csi': 'combinational shadow index',
+        'nsvdi': 'normalized saturation value difference index',
+        'sil': 'shadow index second',
+        'sr': 'specthem ratio',
+        'sdi': 'shadow detector index',
+        'sisdi': 'saturation intensity shadow detector index',
+        'mixed': 'mixed property based shadow index',
+        'msf': 'modified shadow fraction',
+        'c3': 'color invariant',
+        'entropy': 'entropy shade removal',
+        'shi': 'shade index',
+        'sp': 'shadow probabilities',
+        'nri': 'normalized range shadow index'
+    }
+    return methods_dict
 
 
 def apply_shadow_transform(method, Blue, Green, Red, RedEdge, Near, Shw,
@@ -62,6 +86,9 @@ def apply_shadow_transform(method, Blue, Green, Red, RedEdge, Near, Shw,
         reads the specific bands given
     """
     method = method.lower()
+    methods = _get_shadow_transforms()
+    assert method in list(methods.keys()), \
+        'please provide correct method string'
 
     if method == 'siz':
         M = shadow_index_zhou(Blue, Green, Red)
@@ -86,20 +113,22 @@ def apply_shadow_transform(method, Blue, Green, Red, RedEdge, Near, Shw,
     elif method == 'mixed':
         M = mixed_property_based_shadow_index(Blue, Green, Red)
     elif method == 'msf':
-        p_s = kwargs['P_S'] if 'P_S' in kwargs else .95
+        p_s = kwargs['P_S']
+        if p_s is None:
+            p_s = signature(modified_shadow_fraction).parameters['p_s'].default
         M = modified_shadow_fraction(Blue, Green, Red, P_S=p_s)
     elif method == 'c3':
         M = color_invariant(Blue, Green, Red)
     elif method == 'entropy':
-        a = kwargs['a'] if 'a' in kwargs else 138.
+        a = kwargs['a']
+        if a is None:
+            a = signature(entropy_shade_removal).parameters['a'].default
         M, R = entropy_shade_removal(Green, Red, Near, a=a)
         return M, R
     elif method == 'shi':
         M = shade_index(Blue, Green, Red, Near)
     elif method == 'sp':
-        ae = kwargs['ae'] if 'ae' in kwargs else 1e+1
-        be = kwargs['be'] if 'be' in kwargs else 5e-1
-        M = shadow_probabilities(Blue, Green, Red, Near, ae=ae, be=be)
+        M = shadow_probabilities(Blue, Green, Red, Near, **kwargs)
     elif method in (
             'nri',
             'normalized_range_shadow_index',
@@ -220,6 +249,8 @@ def modified_shadow_fraction(Blue, Green, Red, P_S=.95):
         green band of satellite image
     Red : numpy.ndarray, size=(m,n)
         red band of satellite image
+    P_S: float, range=0...1
+        threshold value for classification, based on the quantile
 
     Returns
     -------
@@ -243,7 +274,7 @@ def modified_shadow_fraction(Blue, Green, Red, P_S=.95):
     T_S = np.quantile(r, P_S)
     sig = np.std(r)
 
-    SF = np.exp(-np.divide((r - T_S)**2, 4 * sig))
+    SF = np.exp(-np.divide((r - T_S) ** 2, 4 * sig))
     np.putmask(SF, SF >= T_S, 1.)
     return SF
 
@@ -520,7 +551,7 @@ def normalized_difference_water_index(Green, Near):
     return NDWI
 
 
-def modified_normalized_difference_water_index(Green, Short):
+def modified_normalized_difference_water_index(Green, Shortwave):
     """transform green and shortwave infrared arrays to modified NDW-index.
     See also [Xu06]_.
 
@@ -550,17 +581,17 @@ def modified_normalized_difference_water_index(Green, Short):
               International journal of remote sensing, vol.27(14) pp.3025–3033,
               2006.
     """
-    are_two_arrays_equal(Green, Short)
+    are_two_arrays_equal(Green, Shortwave)
 
-    denom = (Green + Short)
-    MNDWI = np.divide((Green - Short),
+    denom = (Green + Shortwave)
+    MNDWI = np.divide((Green - Shortwave),
                       denom,
                       out=np.zeros_like(denom),
                       where=denom != 0)
     return MNDWI
 
 
-def normalized_difference_moisture_index(Near, Short):
+def normalized_difference_moisture_index(Near, Shortwave):
     """transform near and shortwave infrared arrays to NDM-index.
     See also [Wi02]_.
 
@@ -588,10 +619,10 @@ def normalized_difference_moisture_index(Near, Short):
               Landsat TM imagery" Remote sensing of environment, vol.80
               pp.385–396, 2002.
     """
-    are_two_arrays_equal(Near, Short)
+    are_two_arrays_equal(Near, Shortwave)
 
-    denom = (Near + Short)
-    NDMI = np.divide((Near - Short),
+    denom = (Near + Shortwave)
+    NDMI = np.divide((Near - Shortwave),
                      denom,
                      out=np.zeros_like(denom),
                      where=denom != 0)
@@ -1052,8 +1083,8 @@ def entropy_shade_removal(Ia, Ib, Ic, a=None):
         lower frequency band of satellite image
     Ic : numpy.array, size=(m,n)
         lowest frequency band of satellite image
-    a : float, default=-1
-        angle to use [in degrees]
+    a : float, default=-1, unit=degrees
+        angle of the coordinate rotation
 
     Returns
     -------
@@ -1218,7 +1249,7 @@ def fractional_range_shadow_index(*args):
     return SI
 
 
-def shadow_probabilities(Blue, Green, Red, Near, ae=1e+1, be=5e-1):
+def shadow_probabilities(Blue, Green, Red, Near, **kwargs):
     """transform blue, green, red and near infrared to shade probabilities, see
     also [FS10] and [Rü13].
 
@@ -1250,6 +1281,13 @@ def shadow_probabilities(Blue, Green, Red, Near, ae=1e+1, be=5e-1):
     are_three_arrays_equal(Blue, Green, Red)
     are_two_arrays_equal(Blue, Near)
 
+    ae = kwargs.get('ae')
+    if ae is None:
+        ae = signature(s_curve).parameters['ae'].default
+    be = kwargs.get('ae')
+    if be is None:
+        be = signature(s_curve).parameters['be'].default
+
     Fk = np.amax(np.stack((Red, Green, Blue), axis=2), axis=2)
     F = np.divide(np.clip(Fk, 0, 2), 2)  # (10) in [FS10]
     L = np.divide(Red + Green + Blue, 3)  # (4) in [FS10]
@@ -1262,7 +1300,6 @@ def shadow_probabilities(Blue, Green, Red, Near, ae=1e+1, be=5e-1):
 
     M = np.multiply(D, (1 - F))
     return M
-
 
 # recovery - normalized color composite
 

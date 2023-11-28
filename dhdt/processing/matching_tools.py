@@ -72,7 +72,7 @@ def get_integer_peak_location(C, metric=None):
     C = np.atleast_2d(C)
     max_corr = np.argmax(C)
 
-    ij = np.unravel_index(max_corr, C.shape, order='F') # 'C'
+    ij = np.unravel_index(max_corr, C.shape, order='F')  # 'C'
     if C.ndim >= 3: ij = ij[:2]
     di, dj = ij[::-1]
     di -= C.shape[0] // 2
@@ -160,12 +160,12 @@ def get_template(Z, idx_1, idx_2, radius):
         array with Gaussian peak in the center
     """
     sub_idx = np.mgrid[idx_1 - radius:idx_1 + radius + 1,
-                       idx_2 - radius:idx_2 + radius + 1]
+              idx_2 - radius:idx_2 + radius + 1]
 
     sub_ids = np.ravel_multi_index(np.vstack(
         (sub_idx[0].flatten(), sub_idx[1].flatten())),
-                                   Z.shape,
-                                   mode='clip')
+        Z.shape,
+        mode='clip')
     Z_sub = np.take(Z, sub_ids, mode='clip')
     Z_sub = np.reshape(Z_sub, (2 * radius + 1, 2 * radius + 1))
     return Z_sub
@@ -275,7 +275,7 @@ def pad_radius(Z, radius, cval=0):
         data array
     radius : {positive integer, tuple}
         extra boundary to be added to the data array
-    cval = {integer, flaot}
+    cval : {integer, flaot}
         conastant value to be used in the padding region
 
     Returns
@@ -284,12 +284,12 @@ def pad_radius(Z, radius, cval=0):
         extended data array
     """
     assert type(Z) in (np.ma.core.MaskedArray, np.ndarray), \
-        ("please provide an array")
+        "please provide an array"
     if not type(radius) is tuple:
         radius = (radius, radius)
 
     if Z.ndim == 3:
-        if type(Z) in (np.ma.core.MaskedArray, ):
+        if type(Z) in (np.ma.core.MaskedArray,):
             Z_xtra = np.ma.array(np.pad(Z, ((radius[0], radius[1]),
                                             (radius[0], radius[1]), (0, 0)),
                                         'constant',
@@ -305,7 +305,7 @@ def pad_radius(Z, radius, cval=0):
                         'constant',
                         constant_values=cval)
         return Z_xtra
-    if type(Z) in (np.ma.core.MaskedArray, ):
+    if type(Z) in (np.ma.core.MaskedArray,):
         Z_xtra = np.ma.array(np.pad(Z, ((radius[0], radius[1]),
                                         (radius[0], radius[1])),
                                     'constant',
@@ -372,9 +372,9 @@ def prepare_grids(im_stack, ds, cval=0):
 
 def make_templates_same_size(I1, I2):
     assert type(I1) in (np.ma.core.MaskedArray, np.ndarray), \
-        ("please provide an array")
+        "please provide an array"
     assert type(I2) in (np.ma.core.MaskedArray, np.ndarray), \
-        ("please provide an array")
+        "please provide an array"
 
     mt, nt = I1.shape[0], I1.shape[1]  # dimenstion of the template
     ms, ns = I2.shape[0], I2.shape[1]  # dimension of the search space
@@ -423,7 +423,7 @@ def remove_posts_outside_image(Z, i, j):
     --------
     remove_posts_pairs_outside_image
     """
-    assert Z.ndim >= 2, ('please provide an 2D array')
+    assert Z.ndim >= 2, 'please provide an 2D array'
 
     IN = np.logical_and.reduce((i >= 0, i < (Z.shape[0] - 1), j >= 0, j
                                 < (Z.shape[1] - 1)))
@@ -454,8 +454,8 @@ def remove_posts_pairs_outside_image(I1, i1, j1, I2, i2, j2):
     --------
     remove_posts_outside_image
     """
-    assert I1.ndim >= 2, ('please provide I1 as an 2D array')
-    assert I2.ndim >= 2, ('please provide I2 as an 2D array')
+    assert I1.ndim >= 2, 'please provide I1 as an 2D array'
+    assert I2.ndim >= 2, 'please provide I2 as an 2D array'
 
     IN = np.logical_and.reduce(
         (i1 >= 0, i1 < (I1.shape[0] - 1), j1 >= 0, j1 < (I1.shape[1] - 1), i2
@@ -495,10 +495,10 @@ def reposition_templates_from_center(I1, I2, di, dj):
 
     if I1.ndim == 3:
         I2sub = I2[mc - (mt // 2) - di:mc + (mt // 2) - di,
-                   nc - (nt // 2) - dj:nc + (nt // 2) - dj, :]
+                nc - (nt // 2) - dj:nc + (nt // 2) - dj, :]
     else:
         I2sub = I2[mc - (mt // 2) - di:mc + (mt // 2) - di,
-                   nc - (nt // 2) - dj:nc + (nt // 2) - dj]
+                nc - (nt // 2) - dj:nc + (nt // 2) - dj]
     return I1, I2sub
 
 
@@ -557,7 +557,7 @@ def get_coordinates_of_template_centers(Grid, temp_size):
 
     radius = np.floor(temp_size / 2).astype('int')
     I_idx, J_idx = np.mgrid[radius:(m - radius):temp_size,
-                            radius:(n - radius):temp_size]
+                   radius:(n - radius):temp_size]
     return I_idx, J_idx
 
 
@@ -586,7 +586,7 @@ def get_value_at_template_centers(Grid, temp_size):
     assert isinstance(temp_size, int), "please provide an integer"
 
     Iidx, Jidx = get_coordinates_of_template_centers(Grid, temp_size)
-    if (Grid.ndim == 3):
+    if Grid.ndim == 3:
         m, n = Iidx.shape
         b = Grid.shape[2]
         Iidx = np.tile(np.atleast_3d(Iidx), (1, 1, b))
